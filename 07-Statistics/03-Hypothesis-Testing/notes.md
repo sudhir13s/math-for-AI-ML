@@ -1,8 +1,8 @@
+# Hypothesis Testing
+
 [← Back to Chapter 7: Statistics](../README.md) | [Next: Bayesian Inference →](../04-Bayesian-Inference/notes.md)
 
 ---
-
-# Hypothesis Testing
 
 > _"To call in the statistician after the experiment is done may be no more than asking him to perform a post-mortem examination: he may be able to say what the experiment died of."_
 > — Sir Ronald A. Fisher, *Presidential Address to the First Indian Statistical Congress* (1938)

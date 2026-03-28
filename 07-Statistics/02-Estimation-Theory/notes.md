@@ -1,8 +1,8 @@
+# Estimation Theory
+
 [← Back to Chapter 7: Statistics](../README.md) | [Next: Hypothesis Testing →](../03-Hypothesis-Testing/notes.md)
 
 ---
-
-# Estimation Theory
 
 > _"The problem of statistical estimation is one of the most fundamental in all of science: given observations drawn from some unknown process, what can we infer about that process?"_
 > — Sir Ronald A. Fisher, *Statistical Methods and Scientific Inference* (1956)

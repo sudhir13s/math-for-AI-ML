@@ -1,8 +1,8 @@
+# Descriptive Statistics
+
 [← Back to Chapter 7: Statistics](../README.md) | [Next: Estimation Theory →](../02-Estimation-Theory/notes.md)
 
 ---
-
-# Descriptive Statistics
 
 > _"The first step in wisdom is knowing what you don't know — and in statistics, that begins by knowing what your data actually looks like."_
 > — John Tukey

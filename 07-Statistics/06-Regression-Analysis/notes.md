@@ -1,8 +1,8 @@
+# Regression Analysis
+
 [← Back to Chapter 7: Statistics](../README.md) | [Next Chapter: Optimization →](../../08-Optimization/README.md)
 
 ---
-
-# Regression Analysis
 
 > _"All models are wrong, but some are useful."_
 > - George E. P. Box
@@ -1878,16 +1878,16 @@ Regression is where those threads become the standard language of supervised pre
 
 ## References
 
-1. Hastie, Trevor, Robert Tibshirani, and Jerome Friedman. *The Elements of Statistical Learning*. Springer.
-2. Weisberg, Sanford. *Applied Linear Regression*. Wiley.
-3. Montgomery, Douglas C., Elizabeth A. Peck, and G. Geoffrey Vining. *Introduction to Linear Regression Analysis*. Wiley.
-4. Gelman, Andrew, Jennifer Hill, and Aki Vehtari. *Regression and Other Stories*. Cambridge University Press.
-5. Kutner, Michael H., Christopher Nachtsheim, John Neter, and William Li. *Applied Linear Statistical Models*. McGraw-Hill.
+1. Hastie, Trevor, Robert Tibshirani, and Jerome Friedman. _The Elements of Statistical Learning_. Springer.
+2. Weisberg, Sanford. _Applied Linear Regression_. Wiley.
+3. Montgomery, Douglas C., Elizabeth A. Peck, and G. Geoffrey Vining. _Introduction to Linear Regression Analysis_. Wiley.
+4. Gelman, Andrew, Jennifer Hill, and Aki Vehtari. _Regression and Other Stories_. Cambridge University Press.
+5. Kutner, Michael H., Christopher Nachtsheim, John Neter, and William Li. _Applied Linear Statistical Models_. McGraw-Hill.
 6. Berkeley Stat 153 course notes on multiple linear regression, Spring 2026 edition.
 7. Gregorka B. K. linear-model course materials for STAT 714, University of South Carolina, 2023.
 8. MIT lecture notes on logistic regression from 15.075, 2003 edition.
 9. Geyer, Charles. University of Minnesota notes on generalized linear models.
-10. Tibshirani, Robert. "Regression Shrinkage and Selection via the Lasso." *Journal of the Royal Statistical Society, Series B* (1996).
-11. Hoerl, Arthur E., and Robert W. Kennard. "Ridge Regression: Biased Estimation for Nonorthogonal Problems." *Technometrics* (1970).
-12. Nelder, John A., and Robert W. M. Wedderburn. "Generalized Linear Models." *Journal of the Royal Statistical Society, Series A* (1972).
-13. Cook, R. Dennis. "Detection of Influential Observation in Linear Regression." *Technometrics* (1977).
+10. Tibshirani, Robert. "Regression Shrinkage and Selection via the Lasso." _Journal of the Royal Statistical Society, Series B_ (1996).
+11. Hoerl, Arthur E., and Robert W. Kennard. "Ridge Regression: Biased Estimation for Nonorthogonal Problems." _Technometrics_ (1970).
+12. Nelder, John A., and Robert W. M. Wedderburn. "Generalized Linear Models." _Journal of the Royal Statistical Society, Series A_ (1972).
+13. Cook, R. Dennis. "Detection of Influential Observation in Linear Regression." _Technometrics_ (1977).

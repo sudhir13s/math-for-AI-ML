@@ -1,11 +1,11 @@
+# Bayesian Inference
+
 [← Back to Chapter 7: Statistics](../README.md) | [Next: Time Series →](../05-Time-Series/notes.md)
 
 ---
 
-# Bayesian Inference
-
 > _"Probability theory is nothing but common sense reduced to calculation."_
-> - Pierre-Simon Laplace
+> — Pierre-Simon Laplace
 
 ## Overview
 
@@ -229,6 +229,7 @@ Common non-examples:
 | 2016 | Gal and Ghahramani | MC dropout interpreted as approximate Bayesian inference |
 | 2019 | Maddox et al. | SWAG provides a scalable uncertainty baseline from SGD iterates |
 | 2020s | Wide ecosystem | Bayesian calibration, active learning, approximate posterior methods, and probabilistic decision systems become mainstream in AI practice |
+
 Two themes run through this history.
 
 First, Bayesian inference was conceptually elegant long before it was computationally convenient. For simple conjugate models, the algebra is beautiful. For realistic hierarchical or nonconjugate models, the posterior often contains high-dimensional integrals that were historically intractable.
@@ -274,7 +275,8 @@ Each term has a distinct mathematical role.
 - The **prior** $p(\theta)$ encodes uncertainty about the parameter before observing the current dataset.
 - The **likelihood** $p(\mathcal{D} \mid \theta)$ measures how compatible the observed data are with a candidate parameter value.
 - The **posterior** $p(\theta \mid \mathcal{D})$ is the updated distribution after combining prior information with data.
-- The **evidence** or **marginal likelihood** $p(\mathcal{D})$ normalizes the posterior and is obtained by integrating out the parameter:
+- The **evidence** or **marginal likelihood** $p(\mathcal{D})$ normalizes the posterior and is obtained by integrating out the parameter.
+
 $$
 p(\mathcal{D}) = \int p(\mathcal{D} \mid \theta)\, p(\theta)\, d\theta.
 $$
@@ -651,11 +653,7 @@ Interpretation:
 
 - $\alpha$ acts like prior event mass
 - $\beta$ acts like prior exposure
-- posterior mean is
-$$
-\mathbb{E}[\lambda \mid \mathcal{D}] = \frac{\alpha+\sum_i x_i}{\beta+n}
-$$
-which blends prior rate and observed average count
+- posterior mean: $\mathbb{E}[\lambda \mid \mathcal{D}] = \frac{\alpha+\sum_i x_i}{\beta+n}$, which blends prior rate and observed average count
 
 Applications include event-frequency modeling, request-rate monitoring, failure counts, and token-count processes in simplified probabilistic language settings.
 
@@ -1815,10 +1813,12 @@ Non-examples:
 1. not every optimizer trick has a clean Bayesian meaning
 2. saying "Bayesian" does not remove the need to validate adaptation behavior empirically
 
+**LoRA and DoRA as structured priors.** Low-Rank Adaptation (LoRA) constrains weight updates to a low-rank subspace: $\Delta W = BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, $r \ll \min(d,k)$. From a Bayesian perspective, this is a structured prior that places all probability mass on rank-$r$ updates, encoding the belief that fine-tuning should perturb the pretrained representation along only a few informative directions. DoRA (Weight-Decomposed Low-Rank Adaptation) further decomposes updates into magnitude and direction components, which can be read as placing independent priors on scale and orientation. Neither method propagates full posterior uncertainty over weights, but both encode prior beliefs about adaptation geometry in a way that pure optimization language obscures.
+
 The Bayesian view is most useful when it changes design decisions. For example:
 
-- Should the prior be centered at zero or at pretrained weights?
-- Should updates be globally isotropic or structured by layer and task?
+- Should the prior be centered at zero or at pretrained weights? (LoRA centers at zero; a Bayesian treatment might center at the pretrained value with tight scale.)
+- Should updates be globally isotropic or structured by layer and task? (DoRA's magnitude–direction decomposition suggests direction-specific priors.)
 - Should uncertainty be propagated into predictions after fine-tuning?
 - Should low-rank adaptation be interpreted as a computational constraint, a prior belief, or both?
 
@@ -1993,18 +1993,18 @@ That perspective will keep returning. Whenever a later chapter asks us to choose
 
 ## References
 
-1. Gelman, A., Carlin, J., Stern, H., Dunson, D., Vehtari, A., and Rubin, D. *Bayesian Data Analysis*. CRC Press.
-2. Murphy, K. P. *Machine Learning: A Probabilistic Perspective*. MIT Press.
-3. Bishop, C. M. *Pattern Recognition and Machine Learning*. Springer.
-4. Bernardo, J. M., and Smith, A. F. M. *Bayesian Theory*. Wiley.
-5. Robert, C., and Casella, G. *Monte Carlo Statistical Methods*. Springer.
-6. Blei, D. M., Kucukelbir, A., and McAuliffe, J. D. "Variational Inference: A Review for Statisticians." *JASA* (2017).
+1. Gelman, A., Carlin, J., Stern, H., Dunson, D., Vehtari, A., and Rubin, D. _Bayesian Data Analysis_. CRC Press.
+2. Murphy, K. P. _Machine Learning: A Probabilistic Perspective_. MIT Press.
+3. Bishop, C. M. _Pattern Recognition and Machine Learning_. Springer.
+4. Bernardo, J. M., and Smith, A. F. M. _Bayesian Theory_. Wiley.
+5. Robert, C., and Casella, G. _Monte Carlo Statistical Methods_. Springer.
+6. Blei, D. M., Kucukelbir, A., and McAuliffe, J. D. "Variational Inference: A Review for Statisticians." _JASA_ (2017).
 7. Kingma, D. P., and Welling, M. "Auto-Encoding Variational Bayes." ICLR (2014).
 8. Blundell, C., Cornebise, J., Kavukcuoglu, K., and Wierstra, D. "Weight Uncertainty in Neural Networks." ICML (2015).
 9. Gal, Y., and Ghahramani, Z. "Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning." ICML (2016).
 10. Welling, M., and Teh, Y. W. "Bayesian Learning via Stochastic Gradient Langevin Dynamics." ICML (2011).
 11. Maddox, W., Garipov, T., Izmailov, P., Vetrov, D., and Wilson, A. G. "A Simple Baseline for Bayesian Uncertainty in Deep Learning." NeurIPS (2019).
 12. Johari, R. "Lecture 16: Bayesian Inference." Stanford MS&E 226 notes.
-13. Jeffreys, H. *Theory of Probability*. Oxford University Press.
-14. Gelman, A. and Shalizi, C. R. "Philosophy and the Practice of Bayesian Statistics." *British Journal of Mathematical and Statistical Psychology* (2013).
-15. Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., and Bürkner, P.-C. "Rank-Normalization, Folding, and Localization: An Improved R-hat for Assessing Convergence of MCMC." *Bayesian Analysis* (2021).
+13. Jeffreys, H. _Theory of Probability_. Oxford University Press.
+14. Gelman, A. and Shalizi, C. R. "Philosophy and the Practice of Bayesian Statistics." _British Journal of Mathematical and Statistical Psychology_ (2013).
+15. Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., and Bürkner, P.-C. "Rank-Normalization, Folding, and Localization: An Improved R-hat for Assessing Convergence of MCMC." _Bayesian Analysis_ (2021).

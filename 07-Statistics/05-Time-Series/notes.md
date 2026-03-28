@@ -1,8 +1,8 @@
+# Time Series
+
 [← Back to Chapter 7: Statistics](../README.md) | [Next: Regression Analysis →](../06-Regression-Analysis/notes.md)
 
 ---
-
-# Time Series
 
 > _"All models are wrong, but some are useful."_
 > - George E. P. Box
@@ -2606,14 +2606,14 @@ the time-series viewpoint is the right starting language.
 
 ## References
 
-1. George E. P. Box, Gwilym M. Jenkins, Gregory C. Reinsel, and Greta M. Ljung, *Time Series Analysis: Forecasting and Control*, 5th ed., Wiley, 2015.
-2. Peter J. Brockwell and Richard A. Davis, *Introduction to Time Series and Forecasting*, 3rd ed., Springer, 2016.
-3. James D. Hamilton, *Time Series Analysis*, Princeton University Press, 1994.
-4. Andrew C. Harvey, *Forecasting, Structural Time Series Models and the Kalman Filter*, Cambridge University Press, 1989.
-5. Simo Sarkka, *Bayesian Filtering and Smoothing*, Cambridge University Press, 2013.
-6. Durbin, James and Siem Jan Koopman, *Time Series Analysis by State Space Methods*, 2nd ed., Oxford University Press, 2012.
-7. Rob J Hyndman and George Athanasopoulos, *Forecasting: Principles and Practice*, 3rd ed., OTexts, 2021.
-8. Rudolf E. Kalman, "A New Approach to Linear Filtering and Prediction Problems," *Journal of Basic Engineering*, 1960.
+1. George E. P. Box, Gwilym M. Jenkins, Gregory C. Reinsel, and Greta M. Ljung, _Time Series Analysis: Forecasting and Control_, 5th ed., Wiley, 2015.
+2. Peter J. Brockwell and Richard A. Davis, _Introduction to Time Series and Forecasting_, 3rd ed., Springer, 2016.
+3. James D. Hamilton, _Time Series Analysis_, Princeton University Press, 1994.
+4. Andrew C. Harvey, _Forecasting, Structural Time Series Models and the Kalman Filter_, Cambridge University Press, 1989.
+5. Simo Sarkka, _Bayesian Filtering and Smoothing_, Cambridge University Press, 2013.
+6. Durbin, James and Siem Jan Koopman, _Time Series Analysis by State Space Methods_, 2nd ed., Oxford University Press, 2012.
+7. Rob J Hyndman and George Athanasopoulos, _Forecasting: Principles and Practice_, 3rd ed., OTexts, 2021.
+8. Rudolf E. Kalman, "A New Approach to Linear Filtering and Prediction Problems," _Journal of Basic Engineering_, 1960.
 9. Berkeley Stat 153/248 course notes on characteristics and spectral analysis, 2026 editions.
 10. MIT 14.384 lecture notes on state-space models and the Kalman filter, 2013 course materials.
 11. Albert Gu, Karan Goel, and Christopher Re, "Efficiently Modeling Long Sequences with Structured State Spaces," ICLR 2022.
