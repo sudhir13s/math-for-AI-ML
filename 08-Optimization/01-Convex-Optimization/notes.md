@@ -32,7 +32,7 @@ This section develops convexity from first principles: convex sets (§2), convex
 ## Companion Notebooks
 
 | Notebook | Description |
-|---|---|
+| --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive demonstrations of convexity, duality, and problem classes with visualizations |
 | [exercises.ipynb](exercises.ipynb) | 8 graded exercises from verifying convexity to convex relaxations in ML |
 
@@ -55,73 +55,59 @@ After completing this section, you will:
 
 ## Table of Contents
 
-- [Convex Optimization](#convex-optimization)
-  - [Overview](#overview)
-  - [Prerequisites](#prerequisites)
-  - [Companion Notebooks](#companion-notebooks)
-  - [Learning Objectives](#learning-objectives)
-  - [Table of Contents](#table-of-contents)
-  - [1. Intuition](#1-intuition)
-    - [1.1 What Is Convex Optimization?](#11-what-is-convex-optimization)
-    - [1.2 Why Convexity Matters for AI](#12-why-convexity-matters-for-ai)
-    - [1.3 Historical Timeline](#13-historical-timeline)
-    - [1.4 The Landscape Metaphor](#14-the-landscape-metaphor)
-  - [2. Convex Sets](#2-convex-sets)
-    - [2.1 Definition and Examples](#21-definition-and-examples)
-    - [2.2 Operations Preserving Convexity of Sets](#22-operations-preserving-convexity-of-sets)
-    - [2.3 Supporting Hyperplanes and Separation Theorems](#23-supporting-hyperplanes-and-separation-theorems)
-    - [2.4 Cones and the PSD Cone](#24-cones-and-the-psd-cone)
-  - [3. Convex Functions](#3-convex-functions)
-    - [3.1 Definition and First-Order Characterization](#31-definition-and-first-order-characterization)
-    - [3.2 Second-Order Characterization](#32-second-order-characterization)
-    - [3.3 Examples and Non-Examples](#33-examples-and-non-examples)
-    - [3.4 Operations Preserving Convexity of Functions](#34-operations-preserving-convexity-of-functions)
-    - [3.5 Epigraph and Sublevel Sets](#35-epigraph-and-sublevel-sets)
-  - [4. Strong Convexity and Smoothness](#4-strong-convexity-and-smoothness)
-    - [4.1 Strong Convexity](#41-strong-convexity)
-    - [4.2 Smoothness (Lipschitz Gradient)](#42-smoothness-lipschitz-gradient)
-    - [4.3 Condition Number](#43-condition-number)
-    - [4.4 Implications for Convergence Rates](#44-implications-for-convergence-rates)
-  - [5. Convex Optimization Problems](#5-convex-optimization-problems)
-    - [5.1 Standard Form and Terminology](#51-standard-form-and-terminology)
-    - [5.2 Linear Programming](#52-linear-programming)
-    - [5.3 Quadratic Programming](#53-quadratic-programming)
-    - [5.4 Second-Order Cone Programming](#54-second-order-cone-programming)
-    - [5.5 Semidefinite Programming](#55-semidefinite-programming)
-    - [5.6 The Hierarchy of Convex Programs](#56-the-hierarchy-of-convex-programs)
-  - [6. Optimality Conditions](#6-optimality-conditions)
-    - [6.1 Unconstrained Optimality](#61-unconstrained-optimality)
-    - [6.2 Constrained Preview: Lagrangian and Dual Problem](#62-constrained-preview-lagrangian-and-dual-problem)
-    - [6.3 Slater's Condition and Strong Duality](#63-slaters-condition-and-strong-duality)
-  - [7. Duality](#7-duality)
-    - [7.1 Lagrangian Dual Problem](#71-lagrangian-dual-problem)
-    - [7.2 Weak and Strong Duality](#72-weak-and-strong-duality)
-    - [7.3 Duality in ML](#73-duality-in-ml)
-  - [8. Applications in Machine Learning](#8-applications-in-machine-learning)
-    - [8.1 Convexity of Common Loss Functions](#81-convexity-of-common-loss-functions)
-    - [8.2 Why Deep Learning Is Non-Convex (and What Survives)](#82-why-deep-learning-is-non-convex-and-what-survives)
-    - [8.3 Convex Relaxations in Practice](#83-convex-relaxations-in-practice)
-    - [8.4 LoRA, Weight Decay, and Convex Penalties](#84-lora-weight-decay-and-convex-penalties)
-  - [9. Advanced Topics](#9-advanced-topics)
-    - [9.1 Proximal Operators and Non-Smooth Convex Optimization](#91-proximal-operators-and-non-smooth-convex-optimization)
-    - [9.2 Fenchel Conjugates](#92-fenchel-conjugates)
-    - [9.3 Mirror Descent Preview](#93-mirror-descent-preview)
-  - [10. Common Mistakes](#10-common-mistakes)
-  - [Exercises](#exercises)
-    - [Exercise 1: Verifying Convexity (★)](#exercise-1-verifying-convexity-)
-    - [Exercise 2: Convex Set Operations (★)](#exercise-2-convex-set-operations-)
-    - [Exercise 3: Computing Condition Numbers (★)](#exercise-3-computing-condition-numbers-)
-    - [Exercise 4: Preservation Rules (★★)](#exercise-4-preservation-rules-)
-    - [Exercise 5: Lagrangian Dual (★★)](#exercise-5-lagrangian-dual-)
-    - [Exercise 6: Strong Convexity Analysis (★★)](#exercise-6-strong-convexity-analysis-)
-    - [Exercise 7: Convex Relaxation for Matrix Completion (★★★)](#exercise-7-convex-relaxation-for-matrix-completion-)
-    - [Exercise 8: Proximal Gradient for Lasso (★★★)](#exercise-8-proximal-gradient-for-lasso-)
-  - [11. Why This Matters for AI](#11-why-this-matters-for-ai)
-  - [12. Conceptual Bridge](#12-conceptual-bridge)
-    - [Backward Connections](#backward-connections)
-    - [Forward Connections](#forward-connections)
-    - [The Big Picture](#the-big-picture)
-  - [References](#references)
+- [1. Intuition](#1-intuition)
+  - [1.1 What Is Convex Optimization?](#11-what-is-convex-optimization)
+  - [1.2 Why Convexity Matters for AI](#12-why-convexity-matters-for-ai)
+  - [1.3 Historical Timeline](#13-historical-timeline)
+  - [1.4 The Landscape Metaphor](#14-the-landscape-metaphor)
+- [2. Convex Sets](#2-convex-sets)
+  - [2.1 Definition and Examples](#21-definition-and-examples)
+  - [2.2 Operations Preserving Convexity of Sets](#22-operations-preserving-convexity-of-sets)
+  - [2.3 Supporting Hyperplanes and Separation Theorems](#23-supporting-hyperplanes-and-separation-theorems)
+  - [2.4 Cones and the PSD Cone](#24-cones-and-the-psd-cone)
+- [3. Convex Functions](#3-convex-functions)
+  - [3.1 Definition and First-Order Characterization](#31-definition-and-first-order-characterization)
+  - [3.2 Second-Order Characterization](#32-second-order-characterization)
+  - [3.3 Examples and Non-Examples](#33-examples-and-non-examples)
+  - [3.4 Operations Preserving Convexity of Functions](#34-operations-preserving-convexity-of-functions)
+  - [3.5 Epigraph and Sublevel Sets](#35-epigraph-and-sublevel-sets)
+- [4. Strong Convexity and Smoothness](#4-strong-convexity-and-smoothness)
+  - [4.1 Strong Convexity](#41-strong-convexity)
+  - [4.2 Smoothness (Lipschitz Gradient)](#42-smoothness-lipschitz-gradient)
+  - [4.3 Condition Number](#43-condition-number)
+  - [4.4 Implications for Convergence Rates](#44-implications-for-convergence-rates)
+- [5. Convex Optimization Problems](#5-convex-optimization-problems)
+  - [5.1 Standard Form and Terminology](#51-standard-form-and-terminology)
+  - [5.2 Linear Programming](#52-linear-programming)
+  - [5.3 Quadratic Programming](#53-quadratic-programming)
+  - [5.4 Second-Order Cone Programming](#54-second-order-cone-programming)
+  - [5.5 Semidefinite Programming](#55-semidefinite-programming)
+  - [5.6 The Hierarchy of Convex Programs](#56-the-hierarchy-of-convex-programs)
+- [6. Optimality Conditions](#6-optimality-conditions)
+  - [6.1 Unconstrained Optimality](#61-unconstrained-optimality)
+  - [6.2 Constrained Preview: Lagrangian and Dual Problem](#62-constrained-preview-lagrangian-and-dual-problem)
+  - [6.3 Slater's Condition and Strong Duality](#63-slaters-condition-and-strong-duality)
+- [7. Duality](#7-duality)
+  - [7.1 Lagrangian Dual Problem](#71-lagrangian-dual-problem)
+  - [7.2 Weak and Strong Duality](#72-weak-and-strong-duality)
+  - [7.3 Duality in ML](#73-duality-in-ml)
+- [8. Applications in Machine Learning](#8-applications-in-machine-learning)
+  - [8.1 Convexity of Common Loss Functions](#81-convexity-of-common-loss-functions)
+  - [8.2 Why Deep Learning Is Non-Convex (and What Survives)](#82-why-deep-learning-is-non-convex-and-what-survives)
+  - [8.3 Convex Relaxations in Practice](#83-convex-relaxations-in-practice)
+  - [8.4 LoRA, Weight Decay, and Convex Penalties](#84-lora-weight-decay-and-convex-penalties)
+- [9. Advanced Topics](#9-advanced-topics)
+  - [9.1 Proximal Operators and Non-Smooth Convex Optimization](#91-proximal-operators-and-non-smooth-convex-optimization)
+  - [9.2 Fenchel Conjugates](#92-fenchel-conjugates)
+  - [9.3 Mirror Descent Preview](#93-mirror-descent-preview)
+- [10. Common Mistakes](#10-common-mistakes)
+- [Exercises](#exercises)
+- [11. Why This Matters for AI](#11-why-this-matters-for-ai)
+- [12. Conceptual Bridge](#12-conceptual-bridge)
+- [Key Takeaways](#key-takeaways)
+- [Summary of Key Formulas](#summary-of-key-formulas)
+- [Notation Summary](#notation-summary)
+- [References](#references)
 
 ---
 
@@ -137,7 +123,7 @@ where $f$ is a convex function and $\mathcal{C}$ is a convex set. The defining p
 
 To appreciate why this matters, consider the alternative. A general (nonconvex) optimization problem can have exponentially many local minima, saddle points, and plateaus. Finding the global minimum is NP-hard in the worst case. Convex optimization, by contrast, admits polynomial-time algorithms that find the global minimum to arbitrary precision.
 
-```
+```text
 THE CONVEX GUARANTEE
 ════════════════════════════════════════════════════════════════════════
 
@@ -172,7 +158,7 @@ Convexity appears throughout machine learning at three levels:
 **Level 1: Directly convex problems.** Many classical ML models solve convex optimization problems:
 
 | Model | Objective | Why Convex |
-|---|---|---|
+| --- | --- | --- |
 | Linear regression (OLS) | $\min_{\mathbf{w}} \lVert X\mathbf{w} - \mathbf{y} \rVert_2^2$ | Quadratic in $\mathbf{w}$, Hessian $= 2X^\top X \succeq 0$ |
 | Ridge regression | $\min_{\mathbf{w}} \lVert X\mathbf{w} - \mathbf{y} \rVert_2^2 + \lambda\lVert \mathbf{w} \rVert_2^2$ | Sum of convex functions |
 | Logistic regression | $\min_{\mathbf{w}} \sum_i \log(1 + e^{-y_i \mathbf{w}^\top \mathbf{x}^{(i)}})$ | Composition of convex log-sum-exp with affine |
@@ -180,11 +166,13 @@ Convexity appears throughout machine learning at three levels:
 | Lasso | $\min_{\mathbf{w}} \lVert X\mathbf{w} - \mathbf{y} \rVert_2^2 + \lambda\lVert \mathbf{w} \rVert_1$ | Sum of convex functions (non-smooth) |
 
 **Level 2: Convex components in nonconvex systems.** Deep learning training is globally nonconvex, but individual components are convex:
+
 - The cross-entropy loss $\mathcal{L}(\mathbf{z}) = -\sum_k y_k \log(\text{softmax}(\mathbf{z})_k)$ is convex in the logits $\mathbf{z}$
 - Weight decay $\lambda \lVert \boldsymbol{\theta} \rVert_2^2$ is strongly convex
 - Layer normalization solves a convex subproblem at each layer
 
 **Level 3: Convex relaxations of nonconvex problems.** When the true problem is intractable, we solve a convex approximation:
+
 - **Nuclear norm minimization** relaxes rank constraints for matrix completion (Netflix Prize)
 - **SDP relaxations** provide bounds for clustering (Mixon et al., 2017) and community detection
 - **LoRA** exploits the low-rank structure that nuclear norm penalization promotes (Hu et al., 2022)
@@ -193,7 +181,7 @@ Convexity appears throughout machine learning at three levels:
 
 ### 1.3 Historical Timeline
 
-```
+```text
 CONVEX OPTIMIZATION TIMELINE
 ════════════════════════════════════════════════════════════════════════
 
@@ -211,7 +199,7 @@ CONVEX OPTIMIZATION TIMELINE
   2013  Parikh & Boyd  — Proximal algorithms for ML
   2017  CVXPY          — Domain-specific language for convex programs
   2022  Hu et al.      — LoRA: low-rank (convex penalty) for LLMs
-  2024  Modern LLMs    — AdamW = GD on strongly convex subproblem
+  2024  Modern LLMs    — Regularization and preconditioning at scale
 
 ════════════════════════════════════════════════════════════════════════
 ```
@@ -226,7 +214,7 @@ The best way to build intuition for convex optimization is to think about terrai
 
 **Nonconvex landscape** = mountain terrain with multiple valleys, ridges, and saddle passes. Walking downhill leads to _a_ valley, but not necessarily the _deepest_ one. A ball released from different positions may settle in different valleys.
 
-```
+```text
 LANDSCAPE COMPARISON
 ════════════════════════════════════════════════════════════════════════
 
@@ -311,6 +299,7 @@ _Proof._ Let $\mathbf{x}, \mathbf{y} \in \bigcap_i \mathcal{C}_i$ and $\theta \i
 **For AI:** The feasible region of any constrained ML problem (SVM, constrained fine-tuning, fairness constraints) is typically an intersection of convex sets — hence convex.
 
 **Theorem (Affine Image and Preimage).** If $\mathcal{C}$ is convex and $T(\mathbf{x}) = A\mathbf{x} + \mathbf{b}$ is an affine map, then:
+
 - $T(\mathcal{C}) = \{A\mathbf{x} + \mathbf{b} : \mathbf{x} \in \mathcal{C}\}$ is convex (image)
 - $T^{-1}(\mathcal{C}) = \{\mathbf{x} : A\mathbf{x} + \mathbf{b} \in \mathcal{C}\}$ is convex (preimage)
 
@@ -319,7 +308,7 @@ _Proof sketch._ For the image: if $\mathbf{u} = A\mathbf{x} + \mathbf{b}$ and $\
 **Other operations preserving convexity:**
 
 | Operation | Result | Example |
-|---|---|---|
+| --- | --- | --- |
 | Intersection | $\mathcal{C}_1 \cap \mathcal{C}_2$ | Polyhedra, feasible regions |
 | Affine image | $\{A\mathbf{x} + \mathbf{b} : \mathbf{x} \in \mathcal{C}\}$ | Linear projections of convex sets |
 | Affine preimage | $\{\mathbf{x} : A\mathbf{x} + \mathbf{b} \in \mathcal{C}\}$ | Constraint transformation |
@@ -334,6 +323,7 @@ _Proof sketch._ For the image: if $\mathbf{u} = A\mathbf{x} + \mathbf{b}$ and $\
 The geometry of convex sets is characterized by their interaction with hyperplanes. Two fundamental results formalize this.
 
 **Definition (Supporting Hyperplane).** A hyperplane $\{\mathbf{x} : \mathbf{a}^\top \mathbf{x} = b\}$ is a _supporting hyperplane_ to a convex set $\mathcal{C}$ at a boundary point $\mathbf{x}_0 \in \partial \mathcal{C}$ if:
+
 - $\mathbf{a}^\top \mathbf{x}_0 = b$
 - $\mathbf{a}^\top \mathbf{x} \leq b$ for all $\mathbf{x} \in \mathcal{C}$
 
@@ -360,7 +350,7 @@ This gap $2\delta$ is the _margin_ in SVM terminology. The SVM maximizes this ma
 
 Farkas' lemma is a "theorem of alternatives" — it says a system of linear inequalities either has a solution, or there is a certificate (a separating hyperplane in dual space) proving infeasibility. This is the foundation of LP duality and sensitivity analysis.
 
-```
+```text
 SEPARATING HYPERPLANE
 ════════════════════════════════════════════════════════════════════════
 
@@ -444,7 +434,7 @@ These generalized inequalities extend the familiar $\leq$ on real numbers to the
 
 **Vector optimization.** When the objective itself is vector-valued, we optimize w.r.t. a cone ordering, leading to Pareto-optimal solutions. In multi-objective ML (accuracy vs. fairness, loss vs. latency), the Pareto frontier is the set of solutions that cannot be improved in one objective without degrading another. Scalarization — combining objectives into $\min \sum_i w_i f_i(\mathbf{x})$ — converts to standard convex optimization when all $f_i$ are convex. The weights $w_i$ trace out the Pareto frontier as they vary, connecting multi-objective optimization to the duality framework developed in §7.
 
-```
+```text
 CONE HIERARCHY
 ════════════════════════════════════════════════════════════════════════
 
@@ -583,7 +573,7 @@ where $\sigma_i = \sigma(y_i\mathbf{w}^\top\mathbf{x}^{(i)})$. This gives $L = \
 **Convex functions (with proofs):**
 
 | Function | Domain | Why Convex |
-|---|---|---|
+| --- | --- | --- |
 | $f(x) = ax + b$ | $\mathbb{R}$ | Affine; $f'' = 0 \succeq 0$ (also concave) |
 | $f(x) = x^2$ | $\mathbb{R}$ | $f'' = 2 > 0$ (strictly convex) |
 | $f(x) = e^{ax}$ | $\mathbb{R}$ | $f'' = a^2 e^{ax} > 0$ |
@@ -643,6 +633,7 @@ _Application:_ $\lVert A\mathbf{x} - \mathbf{b} \rVert^2$ is convex because $\lV
 _Application:_ The hinge loss $\max(0, 1 - y \mathbf{w}^\top \mathbf{x})$ is the max of a convex function and zero (affine, hence convex). The ReLU activation $\max(0, x)$ is convex, though this does not make neural network loss convex (composition breaks convexity).
 
 **Rule 4: Composition rules.** For $h: \mathbb{R} \to \mathbb{R}$ and convex $g: \mathbb{R}^n \to \mathbb{R}$:
+
 - $h(g(\mathbf{x}))$ is convex if $h$ is convex and nondecreasing
 - $h(g(\mathbf{x}))$ is convex if $h$ is convex and nonincreasing, and $g$ is _concave_
 
@@ -654,7 +645,7 @@ _Application:_ The Lagrangian dual function $g(\boldsymbol{\lambda}) = \inf_{\ma
 
 **Summary of preservation rules:**
 
-```
+```text
 CONVEXITY PRESERVATION TOOLKIT
 ════════════════════════════════════════════════════════════════════════
 
@@ -781,12 +772,13 @@ STRONG CONVEXITY: QUADRATIC SANDWICH
 ```
 
 **Examples:**
+
 - $f(\mathbf{x}) = \frac{1}{2}\mathbf{x}^\top Q\mathbf{x}$ with $Q \succ 0$ is $\lambda_{\min}(Q)$-strongly convex
 - $f(\mathbf{w}) = \lVert X\mathbf{w} - \mathbf{y} \rVert^2 + \lambda\lVert \mathbf{w} \rVert^2$ is $2\lambda$-strongly convex (the regularization term contributes $\mu = 2\lambda$)
 - $f(\mathbf{x}) = \lVert \mathbf{x} \rVert_1$ is convex but **not** strongly convex (flat along coordinate axes)
 - $f(x) = e^x$ is strictly convex but NOT strongly convex on $\mathbb{R}$ (the Hessian $e^x \to 0$ as $x \to -\infty$)
 
-**For AI:** Weight decay adds $\lambda\lVert \boldsymbol{\theta} \rVert^2$ to the loss, making it $2\lambda$-strongly convex _in the parameters_. This is the optimization-theoretic reason weight decay improves training: it guarantees a unique optimum and faster convergence. In AdamW (Loshchilov & Hutter, 2019), weight decay is applied directly to the parameters (decoupled from the adaptive step), preserving this strong convexity benefit.
+**For AI:** In convex models, weight decay adds $\lambda\lVert \boldsymbol{\theta} \rVert^2$ to the loss and makes the objective $2\lambda$-strongly convex in the parameters. That yields a unique optimum and better conditioning. In deep learning the overall loss is still nonconvex, so weight decay does **not** guarantee a unique global optimum, but it still acts as an important regularizer and stabilizer. In AdamW (Loshchilov & Hutter, 2019), weight decay is applied directly to the parameters (decoupled from the adaptive step), preserving its regularization role.
 
 **Strong convexity as regularization.** The relationship between strong convexity and generalization is deep. By adding $\lambda\lVert\mathbf{w}\rVert^2$ to any convex loss:
 
@@ -840,6 +832,7 @@ For $\eta \leq 1/L$, we have $1 - L\eta/2 \geq 1/2$, giving the result. $\square
 This is the single most important inequality in optimization theory — it guarantees that each gradient step makes progress proportional to $\lVert\nabla f\rVert^2$. The step size $\eta = 1/L$ maximizes the guaranteed improvement.
 
 **Examples:**
+
 - $f(\mathbf{x}) = \frac{1}{2}\mathbf{x}^\top Q\mathbf{x}$ is $\lambda_{\max}(Q)$-smooth
 - Logistic loss $f(z) = \log(1 + e^{-z})$ is $1/4$-smooth (the Hessian $\sigma(z)(1-\sigma(z)) \leq 1/4$)
 - $f(\mathbf{w}) = \frac{1}{n}\sum_i \log(1 + e^{-y_i\mathbf{w}^\top\mathbf{x}^{(i)}})$ is $\frac{1}{4n}\lambda_{\max}(X^\top X)$-smooth
@@ -858,14 +851,14 @@ It measures the ratio of maximum to minimum curvature. For a quadratic $f(\mathb
 **Why condition number matters:**
 
 | Condition Number | Sublevel Set Shape | GD Convergence | Intuition |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | $\kappa = 1$ | Spherical | 1 step | All directions have same curvature |
 | $\kappa = 10$ | Mildly elliptical | Fast | GD navigates efficiently |
 | $\kappa = 10^3$ | Very elongated | Slow | GD zigzags along narrow valleys |
 | $\kappa = 10^6$ | Extremely elongated | Impractical | Need preconditioning or 2nd-order |
 | $\kappa = \infty$ | Degenerate (flat dir.) | No convergence | Not strongly convex |
 
-```
+```text
 CONDITION NUMBER AND CONVERGENCE
 ════════════════════════════════════════════════════════════════════════
 
@@ -888,6 +881,7 @@ CONDITION NUMBER AND CONVERGENCE
 The eigenvectors of $Q$ define the principal axes of the ellipsoid. The eigenvalue $\lambda_i$ determines the curvature along each axis. GD converges fastest along high-curvature (large $\lambda$) directions and slowest along low-curvature (small $\lambda$) directions. The convergence rate is dominated by the worst axis — i.e., by $\kappa = \lambda_{\max}/\lambda_{\min}$.
 
 **For AI:** The condition number of the Hessian of the loss function determines how hard the optimization problem is. Ill-conditioned problems (high $\kappa$) are the primary motivation for:
+
 - **Preconditioning** — second-order methods like Newton's method effectively reduce $\kappa$ to 1 (see [Second-Order Methods](../03-Second-Order-Methods/notes.md))
 - **Adaptive methods** — Adam and AdaGrad approximate per-coordinate preconditioning (see [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md))
 - **Batch normalization** — empirically reduces the effective condition number of the loss landscape (Santurkar et al., 2018)
@@ -898,13 +892,14 @@ The eigenvectors of $Q$ define the principal axes of the ellipsoid. The eigenval
 The interplay of $\mu$ and $L$ determines the convergence rate of gradient descent (proven in [Gradient Descent](../02-Gradient-Descent/notes.md)):
 
 | Function Class | Convergence Rate | Steps to $\epsilon$-optimality |
-|---|---|---|
+| --- | --- | --- |
 | Convex, $L$-smooth | $f(\mathbf{x}_t) - f^* \leq O(L/t)$ | $O(L/\epsilon)$ |
 | $\mu$-strongly convex, $L$-smooth | $f(\mathbf{x}_t) - f^* \leq O((1 - \mu/L)^t)$ | $O(\kappa \log(1/\epsilon))$ |
 | Convex + Nesterov acceleration | $f(\mathbf{x}_t) - f^* \leq O(L/t^2)$ | $O(\sqrt{L/\epsilon})$ |
 | Strongly convex + Nesterov | $f(\mathbf{x}_t) - f^* \leq O((1 - \sqrt{\mu/L})^t)$ | $O(\sqrt{\kappa} \log(1/\epsilon))$ |
 
 Key observations:
+
 - Strong convexity converts sublinear ($O(1/t)$) to linear (exponential) convergence
 - Nesterov acceleration reduces the dependence from $\kappa$ to $\sqrt{\kappa}$ — a quadratic speedup
 - The condition number $\kappa = L/\mu$ appears in every convergence bound
@@ -955,7 +950,7 @@ $$\phantom{\text{s.t.}} \quad \mathbf{a}_j^\top \mathbf{x} = b_j, \quad j = 1, \
 where $f_0, f_1, \ldots, f_m$ are convex functions and the equality constraints are affine.
 
 | Term | Definition |
-|---|---|
+| --- | --- |
 | **Objective function** $f_0$ | The convex function being minimized |
 | **Inequality constraints** $f_i(\mathbf{x}) \leq 0$ | Must be convex functions |
 | **Equality constraints** $\mathbf{a}_j^\top\mathbf{x} = b_j$ | Must be affine (linear) |
@@ -982,6 +977,7 @@ $$\max \mathbf{b}^\top\mathbf{y} \quad \text{s.t.} \quad A^\top\mathbf{y} \leq \
 Strong duality always holds for LP (no Slater's condition needed — LP duality is unconditional for feasible problems). The dual variables $\mathbf{y}$ have an economic interpretation as _shadow prices_: $y_i$ measures how much the optimal value would improve if constraint $i$ were relaxed by one unit.
 
 **For AI:** LPs appear in:
+
 - **Sparse optimization**: the $\ell_1$ minimization problem $\min \lVert \mathbf{x} \rVert_1$ s.t. $A\mathbf{x} = \mathbf{b}$ can be reformulated as an LP
 - **Network flow**: data routing in distributed training systems
 - **Linear classification**: the original linear SVM (before the kernel trick) is an LP in certain formulations
@@ -1003,6 +999,7 @@ $$\min_{\mathbf{x}} \quad \frac{1}{2}\mathbf{x}^\top Q\mathbf{x} + \mathbf{c}^\t
 where $Q \succeq 0$ (convex QP). If $Q \succ 0$, the objective is strictly convex and the solution is unique.
 
 **For AI:** QPs are the core optimization subproblems in:
+
 - **SVM (hard-margin primal)**: $\min_{\mathbf{w}} \frac{1}{2}\lVert\mathbf{w}\rVert^2$ s.t. $y_i(\mathbf{w}^\top\mathbf{x}^{(i)} + b) \geq 1$ — a QP
 - **Ridge regression**: $\min_{\mathbf{w}} \frac{1}{2}\lVert X\mathbf{w} - \mathbf{y}\rVert^2 + \frac{\lambda}{2}\lVert\mathbf{w}\rVert^2$ — an unconstrained QP
 - **Model predictive control**: used in robotics and autonomous systems
@@ -1064,7 +1061,7 @@ The problem classes form a strict hierarchy of increasing expressiveness and com
 
 $$\text{LP} \subset \text{QP} \subset \text{QCQP} \subset \text{SOCP} \subset \text{SDP}$$
 
-```
+```text
 HIERARCHY OF CONVEX PROGRAMS
 ════════════════════════════════════════════════════════════════════════
 
@@ -1232,7 +1229,7 @@ where $g(\boldsymbol{\lambda}, \boldsymbol{\nu}) = \inf_{\mathbf{x}} \mathcal{L}
 **Key properties of the dual:**
 
 | Property | Statement |
-|---|---|
+| --- | --- |
 | Always concave | $g$ is concave regardless of the primal |
 | Provides lower bound | $g(\boldsymbol{\lambda}, \boldsymbol{\nu}) \leq f^*$ for all feasible $(\boldsymbol{\lambda}, \boldsymbol{\nu})$ |
 | Dual is always convex | Maximizing a concave function = convex optimization |
@@ -1310,7 +1307,7 @@ Notice that the dual depends on the data only through inner products $\mathbf{x}
 **Regularization as Duality.** For any convex loss $\mathcal{L}$ and convex regularizer $R$:
 
 | Formulation | Mathematical Form | Connection |
-|---|---|---|
+| --- | --- | --- |
 | Regularized (Lagrangian) | $\min \mathcal{L}(\mathbf{w}) + \lambda R(\mathbf{w})$ | Unconstrained; $\lambda$ controls tradeoff |
 | Constrained (Ivanov) | $\min \mathcal{L}(\mathbf{w})$ s.t. $R(\mathbf{w}) \leq r$ | Constrained; $r$ bounds complexity |
 | Penalized (Morozov) | $\min R(\mathbf{w})$ s.t. $\mathcal{L}(\mathbf{w}) \leq \epsilon$ | Simplest model fitting data to $\epsilon$ |
@@ -1354,7 +1351,7 @@ The key observation: the dual depends on data only through inner products $\math
 Understanding which loss functions are convex — and in which variables — is essential for reasoning about ML training.
 
 | Loss Function | Formula | Convex in | Proof Sketch |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Mean Squared Error | $\frac{1}{n}\sum_i(\hat{y}_i - y_i)^2$ | $\hat{y}$ | $f'' = 2/n > 0$ per coordinate |
 | Cross-entropy | $-\sum_k y_k \log p_k$ | $p$ (on simplex) | $-\log$ is convex; nonneg. sum |
 | Cross-entropy (logits) | $-z_k + \log\sum_j e^{z_j}$ | $\mathbf{z}$ (logits) | Affine + log-sum-exp (convex) |
@@ -1402,7 +1399,7 @@ The loss function of a neural network $\mathcal{L}(\boldsymbol{\theta}) = \frac{
 **What convex structure survives:**
 
 | Property | Status | Practical Impact |
-|---|---|---|
+| --- | --- | --- |
 | No local minima (for convex) | ✗ Lost | But local minima are rare in practice (mostly saddle points) |
 | Loss convex in output layer | ✓ Preserved | Output layer trains reliably |
 | Convex regularizers | ✓ Preserved | Weight decay, L1 work as expected |
@@ -1462,6 +1459,7 @@ $$\min_{W} \mathcal{L}(W) + \lambda\lVert W \rVert_*$$
 where $\lVert W \rVert_* = \sum_i \sigma_i(W)$ is the sum of singular values. The nuclear norm is the tightest convex relaxation of rank (Fazel, 2002), and under conditions like the RIP (restricted isometry property), the relaxation recovers the exact solution.
 
 **For AI:** This is directly relevant to:
+
 - **Matrix completion** (Netflix Prize): recovering a ratings matrix from sparse observations by minimizing nuclear norm
 - **LoRA intuition** (Hu et al., 2022): LoRA constrains weight updates $\Delta W = BA$ to have rank $\leq r$. The nuclear norm is the convex proxy; LoRA uses the explicit low-rank parametrization instead
 - **Sparse + low-rank decomposition**: separating a matrix into sparse noise and low-rank signal (Candès et al., 2011)
@@ -1477,11 +1475,12 @@ is NP-hard. Relaxing $x_i \in \{-1, +1\}$ to $X \succeq 0$, $X_{ii} = 1$ gives a
 Modern LLM training relies heavily on convex penalty terms, even though the overall problem is nonconvex.
 
 **Weight decay as strong convexity.** Adding $\frac{\lambda}{2}\lVert\boldsymbol{\theta}\rVert^2$ to the loss:
-- Makes the loss $\lambda$-strongly convex in $\boldsymbol{\theta}$, locally
-- Guarantees a unique optimum for the regularized problem (for fixed data)
+
+- Makes a **convex** objective $\lambda$-strongly convex in $\boldsymbol{\theta}$
+- Guarantees a unique optimum for the regularized problem when the underlying objective is convex
 - Improves the condition number: $\kappa_{\text{new}} = (L + \lambda)/\lambda \leq L/\lambda$
 
-In AdamW (Loshchilov & Hutter, 2019), weight decay is _decoupled_ from the adaptive gradient step, preserving its regularization effect. This is the default optimizer for training GPT, LLaMA, and most modern LLMs.
+In AdamW (Loshchilov & Hutter, 2019), weight decay is _decoupled_ from the adaptive gradient step, preserving its regularization effect. AdamW is a common baseline for training GPT-style and LLaMA-style models.
 
 **L1 penalty and sparsity.** The $\ell_1$ penalty $\lambda\lVert\boldsymbol{\theta}\rVert_1$ is convex but non-smooth. Its proximal operator is the soft-thresholding function:
 
@@ -1549,7 +1548,7 @@ This alternates a gradient step on the smooth part with a proximal step on the n
 **Key proximal operators for ML:**
 
 | Function $h$ | $\operatorname{prox}_{\eta h}(\mathbf{v})$ | ML Use |
-|---|---|---|
+| --- | --- | --- |
 | $\lambda\lVert\mathbf{x}\rVert_1$ | Soft-thresholding: $\operatorname{sign}(v_i)\max(\lvert v_i\rvert - \eta\lambda, 0)$ | Lasso, sparse models |
 | $\lambda\lVert X\rVert_*$ | SVD soft-thresholding: $U\operatorname{diag}(\max(\sigma_i - \eta\lambda, 0))V^\top$ | Low-rank matrix recovery |
 | $\delta_{\mathcal{C}}$ (indicator of $\mathcal{C}$) | Projection $\Pi_{\mathcal{C}}(\mathbf{v})$ | Constrained optimization |
@@ -1603,7 +1602,7 @@ The conjugate $f^*$ is always convex (as a supremum of affine functions), even i
 **Key conjugate pairs:**
 
 | $f(\mathbf{x})$ | $f^*(\mathbf{y})$ | Notes |
-|---|---|---|
+| --- | --- | --- |
 | $\frac{1}{2}\lVert\mathbf{x}\rVert^2$ | $\frac{1}{2}\lVert\mathbf{y}\rVert^2$ | Self-conjugate |
 | $\lVert\mathbf{x}\rVert$ (any norm) | $\delta_{\{\lVert\mathbf{y}\rVert_* \leq 1\}}$ | Dual norm unit ball indicator |
 | $\lVert\mathbf{x}\rVert_1$ | $\delta_{\{\lVert\mathbf{y}\rVert_\infty \leq 1\}}$ | L1 ↔ L∞ duality |
@@ -1625,6 +1624,7 @@ $$f^*(\mathbf{y}) = \mathbf{y}^\top Q^{-1}\mathbf{y} - \frac{1}{2}\mathbf{y}^\to
 So the conjugate of a quadratic with Hessian $Q$ is a quadratic with Hessian $Q^{-1}$. This is the convex-analytic reason that preconditioning (multiplying by $Q^{-1}$) transforms the optimization problem to have condition number 1.
 
 **For AI:** Fenchel conjugates appear in:
+
 - **Variational inference**: the evidence lower bound (ELBO) involves the conjugate of the KL divergence
 - **GANs**: the Wasserstein GAN objective is derived from the Kantorovich-Rubinstein duality, which uses Fenchel conjugates
 - **f-divergence estimation**: estimating divergences between distributions (Nguyen et al., 2010) uses the variational form $D_f(p\|q) = \sup_T \{\mathbb{E}_p[T] - f^*(\mathbb{E}_q[T])\}$
@@ -1779,7 +1779,7 @@ Implement the ISTA algorithm for the Lasso problem: $\min_{\mathbf{w}} \frac{1}{
 ## 11. Why This Matters for AI
 
 | Concept | AI Impact |
-|---|---|
+| --- | --- |
 | Convex functions | Cross-entropy, MSE, hinge loss are convex in model outputs — guarantees reliable output-layer training |
 | Strong convexity | Weight decay adds $\mu$-strong convexity to the loss, ensuring unique optima and faster convergence in AdamW |
 | Condition number $\kappa$ | Determines learning rate sensitivity and convergence speed; motivates preconditioning (Adam, K-FAC, Shampoo) |
@@ -1854,6 +1854,7 @@ Each subsequent section in the Optimization chapter builds directly on specific 
 | §10 Learning Rate Schedules | Smoothness determines max safe $\eta$; warmup addresses initial high curvature |
 
 ### The Big Picture
+
 ```
 CONVEX OPTIMIZATION IN THE CURRICULUM
 ════════════════════════════════════════════════════════════════════════

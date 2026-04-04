@@ -1,8 +1,8 @@
+# Second-Order Methods
+
 [← Back to Optimization](../README.md) | [Next: Constrained Optimization →](../04-Constrained-Optimization/notes.md)
 
 ---
-
-# Second-Order Methods
 
 > _"If gradient descent is walking downhill with your eyes closed, Newton's method is looking at the entire terrain and jumping straight to the bottom."_ — Anonymous
 
@@ -12,13 +12,13 @@ Second-order methods use curvature information — the Hessian matrix of second 
 
 The mathematical foundation is elegant. Newton's method approximates the objective function locally by a quadratic using the second-order Taylor expansion, then jumps directly to the minimum of that quadratic. When the approximation is accurate (near the optimum of a smooth function), this yields quadratic convergence — the fastest rate achievable by any iterative method using only function values and derivatives.
 
-However, second-order methods face a fundamental computational barrier: the Hessian matrix has $O(n^2)$ entries and inverting it costs $O(n^3)$, where $n$ is the number of parameters. For modern neural networks with $n = 10^9$ to $10^{11}$ parameters, the full Hessian is computationally intractable. This has led to a rich family of approximations: quasi-Newton methods (BFGS, L-BFGS) that build Hessian approximations from gradient differences, Gauss-Newton that exploits the structure of least-squares problems, natural gradient that uses the Fisher information matrix as a curvature proxy, and modern approximations like K-FAC and Shampoo that make second-order information tractable for deep learning.
+However, second-order methods face a fundamental computational barrier: the Hessian matrix has $O(n^2)$ entries and inverting it costs $O(n^3)$, where $n$ is the number of parameters. For modern neural networks with $n = 10^9$ to $10^{11}$ parameters, the full Hessian is computationally intractable. This has led to a rich family of approximations: quasi-Newton methods (BFGS, L-BFGS) that build Hessian approximations from gradient differences, Gauss-Newton that exploits the structure of least-squares problems, natural gradient that uses the Fisher information matrix as a curvature proxy, and modern approximations like K-FAC and Shampoo that seek to make curvature information more usable in deep learning.
 
 This section develops the full theory of second-order optimization. We begin with Newton's method and its quadratic convergence (§3), then study quasi-Newton methods with BFGS as the gold standard (§4), the Gauss-Newton method for nonlinear least squares (§5), and natural gradient descent with the Fisher information matrix (§6). Advanced topics include Hessian-free optimization for neural networks, trust region methods, and the connection to adaptive learning rate methods (§7). Every method is connected to its role in modern ML systems.
 
 **Scope note.** This section covers curvature-aware optimization methods that use or approximate second-derivative information. _Line search_ strategies used with Newton's method are covered in [Gradient Descent](../02-Gradient-Descent/notes.md#8-line-search-methods). _Adaptive_ per-parameter methods (Adam, AdaGrad) that use diagonal Hessian approximations belong to [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md). _Constrained_ optimization with second-order methods (SQP) is covered in [Constrained Optimization](../04-Constrained-Optimization/notes.md). Here we establish the foundational theory of curvature-based optimization.
 
-**For AI practitioners:** By the end of this section, you will understand why Newton's method is impractical for deep learning but why its principles inform every modern optimizer, how BFGS and L-BFGS dominate classical ML optimization, why the Fisher information matrix provides a geometry-aware gradient, and how K-FAC and Shampoo bring second-order efficiency to LLM training.
+**For AI practitioners:** By the end of this section, you will understand why Newton's method is impractical for deep learning but why its principles inform modern optimizers, how BFGS and L-BFGS dominate classical ML optimization, why the Fisher information matrix provides a geometry-aware gradient, and how K-FAC- and Shampoo-style approximations try to inject curvature information into large-scale training.
 
 ## Prerequisites
 
@@ -30,10 +30,10 @@ This section develops the full theory of second-order optimization. We begin wit
 
 ## Companion Notebooks
 
-| Notebook | Description |
-|---|---|
-| [theory.ipynb](theory.ipynb) | Interactive demonstrations of Newton's method, BFGS, Gauss-Newton, and natural gradient with visualizations |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from Newton convergence proofs to K-FAC approximation analysis |
+| Notebook                           | Description                                                                                                 |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [theory.ipynb](theory.ipynb)       | Interactive demonstrations of Newton's method, BFGS, Gauss-Newton, and natural gradient with visualizations |
+| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from Newton convergence proofs to K-FAC approximation analysis                           |
 
 ## Learning Objectives
 
@@ -50,7 +50,7 @@ After completing this section, you will:
 9. Analyze when Newton's method fails (singular Hessian, saddle points, non-convexity)
 10. Connect second-order methods to adaptive learning rate methods (Adam as diagonal approximation)
 11. Apply Newton's method to logistic regression and compare with GD
-12. Understand K-FAC and Shampoo as practical second-order approximations for neural networks
+12. Understand K-FAC and Shampoo as structured second-order approximations studied for neural networks
 
 ---
 
@@ -96,7 +96,7 @@ After completing this section, you will:
   - [6. Natural Gradient and Fisher Information](#6-natural-gradient-and-fisher-information)
     - [6.1 The Statistical Manifold Perspective](#61-the-statistical-manifold-perspective)
     - [6.2 Fisher Information Matrix: Definition and Properties](#62-fisher-information-matrix-definition-and-properties)
-    - [6.3 Natural Gradient Descent: Amari's Method](#63-natural-gradient-descent-amari-method)
+    - [6.3 Natural Gradient Descent: Amari's Method](#63-natural-gradient-descent-amaris-method)
     - [6.4 Natural Gradient vs. Preconditioned GD](#64-natural-gradient-vs-preconditioned-gd)
     - [6.5 K-FAC: Kronecker-Factored Approximate Curvature](#65-k-fac-kronecker-factored-approximate-curvature)
   - [7. Advanced Topics](#7-advanced-topics)
@@ -155,7 +155,7 @@ When $f$ is exactly quadratic, this model is perfect and Newton's method converg
 
 ### 1.4 Historical Timeline: Newton to Modern Approximations
 
-```
+```text
 SECOND-ORDER METHODS TIMELINE
 ════════════════════════════════════════════════════════════════════════
 
@@ -176,14 +176,14 @@ SECOND-ORDER METHODS TIMELINE
         Grosse
   2018  Gupta et al.    — Shampoo (matrix preconditioning)
   2020  George et al.   — Scalable K-FAC for large models
-  2024  Modern LLMs     — K-FAC, Shampoo, Muon at scale
+  2024  Large-model work — Structured preconditioning remains an active research topic
 
 ════════════════════════════════════════════════════════════════════════
 ```
 
 ### 1.5 The Cost-Benefit Trade-off of Second-Order Information
 
-```
+```text
 SECOND-ORDER METHOD COMPARISON
 ════════════════════════════════════════════════════════════════════════
 
@@ -194,9 +194,9 @@ SECOND-ORDER METHOD COMPARISON
   BFGS          │ O(n²)          │ O(n²)      │ Superlinear
   L-BFGS        │ O(mn)          │ O(mn)      │ Superlinear
   Gauss-Newton  │ O(nd²)         │ O(d²)      │ Linear/quadratic
-  Natural GD    │ O(n²)          │ O(n²)      │ Same as GD, better
-  K-FAC         │ O(n)           │ O(n)       │ Faster than Adam
-  Shampoo       │ O(n)           │ O(n)       │ Competitive w/ Adam
+  Natural GD    │ O(n²)          │ O(n²)      │ Geometry-aware, but costly
+  K-FAC         │ structured     │ structured  │ Problem-dependent gains
+  Shampoo       │ structured     │ structured  │ Problem-dependent gains
 
   n = parameters, d = output dim, m = L-BFGS history (typically 10-50)
 
@@ -291,7 +291,6 @@ $$\mathbf{y}_{t+1} = \mathbf{y}_t + \mathbf{d}_{\tilde{f}} = A^{-1}(\boldsymbol{
 
 **For AI:** This means Newton's method automatically adapts to the parameterization of the model. If you reparameterize a neural network (e.g., scale the weights of one layer and inverse-scale the next), Newton's method produces equivalent iterates. GD, by contrast, is sensitive to parameterization — which is why normalization layers and careful initialization are critical for GD-based training.
 
-
 ---
 
 ## 3. Newton's Method
@@ -299,6 +298,7 @@ $$\mathbf{y}_{t+1} = \mathbf{y}_t + \mathbf{d}_{\tilde{f}} = A^{-1}(\boldsymbol{
 ### 3.1 Pure Newton's Method: Algorithm and Properties
 
 **Algorithm (Pure Newton's Method).**
+
 1. Initialize $\boldsymbol{\theta}_0 \in \mathbb{R}^n$
 2. For $t = 0, 1, 2, \ldots$:
    - Compute $\mathbf{g}_t = \nabla f(\boldsymbol{\theta}_t)$ and $H_t = \nabla^2 f(\boldsymbol{\theta}_t)$
@@ -366,6 +366,7 @@ where $\mathbf{d}_t = -H_t^{-1} \mathbf{g}_t$ is the Newton direction and $\eta_
 ### 3.4 Global Convergence via Backtracking
 
 **Algorithm (Damped Newton with Backtracking).**
+
 1. Choose parameters $\alpha \in (0, 0.5)$, $\beta \in (0, 1)$ (typically $\alpha = 0.01$, $\beta = 0.5$)
 2. For $t = 0, 1, 2, \ldots$:
    - Compute $\mathbf{g}_t = \nabla f(\boldsymbol{\theta}_t)$ and $H_t = \nabla^2 f(\boldsymbol{\theta}_t)$
@@ -403,7 +404,7 @@ Newton's method is powerful but has several failure modes:
 
 **Fix:** Use quasi-Newton methods (§4), Gauss-Newton (§5), or iterative solvers (§7.3).
 
-```
+```text
 NEWTON'S METHOD: STRENGTHS AND WEAKNESSES
 ════════════════════════════════════════════════════════════════════════
 
@@ -420,7 +421,6 @@ NEWTON'S METHOD: STRENGTHS AND WEAKNESSES
 
 ════════════════════════════════════════════════════════════════════════
 ```
-
 
 ---
 
@@ -484,6 +484,7 @@ where $\rho_t = \frac{1}{\mathbf{y}_t^\top \mathbf{s}_t}$.
 4. **Dual relationship:** BFGS applied to $f$ is equivalent to DFP applied to the dual problem, and the dual of a convex problem is often better conditioned
 
 **Algorithm (BFGS).**
+
 1. Initialize $\boldsymbol{\theta}_0$, $H_0 = I$ (or a scaled identity)
 2. For $t = 0, 1, 2, \ldots$:
    - Compute $\mathbf{g}_t = \nabla f(\boldsymbol{\theta}_t)$
@@ -511,6 +512,7 @@ The main limitation of BFGS is the $O(n^2)$ memory requirement for storing $H_t$
 **L-BFGS** (Nocedal, 1989) avoids storing $H_t$ explicitly. Instead, it stores the most recent $m$ pairs $\{(\mathbf{s}_i, \mathbf{y}_i)\}_{i=t-m+1}^t$ (typically $m = 10$ to $50$) and computes the matrix-vector product $H_t \mathbf{g}$ implicitly using the **two-loop recursion**:
 
 **Two-loop recursion:**
+
 1. Initialize $\mathbf{q} = \mathbf{g}$
 2. For $i = t, t-1, \ldots, t-m+1$:
    - $\alpha_i = \rho_i \mathbf{s}_i^\top \mathbf{q}$
@@ -524,7 +526,6 @@ The main limitation of BFGS is the $O(n^2)$ memory requirement for storing $H_t$
 This requires only $O(mn)$ memory (storing $2m$ vectors of length $n$) and $O(mn)$ compute per iteration. For $m = 20$ and $n = 10^6$, this is about 160 MB — feasible on a laptop.
 
 **For AI:** L-BFGS is the default optimizer in scipy.optimize.minimize and is widely used for small-to-medium ML problems (logistic regression, SVMs, Gaussian processes). It is not commonly used for deep learning because the non-convex landscape and the need for stochastic gradients make the full-batch L-BFGS assumptions invalid. However, L-BFGS is sometimes used for fine-tuning small models or for hyperparameter optimization.
-
 
 ---
 
@@ -571,13 +572,13 @@ This is exactly the normal equations for the linear least squares problem $\min_
 
 ### 5.3 Gauss-Newton vs. Newton: When the Approximation Holds
 
-| Aspect | Newton | Gauss-Newton |
-|---|---|---|
-| Hessian | Full $H = J^\top J + \sum r_i \nabla^2 r_i$ | Approximate $H \approx J^\top J$ |
-| Positive definite | Only near minima | Always PSD (if $J$ has full rank) |
-| Cost per iteration | $O(n^3)$ for Hessian + solve | $O(mn^2 + n^3)$ for $J^\top J$ + solve |
-| Convergence | Quadratic near optimum | Linear to superlinear |
-| Robustness | Sensitive to initialization | More robust (always descent direction) |
+| Aspect             | Newton                                      | Gauss-Newton                           |
+| ------------------ | ------------------------------------------- | -------------------------------------- |
+| Hessian            | Full $H = J^\top J + \sum r_i \nabla^2 r_i$ | Approximate $H \approx J^\top J$       |
+| Positive definite  | Only near minima                            | Always PSD (if $J$ has full rank)      |
+| Cost per iteration | $O(n^3)$ for Hessian + solve                | $O(mn^2 + n^3)$ for $J^\top J$ + solve |
+| Convergence        | Quadratic near optimum                      | Linear to superlinear                  |
+| Robustness         | Sensitive to initialization                 | More robust (always descent direction) |
 
 **For AI:** The Gauss-Newton approximation is the foundation of many practical second-order methods for neural networks. The Fisher information matrix (used in natural gradient) is closely related to $J^\top J$ for classification problems. K-FAC (§6.5) is essentially a structured Gauss-Newton approximation.
 
@@ -593,6 +594,7 @@ When $\mu$ is large, this approaches gradient descent with step size $1/\mu$. Wh
 - If the step increases the objective, increase $\mu$ (trust the quadratic model less)
 
 **Algorithm (Levenberg-Marquardt).**
+
 1. Initialize $\boldsymbol{\theta}_0$, $\mu > 0$ (e.g., $\mu = 10^{-3}$), $\nu > 1$ (e.g., $\nu = 10$)
 2. For $t = 0, 1, 2, \ldots$:
    - Compute $J_t$ and $\mathbf{r}_t$
@@ -688,7 +690,7 @@ When the loss is the negative log-likelihood and the model is well-specified, $F
 
 $$\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \cdot \text{diag}(F)^{-1} \nabla f(\boldsymbol{\theta}_t)$$
 
-This is exactly the update of **AdaGrad** (with a moving average of squared gradients approximating the diagonal Fisher). This connection reveals that adaptive learning rate methods are diagonal approximations to natural gradient.
+This resembles **AdaGrad/RMSProp-style diagonal preconditioning** when squared-gradient statistics are used as a proxy for the diagonal Fisher. The connection is conceptually important, but it is an approximation rather than an exact identity.
 
 ### 6.5 K-FAC: Kronecker-Factored Approximate Curvature
 
@@ -700,8 +702,7 @@ where $\mathbf{g} = \partial \mathcal{L} / \partial \mathbf{z}$ is the gradient 
 
 This factorization reduces the storage from $O((d_{\text{in}} \cdot d_{\text{out}})^2)$ to $O(d_{\text{in}}^2 + d_{\text{out}}^2)$ and the inversion from $O((d_{\text{in}} \cdot d_{\text{out}})^3)$ to $O(d_{\text{in}}^3 + d_{\text{out}}^3)$.
 
-**For AI:** K-FAC has been successfully applied to train large neural networks, achieving faster convergence than Adam in some settings. It is particularly effective for convolutional networks and has been scaled to models with billions of parameters using distributed computation of the Kronecker factors.
-
+**For AI:** K-FAC has shown strong results in some large-network settings, especially when the model architecture and systems stack make Kronecker-factor updates affordable. It remains more specialized and engineering-heavy than default first-order optimizers.
 
 ---
 
@@ -718,6 +719,7 @@ $$H\mathbf{v} = \nabla^2 f(\boldsymbol{\theta}) \mathbf{v} = \nabla_{\boldsymbol
 This can be computed using two backward passes: one to compute $\nabla f(\boldsymbol{\theta})^\top \mathbf{v}$ (a directional derivative) and one to compute its gradient. The cost is comparable to computing the gradient itself — $O(n)$ memory and the same compute as one forward + backward pass.
 
 **Algorithm (Hessian-Free Optimization).**
+
 1. Compute $\mathbf{g} = \nabla f(\boldsymbol{\theta})$
 2. Solve $H\mathbf{d} \approx -\mathbf{g}$ using conjugate gradient (with Hessian-vector products)
 3. Perform line search along $\mathbf{d}$ to find step size
@@ -748,6 +750,7 @@ $$\rho_t = \frac{f(\boldsymbol{\theta}_t) - f(\boldsymbol{\theta}_t + \mathbf{d}
 The conjugate gradient (CG) method solves $A\mathbf{x} = \mathbf{b}$ for symmetric positive definite $A$ without explicitly forming $A^{-1}$. For Newton's method, we solve $H\mathbf{d} = -\mathbf{g}$ using CG.
 
 **Algorithm (Conjugate Gradient for $H\mathbf{d} = -\mathbf{g}$).**
+
 1. Initialize $\mathbf{d}_0 = \mathbf{0}$, $\mathbf{r}_0 = -\mathbf{g}$, $\mathbf{p}_0 = \mathbf{r}_0$
 2. For $k = 0, 1, 2, \ldots$:
    - $\alpha_k = \frac{\mathbf{r}_k^\top \mathbf{r}_k}{\mathbf{p}_k^\top H \mathbf{p}_k}$
@@ -758,6 +761,7 @@ The conjugate gradient (CG) method solves $A\mathbf{x} = \mathbf{b}$ for symmetr
    - $\mathbf{p}_{k+1} = \mathbf{r}_{k+1} + \beta_k \mathbf{p}_k$
 
 **Key properties:**
+
 - CG converges in at most $n$ iterations (exact arithmetic)
 - In practice, a good approximate solution is found in $k \ll n$ iterations
 - Each iteration requires one Hessian-vector product $H\mathbf{p}_k$
@@ -774,6 +778,7 @@ The conjugate gradient (CG) method solves $A\mathbf{x} = \mathbf{b}$ for symmetr
 $$J^\top J \approx (SJ)^\top (SJ)$$
 
 Common choices for $S$ include:
+
 - **Gaussian sketch:** $S_{ij} \sim \mathcal{N}(0, 1/s)$
 - **Subsampled randomized Hadamard transform (SRHT):** $S = P H D$ where $P$ selects rows, $H$ is the Hadamard matrix, $D$ is a random diagonal sign matrix
 - **CountSketch:** Sparse random matrix with one non-zero entry per column
@@ -790,20 +795,20 @@ where $C$ consists of $c$ randomly selected columns of $A$ and $W$ is the corres
 
 Adaptive learning rate methods can be understood as diagonal approximations to second-order methods:
 
-| Method | Preconditioner | Approximation of |
-|---|---|---|
-| AdaGrad | $\text{diag}(\sum_{i=1}^t \mathbf{g}_i^2)^{-1/2}$ | Diagonal of cumulative Fisher |
-| RMSProp | $\text{diag}(E[\mathbf{g}^2])^{-1/2}$ | Diagonal of exponential moving average Fisher |
-| Adam | $\text{diag}(E[\mathbf{g}^2])^{-1/2}$ with momentum | Diagonal Fisher + momentum |
-| AdamW | Adam + decoupled weight decay | Diagonal Fisher + L2 regularization |
-| Shampoo | Full block preconditioners | Block-diagonal Fisher |
-| K-FAC | Kronecker-factored Fisher | Structured full Fisher |
+| Method  | Preconditioner                                      | Approximation of                                    |
+| ------- | --------------------------------------------------- | --------------------------------------------------- |
+| AdaGrad | $\text{diag}(\sum_{i=1}^t \mathbf{g}_i^2)^{-1/2}$   | Diagonal of cumulative Fisher                       |
+| RMSProp | $\text{diag}(E[\mathbf{g}^2])^{-1/2}$               | Diagonal of exponential moving average Fisher       |
+| Adam    | $\text{diag}(E[\mathbf{g}^2])^{-1/2}$ with momentum | Diagonal Fisher + momentum                          |
+| AdamW   | Adam + decoupled weight decay                       | Diagonal preconditioning + decoupled regularization |
+| Shampoo | Full block preconditioners                          | Block-diagonal Fisher                               |
+| K-FAC   | Kronecker-factored Fisher                           | Structured full Fisher                              |
 
 **The diagonal approximation trade-off:** Using only the diagonal of the Fisher/Hessian reduces memory from $O(n^2)$ to $O(n)$ and inversion from $O(n^3)$ to $O(n)$. However, it ignores correlations between parameters, which can be significant in neural networks (e.g., between weights in the same layer).
 
 **Shampoo** (Gupta et al., 2018) goes beyond the diagonal by using full matrix preconditioners for each layer. For a weight matrix $W \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$, Shampoo maintains preconditioners $L \in \mathbb{R}^{d_{\text{out}} \times d_{\text{out}}}$ and $R \in \mathbb{R}^{d_{\text{in}} \times d_{\text{in}}}$ such that the update is $L^{-1/4} G R^{-1/4}$. This captures correlations within each dimension of the weight matrix while remaining computationally tractable.
 
-**For AI:** Shampoo and its variants (SOAP, Muon) have emerged as competitive alternatives to Adam for LLM training. They provide better conditioning than diagonal methods while remaining computationally feasible through Kronecker factorization and matrix power iteration.
+**For AI:** Shampoo is a prominent example of structured preconditioning beyond diagonal methods. Related optimizer proposals such as SOAP and Muon show that large-scale optimizer design is still evolving, but the empirical picture is workload-dependent rather than settled once and for all.
 
 ---
 
@@ -852,6 +857,7 @@ For problems with $n < 10^4$ parameters, BFGS typically outperforms GD by a larg
 - Wolfe line search with safeguarded polynomial interpolation
 
 **For AI:** L-BFGS-B is used extensively in:
+
 - Hyperparameter optimization (scikit-optimize, Optuna)
 - Gaussian process training (scikit-learn, GPyTorch)
 - Scientific computing and inverse problems
@@ -871,37 +877,37 @@ Natural gradient has been particularly successful in reinforcement learning:
 
 ### 8.5 Second-Order Methods in LLM Training
 
-Second-order methods are making a comeback in LLM training:
+Curvature-aware ideas continue to influence LLM training, but the frontier is still experimentally mixed:
 
-**K-FAC at scale.** George et al. (2018) demonstrated that K-FAC can train large neural networks faster than Adam, with fewer total FLOPs. The key is that each K-FAC step makes more progress than an Adam step, compensating for the higher per-step cost.
+**K-FAC at scale.** K-FAC and related Fisher-based methods show that structured curvature information can reduce the number of optimization steps in some regimes. The trade-off is heavier implementation complexity, communication, and matrix-update overhead.
 
-**Shampoo and SOAP.** Shampoo (Gupta et al., 2018) and its successor SOAP (Vyas et al., 2024) use matrix preconditioning to approximate the inverse square root of the Fisher/Hessian. SOAP achieves Adam-like memory usage with Newton-like convergence speed by using efficient matrix power iterations.
+**Shampoo and SOAP.** Shampoo (Gupta et al., 2018) uses matrix preconditioning to approximate inverse-root curvature information. SOAP (Vyas et al., 2024) is a more recent preconditioning proposal in the same design space. These methods are best understood as evidence that blockwise preconditioning can matter, not as universally dominant replacements for AdamW.
 
-**Muon.** Muon (2024) uses orthogonalization of the momentum term, which can be interpreted as a form of preconditioning. It has shown promising results for GPT-4-scale training.
+**Muon.** Muon-style optimizers use orthogonalized momentum updates and have reported promising large-model results. They are important to know because they show how much optimizer design is still moving, even if long-run best practice has not fully converged.
 
 **Hessian analysis.** Even when not used for optimization, the Hessian spectrum is used to analyze training dynamics:
+
 - **Sharpness-aware minimization (SAM)** (Foret et al., 2021): Minimizes both the loss and the sharpness (largest Hessian eigenvalue) to find flat minima
 - **WeightWatcher** (Martin & Mahoney, 2021): Uses the spectral properties of weight matrices (related to the Hessian) to predict generalization
 
-**For AI:** The trend in 2024-2026 is toward hybrid methods that combine the efficiency of first-order methods with the convergence benefits of second-order information. AdamW remains the default, but Shampoo, SOAP, and Muon are gaining traction for large-scale training where the extra per-step cost is justified by fewer total steps.
-
+**For AI:** The practical lesson for 2026 is not "use second-order methods everywhere." It is: understand curvature, preconditioning, and geometry well enough to recognize when a structured optimizer might beat a diagonal one, while treating AdamW and related first-order baselines as the default starting point.
 
 ---
 
 ## 9. Common Mistakes
 
-| # | Mistake | Why It's Wrong | Fix |
-|---|---------|----------------|-----|
-| 1 | "Newton's method always converges faster than GD" | Newton's method only converges quadratically near the optimum. Far from the optimum, it can diverge or cycle. GD with a good learning rate may be more robust. | Use damped Newton's method with line search for global convergence. |
-| 2 | "The Hessian is always positive definite" | The Hessian is positive definite only near a local minimum. At saddle points, it has negative eigenvalues. In general non-convex regions, it can be indefinite. | Check eigenvalues or use modified Cholesky to ensure positive definiteness. |
-| 3 | "BFGS is always better than L-BFGS" | BFGS uses $O(n^2)$ memory while L-BFGS uses $O(mn)$. For $n > 10^4$, BFGS is impractical. L-BFGS with $m = 20$ often performs nearly as well. | Use BFGS for $n < 10^4$, L-BFGS for larger problems. |
-| 4 | "Natural gradient is the same as preconditioned GD" | Natural gradient uses the Fisher information matrix, which encodes the geometry of the distribution space. General preconditioned GD uses an arbitrary preconditioner that may not have this geometric meaning. | Natural gradient is a specific type of preconditioned GD with $F^{-1}$ as preconditioner. |
-| 5 | "Gauss-Newton is always positive definite" | $J^\top J$ is positive semidefinite, but can be singular if $J$ does not have full column rank. This happens when the model is overparameterized. | Add regularization: $(J^\top J + \mu I)^{-1}$ (Levenberg-Marquardt). |
-| 6 | "Quasi-Newton methods work well for neural networks" | Quasi-Newton methods assume the objective is approximately quadratic and use full-batch gradients. Neural network losses are highly non-convex and trained with stochastic gradients. | Use L-BFGS only for small, convex problems. For neural networks, use Adam, K-FAC, or Shampoo. |
-| 7 | "The Newton direction is always a descent direction" | The Newton direction is a descent direction only when $H \succ 0$. If $H$ is indefinite, the Newton direction may increase the objective. | Check that $\mathbf{g}^\top \mathbf{d}_{\text{nt}} < 0$. If not, use a modified Newton direction. |
-| 8 | "K-FAC is too expensive for large models" | K-FAC's cost per layer is $O(d_{\text{in}}^3 + d_{\text{out}}^3)$, not $O((d_{\text{in}} d_{\text{out}})^3)$. For typical layer sizes, this is comparable to the forward pass cost. | Use K-FAC with infrequent updates (every 10-100 steps) to amortize the cost. |
-| 9 | "The Fisher information equals the Hessian" | $F(\boldsymbol{\theta}) = \mathbb{E}[H(\boldsymbol{\theta})]$ only for the negative log-likelihood. For other losses (MSE, hinge), they differ. | Use the Fisher for natural gradient; use the Hessian for Newton's method. They coincide only for MLE. |
-| 10 | "Second-order methods are obsolete because of Adam" | Adam is a diagonal approximation to second-order methods. Full or structured second-order methods (K-FAC, Shampoo) can converge in fewer steps, reducing total training time. | Use Adam as the default; consider second-order methods when training cost is the bottleneck. |
+| #   | Mistake                                              | Why It's Wrong                                                                                                                                                                                                  | Fix                                                                                                                                                                           |
+| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | "Newton's method always converges faster than GD"    | Newton's method only converges quadratically near the optimum. Far from the optimum, it can diverge or cycle. GD with a good learning rate may be more robust.                                                  | Use damped Newton's method with line search for global convergence.                                                                                                           |
+| 2   | "The Hessian is always positive definite"            | The Hessian is positive definite only near a local minimum. At saddle points, it has negative eigenvalues. In general non-convex regions, it can be indefinite.                                                 | Check eigenvalues or use modified Cholesky to ensure positive definiteness.                                                                                                   |
+| 3   | "BFGS is always better than L-BFGS"                  | BFGS uses $O(n^2)$ memory while L-BFGS uses $O(mn)$. For $n > 10^4$, BFGS is impractical. L-BFGS with $m = 20$ often performs nearly as well.                                                                   | Use BFGS for $n < 10^4$, L-BFGS for larger problems.                                                                                                                          |
+| 4   | "Natural gradient is the same as preconditioned GD"  | Natural gradient uses the Fisher information matrix, which encodes the geometry of the distribution space. General preconditioned GD uses an arbitrary preconditioner that may not have this geometric meaning. | Natural gradient is a specific type of preconditioned GD with $F^{-1}$ as preconditioner.                                                                                     |
+| 5   | "Gauss-Newton is always positive definite"           | $J^\top J$ is positive semidefinite, but can be singular if $J$ does not have full column rank. This happens when the model is overparameterized.                                                               | Add regularization: $(J^\top J + \mu I)^{-1}$ (Levenberg-Marquardt).                                                                                                          |
+| 6   | "Quasi-Newton methods work well for neural networks" | Quasi-Newton methods assume the objective is approximately quadratic and use full-batch gradients. Neural network losses are highly non-convex and trained with stochastic gradients.                           | Use L-BFGS only for small, well-behaved problems. For neural networks, start with well-tested stochastic optimizers; structured second-order methods are specialized options. |
+| 7   | "The Newton direction is always a descent direction" | The Newton direction is a descent direction only when $H \succ 0$. If $H$ is indefinite, the Newton direction may increase the objective.                                                                       | Check that $\mathbf{g}^\top \mathbf{d}_{\text{nt}} < 0$. If not, use a modified Newton direction.                                                                             |
+| 8   | "K-FAC is too expensive for large models"            | The naive full-Fisher cost is prohibitive, but K-FAC replaces it with Kronecker-structured factors. Whether that cost is acceptable depends on architecture, implementation quality, and update frequency.      | Evaluate K-FAC only when you can amortize curvature updates and your systems stack supports them well.                                                                        |
+| 9   | "The Fisher information equals the Hessian"          | $F(\boldsymbol{\theta}) = \mathbb{E}[H(\boldsymbol{\theta})]$ only for the negative log-likelihood. For other losses (MSE, hinge), they differ.                                                                 | Use the Fisher for natural gradient; use the Hessian for Newton's method. They coincide only for MLE.                                                                         |
+| 10  | "Second-order methods are obsolete because of Adam"  | Adam's success does not erase curvature. Structured second-order ideas still matter for analysis, preconditioning, and some large-scale workloads.                                                              | Use AdamW-style methods as the default baseline, then test structured curvature methods when the workload justifies the extra complexity.                                     |
 
 ---
 
@@ -935,20 +941,20 @@ For a single linear layer $Z = XW$, compute the exact Fisher block and the K-FAC
 
 ## 11. Why This Matters for AI (2026 Perspective)
 
-| Concept | AI Impact |
-|---------|-----------|
-| Newton's method | Foundation for all curvature-based optimization; IRLS for logistic regression |
-| Quadratic convergence | Explains why second-order methods are used for fine-tuning and calibration |
-| BFGS / L-BFGS | Default optimizer for small-scale ML; scipy.optimize backbone |
-| Gauss-Newton | Foundation for nonlinear least squares; connects to neural network training |
-| Levenberg-Marquardt | Standard for curve fitting and calibration; robust second-order method |
-| Fisher information | Defines the geometry of probability distributions; basis for natural gradient |
-| Natural gradient | Reparameterization-invariant optimization; used in RL (TRPO, NPG) |
-| K-FAC | Practical second-order method for neural networks; faster convergence than Adam |
-| Shampoo / SOAP | Matrix preconditioning for LLM training; competitive with Adam at scale |
-| Hessian-vector products | Enable Hessian-free optimization and sharpness analysis |
-| Trust region methods | Basis for TRPO in RL; robust globalization of Newton's method |
-| Diagonal Fisher approximation | Reveals Adam as approximate natural gradient |
+| Concept                       | AI Impact                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| Newton's method               | Foundation for all curvature-based optimization; IRLS for logistic regression                     |
+| Quadratic convergence         | Explains why second-order methods are used for fine-tuning and calibration                        |
+| BFGS / L-BFGS                 | Default optimizer for small-scale ML; scipy.optimize backbone                                     |
+| Gauss-Newton                  | Foundation for nonlinear least squares; connects to neural network training                       |
+| Levenberg-Marquardt           | Standard for curve fitting and calibration; robust second-order method                            |
+| Fisher information            | Defines the geometry of probability distributions; basis for natural gradient                     |
+| Natural gradient              | Reparameterization-invariant optimization; used in RL (TRPO, NPG)                                 |
+| K-FAC                         | Structured Fisher approximation for neural networks; useful when curvature updates are affordable |
+| Shampoo / SOAP                | Matrix-preconditioning family; relevant to current large-scale optimizer research                 |
+| Hessian-vector products       | Enable Hessian-free optimization and sharpness analysis                                           |
+| Trust region methods          | Basis for TRPO in RL; robust globalization of Newton's method                                     |
+| Diagonal Fisher approximation | Explains why Adam-like methods can be viewed as diagonal preconditioners                          |
 
 ---
 
@@ -969,12 +975,12 @@ This section is the foundation for several advanced topics:
 - **Constrained Optimization** (§04) uses Newton's method for solving the KKT system in interior-point methods. Sequential quadratic programming (SQP) applies Newton's method to the Lagrangian.
 - **Stochastic Optimization** (§05) connects through stochastic quasi-Newton methods (oBFGS, SNS) that approximate the Hessian from noisy gradients.
 - **Optimization Landscape** (§06) uses the Hessian spectrum to classify critical points (minima, saddles, maxima) and measure sharpness.
-- **Adaptive Learning Rate** (§07) is deeply connected: Adam is a diagonal approximation to natural gradient, and Shampoo is a block-diagonal approximation to the full Fisher.
+- **Adaptive Learning Rate** (§07) is deeply connected: adaptive methods can be interpreted as diagonal preconditioners, while Shampoo- or K-FAC-style methods retain more curvature structure.
 - **Learning Rate Schedules** (§10) can be informed by second-order information: the optimal learning rate is related to the inverse of the largest Hessian eigenvalue.
 
 ### The Big Picture
 
-```
+```text
 SECOND-ORDER METHODS IN THE CURRICULUM
 ════════════════════════════════════════════════════════════════════════
 
@@ -1014,8 +1020,8 @@ Second-order methods represent the fundamental trade-off in optimization: more i
 
 ## References
 
-1. Nocedal, J. & Wright, S. (2006). *Numerical Optimization* (2nd ed.). Springer.
-2. Boyd, S. & Vandenberghe, L. (2004). *Convex Optimization*. Cambridge University Press.
+1. Nocedal, J. & Wright, S. (2006). _Numerical Optimization_ (2nd ed.). Springer.
+2. Boyd, S. & Vandenberghe, L. (2004). _Convex Optimization_. Cambridge University Press.
 3. Martens, J. (2010). "Deep learning via Hessian-free optimization." ICML.
 4. Martens, J. & Grosse, R. (2015). "Optimizing neural networks with Kronecker-factored approximate curvature." ICML.
 5. Amari, S. (1998). "Natural gradient works efficiently in learning." Neural Computation.
@@ -1030,7 +1036,6 @@ Second-order methods represent the fundamental trade-off in optimization: more i
 14. Vyas, N. et al. (2024). "SOAP: Improving preconditioning for large-scale optimization." arXiv.
 15. Levenberg, K. (1944). "A method for the solution of certain non-linear problems in least squares." Quarterly of Applied Mathematics.
 16. Marquardt, D. (1963). "An algorithm for least-squares estimation of nonlinear parameters." SIAM Journal.
-
 
 ---
 
@@ -1144,6 +1149,7 @@ where $\kappa$ is the condition number of $\nabla^2 f(\boldsymbol{\theta}^*)$ an
 **Interpretation:** The convergence rate of L-BFGS improves exponentially with the memory size $m$. For well-conditioned problems ($\kappa$ small), even $m = 5$ gives good performance. For ill-conditioned problems ($\kappa$ large), larger $m$ is needed.
 
 **Practical guidance:**
+
 - $m = 5$: Minimum useful memory; suitable for well-conditioned problems
 - $m = 10-20$: Default range; good for most problems
 - $m = 50$: For ill-conditioned problems; diminishing returns beyond this
@@ -1184,12 +1190,11 @@ The set of all probability distributions $\{p(\cdot \mid \boldsymbol{\theta}) : 
 
 $$d(\boldsymbol{\theta}_1, \boldsymbol{\theta}_2) = \inf_{\gamma} \int_0^1 \sqrt{\dot{\gamma}(t)^\top F(\gamma(t)) \dot{\gamma}(t)} \, dt$$
 
-2. **$\alpha$-connections:** The manifold has a family of affine connections parameterized by $\alpha \in [-1, 1]$. The $e$-connection ($\alpha = 1$) and $m$-connection ($\alpha = -1$) are dual with respect to the Fisher metric.
+1. **$\alpha$-connections:** The manifold has a family of affine connections parameterized by $\alpha \in [-1, 1]$. The $e$-connection ($\alpha = 1$) and $m$-connection ($\alpha = -1$) are dual with respect to the Fisher metric.
 
-3. **Dually flat structure:** For exponential families, the manifold is dually flat: it has two flat coordinate systems (natural parameters $\boldsymbol{\theta}$ and expectation parameters $\boldsymbol{\eta} = \mathbb{E}[T(X)]$) connected by the Legendre transform.
+2. **Dually flat structure:** For exponential families, the manifold is dually flat: it has two flat coordinate systems (natural parameters $\boldsymbol{\theta}$ and expectation parameters $\boldsymbol{\eta} = \mathbb{E}[T(X)]$) connected by the Legendre transform.
 
 **For AI:** The information geometry perspective reveals that the "right" way to measure distances between models is not in parameter space but in distribution space. This explains why natural gradient — which follows the geometry of the statistical manifold — is more effective than standard gradient descent, which follows the (often misleading) geometry of the parameter space.
-
 
 ---
 
@@ -1297,18 +1302,17 @@ The natural gradient is simply $\theta - x$, which is the difference between the
 
 ### B.5 Comparison: All Second-Order Methods on a Test Problem
 
-| Method | Iterations to $10^{-8}$ | Cost per iteration | Total cost | Best for |
-|---|---|---|---|---|
-| GD | 5000 | $O(n)$ | $O(5000n)$ | Large-scale, non-convex |
-| Newton | 5 | $O(n^3)$ | $O(5n^3)$ | Small, well-conditioned |
-| BFGS | 15 | $O(n^2)$ | $O(15n^2)$ | Medium-scale, smooth |
-| L-BFGS ($m=20$) | 20 | $O(mn)$ | $O(400n)$ | Large-scale, smooth |
-| Gauss-Newton | 8 | $O(mn^2)$ | $O(8mn^2)$ | Nonlinear least squares |
-| Natural GD | 5000 | $O(n^2)$ | $O(5000n^2)$ | Statistical estimation |
-| K-FAC | 200 | $O(n)$ | $O(200n)$ | Neural networks |
+| Method          | Iterations to $10^{-8}$ | Cost per iteration | Total cost   | Best for                |
+| --------------- | ----------------------- | ------------------ | ------------ | ----------------------- |
+| GD              | 5000                    | $O(n)$             | $O(5000n)$   | Large-scale, non-convex |
+| Newton          | 5                       | $O(n^3)$           | $O(5n^3)$    | Small, well-conditioned |
+| BFGS            | 15                      | $O(n^2)$           | $O(15n^2)$   | Medium-scale, smooth    |
+| L-BFGS ($m=20$) | 20                      | $O(mn)$            | $O(400n)$    | Large-scale, smooth     |
+| Gauss-Newton    | 8                       | $O(mn^2)$          | $O(8mn^2)$   | Nonlinear least squares |
+| Natural GD      | 5000                    | $O(n^2)$           | $O(5000n^2)$ | Statistical estimation  |
+| K-FAC           | 200                     | $O(n)$             | $O(200n)$    | Neural networks         |
 
 The "total cost" column assumes the problem dimension $n$ is large enough that the per-iteration cost dominates. For small $n$, Newton's method is unbeatable. For large $n$, L-BFGS and K-FAC are the practical choices.
-
 
 ---
 
@@ -1319,27 +1323,32 @@ The "total cost" column assumes the problem dimension $n$ is large enough that t
 The core computational bottleneck in Newton's method is solving $H\mathbf{d} = -\mathbf{g}$. The choice of solver depends on the properties of $H$:
 
 **Cholesky factorization** (when $H \succ 0$):
+
 - Factor $H = LL^\top$ where $L$ is lower triangular
 - Solve $L\mathbf{y} = -\mathbf{g}$ (forward substitution), then $L^\top \mathbf{d} = \mathbf{y}$ (back substitution)
 - Cost: $n^3/3$ flops for factorization, $2n^2$ for solve
 - Numerically stable for well-conditioned $H$
 
 **LU factorization** (general $H$):
+
 - Factor $PA = LU$ with partial pivoting
 - Cost: $2n^3/3$ flops
 - More robust than Cholesky for indefinite matrices
 
 **LDL^T factorization** (symmetric indefinite):
+
 - Factor $P^\top H P = LDL^\top$ where $D$ is block diagonal with 1×1 and 2×2 blocks
 - Preserves symmetry without requiring positive definiteness
 - Used in modified Newton methods
 
 **Iterative methods** (large $n$):
+
 - Conjugate gradient (for $H \succ 0$): $O(k \cdot \text{nnz}(H))$ where $k$ is iterations
 - MINRES (for symmetric indefinite): variant of CG for indefinite systems
 - GMRES (for non-symmetric): most general but most expensive
 
 **For AI:** In neural network training, $n$ is too large for direct factorization. The practical approaches are:
+
 1. **Hessian-free:** Use CG with Hessian-vector products (Pearlmutter's trick)
 2. **K-FAC:** Use Kronecker factorization to reduce the system size
 3. **Shampoo:** Use matrix power iteration for preconditioning
@@ -1406,6 +1415,7 @@ $$\mathbf{v}_{k+1} = \frac{H^{-1}\mathbf{v}_k}{\lVert H^{-1}\mathbf{v}_k \rVert}
 **Lanczos method:** Builds a tridiagonal approximation to $H$ and computes its extreme eigenvalues. Converges much faster than power iteration, typically finding the top 10-20 eigenvalues in 50-100 iterations.
 
 **For AI:** The condition number of the neural network Hessian is a key diagnostic:
+
 - $\kappa < 10^3$: Well-conditioned; Newton's method will work well
 - $10^3 < \kappa < 10^6$: Moderately ill-conditioned; use preconditioning
 - $\kappa > 10^6$: Severely ill-conditioned; use regularization or trust region
@@ -1417,34 +1427,34 @@ The two-loop recursion for L-BFGS can be implemented efficiently:
 ```python
 def lbfgs_two_loop(g, s_history, y_history, rho_history, H0_scale):
     """L-BFGS two-loop recursion.
-    
+
     Args:
         g: current gradient
         s_history: list of s_k = theta_{k+1} - theta_k
         y_history: list of y_k = g_{k+1} - g_k
         rho_history: list of 1/(y_k^T s_k)
         H0_scale: scaling factor for initial H_0
-    
+
     Returns:
         search direction d = -H * g
     """
     m = len(s_history)
     q = g.copy()
     alpha = [0] * m
-    
+
     # Loop 1: backward through history
     for i in range(m - 1, -1, -1):
         alpha[i] = rho_history[i] * np.dot(s_history[i], q)
         q = q - alpha[i] * y_history[i]
-    
+
     # Initial Hessian approximation
     r = H0_scale * q
-    
+
     # Loop 2: forward through history
     for i in range(m):
         beta = rho_history[i] * np.dot(y_history[i], r)
         r = r + (alpha[i] - beta) * s_history[i]
-    
+
     return -r
 ```
 
@@ -1454,7 +1464,7 @@ def lbfgs_two_loop(g, s_history, y_history, rho_history, H0_scale):
 
 **Decision tree for choosing a second-order method:**
 
-```
+```text
 Is the problem convex?
 ├── YES → Is n < 1000?
 │         ├── YES → Use Newton's method (fastest convergence)
@@ -1464,14 +1474,14 @@ Is the problem convex?
 ├── NO (non-convex) → Is it a least-squares problem?
 │                     ├── YES → Use Gauss-Newton / Levenberg-Marquardt
 │                     └── NO → Is it a neural network?
-│                              ├── YES → Use K-FAC or Shampoo
+│                              ├── YES → Start with AdamW; test curvature methods only if justified
 │                              └── NO → Use L-BFGS with caution
 └── Statistical estimation → Use Natural Gradient
 ```
 
-**For AI practitioners:** The default choice for neural network training remains AdamW (first-order with diagonal preconditioning). Second-order methods are worth considering when:
+**For AI practitioners:** The default choice for neural network training remains AdamW or another well-tested first-order baseline. Second-order methods are worth considering when:
+
 1. The problem is small enough ($n < 10^4$) for BFGS/L-BFGS
 2. The problem has least-squares structure (use Gauss-Newton)
-3. Training cost is the bottleneck and fewer iterations would save money (use K-FAC/Shampoo)
+3. Training cost is the bottleneck and you have evidence that structured preconditioning will offset its systems overhead
 4. Reparameterization invariance is important (use natural gradient)
-

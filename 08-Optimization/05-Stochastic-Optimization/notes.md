@@ -155,7 +155,7 @@ The noise in SGD is not just a computational necessity — it provides several b
 
 4. **Early stopping effect:** The noise prevents overfitting by preventing the parameters from settling too precisely into the training data minimum.
 
-```
+```text
 SGD NOISE AS IMPLICIT REGULARIZATION
 ════════════════════════════════════════════════════════════════════════
 
@@ -188,7 +188,7 @@ This decomposition reveals that SGD is equivalent to GD with additive noise. The
 
 ### 1.4 Historical Timeline: Robbins-Monro to Modern Distributed SGD
 
-```
+```text
 STOCHASTIC OPTIMIZATION TIMELINE
 ════════════════════════════════════════════════════════════════════════
 
@@ -224,7 +224,7 @@ Every modern neural network is trained with some form of stochastic optimization
 |---|---|---|---|
 | **SGD** | Yes (mini-batch) | None (raw noise) | Vision models, when generalization matters most |
 | **SGD + Momentum** | Yes | Partial (EMA of gradients) | Most deep learning tasks |
-| **Adam** | Yes | Partial (adaptive per-parameter) | Default for LLMs, NLP, generative models |
+| **Adam** | Yes | Partial (adaptive per-parameter) | Widely used in NLP and generative modeling |
 | **AdamW** | Yes | Partial + decoupled weight decay | LLM pretraining and fine-tuning |
 | **SVRG/SAGA** | Yes | Full (linear convergence) | Finite-sum problems (logistic regression, SVM) |
 | **LAMB** | Yes | Adaptive + layer-wise | Large-batch BERT/LLM training |
@@ -902,7 +902,7 @@ Train an overparameterized linear model with SGD and full-batch GD from the same
 | SAM | Explicit flat minimum optimization; improves generalization across all tasks |
 | SGLD | Connects SGD to Bayesian inference; uncertainty quantification for DL |
 | Generalization gap | Understanding why small batches generalize better; informs batch size selection |
-| AdamW | Default for LLM training; combines stochastic gradients with adaptive learning rates |
+| AdamW | Common baseline for LLM training; combines stochastic gradients with adaptive learning rates |
 
 ---
 
@@ -962,7 +962,7 @@ STOCHASTIC OPTIMIZATION IN THE CURRICULUM
       generalization LLMs       at scale
 
 ════════════════════════════════════════════════════════════════════════
-```
+```text
 
 Stochastic optimization is the bridge between the clean theory of deterministic optimization and the messy reality of training models on massive datasets. The noise in SGD is not just a computational necessity — it is a fundamental feature that shapes the generalization properties of the learned model.
 
@@ -1610,7 +1610,7 @@ def local_sgd_server(models, client_data, local_epochs=5, lr=0.01, rounds=100):
     return models[0]  # Return the global model
 ```
 
-### D.6 AdamW: The Default LLM Optimizer
+### D.6 AdamW: A Common LLM Baseline
 
 ```python
 def adamw(params, grads, m, v, t, lr=1e-4, beta1=0.9, beta2=0.999, 
@@ -1753,8 +1753,8 @@ def wsd_lr(base_lr, warmup_steps, stable_steps, decay_steps, total_steps, curren
 |---|---|---|---|---|
 | **SGD** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Large-scale, non-convex |
 | **SGD + Momentum** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Vision models |
-| **Adam** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Default for LLMs |
-| **AdamW** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | LLM pretraining |
+| **Adam** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | NLP and generative modeling |
+| **AdamW** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Common LLM pretraining baseline |
 | **SVRG** | $O(d)$ | Linear (finite-sum) | $O(d)$ | Logistic regression, SVM |
 | **SAGA** | $O(d)$ | Linear (finite-sum) | $O(nd)$ | Moderate $n$, finite-sum |
 | **LAMB** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Large-batch BERT/LLM |
@@ -2005,4 +2005,3 @@ The **lottery ticket hypothesis** (Frankle & Carbin, 2019) states that dense neu
 | Fine-tuning | $10^{-5}$ | 32 | 0.9, 0.999 | 0.01 |
 | Logistic regression | $0.01$ | 1 (SGD) | 0 | $\lambda$ |
 | Matrix factorization | $0.001$ | 1 (SGD) | 0.9 | $\lambda$ |
-

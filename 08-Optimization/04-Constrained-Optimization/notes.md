@@ -130,7 +130,7 @@ This balancing act is captured by the **Lagrange multipliers**: each constraint 
 
 ### 1.2 The Geometry of Feasible Sets
 
-```
+```text
 CONSTRAINED OPTIMIZATION GEOMETRY
 ════════════════════════════════════════════════════════════════════════
 
@@ -170,7 +170,7 @@ The optimal solution $(\mathbf{x}^*, \boldsymbol{\lambda}^*)$ is a **saddle poin
 
 ### 1.4 Historical Timeline: Lagrange to Modern Interior-Point Methods
 
-```
+```text
 CONSTRAINED OPTIMIZATION TIMELINE
 ════════════════════════════════════════════════════════════════════════
 
@@ -207,7 +207,7 @@ Constraints appear throughout ML at every level:
 | **Inequality** | Risk constraints (portfolio, safety) | $\mathbf{w}^\top \Sigma \mathbf{w} \leq \sigma_{\max}^2$ |
 | **Inequality** | Fairness constraints (demographic parity) | $|P(\hat{y}=1 \mid A=0) - P(\hat{y}=1 \mid A=1)| \leq \epsilon$ |
 | **Norm ball** | Trust regions, robust optimization | $\lVert \boldsymbol{\theta} - \boldsymbol{\theta}_0 \rVert \leq \Delta$ |
-| **Simplex** | Mixture models, attention weights | $\boldsymbol{\alpha} \in \Delta_n$ |
+| **Simplex** | Mixture models, probability vectors | $\boldsymbol{\alpha} \in \Delta_n$ |
 
 **For AI:** Understanding constrained optimization is essential for formulating ML problems correctly. Many "unconstrained" ML problems are actually constrained in disguise — the softmax function implicitly enforces the simplex constraint, and weight decay can be viewed as a trust region constraint via duality.
 
@@ -567,7 +567,7 @@ The projection can be computed in $O(n \log n)$ time using a sorting-based algor
 
 **Box constraints** $[\mathbf{l}, \mathbf{u}]$: $\Pi_{[\mathbf{l}, \mathbf{u}]}(\mathbf{y}) = \min(\max(\mathbf{y}, \mathbf{l}), \mathbf{u})$ (element-wise).
 
-**For AI:** Projection onto the simplex is essential for optimization over probability distributions (e.g., policy optimization in RL, attention weights). Projection onto the non-negative orthant is used in NMF and non-negative constrained neural networks.
+**For AI:** Projection onto the simplex is essential for optimization over probability distributions (e.g., policy optimization in RL, mixture weights, and sparse attention variants). Projection onto the non-negative orthant is used in NMF and non-negative constrained neural networks.
 
 ### 6.3 Penalty Methods
 
@@ -826,7 +826,7 @@ For a two-state, two-action CMDP with one cost constraint, derive the Lagrangian
 | Lagrange multipliers | Shadow prices interpret constraint costs; dual variables in CMDPs |
 | Duality theory | Kernel trick via SVM dual; distributed optimization via dual decomposition |
 | Projected gradient descent | Constrained neural network training; policy optimization with safety constraints |
-| Simplex projection | Attention weight normalization; policy optimization in RL |
+| Simplex projection | Probability-vector constraints; policy optimization in RL |
 | Penalty methods | Constrained RL reward shaping; fairness constraints in classification |
 | Barrier methods | Interior-point SVM solvers; log-barrier for non-negativity constraints |
 | Augmented Lagrangian | ADMM for distributed training; federated learning with consensus |
@@ -859,7 +859,7 @@ This section connects to several advanced topics:
 
 ### The Big Picture
 
-```
+```text
 CONSTRAINED OPTIMIZATION IN THE CURRICULUM
 ════════════════════════════════════════════════════════════════════════
 
@@ -2128,4 +2128,3 @@ def benchmark_constrained_methods():
 - Using a different constraint handling method (e.g., switch from penalty to Lagrangian)
 - Relaxing the constraint if it's too tight
 - Using a warm start from a feasible point
-

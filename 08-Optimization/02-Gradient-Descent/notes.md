@@ -8,7 +8,7 @@
 
 ## Overview
 
-Gradient descent is the simplest, most widely used, and most consequential algorithm in all of optimization. The update rule — move in the direction of steepest descent, scaled by a learning rate — fits on a single line. Yet this one-line algorithm trains models with hundreds of billions of parameters, discovers representations that capture human language and visual perception, and remains the default choice for frontier LLM training in 2026.
+Gradient descent is the simplest, most widely used, and most consequential algorithm in all of optimization. The update rule — move in the direction of steepest descent, scaled by a learning rate — fits on a single line. Yet this one-line algorithm trains models with hundreds of billions of parameters, discovers representations that capture human language and visual perception, and remains the core primitive underneath modern training pipelines in 2026.
 
 The mathematical theory of gradient descent is rich and deep. For convex functions, convergence is guaranteed at a precise rate $O(1/T)$ under smoothness assumptions. For strongly convex functions, convergence is linear (geometric), with a rate controlled by the condition number $\kappa = L/\mu$. For non-convex functions — the setting of deep learning — gradient descent converges to stationary points, and the geometry of the loss landscape determines whether those points are useful. Momentum and Nesterov acceleration improve these rates, with NAG achieving the optimal $O(1/T^2)$ rate for first-order methods on convex functions.
 
@@ -153,7 +153,7 @@ with equality when $\mathbf{d} = -c \cdot \nabla f(\boldsymbol{\theta})$ for som
 
 ### 1.2 The Gradient as Descent Direction — Geometric Intuition
 
-```
+```text
 GRADIENT AND DESCENT DIRECTION
 ════════════════════════════════════════════════════════════════════════
 
@@ -200,7 +200,7 @@ Gradient descent is not the only optimization algorithm. Newton's method converg
 
 **Simplicity and parallelism.** The GD update is embarrassingly parallel: each parameter is updated independently given the gradient. This maps perfectly to GPU/TPU architectures. Complex algorithms with sequential dependencies (like line search or trust-region methods) cannot exploit modern hardware as effectively.
 
-```
+```text
 WHY GD WINS IN DEEP LEARNING
 ════════════════════════════════════════════════════════════════════════
 
@@ -222,7 +222,7 @@ WHY GD WINS IN DEEP LEARNING
 
 ### 1.4 Historical Timeline: Cauchy to Modern LLMs
 
-```
+```text
 GRADIENT DESCENT TIMELINE
 ════════════════════════════════════════════════════════════════════════
 
@@ -244,8 +244,8 @@ GRADIENT DESCENT TIMELINE
   2020  You et al.      — LAMB optimizer for large-batch LLM training
   2022  Hu et al.       — LoRA: low-rank adaptation (GD on ΔW = BA)
   2023  LLaMA / GPT-4   — AdamW + cosine decay + warmup at scale
-  2024  Muon / SOAP     — New optimizers challenging Adam for LLMs
-  2025-26 Frontier LLMs — AdamW remains default; Muon gains traction
+  2024  SOAP / Muon     — New large-scale optimizer proposals
+  2025-26 Frontier LLMs — AdamW remains common; optimizer design stays active
 
 ════════════════════════════════════════════════════════════════════════
 ```
@@ -254,7 +254,7 @@ Cauchy's 1847 algorithm is conceptually identical to what runs inside PyTorch's 
 
 ### 1.5 The Optimization Loop in Practice
 
-```
+```text
 THE TRAINING LOOP
 ════════════════════════════════════════════════════════════════════════
 
@@ -506,7 +506,7 @@ $$f(\boldsymbol{\theta}_T) - f^* \geq \frac{3L \lVert \boldsymbol{\theta}_0 - \b
 
 This lower bound shows that GD's $O(1/T)$ rate cannot be improved without additional assumptions (like strong convexity). However, it also reveals a gap: the lower bound is $O(1/T^2)$, and Nesterov's accelerated method achieves this. GD is suboptimal by a factor of $O(T)$.
 
-```
+```text
 CONVERGENCE RATE SUMMARY (Convex)
 ════════════════════════════════════════════════════════════════════════
 
@@ -618,7 +618,7 @@ The iterates diverge geometrically: $\lVert \boldsymbol{\theta}_t \rVert_2 = |1 
 
 **For AI:** In LLM training, the learning rate is typically set near the stability boundary. The warmup phase gradually increases $\eta$ from 0 to $\eta_{\max}$, allowing the model to move into a region of the parameter space where the loss is smoother (smaller $L$), so that $\eta_{\max} < 2/L$ holds. If the LR is set too high from the start, the loss diverges — a common failure mode.
 
-```
+```text
 STEP SIZE EFFECTS ON CONVERGENCE
 ════════════════════════════════════════════════════════════════════════
 
@@ -727,7 +727,7 @@ $$f(\boldsymbol{\theta}_{t+1}) - f^* \leq (f(\boldsymbol{\theta}_t) - f^*) - \fr
 
 **For AI:** Overparameterized neural networks often satisfy the PL condition (or a variant) in a neighborhood of the solution. This explains why GD converges quickly even though the loss is non-convex. The PL constant $\mu$ depends on the architecture and initialization — wider networks tend to have larger $\mu$, explaining why they train faster.
 
-```
+```text
 CONVERGENCE RATES ACROSS SETTINGS
 ════════════════════════════════════════════════════════════════════════
 
@@ -836,7 +836,7 @@ For large $t$, the correction is negligible ($\beta^t \to 0$). But in the first 
 
 The name "heavy ball" comes from the physical analogy: imagine a heavy ball rolling down a hill with friction. The ball's position is $\boldsymbol{\theta}$, its velocity is $\mathbf{v}$, the gradient is the slope of the hill, and $\beta$ controls the friction.
 
-```
+```text
 HEAVY BALL ANALOGY
 ════════════════════════════════════════════════════════════════════════
 
@@ -870,7 +870,7 @@ PyTorch's `torch.optim.SGD` with momentum implements:
 ```python
 v_t = β · v_{t-1} + g_t          # accumulate gradient
 θ_t = θ_{t-1} - η · v_t          # update parameters
-```
+```text
 
 Note that this differs slightly from the textbook formulation in the ordering of operations. The practical effect is that PyTorch's momentum uses the *current* gradient in the velocity update, then immediately applies it. This is sometimes called "classical momentum" to distinguish it from Nesterov momentum.
 
@@ -1210,10 +1210,10 @@ EVOLUTION FROM GD TO ADAM
     │                  Problem: poor generalization with weight decay
     ▼
   AdamW (2019)       Decoupled weight decay: θ -= η·λ·θ
-                       Current default for LLM training
+                       Common baseline in LLM training
 
 ════════════════════════════════════════════════════════════════════════
-```
+```text
 
 Each step in this evolution addresses a specific limitation of the previous method while preserving its strengths. Adam combines the best ideas: momentum for acceleration on ill-conditioned problems, RMSProp for per-parameter adaptation, and bias correction for stable initialization.
 
@@ -1344,7 +1344,7 @@ GRADIENT DESCENT IN THE CURRICULUM
               Entropy, KL, Cross-Entropy
 
 ════════════════════════════════════════════════════════════════════════
-```
+```text
 
 Gradient descent is the pivot point of the entire optimization chapter. It is the simplest algorithm with a rich convergence theory, and every subsequent method is a modification or extension of it. Understanding GD deeply is the prerequisite for understanding every optimizer used in modern AI.
 
@@ -1524,7 +1524,7 @@ This is GD on the statistical manifold of probability distributions, where dista
 
 **Connection to GD:** When $F(\boldsymbol{\theta}) = I$ (identity), natural GD reduces to standard GD. When $F(\boldsymbol{\theta})$ is diagonal, natural GD is equivalent to Adam without momentum (using the diagonal of the Fisher as the preconditioner).
 
-**For AI:** Natural gradient is computationally expensive ($O(n^2)$ for the Fisher matrix), but approximations like K-FAC (Martens & Grosse, 2015) and Shampoo (Gupta et al., 2018) make it practical for large models. These are covered in [Second-Order Methods](../03-Second-Order-Methods/notes.md) and [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md).
+**For AI:** Natural gradient is computationally expensive ($O(n^2)$ for the Fisher matrix). Structured approximations such as K-FAC (Martens & Grosse, 2015) and Shampoo (Gupta et al., 2018) are active attempts to make curvature-aware updates usable at scale. These are covered in [Second-Order Methods](../03-Second-Order-Methods/notes.md) and [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md).
 
 
 ---
@@ -1710,4 +1710,3 @@ where $K$ is the number of workers and $\mathbf{g}_t^{(k)}$ is the mini-batch gr
 **Convergence with compression:** With unbiased compression operators satisfying $\mathbb{E}[\text{compress}(\mathbf{g})] = \mathbf{g}$ and $\mathbb{E}[\lVert \text{compress}(\mathbf{g}) - \mathbf{g} \rVert_2^2] \leq \omega \lVert \mathbf{g} \rVert_2^2$, the convergence rate is the same as uncompressed GD but with an additional error term proportional to $\omega$.
 
 **For AI:** Distributed training is how all frontier LLMs are trained. GPT-4 and LLaMA-3 use thousands of GPUs with data parallelism, tensor parallelism, and pipeline parallelism. The mathematical theory of GD extends to the distributed setting through the analysis of gradient averaging and communication compression.
-
