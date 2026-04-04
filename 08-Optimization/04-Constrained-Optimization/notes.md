@@ -31,7 +31,7 @@ This section develops the full theory from equality constraints (§3) through in
 ## Companion Notebooks
 
 | Notebook | Description |
-|---|---|
+| --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive demonstrations of KKT conditions, projected GD, penalty methods, barrier methods, and SVM dual |
 | [exercises.ipynb](exercises.ipynb) | 8 graded exercises from Lagrange multipliers to ADMM for distributed optimization |
 
@@ -199,7 +199,7 @@ CONSTRAINED OPTIMIZATION TIMELINE
 Constraints appear throughout ML at every level:
 
 | Constraint Type | ML Application | Mathematical Form |
-|---|---|---|
+| --- | --- | --- |
 | **Equality** | Probability normalization ($\sum p_i = 1$) | $\mathbf{1}^\top \mathbf{p} = 1$ |
 | **Equality** | Portfolio budget ($\sum w_i = 1$) | $\mathbf{1}^\top \mathbf{w} = 1$ |
 | **Inequality** | SVM margin constraints | $y_i(\mathbf{w}^\top \mathbf{x}_i + b) \geq 1$ |
@@ -306,7 +306,6 @@ Slater's condition is the most important constraint qualification for convex opt
 **Mangasarian-Fromovitz Constraint Qualification (MFCQ):** A weaker condition than LICQ that requires the existence of a direction that strictly decreases all active inequality constraints while maintaining equality constraints.
 
 **For AI:** In most ML applications, the constraints are simple (non-negativity, norm balls, simplex) and Slater's condition is easily verified. For example, the SVM primal always satisfies Slater's condition as long as the data is not perfectly separable with zero margin.
-
 
 ---
 
@@ -454,7 +453,6 @@ then $\mathbf{x}^*$ is a strict local minimum.
 **MFCQ (Mangasarian-Fromovitz):** Weaker than LICQ, requires the existence of a feasible descent direction.
 
 **For AI:** In practice, Slater's condition is easy to verify for most ML problems. For the SVM, any point with sufficiently large margin satisfies Slater's condition. For non-negative matrix factorization, any strictly positive factorization satisfies it.
-
 
 ---
 
@@ -611,7 +609,6 @@ $$\mathcal{L}_\mu(\mathbf{x}, \boldsymbol{\lambda}) = f(\mathbf{x}) + \sum_{i=1}
 **Advantage over pure penalty methods:** The augmented Lagrangian converges for finite $\mu$ — the multipliers adjust to enforce the constraints without requiring $\mu \to \infty$. This avoids the ill-conditioning that plagues pure penalty methods.
 
 **For AI:** The augmented Lagrangian is the foundation of ADMM (§7.3) and is used in distributed optimization, where each worker solves a local augmented Lagrangian subproblem and the multipliers enforce consensus.
-
 
 ---
 
@@ -770,13 +767,12 @@ This transforms the constrained problem into an unconstrained problem with a mod
 
 **For AI:** Constrained RL is essential for safety-critical applications (autonomous driving, medical treatment, robotics) where the agent must satisfy safety constraints while maximizing performance. Methods like Constrained Policy Optimization (CPO) and Lagrangian-based PPO use the dual formulation to handle constraints.
 
-
 ---
 
 ## 9. Common Mistakes
 
 | # | Mistake | Why It's Wrong | Fix |
-|---|---------|----------------|-----|
+| --- | --------- | ---------------- | ----- |
 | 1 | "The KKT conditions are always necessary for optimality" | KKT conditions require a constraint qualification (LICQ, Slater's, etc.). Without it, the optimum may not satisfy KKT. | Verify a constraint qualification holds before applying KKT. For convex problems, check Slater's condition. |
 | 2 | "Lagrange multipliers are always positive" | Equality constraint multipliers $\nu_j$ can be positive or negative. Only inequality multipliers $\lambda_i$ are non-negative. | Remember: $\lambda_i \geq 0$ for inequalities, $\nu_j \in \mathbb{R}$ for equalities. |
 | 3 | "Strong duality always holds" | Strong duality requires convexity and a constraint qualification. For non-convex problems, there can be a duality gap. | Check convexity and Slater's condition. For non-convex problems, use the duality gap as a bound, not an equality. |
@@ -821,7 +817,7 @@ For a two-state, two-action CMDP with one cost constraint, derive the Lagrangian
 ## 11. Why This Matters for AI (2026 Perspective)
 
 | Concept | AI Impact |
-|---------|-----------|
+| --------- | ----------- |
 | KKT conditions | Foundation for SVM, constrained RL, fair ML, and all constrained optimization in ML |
 | Lagrange multipliers | Shadow prices interpret constraint costs; dual variables in CMDPs |
 | Duality theory | Kernel trick via SVM dual; distributed optimization via dual decomposition |
@@ -916,7 +912,6 @@ Constrained optimization is the bridge between the clean theory of unconstrained
 13. Goemans, M. & Williamson, D. (1995). "Improved approximation algorithms for maximum cut and satisfiability problems." JACM.
 14. Candès, E. & Recht, B. (2009). "Exact matrix completion via convex optimization." Foundations of Computational Mathematics.
 15. Beck, A. & Teboulle, M. (2009). "A fast iterative shrinkage-thresholding algorithm for linear inverse problems." SIAM Journal on Imaging Sciences.
-
 
 ---
 
@@ -1033,7 +1028,6 @@ $$\frac{\partial \mathbf{x}^*}{\partial u_i} = -[\nabla_{\mathbf{xx}}^2 \mathcal
 
 **For AI:** Sensitivity analysis is crucial for understanding how changes in constraints affect the solution. In portfolio optimization, it tells us how the optimal portfolio changes when we adjust the target return or risk budget. In constrained RL, it reveals the trade-off curve between reward and safety cost.
 
-
 ---
 
 ## Appendix B: Worked Examples and Case Studies
@@ -1131,7 +1125,7 @@ $$\min_{\mathbf{w}_1, \ldots, \mathbf{w}_K, \mathbf{z}} \sum_{k=1}^K f_k(\mathbf
 ### B.4 Comparison: All Constrained Optimization Methods
 
 | Method | Problem Type | Convergence Rate | Per-iter Cost | Best For |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Projected GD | Convex + simple constraints | $O(1/T)$ | $O(n)$ + projection | Large-scale, simple constraints |
 | Penalty methods | General | Depends on $\mu$ | Same as unconstrained | When projection is hard |
 | Barrier methods | Convex inequality | $O(\sqrt{m}\log(1/\epsilon))$ iters | $O(n^3)$ per Newton step | Medium-scale convex |
@@ -1156,7 +1150,6 @@ is symmetric indefinite, which makes it challenging to solve numerically.
 3. **Use iterative refinement:** Solve, compute residual, and correct
 
 **For AI:** In neural network training with constraints, the KKT matrix can be very large and ill-conditioned. Iterative methods (MINRES, GMRES) with preconditioning are preferred over direct factorization.
-
 
 ---
 
@@ -1289,7 +1282,6 @@ Common issues and how to diagnose them:
 
 **For AI:** In constrained neural network training, the most common issue is the trade-off between constraint satisfaction and task performance. Monitoring both the training loss and the constraint violation during training is essential. If the constraint violation doesn't decrease, the constraint may be too tight or the learning rate may be too large.
 
-
 ---
 
 ## Appendix D: Extended Case Studies in Machine Learning
@@ -1396,7 +1388,7 @@ This is a constrained optimization problem over the policy space. CPO solves it 
 ### D.6 Comparison: Constrained Optimization Methods for Deep Learning
 
 | Method | Constraint Types | Scalability | Constraint Satisfaction | Best Use Case |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Projected GD | Convex sets | Excellent (O(n)) | Exact (if projection exact) | Simple constraints (norm, non-negativity) |
 | Lagrangian relaxation | Any differentiable | Excellent (O(n)) | Approximate (depends on dual convergence) | Complex constraints (fairness, safety) |
 | Penalty methods | Any differentiable | Excellent (O(n)) | Approximate (improves with μ) | Soft constraints |
@@ -1411,7 +1403,6 @@ This is a constrained optimization problem over the policy space. CPO solves it 
 - **Safety constraints in RL:** CPO or Lagrangian PPO (proven safety guarantees)
 - **Distributed training with consensus:** ADMM (natural parallelism)
 - **Architecture search with FLOPs constraints:** Penalty method (easy to differentiate)
-
 
 ---
 
@@ -1577,7 +1568,6 @@ $$\frac{\partial g}{\partial \lambda_i} = g_i(\mathbf{x}^*), \quad \frac{\partia
 This allows subgradient ascent on the dual problem, which is the basis of dual decomposition methods.
 
 **For AI:** Dual decomposition is used for distributed optimization, where each worker solves a local subproblem and the dual variables coordinate the solutions. This is the foundation of federated learning with dual averaging and distributed SVM training.
-
 
 ---
 
