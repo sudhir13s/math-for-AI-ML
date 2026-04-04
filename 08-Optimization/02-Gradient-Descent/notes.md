@@ -28,7 +28,7 @@ This section develops the full convergence theory of gradient descent from first
 ## Companion Notebooks
 
 | Notebook | Description |
-|---|---|
+| --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive convergence demonstrations, momentum analysis, and loss landscape visualizations |
 | [exercises.ipynb](exercises.ipynb) | 8 graded exercises from convergence proofs to momentum tuning for ill-conditioned problems |
 
@@ -365,7 +365,7 @@ This inequality is the starting point for every convergence proof in this sectio
 The choice of step size $\eta_t$ fundamentally affects convergence behavior.
 
 | Regime | Formula | Use Case | Convergence |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Constant** | $\eta_t = \eta$ | Most common in DL | Converges to neighborhood of optimum |
 | **Diminishing** | $\eta_t = \frac{c}{t + c_0}$ | Theoretical guarantees | Converges to exact optimum (slow) |
 | **Diminishing (slow)** | $\eta_t = \frac{c}{\sqrt{t}}$ | Non-convex stochastic | Sublinear convergence |
@@ -402,7 +402,6 @@ From [Convex Optimization](../01-Convex-Optimization/notes.md#42-smoothness-lips
 1. **$f(x) = |x|$** — not differentiable at 0, so not $L$-smooth. This is why subgradient methods are needed for L1 regularization.
 
 2. **$f(x) = x^4$** — $\nabla f(x) = 4x^3$ is not Lipschitz on $\mathbb{R}$ (unbounded derivative of the gradient). GD can diverge on this function with any fixed step size if started far enough from the optimum.
-
 
 ---
 
@@ -523,7 +522,6 @@ CONVERGENCE RATE SUMMARY (Convex)
 ════════════════════════════════════════════════════════════════════════
 ```
 
-
 ---
 
 ## 4. Convergence Theory — Strongly Convex Functions
@@ -567,7 +565,7 @@ By induction: $\lVert \boldsymbol{\theta}_t - \boldsymbol{\theta}^* \rVert_2^2 \
 The convergence rate $1 - \mu/L = 1 - 1/\kappa$ is controlled entirely by the **condition number** $\kappa = L/\mu$.
 
 | κ | Rate per step | Steps to 10× reduction | Interpretation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | 0 | 1 | Perfectly conditioned (spherical contours) |
 | 10 | 0.9 | ~22 | Well-conditioned |
 | 100 | 0.99 | ~230 | Moderately ill-conditioned |
@@ -635,7 +633,6 @@ STEP SIZE EFFECTS ON CONVERGENCE
 
 ════════════════════════════════════════════════════════════════════════
 ```
-
 
 ---
 
@@ -746,7 +743,6 @@ CONVERGENCE RATES ACROSS SETTINGS
 ════════════════════════════════════════════════════════════════════════
 ```
 
-
 ---
 
 ## 6. Momentum
@@ -820,7 +816,7 @@ $$v_{t+1} = \beta v_t + (1 - \beta) \cdot \frac{g_t}{1 - \beta}$$
 This shows that $v_{t+1}$ is a weighted average of the current gradient (scaled by $1/(1-\beta)$) and the previous velocity. The effective window size is approximately $1/(1-\beta)$:
 
 | β | Effective window | Interpretation |
-|---|---|---|
+| --- | --- | --- |
 | 0.5 | ~2 steps | Very little momentum |
 | 0.9 | ~10 steps | Standard momentum |
 | 0.95 | ~20 steps | Strong momentum |
@@ -870,17 +866,17 @@ PyTorch's `torch.optim.SGD` with momentum implements:
 ```python
 v_t = β · v_{t-1} + g_t          # accumulate gradient
 θ_t = θ_{t-1} - η · v_t          # update parameters
-```text
+```
 
 Note that this differs slightly from the textbook formulation in the ordering of operations. The practical effect is that PyTorch's momentum uses the *current* gradient in the velocity update, then immediately applies it. This is sometimes called "classical momentum" to distinguish it from Nesterov momentum.
 
 **Recommended settings:**
+
 - **Default:** $\beta = 0.9$, $\eta$ found by LR range test
 - **Ill-conditioned problems:** $\beta = 0.99$, smaller $\eta$
 - **With weight decay:** use AdamW instead (decoupled weight decay)
 
 **For AI:** Momentum is used in virtually all LLM training, either as part of SGD with momentum or as a component of Adam (which uses momentum-like first-moment estimation). The momentum coefficient $\beta_1 = 0.9$ in Adam is the same as the standard SGD momentum value.
-
 
 ---
 
@@ -933,7 +929,7 @@ NAG chooses the extrapolation point $\mathbf{y}_k$ to maximize the improvement i
 ### 7.4 NAG vs. Polyak Momentum
 
 | Aspect | Polyak Momentum | Nesterov (NAG) |
-|---|---|---|
+| --- | --- | --- |
 | Gradient at | Current position $\boldsymbol{\theta}_t$ | Lookahead position $\mathbf{y}_t$ |
 | Convex rate | $O(1/T)$ | $O(1/T^2)$ |
 | Strongly convex rate | $O((1-1/\kappa)^T)$ | $O((1-1/\sqrt{\kappa})^T)$ |
@@ -967,7 +963,6 @@ If NAG is theoretically optimal, why is it not the default optimizer for neural 
 
 **For AI:** Understanding NAG is still valuable because it establishes the fundamental limits of first-order optimization. Any improvement over GD must either (a) use higher-order information (Newton, BFGS → §03), (b) use stochasticity more effectively (variance reduction → §05), or (c) adapt to local geometry (Adam → §07). NAG shows that within the pure first-order, deterministic, non-adaptive framework, no further improvement is possible.
 
-
 ---
 
 ## 8. Line Search Methods
@@ -997,6 +992,7 @@ This is the **Cauchy step size**. It requires knowledge of $A$ (the Hessian), wh
 For general functions, exact line search is too expensive. The **Armijo backtracking** rule is a practical alternative that guarantees sufficient decrease with minimal function evaluations.
 
 **Algorithm (Armijo Backtracking):**
+
 1. Choose parameters $\bar{\eta} > 0$ (initial step), $\rho \in (0, 1)$ (reduction factor, typically 0.5), $c \in (0, 1)$ (sufficient decrease constant, typically $10^{-4}$)
 2. Set $\eta = \bar{\eta}$
 3. While $f(\boldsymbol{\theta}_t - \eta \mathbf{g}_t) > f(\boldsymbol{\theta}_t) - c\eta \lVert \mathbf{g}_t \rVert_2^2$:
@@ -1033,7 +1029,7 @@ This prevents the step from going too far past the minimum along the search dire
 ### 8.4 When to Use Line Search vs. Fixed LR
 
 | Criterion | Fixed LR | Line Search |
-|---|---|---|
+| --- | --- | --- |
 | Cost per iteration | 1 gradient | 1+ gradient + function evals |
 | Guarantees | Requires known $L$ | Automatic step size selection |
 | Robustness | Sensitive to $\eta$ choice | Robust to initialization |
@@ -1060,6 +1056,7 @@ $$\frac{d\boldsymbol{\theta}(t)}{dt} = -\nabla f(\boldsymbol{\theta}(t)), \quad 
 This ODE describes the continuous trajectory of GD. Analyzing the ODE is often simpler than analyzing the discrete iterates, and many insights transfer.
 
 **Properties of gradient flow:**
+
 - **Energy decay:** $\frac{d}{dt}f(\boldsymbol{\theta}(t)) = -\lVert \nabla f(\boldsymbol{\theta}(t)) \rVert_2^2 \leq 0$
 - **Convergence for convex $f$:** $f(\boldsymbol{\theta}(t)) - f^* \leq \frac{\lVert \boldsymbol{\theta}_0 - \boldsymbol{\theta}^* \rVert_2^2}{2t}$
 - **Convergence for $\mu$-strongly convex $f$:** $\lVert \boldsymbol{\theta}(t) - \boldsymbol{\theta}^* \rVert_2 \leq e^{-\mu t} \lVert \boldsymbol{\theta}_0 - \boldsymbol{\theta}^* \rVert_2$
@@ -1117,7 +1114,6 @@ $$\Theta(\mathbf{x}, \mathbf{x}') = \langle \nabla_{\boldsymbol{\theta}} f(\math
 In the infinite-width limit, $\Theta$ remains constant during training, and the network function evolves as a kernel ridge regression predictor with kernel $\Theta$. The convergence rate is determined by the smallest eigenvalue of the NTK matrix on the training data.
 
 **For AI:** The NTK theory provides a precise connection between GD training of neural networks and kernel methods. It explains why wide networks train easily (the NTK is well-conditioned) and why narrow networks are harder to optimize (the NTK changes during training). However, the NTK regime does not capture feature learning, which is essential for the success of deep learning in practice.
-
 
 ---
 
@@ -1178,6 +1174,7 @@ The theoretical bound $\eta < 2/L$ provides a starting point, but practical LLM 
 **LR range test (Smith, 2017):** Train with an exponentially increasing learning rate and plot the loss. The loss decreases initially, then plateaus, then increases. The optimal LR is approximately 10× smaller than the LR at which the loss starts increasing.
 
 **Typical values for LLMs:**
+
 - **GPT-3 (175B):** $\eta_{\max} = 6 \times 10^{-5}$ with AdamW
 - **LLaMA-2 (70B):** $\eta_{\max} = 1.5 \times 10^{-4}$ with AdamW
 - **PaLM (540B):** $\eta_{\max} = 2 \times 10^{-4}$ with AdamW
@@ -1190,7 +1187,7 @@ These values are much smaller than what the theory would suggest for a convex pr
 
 The evolution from GD to Adam is a story of addressing GD's limitations one by one:
 
-```
+```text
 EVOLUTION FROM GD TO ADAM
 ════════════════════════════════════════════════════════════════════════
 
@@ -1213,7 +1210,7 @@ EVOLUTION FROM GD TO ADAM
                        Common baseline in LLM training
 
 ════════════════════════════════════════════════════════════════════════
-```text
+```
 
 Each step in this evolution addresses a specific limitation of the previous method while preserving its strengths. Adam combines the best ideas: momentum for acceleration on ill-conditioned problems, RMSProp for per-parameter adaptation, and bias correction for stable initialization.
 
@@ -1224,7 +1221,7 @@ Each step in this evolution addresses a specific limitation of the previous meth
 ## 11. Common Mistakes
 
 | # | Mistake | Why It's Wrong | Fix |
-|---|---------|----------------|-----|
+| --- | --------- | ---------------- | ----- |
 | 1 | "A smaller learning rate is always better" | Too small $\eta$ leads to extremely slow convergence. The optimal $\eta$ balances decrease per step with stability. | Use $\eta \approx 1/L$ for convex problems; use LR range tests for neural networks. |
 | 2 | "GD converges to the global minimum for any function" | GD only guarantees convergence to stationary points for non-convex functions. These can be local minima or saddle points. | For non-convex problems, use multiple random restarts or stochastic methods to escape poor stationary points. |
 | 3 | "Momentum always speeds up training" | Too much momentum ($\beta$ too high) causes oscillations and divergence. Momentum helps on ill-conditioned problems but can hurt on well-conditioned ones. | Start with $\beta = 0.9$; reduce if oscillations are observed. |
@@ -1269,7 +1266,7 @@ Train a small neural network on a synthetic dataset with different learning rate
 ## 13. Why This Matters for AI (2026 Perspective)
 
 | Concept | AI Impact |
-|---------|-----------|
+| --------- | ----------- |
 | GD update rule | The fundamental operation executed $10^7$+ times during LLM pretraining |
 | Convergence rate $O(1/T)$ | Determines how many training steps are needed to reach target loss |
 | Condition number $\kappa$ | Explains why feature scaling, normalization, and good initialization matter |
@@ -1344,7 +1341,7 @@ GRADIENT DESCENT IN THE CURRICULUM
               Entropy, KL, Cross-Entropy
 
 ════════════════════════════════════════════════════════════════════════
-```text
+```
 
 Gradient descent is the pivot point of the entire optimization chapter. It is the simplest algorithm with a rich convergence theory, and every subsequent method is a modification or extension of it. Understanding GD deeply is the prerequisite for understanding every optimizer used in modern AI.
 
@@ -1367,7 +1364,6 @@ Gradient descent is the pivot point of the entire optimization chapter. It is th
 13. Keskar, N. et al. (2017). "On large-batch training for deep learning: Generalization gap and sharp minima." ICLR.
 14. Smith, L. (2017). "Cyclical learning rates for training neural networks." WACV.
 15. Frankle, J. & Carbin, M. (2019). "The lottery ticket hypothesis: Finding sparse, trainable neural networks." ICLR.
-
 
 ---
 
@@ -1452,7 +1448,7 @@ Summing and using the conditions on $\eta_t$ gives convergence. The condition $\
 **Practical step size schedules:**
 
 | Schedule | Formula | $\sum \eta_t$ | $\sum \eta_t^2$ | Converges? |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | $\eta_t = c/t$ | $c/t$ | $\infty$ | $< \infty$ | Yes |
 | $\eta_t = c/\sqrt{t}$ | $c/\sqrt{t}$ | $\infty$ | $\infty$ | To neighborhood |
 | $\eta_t = c/(t+1)$ | $c/(t+1)$ | $\infty$ | $< \infty$ | Yes |
@@ -1525,7 +1521,6 @@ This is GD on the statistical manifold of probability distributions, where dista
 **Connection to GD:** When $F(\boldsymbol{\theta}) = I$ (identity), natural GD reduces to standard GD. When $F(\boldsymbol{\theta})$ is diagonal, natural GD is equivalent to Adam without momentum (using the diagonal of the Fisher as the preconditioner).
 
 **For AI:** Natural gradient is computationally expensive ($O(n^2)$ for the Fisher matrix). Structured approximations such as K-FAC (Martens & Grosse, 2015) and Shampoo (Gupta et al., 2018) are active attempts to make curvature-aware updates usable at scale. These are covered in [Second-Order Methods](../03-Second-Order-Methods/notes.md) and [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md).
-
 
 ---
 
@@ -1649,7 +1644,7 @@ This example illustrates why momentum is essential for non-convex optimization: 
 ### B.5 Comparison Table: All GD Variants
 
 | Variant | Update Rule | Convex Rate | Strongly Convex Rate | Non-Convex Rate | Best For |
-|---------|-------------|-------------|---------------------|-----------------|----------|
+| --------- | ------------- | ------------- | --------------------- | ----------------- | ---------- |
 | **Vanilla GD** | $\theta - \eta g$ | $O(1/T)$ | $O((1-1/\kappa)^T)$ | $O(1/\sqrt{T})$ on $\|g\|$ | Simple problems, theory |
 | **GD + Momentum** | $v = \beta v + g$ | $O(1/T)$ | $O((1-1/\sqrt{\kappa})^T)$ | $O(1/\sqrt{T})$ on $\|g\|$ | Ill-conditioned convex |
 | **Nesterov AGD** | Lookahead gradient | $O(1/T^2)$ | $O((1-1/\sqrt{\kappa})^T)$ | $O(1/\sqrt{T})$ on $\|g\|$ | Optimal first-order |
@@ -1658,7 +1653,6 @@ This example illustrates why momentum is essential for non-convex optimization: 
 | **Natural GD** | $\theta - \eta F^{-1} g$ | $O(1/T)$ | $O((1-1/\kappa_F)^T)$ | $O(1/\sqrt{T})$ on $\|g\|$ | Statistical manifolds |
 
 Note that for non-convex functions, all first-order methods have the same worst-case rate $O(1/\sqrt{T})$ on the gradient norm. The differences appear in the constants and in practical performance on specific problem classes.
-
 
 ---
 
