@@ -445,16 +445,18 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 </details>
 
 <details>
-<summary><b>10 · Numerical Methods</b> — Floating-point, stability, numerical linear algebra</summary>
+<summary><b>10 · Numerical Methods</b> — Floating-point, stability, interpolation, integration</summary>
 <br>
+
+📖 [Chapter README](10-Numerical-Methods/README.md)
 
 | Topic | ML Connection |
 |:------|:-------------|
-| Floating-Point Arithmetic | Mixed precision training (FP16/BF16) |
-| Numerical Linear Algebra | Efficient matrix operations at scale |
-| Numerical Optimization | Convergence in practice |
-| Interpolation & Approximation | Data augmentation, function fitting |
-| Numerical Integration | Monte Carlo methods, quadrature |
+| Floating-Point Arithmetic | Mixed precision training (FP16/BF16/FP8), loss scaling, Flash Attention numerics |
+| Numerical Linear Algebra | Stable solvers, iterative methods (CG/Lanczos), condition number for training |
+| Numerical Optimization | L-BFGS two-loop, Armijo line search, gradient checking, trust-region methods |
+| Interpolation & Approximation | RoPE/sinusoidal PE, KAN B-splines, Runge's phenomenon, FFT, random Fourier features |
+| Numerical Integration | Gaussian quadrature, Monte Carlo variance reduction, reparameterization trick (VAE ELBO) |
 
 </details>
 
