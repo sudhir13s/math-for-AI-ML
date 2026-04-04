@@ -30,7 +30,7 @@ This section develops the full theory of stochastic optimization. We begin with 
 ## Companion Notebooks
 
 | Notebook | Description |
-|---|---|
+| --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive demonstrations of SGD convergence, mini-batch variance, SVRG, SAGA, and distributed SGD |
 | [exercises.ipynb](exercises.ipynb) | 8 graded exercises from SGD convergence proofs to variance reduction analysis |
 
@@ -221,7 +221,7 @@ STOCHASTIC OPTIMIZATION TIMELINE
 Every modern neural network is trained with some form of stochastic optimization. The choice of optimizer affects not just convergence speed but also the final model's generalization performance.
 
 | Optimizer | Stochastic? | Variance Reduction | Best For |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **SGD** | Yes (mini-batch) | None (raw noise) | Vision models, when generalization matters most |
 | **SGD + Momentum** | Yes | Partial (EMA of gradients) | Most deep learning tasks |
 | **Adam** | Yes | Partial (adaptive per-parameter) | Widely used in NLP and generative modeling |
@@ -306,7 +306,6 @@ SGD can be analyzed in two regimes:
 2. **Statistical learning perspective:** Minimize the expected risk $F(\boldsymbol{\theta})$. Here, the stochasticity comes from sampling from the true data distribution, and the generalization gap $\hat{F}_n(\boldsymbol{\theta}) - F(\boldsymbol{\theta})$ is a key concern.
 
 **For AI:** In deep learning, we typically care about the expected risk (generalization performance), not just the empirical risk (training accuracy). The noise in SGD acts as a form of regularization that reduces the generalization gap, which is why SGD often generalizes better than full-batch GD.
-
 
 ---
 
@@ -458,7 +457,6 @@ Empirically, smaller batch sizes often generalize better than larger batch sizes
 
 **For AI:** The generalization gap is a key consideration in LLM training. While large batches are necessary for efficient distributed training, they can lead to worse generalization. Techniques like learning rate warmup, gradient clipping, and sharpness-aware minimization help mitigate this gap.
 
-
 ---
 
 ## 5. Variance Reduction Methods
@@ -539,7 +537,7 @@ SDCA updates one dual coordinate $\alpha_i$ at a time, which corresponds to a va
 ### 5.5 Comparison: SVRG vs. SAGA vs. SGD
 
 | Method | Per-iter Cost | Memory | Convergence Rate | Best For |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **SGD** | $O(d)$ | $O(d)$ | $O(1/T)$ (strongly cvx) | Large-scale, non-convex (DL) |
 | **SVRG** | $O(d)$ | $O(d)$ | Linear (strongly cvx) | Finite-sum, strongly convex |
 | **SAGA** | $O(d)$ | $O(nd)$ | Linear (strongly cvx) | Moderate $n$, strongly convex |
@@ -610,7 +608,6 @@ At a saddle point, the gradient is zero but the Hessian has negative eigenvalues
 **Intuition:** When the gradient is near zero, the momentum term carries the iterate forward. If the momentum happens to point in the direction of negative curvature (which has non-zero probability due to the gradient noise), the iterate will accelerate away from the saddle point.
 
 **For AI:** This is one reason why SGD with momentum is more effective than vanilla SGD for training deep neural networks. The non-convex loss landscape of deep networks has exponentially many saddle points, and momentum helps navigate through them efficiently.
-
 
 ---
 
@@ -838,13 +835,12 @@ LLM pretraining is the most demanding application of stochastic optimization:
 
 **For AI:** The choice of optimizer (AdamW vs. SGD) and the learning rate schedule (warmup + cosine decay) are critical hyperparameters that determine the final model quality. The scale of LLM pretraining pushes the limits of distributed stochastic optimization.
 
-
 ---
 
 ## 10. Common Mistakes
 
 | # | Mistake | Why It's Wrong | Fix |
-|---|---------|----------------|-----|
+| --- | --------- | ---------------- | ----- |
 | 1 | "SGD always converges slower than full-batch GD" | SGD makes more progress per unit of compute because each iteration is $B/n$ the cost of full-batch GD. For large $n$, SGD reaches a given accuracy much faster in wall-clock time. | Compare algorithms by wall-clock time or total FLOPs, not by number of iterations. |
 | 2 | "Larger batch size is always better" | Beyond the critical batch size, increasing the batch size provides diminishing returns and can hurt generalization. The optimal batch size depends on the problem and compute budget. | Use the linear scaling rule up to the critical batch size, then stop increasing. |
 | 3 | "SGD with constant step size converges to the optimum" | With constant step size, SGD converges to a neighborhood of the optimum whose size is proportional to $\eta \sigma^2$. Use diminishing step sizes for exact convergence. | Use $\eta_t = O(1/t)$ for strongly convex problems, or use variance reduction methods. |
@@ -889,7 +885,7 @@ Train an overparameterized linear model with SGD and full-batch GD from the same
 ## 12. Why This Matters for AI (2026 Perspective)
 
 | Concept | AI Impact |
-|---------|-----------|
+| --------- | ----------- |
 | SGD | The default optimizer for vision models; better generalization than Adam in many settings |
 | Mini-batch SGD | Enables training on datasets too large to fit in memory; foundation of all DL training |
 | Linear scaling rule | Essential for large-batch LLM training; enables efficient distributed training |
@@ -927,7 +923,7 @@ This section connects to several advanced topics:
 
 ### The Big Picture
 
-```
+```text
 STOCHASTIC OPTIMIZATION IN THE CURRICULUM
 ════════════════════════════════════════════════════════════════════════
 
@@ -962,7 +958,7 @@ STOCHASTIC OPTIMIZATION IN THE CURRICULUM
       generalization LLMs       at scale
 
 ════════════════════════════════════════════════════════════════════════
-```text
+```
 
 Stochastic optimization is the bridge between the clean theory of deterministic optimization and the messy reality of training models on massive datasets. The noise in SGD is not just a computational necessity — it is a fundamental feature that shapes the generalization properties of the learned model.
 
@@ -985,7 +981,6 @@ Stochastic optimization is the bridge between the clean theory of deterministic 
 13. Zhang, J. et al. (2019). "Lookahead optimizer: k steps forward, 1 step back." NeurIPS.
 14. Stich, S. (2019). "Local SGD converges fast and communicates little." ICLR.
 15. Seide, F. et al. (2014). "1-bit stochastic gradient descent and its application to data-parallel distributed training of speech DNNs." Interspeech.
-
 
 ---
 
@@ -1138,7 +1133,6 @@ for some constants $\alpha, \beta \geq 0$. This means the noise is larger in dir
 
 **For AI:** This noise structure explains why SGD generalizes better than full-batch GD: the noise helps SGD explore the loss landscape and settle in flat minima, which are more robust to perturbations and generalize better.
 
-
 ---
 
 ## Appendix B: Worked Examples and Case Studies
@@ -1170,7 +1164,7 @@ For large $n$, SGD is faster in wall-clock time despite requiring more iteration
 Consider a dataset with $n = 10,000$ examples where the gradient variance is $\sigma^2 = 4$.
 
 | Batch Size $B$ | Variance $\sigma^2/B$ | Std. Dev. | Speedup vs. $B=1$ |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | 4.00 | 2.00 | 1× |
 | 32 | 0.125 | 0.354 | 32× |
 | 128 | 0.031 | 0.177 | 128× |
@@ -1200,7 +1194,7 @@ Wait — this seems worse for SVRG! The key is that SVRG's convergence rate is i
 For LLM pretraining with AdamW:
 
 | Model Size | Critical Batch Size | Optimal LR | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 125M (GPT-3 small) | ~4K tokens | $6 \times 10^{-4}$ | Small model, small critical batch |
 | 1.3B (GPT-3 medium) | ~16K tokens | $2 \times 10^{-4}$ | Medium model |
 | 175B (GPT-3) | ~2M tokens | $6 \times 10^{-5}$ | Large model, large critical batch |
@@ -1213,7 +1207,7 @@ The critical batch size increases with model size because larger models have mor
 For a model with $n_{\text{params}} = 10^9$ parameters trained on $K = 1024$ GPUs:
 
 | Strategy | Communication per Step | Total Comm for 1M Steps | Bottleneck |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **All-reduce (full precision)** | 4 GB | 4 PB | Network bandwidth |
 | **1-bit quantization** | 0.125 GB | 125 TB | Quantization error |
 | **Top-1% sparsification** | 0.04 GB | 40 TB | Gradient quality |
@@ -1226,7 +1220,7 @@ For LLM training, gradient compression is essential. Modern systems use a combin
 **Keskar et al. (2017)** systematically studied the generalization gap between small-batch and large-batch SGD:
 
 | Batch Size | Training Accuracy | Test Accuracy | Generalization Gap |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 32 | 93.2% | 92.1% | 1.1% |
 | 128 | 94.5% | 91.8% | 2.7% |
 | 512 | 95.8% | 90.5% | 5.3% |
@@ -1332,7 +1326,7 @@ Mixed precision training uses lower precision (BF16 or FP16) for the forward and
 ### C.6 Choosing the Right Stochastic Optimizer
 
 | Scenario | Recommended Optimizer | Reason |
-|---|---|---|
+| --- | --- | --- |
 | **Image classification (small dataset)** | SGD + momentum | Better generalization, less prone to overfitting |
 | **Image classification (large dataset)** | SGD + momentum or Adam | Both work well; SGD may generalize slightly better |
 | **NLP / LLM pretraining** | AdamW | Handles sparse gradients, adaptive per-parameter LR |
@@ -1345,7 +1339,6 @@ Mixed precision training uses lower precision (BF16 or FP16) for the forward and
 | **Large-batch training** | LARS or LAMB | Layer-wise adaptive learning rates |
 
 **For AI practitioners:** The default choice for most deep learning tasks is AdamW. For vision tasks where generalization is critical, SGD with momentum is often preferred. For large-scale distributed training, the choice depends on the communication bottleneck and the critical batch size.
-
 
 ---
 
@@ -1750,7 +1743,7 @@ def wsd_lr(base_lr, warmup_steps, stable_steps, decay_steps, total_steps, curren
 ### D.9 Performance Comparison: Stochastic Optimizers
 
 | Optimizer | Per-iter Cost | Convergence Rate | Memory | Best Use Case |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **SGD** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Large-scale, non-convex |
 | **SGD + Momentum** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | Vision models |
 | **Adam** | $O(d)$ | $O(1/\sqrt{T})$ | $O(d)$ | NLP and generative modeling |
@@ -1790,7 +1783,6 @@ def wsd_lr(base_lr, warmup_steps, stable_steps, decay_steps, total_steps, curren
 - [ ] Model is robust to small perturbations (flat minimum)
 
 **For AI practitioners:** The most common mistake is using the wrong learning rate for the batch size. Always apply the linear scaling rule when changing the batch size, and use learning rate warmup for large-batch training.
-
 
 ---
 
@@ -1977,7 +1969,6 @@ The **lottery ticket hypothesis** (Frankle & Carbin, 2019) states that dense neu
 
 **For AI:** Understanding the connection between SGD and the lottery ticket hypothesis could lead to more efficient training algorithms that directly find winning tickets, reducing the compute cost of training large models.
 
-
 ---
 
 ## Appendix G: Quick Reference Card
@@ -1985,7 +1976,7 @@ The **lottery ticket hypothesis** (Frankle & Carbin, 2019) states that dense neu
 ### Key Formulas
 
 | Concept | Formula | Notes |
-|---|---|---|
+| --- | --- | --- |
 | SGD update | $\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \mathbf{g}_t$ | $\mathbb{E}[\mathbf{g}_t] = \nabla F(\boldsymbol{\theta}_t)$ |
 | Mini-batch variance | $\text{Var}(\mathbf{g}_B) = \sigma^2/B$ | Decreases linearly with batch size |
 | SGD convergence (convex) | $O(1/\sqrt{T})$ | With $\eta_t = O(1/\sqrt{t})$ |
@@ -1999,7 +1990,7 @@ The **lottery ticket hypothesis** (Frankle & Carbin, 2019) states that dense neu
 ### Parameter Recommendations
 
 | Setting | LR | Batch Size | Momentum | Weight Decay |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Vision (SGD) | 0.1 | 256 | 0.9 | $10^{-4}$ |
 | LLM (AdamW) | $10^{-4}$ | 2M tokens | 0.9, 0.95 | 0.01-0.1 |
 | Fine-tuning | $10^{-5}$ | 32 | 0.9, 0.999 | 0.01 |
