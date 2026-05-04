@@ -36,7 +36,7 @@ After completing this section, you will:
 
 1. Define mutual information in discrete and continuous settings and explain why it measures dependence rather than mere correlation
 2. Derive the equivalent forms
-   \(I(X;Y) = H(X) - H(X \mid Y) = H(Y) - H(Y \mid X) = D_{\mathrm{KL}}(p_{XY}\|p_X p_Y)\)
+   $I(X;Y) = H(X) - H(X \mid Y) = H(Y) - H(Y \mid X) = D_{\mathrm{KL}}(p_{XY} \Vert p_X p_Y)$
 3. Interpret pointwise mutual information and explain why PMI is central in co-occurrence models and embedding methods
 4. State and prove the most important properties of mutual information: symmetry, non-negativity, upper bounds, and the independence criterion
 5. Use chain rules for mutual information and conditional mutual information to reason about information flow in multi-variable systems
@@ -114,11 +114,11 @@ The easiest way to misunderstand mutual information is to think of it as "just a
 
 Consider three examples:
 
-1. If \(Y = 2X + 1\) with no noise, then \(X\) and \(Y\) are perfectly dependent and both correlation and mutual information are large.
-2. If \(X \in \{-1,+1\}\) uniformly and \(Y = X^2\), then \(Y\) is constant. Correlation is zero and mutual information is also zero because observing \(Y\) teaches us nothing.
-3. If \(X \sim \mathcal{N}(0,1)\) and \(Y = X^2\), then correlation can be zero because the relationship is symmetric around zero, yet mutual information is positive because knowing \(Y\) narrows down what values of \(X\) are plausible.
+1. If $Y = 2X + 1$ with no noise, then $X$ and $Y$ are perfectly dependent and both correlation and mutual information are large.
+2. If $X \in \{-1,+1\}$ uniformly and $Y = X^2$, then $Y$ is constant. Correlation is zero and mutual information is also zero because observing $Y$ teaches us nothing.
+3. If $X \sim \mathcal{N}(0,1)$ and $Y = X^2$, then correlation can be zero because the relationship is symmetric around zero, yet mutual information is positive because knowing $Y$ narrows down what values of $X$ are plausible.
 
-This third example is the important one. Zero covariance does **not** imply independence except in special families such as jointly Gaussian distributions. Mutual information detects dependence whenever the joint distribution \(p_{XY}\) fails to factorize as \(p_X p_Y\), regardless of whether the dependence is linear, nonlinear, monotone, multimodal, or structurally conditional.
+This third example is the important one. Zero covariance does **not** imply independence except in special families such as jointly Gaussian distributions. Mutual information detects dependence whenever the joint distribution $p_{XY}$ fails to factorize as $p_X p_Y$, regardless of whether the dependence is linear, nonlinear, monotone, multimodal, or structurally conditional.
 
 ```text
 DEPENDENCE VS CORRELATION
@@ -154,26 +154,26 @@ This is why mutual information matters so much in representation learning. Usefu
 
 Entropy gives a baseline uncertainty. Conditional entropy gives the uncertainty that remains after an observation. Mutual information is the gap:
 
-\[
+$$
 I(X;Y) = H(X) - H(X \mid Y).
-\]
+$$
 
-That formula is worth reading slowly. Before observing \(Y\), uncertainty about \(X\) is \(H(X)\). After observing \(Y\), the average remaining uncertainty is \(H(X \mid Y)\). Their difference is the *average reduction in uncertainty* due to the observation of \(Y\).
+That formula is worth reading slowly. Before observing $Y$, uncertainty about $X$ is $H(X)$. After observing $Y$, the average remaining uncertainty is $H(X \mid Y)$. Their difference is the *average reduction in uncertainty* due to the observation of $Y$.
 
 Because the same reasoning works in the other direction,
 
-\[
+$$
 I(X;Y) = H(Y) - H(Y \mid X),
-\]
+$$
 
 mutual information is symmetric. The quantity measures *shared* uncertainty reduction.
 
-For a concrete discrete example, imagine a noisy binary label \(Y\) generated from a feature \(X\):
+For a concrete discrete example, imagine a noisy binary label $Y$ generated from a feature $X$:
 
-- if \(X\) is uninformative, then \(H(Y \mid X) \approx H(Y)\), so \(I(X;Y) \approx 0\)
-- if \(X\) almost determines \(Y\), then \(H(Y \mid X)\) is small, so \(I(X;Y)\) is close to \(H(Y)\)
+- if $X$ is uninformative, then $H(Y \mid X) \approx H(Y)$, so $I(X;Y) \approx 0$
+- if $X$ almost determines $Y$, then $H(Y \mid X)$ is small, so $I(X;Y)$ is close to $H(Y)$
 
-This is the logic behind information gain520472
+This is the logic behind information gain in decision trees and many feature-selection criteria.
 
 ```text
 UNCERTAINTY REDUCTION VIEW
@@ -204,11 +204,11 @@ Mutual information appears whenever a learning system must preserve some aspects
 
 | AI setting | Variables | MI question |
 | --- | --- | --- |
-| Decision trees | feature \(X_j\), class \(Y\) | how much does the feature reduce label uncertainty? |
-| Contrastive learning | view \(X\), view \(Y\) of same sample | how much shared content can the representation preserve across views? |
-| Multimodal learning | image \(X\), caption \(Y\) | how much common semantic content is aligned between modalities? |
-| Active learning | query \(X\), unknown label \(Y\) or parameter \(\Theta\) | which observation will be maximally informative? |
-| Representation learning | raw input \(X\), latent code \(T\), target \(Y\) | how much of \(X\) should \(T\) keep, and how much task-relevant info should remain? |
+| Decision trees | feature $X_j$, class $Y$ | how much does the feature reduce label uncertainty? |
+| Contrastive learning | view $X$, view $Y$ of same sample | how much shared content can the representation preserve across views? |
+| Multimodal learning | image $X$, caption $Y$ | how much common semantic content is aligned between modalities? |
+| Active learning | query $X$, unknown label $Y$ or parameter $\Theta$ | which observation will be maximally informative? |
+| Representation learning | raw input $X$, latent code $T$, target $Y$ | how much of $X$ should $T$ keep, and how much task-relevant info should remain? |
 
 The core pattern is always the same:
 
@@ -284,42 +284,42 @@ Mutual information began life in communication theory, but today it is equally a
 
 ### 2.1 Discrete Mutual Information
 
-Let \(X\) and \(Y\) be discrete random variables with joint PMF \(p_{XY}(x,y)\) and marginals \(p_X(x)\), \(p_Y(y)\). The discrete mutual information is
+Let $X$ and $Y$ be discrete random variables with joint PMF $p_{XY}(x,y)$ and marginals $p_X(x)$, $p_Y(y)$. The discrete mutual information is
 
-\[
+$$
 I(X;Y) = \sum_{x,y} p_{XY}(x,y)\log\frac{p_{XY}(x,y)}{p_X(x)p_Y(y)}.
-\]
+$$
 
 Equivalent entropy forms are
 
-\[
+$$
 I(X;Y) = H(X) + H(Y) - H(X,Y)
-\]
+$$
 
 and
 
-\[
+$$
 I(X;Y) = H(X) - H(X\mid Y) = H(Y) - H(Y\mid X).
-\]
+$$
 
 These formulas are equivalent whenever the entropies are finite.
 
-**Worked example.** Suppose \(X,Y \in \{0,1\}\) with
+**Worked example.** Suppose $X,Y \in \{0,1\}$ with
 
-\[
+$$
 \begin{array}{c|cc}
  & Y=0 & Y=1 \\ \hline
 X=0 & 0.4 & 0.1 \\
 X=1 & 0.1 & 0.4
 \end{array}
-\]
+$$
 
-Then \(p_X(0)=p_X(1)=0.5\) and \(p_Y(0)=p_Y(1)=0.5\). So
+Then $p_X(0)=p_X(1)=0.5$ and $p_Y(0)=p_Y(1)=0.5$. So
 
-\[
+$$
 I(X;Y) = 0.4\log\frac{0.4}{0.25} + 0.1\log\frac{0.1}{0.25}
 + 0.1\log\frac{0.1}{0.25} + 0.4\log\frac{0.4}{0.25}.
-\]
+$$
 
 The positive contributions come from outcomes that occur more often jointly than independence would predict. Negative pointwise contributions can also occur for individually "anti-associated" outcomes, but the overall sum is always nonnegative.
 
@@ -327,45 +327,45 @@ The positive contributions come from outcomes that occur more often jointly than
 
 The identity
 
-\[
-I(X;Y) = D_{\mathrm{KL}}(p_{XY}\|p_X p_Y)
-\]
+$$
+I(X;Y) = D_{\mathrm{KL}}(p_{XY} \Vert p_X p_Y)
+$$
 
 is one of the most important equations in the chapter.
 
 It says mutual information is the KL divergence between:
 
-- the **actual joint distribution** \(p_{XY}\), and
-- the **independence model** \(p_X p_Y\) built from the marginals.
+- the **actual joint distribution** $p_{XY}$, and
+- the **independence model** $p_X p_Y$ built from the marginals.
 
 This is conceptually powerful because it turns a dependence question into a distribution-comparison question:
 
-- if \(X\) and \(Y\) are independent, then \(p_{XY}=p_X p_Y\), so the divergence is zero
+- if $X$ and $Y$ are independent, then $p_{XY}=p_X p_Y$, so the divergence is zero
 - if they are dependent, the joint law differs from the product law, and the divergence is positive
 
-> **Backward link:** the general properties of \(D_{\mathrm{KL}}\) belong to [02-KL-Divergence](../02-KL-Divergence/notes.md). In this section we use that theory to inherit non-negativity, but the object of interest is specifically the divergence to the product-of-marginals baseline.
+> **Backward link:** the general properties of $D_{\mathrm{KL}}$ belong to [02-KL-Divergence](../02-KL-Divergence/notes.md). In this section we use that theory to inherit non-negativity, but the object of interest is specifically the divergence to the product-of-marginals baseline.
 
 This perspective also clarifies why mutual information is invariant under invertible reparameterizations in both arguments: KL divergence between corresponding transformed measures is unchanged.
 
 ### 2.3 Pointwise Mutual Information (PMI)
 
-The **pointwise mutual information** between a specific pair \((x,y)\) is
+The **pointwise mutual information** between a specific pair $(x,y)$ is
 
-\[
+$$
 \operatorname{pmi}(x,y) = \log\frac{p_{XY}(x,y)}{p_X(x)p_Y(y)}.
-\]
+$$
 
 Mutual information is the expectation of PMI:
 
-\[
+$$
 I(X;Y) = \mathbb{E}_{(X,Y)\sim p_{XY}}[\operatorname{pmi}(X,Y)].
-\]
+$$
 
 PMI is more local than MI:
 
-- \(\operatorname{pmi}(x,y) > 0\) means the pair co-occurs more often than independence predicts
-- \(\operatorname{pmi}(x,y) = 0\) means the pair occurs exactly as often as independence predicts
-- \(\operatorname{pmi}(x,y) < 0\) means the pair co-occurs less often than independence predicts
+- $\operatorname{pmi}(x,y) > 0$ means the pair co-occurs more often than independence predicts
+- $\operatorname{pmi}(x,y) = 0$ means the pair occurs exactly as often as independence predicts
+- $\operatorname{pmi}(x,y) < 0$ means the pair co-occurs less often than independence predicts
 
 In NLP, PMI has historically been used to score word associations:
 
@@ -378,21 +378,21 @@ This matters because co-occurrence counts alone are dominated by frequent tokens
 
 ### 2.4 Continuous Mutual Information
 
-For continuous random variables with joint density \(p_{XY}(x,y)\) and marginal densities \(p_X(x)\), \(p_Y(y)\), the mutual information is
+For continuous random variables with joint density $p_{XY}(x,y)$ and marginal densities $p_X(x)$, $p_Y(y)$, the mutual information is
 
-\[
+$$
 I(X;Y) = \int \int p_{XY}(x,y)\log\frac{p_{XY}(x,y)}{p_X(x)p_Y(y)}\,dx\,dy,
-\]
+$$
 
 provided the integral is well defined.
 
 This is **not** simply a difference of differential entropies in the naive sense unless the needed quantities exist. But when they do,
 
-\[
+$$
 I(X;Y) = h(X) - h(X\mid Y) = h(Y) - h(Y\mid X),
-\]
+$$
 
-where \(h\) denotes differential entropy.
+where $h$ denotes differential entropy.
 
 The subtle but crucial fact is:
 
@@ -405,30 +405,30 @@ That is one reason mutual information is often a safer continuous information me
 
 The **conditional mutual information** is
 
-\[
+$$
 I(X;Y\mid Z) = H(X\mid Z) - H(X\mid Y,Z).
-\]
+$$
 
 It can also be written as
 
-\[
+$$
 I(X;Y\mid Z)
-= \sum_z p_Z(z)\, D_{\mathrm{KL}}(p_{XY\mid Z=z}\|p_{X\mid Z=z}p_{Y\mid Z=z}),
-\]
+= \sum_z p_Z(z)\, D_{\mathrm{KL}}(p_{XY\mid Z=z} \Vert p_{X\mid Z=z} p_{Y\mid Z=z}),
+$$
 
 or, in expectation form,
 
-\[
+$$
 I(X;Y\mid Z)
 = \mathbb{E}\left[\log\frac{p_{XY\mid Z}(X,Y\mid Z)}{p_{X\mid Z}(X\mid Z)p_{Y\mid Z}(Y\mid Z)}\right].
-\]
+$$
 
 The interpretation is straightforward:
 
-- first condition on \(Z\)
-- then ask how much extra uncertainty about \(X\) is reduced by seeing \(Y\)
+- first condition on $Z$
+- then ask how much extra uncertainty about $X$ is reduced by seeing $Y$
 
-So \(I(X;Y\mid Z)\) measures information shared by \(X\) and \(Y\) *beyond what \(Z\) already explains*.
+So $I(X;Y\mid Z)$ measures information shared by $X$ and $Y$ *beyond what $Z$ already explains*.
 
 This quantity becomes central in graphical models, causal reasoning, and active-learning design because it separates direct information from information already mediated by other variables.
 
@@ -440,25 +440,25 @@ This quantity becomes central in graphical models, causal reasoning, and active-
 
 Mutual information is symmetric:
 
-\[
+$$
 I(X;Y)=I(Y;X).
-\]
+$$
 
-This is immediate from the entropy formula \(H(X)+H(Y)-H(X,Y)\), which is symmetric in \(X\) and \(Y\).
+This is immediate from the entropy formula $H(X)+H(Y)-H(X,Y)$, which is symmetric in $X$ and $Y$.
 
 It is also nonnegative:
 
-\[
+$$
 I(X;Y)\ge 0.
-\]
+$$
 
 The cleanest proof uses the KL representation:
 
-\[
-I(X;Y)=D_{\mathrm{KL}}(p_{XY}\|p_X p_Y)\ge 0.
-\]
+$$
+I(X;Y)=D_{\mathrm{KL}}(p_{XY} \Vert p_X p_Y)\ge 0.
+$$
 
-Equality holds if and only if \(p_{XY}=p_X p_Y\) almost everywhere, i.e. \(X\) and \(Y\) are independent.
+Equality holds if and only if $p_{XY}=p_X p_Y$ almost everywhere, i.e. $X$ and $Y$ are independent.
 
 This already tells us something profound: mutual information is a dependence measure with a mathematically exact zero point. Many statistics do not enjoy that property.
 
@@ -466,34 +466,34 @@ This already tells us something profound: mutual information is a dependence mea
 
 Because conditioning cannot increase entropy,
 
-\[
+$$
 H(X\mid Y)\le H(X).
-\]
+$$
 
 Therefore
 
-\[
+$$
 I(X;Y)=H(X)-H(X\mid Y)\le H(X).
-\]
+$$
 
 By symmetry,
 
-\[
+$$
 I(X;Y)\le H(Y),
-\]
+$$
 
 so overall
 
-\[
+$$
 0 \le I(X;Y) \le \min\{H(X),H(Y)\}.
-\]
+$$
 
 When do we attain the upper bound?
 
-- \(I(X;Y)=H(X)\) if and only if \(H(X\mid Y)=0\), meaning \(X\) is a deterministic function of \(Y\)
-- \(I(X;Y)=H(Y)\) if and only if \(H(Y\mid X)=0\), meaning \(Y\) is a deterministic function of \(X\)
+- $I(X;Y)=H(X)$ if and only if $H(X\mid Y)=0$, meaning $X$ is a deterministic function of $Y$
+- $I(X;Y)=H(Y)$ if and only if $H(Y\mid X)=0$, meaning $Y$ is a deterministic function of $X$
 
-If both hold, then \(X\) and \(Y\) determine one another almost surely: they are invertibly linked up to null sets.
+If both hold, then $X$ and $Y$ determine one another almost surely: they are invertibly linked up to null sets.
 
 ```text
 BOUNDS ON MUTUAL INFORMATION
@@ -523,11 +523,11 @@ Extreme cases:
 
 This property is so important that it deserves its own subsection:
 
-\[
+$$
 I(X;Y)=0 \quad \Longleftrightarrow \quad X \perp\!\!\!\perp Y.
-\]
+$$
 
-The forward implication follows from KL non-negativity and equality conditions. The reverse implication follows by direct substitution: if \(p_{XY}=p_Xp_Y\), every log-ratio term becomes zero.
+The forward implication follows from KL non-negativity and equality conditions. The reverse implication follows by direct substitution: if $p_{XY}=p_X p_Y$, every log-ratio term becomes zero.
 
 This criterion is much stronger than:
 
@@ -537,37 +537,37 @@ This criterion is much stronger than:
 
 Those can all vanish in the presence of nonlinear dependence. Mutual information vanishes only when there is no statistical dependence at all.
 
-**Gaussian exception.** If \((X,Y)\) are jointly Gaussian, then zero covariance does imply independence. That is why, in Gaussian settings, MI can be expressed entirely through covariance structure. Outside that setting, covariance is only a partial picture.
+**Gaussian exception.** If $(X,Y)$ are jointly Gaussian, then zero covariance does imply independence. That is why, in Gaussian settings, MI can be expressed entirely through covariance structure. Outside that setting, covariance is only a partial picture.
 
 ### 3.4 Chain Rules for Mutual Information
 
 The mutual-information chain rule states
 
-\[
+$$
 I(X_1,\dots,X_n;Y)
 = \sum_{i=1}^n I(X_i;Y\mid X_1,\dots,X_{i-1}).
-\]
+$$
 
 For two variables this is
 
-\[
+$$
 I(X,Z;Y)=I(X;Y)+I(Z;Y\mid X).
-\]
+$$
 
 **Derivation.** Start from entropy:
 
-\[
+$$
 I(X,Z;Y)
 = H(Y)-H(Y\mid X,Z).
-\]
+$$
 
-Add and subtract \(H(Y\mid X)\):
+Add and subtract $H(Y\mid X)$:
 
-\[
+$$
 I(X,Z;Y)
 = \big(H(Y)-H(Y\mid X)\big) + \big(H(Y\mid X)-H(Y\mid X,Z)\big)
 = I(X;Y)+I(Z;Y\mid X).
-\]
+$$
 
 This is the information-theoretic analogue of decomposing predictive contribution into what is already explained and what is newly explained after conditioning.
 
@@ -580,22 +580,22 @@ In ML, chain rules appear whenever information is accumulated sequentially:
 
 ### 3.5 Deterministic Functions and Invariance Facts
 
-If \(T=f(X)\) is a deterministic function of \(X\), then
+If $T=f(X)$ is a deterministic function of $X$, then
 
-\[
+$$
 I(T;Y)\le I(X;Y).
-\]
+$$
 
 This is already a special case of the data processing inequality, but it is worth interpreting directly:
 
 - deterministic post-processing can discard information
-- it cannot create new information about \(Y\) that was not already present in \(X\)
+- it cannot create new information about $Y$ that was not already present in $X$
 
-If \(f\) is bijective, then no information is lost:
+If $f$ is bijective, then no information is lost:
 
-\[
+$$
 I(f(X);Y)=I(X;Y).
-\]
+$$
 
 This invariance under invertible reparameterization is one reason mutual information is conceptually robust. It depends on the dependence structure between variables, not the arbitrary coordinates in which the variables are represented.
 
@@ -611,8 +611,8 @@ Conditional mutual information is where dependence structure becomes interesting
 
 Two canonical patterns matter:
 
-1. **Common cause:** if \(Z\) influences both \(X\) and \(Y\), then \(X\) and \(Y\) may be dependent marginally, but conditioning on \(Z\) can remove the dependence.
-2. **Common effect (collider):** if \(X\) and \(Y\) both influence \(Z\), then \(X\) and \(Y\) may be marginally independent but become dependent after conditioning on \(Z\).
+1. **Common cause:** if $Z$ influences both $X$ and $Y$, then $X$ and $Y$ may be dependent marginally, but conditioning on $Z$ can remove the dependence.
+2. **Common effect (collider):** if $X$ and $Y$ both influence $Z$, then $X$ and $Y$ may be marginally independent but become dependent after conditioning on $Z$.
 
 This second phenomenon is often called **explaining away**. In diagnosis, two independent diseases can become negatively associated once a common symptom is observed: if one disease is present, it partly explains the symptom, reducing the need to attribute it to the other.
 
@@ -639,45 +639,45 @@ Reason:
 
 ### 4.2 Data Processing Inequality
 
-If \(X \to T \to Y\) forms a Markov chain, then
+If $X \to T \to Y$ forms a Markov chain, then
 
-\[
+$$
 I(X;Y)\le I(X;T).
-\]
+$$
 
-More commonly one writes, for \(X \to T \to Y\),
+More commonly one writes, for $X \to T \to Y$,
 
-\[
+$$
 I(X;Y)\le I(X;T)
 \quad\text{and}\quad
 I(T;Y)\le I(X;Y)
-\]
+$$
 only when the chain is ordered appropriately. The important statement is: **processing cannot increase information about the original source beyond what the intermediate representation already contains.**
 
 One proof uses the chain rule:
 
-\[
+$$
 I(X;T,Y)=I(X;T)+I(X;Y\mid T).
-\]
+$$
 
-Because \(X \to T \to Y\) means \(X\) and \(Y\) are conditionally independent given \(T\), we have \(I(X;Y\mid T)=0\). Hence
+Because $X \to T \to Y$ means $X$ and $Y$ are conditionally independent given $T$, we have $I(X;Y\mid T)=0$. Hence
 
-\[
+$$
 I(X;T,Y)=I(X;T).
-\]
+$$
 
 Also,
 
-\[
+$$
 I(X;T,Y)=I(X;Y)+I(X;T\mid Y)\ge I(X;Y),
-\]
+$$
 
-so \(I(X;Y)\le I(X;T)\).
+so $I(X;Y)\le I(X;T)$.
 
 This theorem is foundational for representation learning:
 
-- any learned representation \(T=f(X)\) is a processed form of the input
-- therefore \(T\) cannot contain more information about a downstream target than the input could possibly supply
+- any learned representation $T=f(X)$ is a processed form of the input
+- therefore $T$ cannot contain more information about a downstream target than the input could possibly supply
 - the design problem is not to create information, but to preserve the right information while discarding nuisance variation
 
 An equivalent way to say this is that representation learning is always
@@ -720,25 +720,25 @@ So the design goal is:
 
 ### 4.3 Markov Chains, Sufficiency, and Representation
 
-A statistic \(T(X)\) is sufficient for a parameter \(\Theta\) if conditioning on \(T\) renders \(X\) irrelevant to \(\Theta\). In information terms, sufficiency can be characterized as
+A statistic $T(X)$ is sufficient for a parameter $\Theta$ if conditioning on $T$ renders $X$ irrelevant to $\Theta$. In information terms, sufficiency can be characterized as
 
-\[
+$$
 I(\Theta;X\mid T)=0.
-\]
+$$
 
-That is a beautifully compact statement: once you know \(T\), the raw data \(X\) tells you nothing further about \(\Theta\).
+That is a beautifully compact statement: once you know $T$, the raw data $X$ tells you nothing further about $\Theta$.
 
 In representation learning, this suggests an ideal:
 
-- compress the raw input \(X\) into a representation \(T\)
-- but preserve the information in \(X\) that matters for the target \(Y\)
+- compress the raw input $X$ into a representation $T$
+- but preserve the information in $X$ that matters for the target $Y$
 
 The resulting design tension is the conceptual starting point for the information bottleneck:
 
-\[
+$$
 \text{small } I(X;T)
 \quad\text{but large } I(T;Y).
-\]
+$$
 
 This perspective is more general than any particular neural architecture. It is a way of asking what a representation should remember and what it should forget.
 
@@ -758,15 +758,15 @@ about *information about what?*
 
 ### 4.4 Interaction Information and Synergy
 
-Pairwise mutual information does not capture all multi-variable structure. Suppose two bits \(X_1\) and \(X_2\) are independent fair coins, and \(Y = X_1 \oplus X_2\) is their XOR.
+Pairwise mutual information does not capture all multi-variable structure. Suppose two bits $X_1$ and $X_2$ are independent fair coins, and $Y = X_1 \oplus X_2$ is their XOR.
 
 Then:
 
-- \(I(X_1;Y)=0\)
-- \(I(X_2;Y)=0\)
-- but \(I((X_1,X_2);Y)=1\) bit
+- $I(X_1;Y)=0$
+- $I(X_2;Y)=0$
+- but $I((X_1,X_2);Y)=1$ bit
 
-So neither variable individually tells us anything about \(Y\), but together they determine it completely. This is **synergy**.
+So neither variable individually tells us anything about $Y$, but together they determine it completely. This is **synergy**.
 
 Interaction information and related multivariate quantities attempt to formalize such effects. The sign conventions can be subtle, which is why many applied papers prefer partial-information decompositions or total correlation instead of relying on interaction information alone.
 
@@ -774,9 +774,9 @@ The key lesson is not the exact choice of multivariate information measure. It i
 
 One common definition of three-way interaction information is
 
-\[
+$$
 I(X;Y;Z) = I(X;Y) - I(X;Y\mid Z),
-\]
+$$
 
 with equivalent permutations obtained by symmetry. Under this sign convention,
 interaction information can be positive or negative:
@@ -800,19 +800,19 @@ therefore depends on the problem structure:
 
 ### 4.5 Total Correlation and Multi-Information
 
-For random variables \(X_1,\dots,X_n\), the **total correlation** (also called multi-information in one common convention) is
+For random variables $X_1,\dots,X_n$, the **total correlation** (also called multi-information in one common convention) is
 
-\[
+$$
 \operatorname{TC}(X_1,\dots,X_n)
-= D_{\mathrm{KL}}\!\left(p_{X_1,\dots,X_n}\,\middle\|\,\prod_{i=1}^n p_{X_i}\right).
-\]
+= D_{\mathrm{KL}}\!\left(p_{X_1,\dots,X_n}\,\middle\Vert \,\prod_{i=1}^n p_{X_i}\right).
+$$
 
 Equivalently,
 
-\[
+$$
 \operatorname{TC}(X_1,\dots,X_n)
 = \sum_{i=1}^n H(X_i) - H(X_1,\dots,X_n).
-\]
+$$
 
 This is the multivariate analogue of mutual information:
 
@@ -845,33 +845,33 @@ factorization.
 
 Mutual information can be written as
 
-\[
+$$
 I(X;Y)=\mathbb{E}\left[\log\frac{p_{Y\mid X}(Y\mid X)}{p_Y(Y)}\right].
-\]
+$$
 
 This form is especially intuitive:
 
-- \(p_Y(Y)\) is the baseline probability of the observation
-- \(p_{Y\mid X}(Y\mid X)\) is the probability after knowing \(X\)
-- the log-ratio is how much the observation becomes more or less likely once \(X\) is known
+- $p_Y(Y)$ is the baseline probability of the observation
+- $p_{Y\mid X}(Y\mid X)$ is the probability after knowing $X$
+- the log-ratio is how much the observation becomes more or less likely once $X$ is known
 
-Averaging gives the expected log-evidence gained from seeing \(X\).
+Averaging gives the expected log-evidence gained from seeing $X$.
 
 This is why MI naturally appears in communication, statistics, Bayesian experimental design, and likelihood-ratio thinking. It quantifies average evidence transfer.
 
 ### 5.2 Channel Mutual Information
 
-In a communication channel, \(X\) is the channel input and \(Y\) is the output after noise. The channel law is \(p(y\mid x)\). Once an input distribution \(p(x)\) is chosen, the joint law becomes
+In a communication channel, $X$ is the channel input and $Y$ is the output after noise. The channel law is $p(y\mid x)$. Once an input distribution $p(x)$ is chosen, the joint law becomes
 
-\[
+$$
 p(x,y)=p(x)p(y\mid x).
-\]
+$$
 
 The mutual information
 
-\[
+$$
 I(X;Y)
-\]
+$$
 
 measures how much information the output carries about the input under that chosen input distribution.
 
@@ -879,18 +879,18 @@ This is not yet channel capacity, because capacity optimizes over the input law.
 
 Another useful identity is
 
-\[
+$$
 I(X;Y)
-= \sum_x p(x)\,D_{\mathrm{KL}}\!\big(p_{Y\mid X=x}\,\|\,p_Y\big).
-\]
+= \sum_x p(x)\,D_{\mathrm{KL}}\!\big(p_{Y\mid X=x}\,\Vert\,p_Y\big).
+$$
 
 This says mutual information is the average KL divergence between:
 
-- the output distribution after a specific input symbol \(x\), and
+- the output distribution after a specific input symbol $x$, and
 - the unconditional output distribution before we know which symbol was sent
 
 So a channel has high MI when different inputs induce clearly distinguishable
-output distributions. If all the conditionals \(p(y\mid x)\) look nearly the
+output distributions. If all the conditionals $p(y\mid x)$ look nearly the
 same, then the output barely reveals which input was chosen and the channel
 carries little information.
 
@@ -903,9 +903,9 @@ class information the representation preserves.
 
 The **channel capacity** is
 
-\[
+$$
 C = \max_{p(x)} I(X;Y).
-\]
+$$
 
 Capacity is the largest rate at which information can be transmitted reliably through the channel in the limit of long block length. The theorem-level content belongs to full information-theory courses, but the conceptual meaning is essential:
 
@@ -933,24 +933,24 @@ that mechanism.
 
 ### 5.4 Binary Symmetric and Gaussian Channel Examples
 
-**Binary symmetric channel (BSC).** Let \(X \in \{0,1\}\) and suppose the channel flips the bit with probability \(\varepsilon\). If the input is Bernoulli-\(\tfrac12\), then
+**Binary symmetric channel (BSC).** Let $X \in \{0,1\}$ and suppose the channel flips the bit with probability $\varepsilon$. If the input is Bernoulli-$\tfrac12$, then
 
-\[
+$$
 I(X;Y)=1-h_2(\varepsilon),
-\]
+$$
 
-where \(h_2\) is the binary entropy function.
+where $h_2$ is the binary entropy function.
 
 This formula is perfect intuition:
 
-- if \(\varepsilon=0\), the channel is noiseless and MI is 1 bit
-- if \(\varepsilon=\tfrac12\), output is pure noise and MI is 0
+- if $\varepsilon=0$, the channel is noiseless and MI is 1 bit
+- if $\varepsilon=\tfrac12$, output is pure noise and MI is 0
 
-**Gaussian channel.** For \(Y=X+N\) with Gaussian noise \(N\sim \mathcal{N}(0,\sigma^2)\) and power constraint \(\mathbb{E}[X^2]\le P\), the capacity is
+**Gaussian channel.** For $Y=X+N$ with Gaussian noise $N\sim \mathcal{N}(0,\sigma^2)$ and power constraint $\mathbb{E}[X^2]\le P$, the capacity is
 
-\[
+$$
 C = \frac12 \log\left(1+\frac{P}{\sigma^2}\right)
-\]
+$$
 
 in nats per channel use.
 
@@ -975,15 +975,15 @@ the same: how distinguishable are the outputs induced by different inputs?
 
 ### 5.5 Fano's Inequality and Prediction Limits
 
-Fano's inequality connects mutual information to classification error. In one common form, if \(Y\) is a label drawn from \(M\) classes and \(\hat{Y}\) is an estimate based on observed data \(X\), then
+Fano's inequality connects mutual information to classification error. In one common form, if $Y$ is a label drawn from $M$ classes and $\hat{Y}$ is an estimate based on observed data $X$, then
 
-\[
+$$
 H(Y\mid X)\le h_2(P_e)+P_e\log(M-1),
-\]
+$$
 
-where \(P_e = \Pr[\hat{Y}\ne Y]\).
+where $P_e = \Pr[\hat{Y}\ne Y]$.
 
-Rearranging with \(I(X;Y)=H(Y)-H(Y\mid X)\) shows:
+Rearranging with $I(X;Y)=H(Y)-H(Y\mid X)$ shows:
 
 - small MI implies substantial irreducible prediction error
 - high prediction accuracy requires enough information about the label to flow through the observation
@@ -1054,37 +1054,37 @@ Because direct estimation is hard, many ML objectives optimize lower bounds on M
 
 **Donsker-Varadhan (DV) bound.** Since MI is a KL divergence,
 
-\[
-I(X;Y)=D_{\mathrm{KL}}(p_{XY}\|p_X p_Y),
-\]
+$$
+I(X;Y)=D_{\mathrm{KL}}(p_{XY} \Vert p_X p_Y),
+$$
 
 and KL admits variational representations. One such form is
 
-\[
-D_{\mathrm{KL}}(P\|Q)
+$$
+D_{\mathrm{KL}}(P \Vert Q)
 = \sup_T \left(\mathbb{E}_P[T]-\log \mathbb{E}_Q[e^T]\right).
-\]
+$$
 
-Applying this with \(P=p_{XY}\) and \(Q=p_X p_Y\) yields a lower-bound objective over critic functions \(T\).
+Applying this with $P=p_{XY}$ and $Q=p_X p_Y$ yields a lower-bound objective over critic functions $T$.
 
 **NWJ bound.** The Nguyen-Wainwright-Jordan family gives related lower bounds with different optimization behavior.
 
-**InfoNCE.** For a positive pair \((x,y)\) and negatives \(y_1^-,\dots,y_{K-1}^-\), the InfoNCE objective has the form
+**InfoNCE.** For a positive pair $(x,y)$ and negatives $y_1^-,\dots,y_{K-1}^-$, the InfoNCE objective has the form
 
-\[
+$$
 \mathcal{L}_{\mathrm{InfoNCE}}
 = -\mathbb{E}\left[
 \log
 \frac{\exp s(x,y)}
 {\exp s(x,y)+\sum_{j=1}^{K-1}\exp s(x,y_j^-)}
 \right],
-\]
+$$
 
 and implies the lower bound
 
-\[
+$$
 I(X;Y)\ge \log K - \mathcal{L}_{\mathrm{InfoNCE}}
-\]
+$$
 
 under the relevant sampling assumptions.
 
@@ -1115,7 +1115,7 @@ bound itself.
 
 ### 6.4 MINE and Neural Estimators
 
-Belghazi et al. (2018) introduced **MINE**: Mutual Information Neural Estimation. The core idea is to parameterize the critic \(T_\phi(x,y)\) with a neural network and optimize the DV lower bound by gradient descent.
+Belghazi et al. (2018) introduced **MINE**: Mutual Information Neural Estimation. The core idea is to parameterize the critic $T_\phi(x,y)$ with a neural network and optimize the DV lower bound by gradient descent.
 
 This made MI estimation compatible with deep learning pipelines, but brought new complications:
 
@@ -1133,16 +1133,16 @@ the axis itself is not an oracle.
 
 ### 6.5 Information Bottleneck
 
-The **information bottleneck** objective introduces a representation \(T\) of input \(X\) and target \(Y\), then optimizes
+The **information bottleneck** objective introduces a representation $T$ of input $X$ and target $Y$, then optimizes
 
-\[
+$$
 \min_{p(t\mid x)} I(X;T)-\beta I(T;Y).
-\]
+$$
 
 This expresses a compression-relevance trade-off:
 
-- \(I(X;T)\) penalizes how much raw input detail the representation keeps
-- \(I(T;Y)\) rewards how much target-relevant information survives
+- $I(X;T)$ penalizes how much raw input detail the representation keeps
+- $I(T;Y)$ rewards how much target-relevant information survives
 
 At a conceptual level, this is one of the cleanest mathematical statements of what a useful representation should do.
 
@@ -1194,7 +1194,7 @@ Interpretation:
 
 ### 7.1 Information Gain and Feature Selection
 
-If \(Y\) is the label and \(X_j\) is a feature, then \(I(X_j;Y)\) measures how much label uncertainty is reduced by observing that feature.
+If $Y$ is the label and $X_j$ is a feature, then $I(X_j;Y)$ measures how much label uncertainty is reduced by observing that feature.
 
 This is the basis of:
 
@@ -1274,16 +1274,16 @@ audit of representation quality.
 
 In active learning, the learner chooses which example to label next. A natural acquisition score is the expected information gain:
 
-\[
+$$
 I(Y;\Theta \mid X,\mathcal{D}),
-\]
+$$
 
 where:
 
-- \(X\) is the candidate query
-- \(Y\) is its unknown label
-- \(\Theta\) denotes model parameters or latent predictive state
-- \(\mathcal{D}\) is the current dataset
+- $X$ is the candidate query
+- $Y$ is its unknown label
+- $\Theta$ denotes model parameters or latent predictive state
+- $\mathcal{D}$ is the current dataset
 
 This quantity asks:
 
@@ -1311,7 +1311,7 @@ behavior more broadly.
 | 5 | "InfoNCE equals mutual information." | InfoNCE is a lower bound whose tightness depends on sampling and critic quality. | Say "MI-inspired lower bound" unless you have a proof of exact equality in your setting. |
 | 6 | "Large estimated MI always means the representation is better." | MI estimators can be biased and may reward nuisance information if the objective is misspecified. | Match the estimator and objective to the downstream task. |
 | 7 | "Mutual information always increases with better prediction." | Not necessarily in finite-sample estimates, and not for arbitrary surrogate objectives. | Separate theorem-level MI identities from estimator behavior. |
-| 8 | "Conditional MI is just MI with more variables." | Conditioning can reverse dependence patterns through common-cause or collider structure. | Interpret \(I(X;Y\mid Z)\) as residual dependence after accounting for \(Z\). |
+| 8 | "Conditional MI is just MI with more variables." | Conditioning can reverse dependence patterns through common-cause or collider structure. | Interpret $I(X;Y\mid Z)$ as residual dependence after accounting for $Z$. |
 | 9 | "Data processing says useful learned features are impossible." | DPI says processing cannot create information about the source, not that representation learning is useless. | Use it as a conservation law: preserve what matters, discard what does not. |
 | 10 | "Zero MI is easy to estimate from samples." | In high dimensions, estimating near-zero dependence can be very unstable. | Use caution with finite-sample estimators and report estimator details. |
 | 11 | "More negatives in contrastive learning always means exact MI recovery." | More negatives can tighten InfoNCE-style bounds, but optimization, batch size, and model class still matter. | Treat contrastive objectives as practical surrogates, not exact estimators by default. |
@@ -1322,25 +1322,25 @@ behavior more broadly.
 ## 9. Exercises
 
 1. **Exercise 1 (★): Tabular Mutual Information**
-   Given a \(2\times 2\) joint probability table, compute \(I(X;Y)\) directly from the definition and verify symmetry.
+   Given a $2\times 2$ joint probability table, compute $I(X;Y)$ directly from the definition and verify symmetry.
 
 2. **Exercise 2 (★): Zero Correlation, Positive MI**
    Construct a nonlinear example with zero covariance but positive mutual information, and explain why the difference arises.
 
 3. **Exercise 3 (★): MI as KL Divergence**
-   Starting from \(I(X;Y)=H(X)+H(Y)-H(X,Y)\), derive the KL form \(D_{\mathrm{KL}}(p_{XY}\|p_Xp_Y)\).
+   Starting from $I(X;Y)=H(X)+H(Y)-H(X,Y)$, derive the KL form $D_{\mathrm{KL}}(p_{XY} \Vert p_X p_Y)$.
 
 4. **Exercise 4 (★★): Chain Rule and Conditional MI**
-   Prove a chain rule such as \(I(X,Z;Y)=I(X;Y)+I(Z;Y\mid X)\), then interpret it in a feature-selection setting.
+   Prove a chain rule such as $I(X,Z;Y)=I(X;Y)+I(Z;Y\mid X)$, then interpret it in a feature-selection setting.
 
 5. **Exercise 5 (★★): Binary Symmetric Channel**
-   Compute the mutual information of a BSC numerically as a function of flip probability \(\varepsilon\), and recover the formula \(1-h_2(\varepsilon)\) for uniform input.
+   Compute the mutual information of a BSC numerically as a function of flip probability $\varepsilon$, and recover the formula $1-h_2(\varepsilon)$ for uniform input.
 
 6. **Exercise 6 (★★): Estimating MI from Samples**
    Generate dependent and independent synthetic datasets, estimate MI using a simple classical estimator, and analyze estimator bias and variance.
 
 7. **Exercise 7 (★★★): InfoNCE Lower Bound**
-   Derive the \(\log K - \mathcal{L}_{\mathrm{InfoNCE}}\) lower-bound form and explain what changes as the number of negatives grows.
+   Derive the $\log K - \mathcal{L}_{\mathrm{InfoNCE}}$ lower-bound form and explain what changes as the number of negatives grows.
 
 8. **Exercise 8 (★★★): MI in Modern ML**
    Choose one of feature selection, CLIP-style alignment, information bottleneck, or active learning and formulate the exact mutual-information quantity that the system is trying to maximize or preserve.
