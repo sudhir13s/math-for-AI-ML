@@ -1,971 +1,3060 @@
-[← Back to Optimization](../README.md) | [Previous: Optimization Landscape ←](../06-Optimization-Landscape/notes.md) | [Next: Regularization Methods →](../08-Regularization-Methods/notes.md)
+[Previous: Optimization Landscape](../06-Optimization-Landscape/notes.md) | [Back to Chapter 8: Optimization](../README.md) | [Next: Regularization Methods](../08-Regularization-Methods/notes.md)
 
 ---
 
 # Adaptive Learning Rate
 
-> _"A good optimizer does not merely follow the gradient; it decides how much to trust each coordinate of it."_
+> _"Adaptive optimization asks each coordinate how loudly its gradient has been speaking."_
 
 ## Overview
 
-Adaptive learning-rate methods modify gradient descent by giving different coordinates, parameters, layers, or blocks different effective step sizes. Instead of applying one scalar learning rate $\eta$ to every coordinate, they maintain running statistics of past gradients and use those statistics to rescale future updates. This is the mathematical idea behind AdaGrad, RMSProp, Adam, AdamW, Adafactor, LARS, and LAMB.
+Adaptive Learning Rate is part of the optimization spine of this curriculum. It explains how
+mathematical assumptions become training behavior, and how training behavior becomes measurable
+engineering evidence. The section is the canonical home for per-parameter and layerwise
+adaptation: AdaGrad, RMSProp, Adam, AMSGrad, AdamW, Adafactor, LARS, LAMB, and modern
+preconditioning previews.
 
-This section is the canonical home for per-parameter adaptation in the Optimization chapter. The stochastic gradients themselves are covered in [Stochastic Optimization](../05-Stochastic-Optimization/notes.md), the geometry of the loss surface is covered in [Optimization Landscape](../06-Optimization-Landscape/notes.md), and external time-varying schedules such as warmup and cosine decay belong to [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md). Here the focus is the optimizer's internal adaptation: how gradient history changes the update direction and scale.
+The rewrite is deliberately AI-facing: every definition is connected to a loss, an update rule,
+a notebook experiment, or a concrete model-training failure mode. Classical guarantees remain
+important, but they are used as instruments for reasoning about neural networks, transformers,
+large-batch runs, fine-tuning, and optimizer diagnostics.
 
-For modern AI, this topic is not optional. AdamW is the default optimizer for transformers and LLM fine-tuning; Adafactor reduces optimizer-state memory for very large models; LAMB and LARS were designed for large-batch training; and new optimizer proposals are usually judged against AdamW. To use these tools well, you need more than a recipe. You need to understand effective learning rates, moment estimates, bias correction, decoupled weight decay, numerical stabilizers, and optimizer diagnostics.
+A recurring principle runs through the entire chapter: do not memorize optimizer names. Instead,
+identify the objective, the geometry, the stochasticity, the state carried by the method, and
+the quantities that must be logged. That habit transfers from convex baselines to frontier-scale
+LLM training.
 
 ## Prerequisites
 
-- **Gradient descent and momentum** — update rules, step-size stability, Polyak momentum — [Gradient Descent](../02-Gradient-Descent/notes.md)
-- **Second-order and preconditioned methods** — Newton directions, diagonal approximations, natural-gradient intuition — [Second-Order Methods](../03-Second-Order-Methods/notes.md)
-- **Stochastic gradients** — mini-batch estimates, gradient noise, batch size scaling — [Stochastic Optimization](../05-Stochastic-Optimization/notes.md)
-- **Optimization landscapes** — curvature, sharpness, flatness, and instability diagnostics — [Optimization Landscape](../06-Optimization-Landscape/notes.md)
-- **Vector and matrix notation** — elementwise operations, diagonal matrices, norms — [Linear Algebra Basics](../../02-Linear-Algebra-Basics/README.md)
+- Gradients $\nabla f(\boldsymbol{\theta})$, Hessians $H_f(\boldsymbol{\theta})$, Jacobians $J_f$, and Taylor expansions from Chapter 5.
+- Eigenvalues $\lambda_i$, positive definite matrices $A \succ 0$, matrix norms $\lVert A\rVert$, and condition numbers $\kappa(A)$ from Chapters 2-3.
+- Expectation $\mathbb{E}[X]$, variance $\operatorname{Var}(X)$, concentration, and empirical risk from Chapters 6-7.
+- Loss functions $\ell(\boldsymbol{\theta}; \mathbf{x}, y)$, cross-entropy, and negative log-likelihood from Statistics and Information Theory.
+- Basic Python, NumPy arrays, and matplotlib plotting for the companion notebooks.
+- The previous optimization section, [Optimization Landscape](../06-Optimization-Landscape/notes.md), is assumed as local context.
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
-| [theory.ipynb](theory.ipynb) | Interactive demonstrations of AdaGrad, RMSProp, Adam, AdamW, LAMB, Adafactor memory, effective learning rates, and optimizer diagnostics |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises covering adaptive updates, bias correction, decoupled weight decay, trust ratios, memory cost, and practical diagnosis |
+| [theory.ipynb](theory.ipynb) | Interactive derivations, numerical checks, and visual diagnostics for Adaptive Learning Rate. |
+| [exercises.ipynb](exercises.ipynb) | Graded implementation and proof exercises for Adaptive Learning Rate. |
 
 ## Learning Objectives
 
-After completing this section, you will:
+- Define the canonical objects used in Adaptive Learning Rate with repository notation.
+- Derive the main update rule and state the assumptions under which it is valid.
+- Explain at least three examples and two non-examples for every major definition.
+- Prove or sketch the core inequality that controls convergence or stability.
+- Connect the theory to at least four modern AI or LLM training practices.
+- Implement a minimal NumPy experiment that checks the mathematical claim numerically.
+- Diagnose divergence, stagnation, overfitting, or instability using logged quantities.
+- Identify which neighboring section owns related but non-canonical material.
+- Translate formulas into practical framework-level implementation decisions.
+- Explain why the topic still matters in a 2026 AI training stack.
 
-1. Explain why one global learning rate is inefficient for ill-conditioned and sparse-gradient problems
-2. Write adaptive optimizers as diagonal preconditioned gradient methods
-3. Derive AdaGrad, RMSProp, Adam, AdamW, AMSGrad, Adafactor, LARS, and LAMB update rules
-4. Compute effective per-coordinate learning rates from optimizer state
-5. Explain Adam's first-moment, second-moment, and bias-correction terms
-6. Distinguish coupled $L_2$ regularization from decoupled weight decay in AdamW
-7. Analyze optimizer-state memory costs for billion-parameter models
-8. Interpret trust ratios in layerwise adaptive methods such as LARS and LAMB
-9. Diagnose training instability using gradient norms, update norms, parameter norms, and effective learning rates
-10. Choose reasonable optimizer defaults for transformers, sparse models, reinforcement learning, and large-batch training
-11. Separate stable optimizer theory from empirical 2026-era optimizer fashion
+## Notation and LaTeX Markdown Conventions
+
+This section is written in LaTeX-in-Markdown style. Inline mathematical expressions are
+delimited with single dollar signs, while central identities and updates are displayed in
+double-dollar equation blocks. Vectors are bold lowercase, matrices are uppercase, sets and
+spaces are calligraphic, and norms use $\lVert \cdot \rVert$ rather than bare vertical bars.
+
+| Object | Convention | Example |
+| --- | --- | --- |
+| Parameter vector | bold lowercase | $\boldsymbol{\theta} \in \mathbb{R}^d$ |
+| Data vector | bold lowercase | $\mathbf{x}^{(i)} \in \mathbb{R}^d$ |
+| Objective | scalar function | $f : \mathbb{R}^d \to \mathbb{R}$ |
+| Loss | calligraphic or script-style scalar | $\mathcal{L}(\boldsymbol{\theta})$ |
+| Gradient | column vector | $\nabla f(\boldsymbol{\theta})$ |
+| Hessian | matrix | $H_f(\boldsymbol{\theta}) = \nabla^2 f(\boldsymbol{\theta})$ |
+| Learning rate | scalar schedule | $\eta_t > 0$ |
+| Constraint set | calligraphic set | $\mathcal{C} \subseteq \mathbb{R}^d$ |
+
+The canonical update for this section is:
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
 ---
 
 ## Table of Contents
 
 - [1. Intuition](#1-intuition)
-  - [1.1 Why One Global Learning Rate Fails](#11-why-one-global-learning-rate-fails)
-  - [1.2 Per-Parameter Learning Rates as Diagonal Preconditioning](#12-per-parameter-learning-rates-as-diagonal-preconditioning)
-  - [1.3 Sparse Gradients, Noisy Gradients, and Ill-Conditioning](#13-sparse-gradients-noisy-gradients-and-ill-conditioning)
-  - [1.4 Optimizer Lineage](#14-optimizer-lineage)
-  - [1.5 Why Adaptive Optimizers Matter for Transformers and LLMs](#15-why-adaptive-optimizers-matter-for-transformers-and-llms)
+  - [1.1 Why Adaptive Learning Rate matters for training systems](#11-why-adaptive-learning-rate-matters-for-training-systems)
+  - [1.2 The optimization object: parameters, objective, algorithm, and diagnostic](#12-the-optimization-object-parameters-objective-algorithm-and-diagnostic)
+  - [1.3 Historical arc from classical optimization to modern AI](#13-historical-arc-from-classical-optimization-to-modern-ai)
+  - [1.4 What this section treats as canonical scope](#14-what-this-section-treats-as-canonical-scope)
+  - [1.5 A first mental model for LLM training](#15-a-first-mental-model-for-llm-training)
 - [2. Formal Definitions](#2-formal-definitions)
-  - [2.1 Base Update Rule and Effective Learning Rate](#21-base-update-rule-and-effective-learning-rate)
-  - [2.2 Gradient Accumulators and Second-Moment Estimates](#22-gradient-accumulators-and-second-moment-estimates)
-  - [2.3 Diagonal Preconditioners](#23-diagonal-preconditioners)
-  - [2.4 Bias Correction and Initialization Effects](#24-bias-correction-and-initialization-effects)
-  - [2.5 Optimizer State, Memory Cost, and Numerical Stabilizers](#25-optimizer-state-memory-cost-and-numerical-stabilizers)
-- [3. Core Theory I: AdaGrad and RMSProp](#3-core-theory-i-adagrad-and-rmsprop)
-  - [3.1 AdaGrad Derivation and Sparse-Feature Behavior](#31-adagrad-derivation-and-sparse-feature-behavior)
-  - [3.2 AdaGrad Regret Intuition and Diminishing Steps](#32-adagrad-regret-intuition-and-diminishing-steps)
-  - [3.3 RMSProp as Exponential Forgetting](#33-rmsprop-as-exponential-forgetting)
-  - [3.4 Choosing Epsilon and Accumulator Decay](#34-choosing-epsilon-and-accumulator-decay)
-  - [3.5 AdaDelta and Practical Historical Variants](#35-adadelta-and-practical-historical-variants)
-- [4. Core Theory II: Adam Family](#4-core-theory-ii-adam-family)
-  - [4.1 Adam as Momentum plus RMSProp](#41-adam-as-momentum-plus-rmsprop)
-  - [4.2 First Moment, Second Moment, and Bias Correction](#42-first-moment-second-moment-and-bias-correction)
-  - [4.3 Effective Step Size and Update Normalization](#43-effective-step-size-and-update-normalization)
-  - [4.4 Adam Convergence Caveats and AMSGrad](#44-adam-convergence-caveats-and-amsgrad)
-  - [4.5 AdamW and Decoupled Weight Decay](#45-adamw-and-decoupled-weight-decay)
-- [5. Core Theory III: Layerwise and Memory-Efficient Adaptation](#5-core-theory-iii-layerwise-and-memory-efficient-adaptation)
-  - [5.1 LARS and LAMB for Large-Batch Training](#51-lars-and-lamb-for-large-batch-training)
-  - [5.2 Trust Ratio and Layerwise Update Scaling](#52-trust-ratio-and-layerwise-update-scaling)
-  - [5.3 Adafactor and Factored Second-Moment State](#53-adafactor-and-factored-second-moment-state)
-  - [5.4 Optimizer State Memory in Large Models](#54-optimizer-state-memory-in-large-models)
-  - [5.5 When Layerwise Adaptation Helps or Hurts](#55-when-layerwise-adaptation-helps-or-hurts)
+  - [2.1 Primary definition: effective learning rate](#21-primary-definition-effective-learning-rate)
+  - [2.2 Secondary definition: diagonal preconditioner](#22-secondary-definition-diagonal-preconditioner)
+  - [2.3 Algorithmic object: AdaGrad accumulator](#23-algorithmic-object-adagrad-accumulator)
+  - [2.4 Examples, non-examples, and boundary cases](#24-examples-nonexamples-and-boundary-cases)
+  - [2.5 Notation, dimensions, and assumptions](#25-notation-dimensions-and-assumptions)
+- [3. Core Theory I: Geometry and Guarantees](#3-core-theory-i-geometry-and-guarantees)
+  - [3.1 Geometry of RMSProp exponential averaging](#31-geometry-of-rmsprop-exponential-averaging)
+  - [3.2 Key inequality for Adam first moment](#32-key-inequality-for-adam-first-moment)
+  - [3.3 Role of Adam second moment](#33-role-of-adam-second-moment)
+  - [3.4 Proof template and what the proof actually buys](#34-proof-template-and-what-the-proof-actually-buys)
+  - [3.5 Failure modes when assumptions are removed](#35-failure-modes-when-assumptions-are-removed)
+- [4. Core Theory II: Algorithms and Dynamics](#4-core-theory-ii-algorithms-and-dynamics)
+  - [4.1 Algorithmic update for bias correction](#41-algorithmic-update-for-bias-correction)
+  - [4.2 Stability role of epsilon stabilizer](#42-stability-role-of-epsilon-stabilizer)
+  - [4.3 Rate or complexity controlled by AMSGrad](#43-rate-or-complexity-controlled-by-amsgrad)
+  - [4.4 Diagnostic interpretation of the update path](#44-diagnostic-interpretation-of-the-update-path)
+  - [4.5 Connection to the next section in the chapter](#45-connection-to-the-next-section-in-the-chapter)
+- [5. Core Theory III: Practical Variants](#5-core-theory-iii-practical-variants)
+  - [5.1 Variant built around AdamW](#51-variant-built-around-adamw)
+  - [5.2 Variant built around coupled L2](#52-variant-built-around-coupled-l2)
+  - [5.3 Variant built around decoupled weight decay](#53-variant-built-around-decoupled-weight-decay)
+  - [5.4 Implementation constraints and numerical stability](#54-implementation-constraints-and-numerical-stability)
+  - [5.5 What belongs here versus neighboring sections](#55-what-belongs-here-versus-neighboring-sections)
 - [6. Advanced Topics](#6-advanced-topics)
-  - [6.1 Adaptive Methods as Diagonal Natural-Gradient Approximations](#61-adaptive-methods-as-diagonal-natural-gradient-approximations)
-  - [6.2 Relationship to Curvature and Preconditioning](#62-relationship-to-curvature-and-preconditioning)
-  - [6.3 Sign-Based and Low-Memory Optimizers](#63-sign-based-and-low-memory-optimizers)
-  - [6.4 Structured Preconditioners](#64-structured-preconditioners)
-  - [6.5 Stability Diagnostics](#65-stability-diagnostics)
+  - [6.1 Advanced view of Adafactor](#61-advanced-view-of-adafactor)
+  - [6.2 Advanced view of factored second moment](#62-advanced-view-of-factored-second-moment)
+  - [6.3 Advanced view of LARS](#63-advanced-view-of-lars)
+  - [6.4 Infinite-dimensional or large-scale interpretation](#64-infinitedimensional-or-largescale-interpretation)
+  - [6.5 Open questions for frontier model training](#65-open-questions-for-frontier-model-training)
 - [7. Applications in Machine Learning](#7-applications-in-machine-learning)
-  - [7.1 AdamW for Transformer Pretraining and Fine-Tuning](#71-adamw-for-transformer-pretraining-and-fine-tuning)
-  - [7.2 Sparse Embeddings and Recommendation Models](#72-sparse-embeddings-and-recommendation-models)
-  - [7.3 Reinforcement Learning and Non-Stationary Objectives](#73-reinforcement-learning-and-non-stationary-objectives)
-  - [7.4 Large-Batch Training with LAMB](#74-large-batch-training-with-lamb)
-  - [7.5 Practical Optimizer Selection Checklist](#75-practical-optimizer-selection-checklist)
-- [8. Common Mistakes](#8-common-mistakes)
-- [9. Exercises](#9-exercises)
-- [10. Why This Matters for AI (2026 Perspective)](#10-why-this-matters-for-ai-2026-perspective)
-- [11. Conceptual Bridge](#11-conceptual-bridge)
+  - [7.1 AdamW as the default optimizer for transformer pretraining and fine-tuning](#71-adamw-as-the-default-optimizer-for-transformer-pretraining-and-finetuning)
+  - [7.2 Adafactor for memory-constrained large models](#72-adafactor-for-memoryconstrained-large-models)
+  - [7.3 LAMB and LARS for large-batch training](#73-lamb-and-lars-for-largebatch-training)
+  - [7.4 optimizer-state diagnostics for training failures and loss spikes](#74-optimizerstate-diagnostics-for-training-failures-and-loss-spikes)
+  - [7.5 Diagnostic checklist for real experiments](#75-diagnostic-checklist-for-real-experiments)
+- [8. Implementation and Diagnostics](#8-implementation-and-diagnostics)
+  - [8.1 Minimal NumPy experiment for LAMB](#81-minimal-numpy-experiment-for-lamb)
+  - [8.2 Monitoring signal for trust ratio](#82-monitoring-signal-for-trust-ratio)
+  - [8.3 Failure signature for layerwise scaling](#83-failure-signature-for-layerwise-scaling)
+  - [8.4 Framework-level implementation pattern](#84-frameworklevel-implementation-pattern)
+  - [8.5 Reproducibility and logging checklist](#85-reproducibility-and-logging-checklist)
+- [9. Common Mistakes](#9-common-mistakes)
+- [10. Exercises](#10-exercises)
+- [11. Why This Matters for AI (2026 Perspective)](#11-why-this-matters-for-ai-2026-perspective)
+- [12. Conceptual Bridge](#12-conceptual-bridge)
+- [Appendix A. Extended Derivation and Diagnostic Cards](#appendix-a-extended-derivation-and-diagnostic-cards)
 - [References](#references)
 
 ---
 
 ## 1. Intuition
 
-### 1.1 Why One Global Learning Rate Fails
+This block develops intuition for Adaptive Learning Rate. It keeps the scope local to this
+section while pointing forward when a neighboring topic owns the full treatment.
 
-Vanilla gradient descent uses one scalar learning rate:
+### 1.1 Why Adaptive Learning Rate matters for training systems
 
-$$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t - \eta \mathbf{g}_t,
-$$
+In this section, Adam first moment is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Why Adaptive Learning Rate matters for training systems"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
 
-where $\mathbf{g}_t = \nabla \mathcal{L}(\boldsymbol{\theta}_t)$ or a mini-batch estimate of it. This treats every coordinate of $\boldsymbol{\theta}$ as if it had the same scale, curvature, noise level, and frequency of update. Real neural networks do not behave that way.
-
-In an embedding table, some token vectors may receive gradients constantly while rare-token vectors receive gradients only occasionally. In a transformer, attention projections, MLP matrices, normalization parameters, and output heads can have very different gradient statistics. In an ill-conditioned quadratic, one coordinate may be steep and another shallow. A single $\eta$ must be small enough not to explode in the steep coordinate, but that makes progress painfully slow in the shallow coordinate.
-
-The core motivation for adaptive learning rates is therefore simple:
-
-$$
-\text{different coordinates need different effective step sizes.}
-$$
-
-```text
-ONE ETA VS MANY EFFECTIVE ETAS
-════════════════════════════════════════════════════════════════════════
-
-  Single global step:
-      theta_{t+1} = theta_t - eta * g_t
-
-  Adaptive diagonal step:
-      theta_{t+1} = theta_t - eta * D_t^{-1/2} * g_t
-
-  coordinate with large historical gradients  -> smaller effective LR
-  coordinate with small historical gradients  -> larger effective LR
-  sparse coordinate updated rarely            -> not drowned by common features
-
-════════════════════════════════════════════════════════════════════════
-```
-
-**For AI:** This is why AdamW often trains transformers more easily than SGD with momentum. It automatically rescales parameters whose gradients live on different numerical scales. That does not make it magic, but it removes a large amount of manual learning-rate tuning.
-
-### 1.2 Per-Parameter Learning Rates as Diagonal Preconditioning
-
-Adaptive methods can be understood as diagonal preconditioned gradient descent. Instead of moving in direction $-\mathbf{g}_t$, they move in direction
-
-$$
--P_t \mathbf{g}_t,
-$$
-
-where $P_t$ is usually a positive diagonal matrix:
-
-$$
-P_t = \operatorname{diag}(p_{t,1},\dots,p_{t,d}).
-$$
-
-For Adam-like methods, $p_{t,i}$ is roughly the inverse square root of a running average of squared gradients:
-
-$$
-p_{t,i} \approx \frac{1}{\sqrt{v_{t,i}}+\epsilon}.
-$$
-
-The update becomes
-
-$$
-\theta_{t+1,i}
-= \theta_{t,i} - \eta \frac{m_{t,i}}{\sqrt{v_{t,i}}+\epsilon}.
-$$
-
-Here $m_t$ is a first-moment estimate, $v_t$ is a second-moment estimate, and $\epsilon$ is a numerical stabilizer. The term
-
-$$
-\eta_{t,i}^{\mathrm{eff}} = \frac{\eta}{\sqrt{v_{t,i}}+\epsilon}
-$$
-
-is the effective learning rate for coordinate $i$ before momentum and bias correction.
-
-This diagonal view also explains the connection to second-order methods. Newton's method uses $H^{-1}$, the inverse Hessian. Natural gradient uses a Fisher inverse. Adaptive methods use something much cheaper: a diagonal statistic based on gradient history. They are not exact second-order methods, but they borrow the same idea: rescale the gradient by local geometry.
-
-### 1.3 Sparse Gradients, Noisy Gradients, and Ill-Conditioning
-
-Adaptive methods are especially useful in three regimes.
-
-First, **sparse gradients**. In language models and recommendation systems, some parameters are updated rarely. AdaGrad was designed to give rare but informative coordinates larger relative updates because their accumulated squared-gradient history grows slowly.
-
-Second, **noisy gradients**. In reinforcement learning, generative modeling, and small-batch training, gradient estimates can be highly variable. Running moment estimates smooth the update and reduce sensitivity to any single noisy mini-batch.
-
-Third, **ill-conditioning**. When different directions have different curvature, vanilla gradient descent zigzags. A diagonal preconditioner cannot fix all curvature, because it ignores correlations between coordinates, but it can reduce scale mismatch when the main problem is coordinatewise.
+> **Definition.**
+>
+> For this section, **Adam first moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
 Examples:
-
-- Sparse word embeddings: AdaGrad or Adam can help rare tokens move.
-- Transformer blocks: AdamW stabilizes heterogeneous parameter groups.
-- Large-batch BERT-style training: LAMB scales layer updates by a trust ratio.
-- Memory-constrained training: Adafactor approximates the second moment using factored state.
+- A small synthetic quadratic where Adam first moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Adam first moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Adam first moment appears through gradient norms, update norms, curvature, or validation loss.
 
 Non-examples:
+- Treating Adam first moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-- If all coordinates have identical scale and curvature, adaptivity may add little.
-- If the main curvature problem is strong off-diagonal correlation, diagonal methods may be insufficient.
+Useful formula:
 
-### 1.4 Optimizer Lineage
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
 
-The family tree is easier to understand if each method answers one specific complaint about the previous method.
+Proof sketch or reasoning pattern:
 
-```text
-FROM SGD TO ADAMW
-════════════════════════════════════════════════════════════════════════
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Adam first
+moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-  SGD
-    problem: one global step size
-       |
-       v
-  AdaGrad
-    accumulates squared gradients forever
-    good for sparsity, but steps can decay too much
-       |
-       v
-  RMSProp
-    uses exponential moving average of squared gradients
-    fixes AdaGrad's never-forget behavior
-       |
-       v
-  Adam
-    RMSProp-style second moment + momentum first moment + bias correction
-       |
-       v
-  AdamW
-    Adam with decoupled weight decay
-    default for many transformer and LLM workloads
-       |
-       v
-  LAMB / Adafactor / newer variants
-    layerwise scaling, memory efficiency, and workload-specific refinements
+Implementation consequence:
+- Log a metric that makes Adam first moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
-════════════════════════════════════════════════════════════════════════
-```
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-Historically, AdaGrad came from online convex optimization, RMSProp from neural-network training practice, Adam from stochastic optimization with moment estimates, AdamW from the observation that $L_2$ regularization and weight decay are not equivalent for adaptive methods, and LAMB from large-batch BERT training.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-### 1.5 Why Adaptive Optimizers Matter for Transformers and LLMs
+Diagnostic questions:
+- Which assumption about Adam first moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-Transformers are optimizer-sensitive for several reasons:
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-- their parameter groups have very different gradient scales
-- token embeddings create sparse and frequency-skewed updates
-- attention and MLP blocks can have different curvature statistics
-- normalization parameters and biases usually should not receive the same weight decay as large weight matrices
-- mixed precision makes numerical stability more important
-- large-batch training changes gradient noise and update norms
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-AdamW works well because it combines three useful behaviors:
+### 1.2 The optimization object: parameters, objective, algorithm, and diagnostic
 
-1. momentum through the first moment $m_t$
-2. coordinatewise scaling through the second moment $v_t$
-3. decoupled weight decay that avoids mixing regularization with adaptive preconditioning
+In this section, Adam second moment is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "The optimization object: parameters, objective, algorithm,
+and diagnostic" means a precise mathematical habit: state the assumptions, write the update,
+identify what can be measured, and connect the result to a real AI training decision.
 
-The practical lesson is not "always use AdamW." The practical lesson is: AdamW is the baseline you must understand before evaluating alternatives.
+> **Definition.**
+>
+> For this section, **Adam second moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
----
+Examples:
+- A small synthetic quadratic where Adam second moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Adam second moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Adam second moment appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Adam second moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Adam
+second moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Adam second moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Adam second moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 1.3 Historical arc from classical optimization to modern AI
+
+In this section, bias correction is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Historical arc from classical optimization to modern AI"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **bias correction** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where bias correction can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where bias correction affects optimization but the model remains interpretable.
+- A transformer training diagnostic where bias correction appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating bias correction as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving bias
+correction, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes bias correction visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about bias correction is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 1.4 What this section treats as canonical scope
+
+In this section, epsilon stabilizer is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "What this section treats as canonical scope" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **epsilon stabilizer** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where epsilon stabilizer can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where epsilon stabilizer affects optimization but the model remains interpretable.
+- A transformer training diagnostic where epsilon stabilizer appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating epsilon stabilizer as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving epsilon
+stabilizer, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes epsilon stabilizer visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about epsilon stabilizer is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 1.5 A first mental model for LLM training
+
+In this section, AMSGrad is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "A first mental model for LLM training" means a precise mathematical
+habit: state the assumptions, write the update, identify what can be measured, and connect the
+result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **AMSGrad** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where AMSGrad can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where AMSGrad affects optimization but the model remains interpretable.
+- A transformer training diagnostic where AMSGrad appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating AMSGrad as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving AMSGrad,
+and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes AMSGrad visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about AMSGrad is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
 ## 2. Formal Definitions
 
-### 2.1 Base Update Rule and Effective Learning Rate
+This block develops formal definitions for Adaptive Learning Rate. It keeps the scope local to
+this section while pointing forward when a neighboring topic owns the full treatment.
 
-Let $\boldsymbol{\theta}_t \in \mathbb{R}^d$ be parameters and $\mathbf{g}_t$ be a stochastic gradient at step $t$. A coordinatewise adaptive method often has the form
+### 2.1 Primary definition: effective learning rate
 
-$$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t - \eta \, \mathbf{s}_t,
-$$
+In this section, epsilon stabilizer is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Primary definition: effective learning rate" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **epsilon stabilizer** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where epsilon stabilizer can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where epsilon stabilizer affects optimization but the model remains interpretable.
+- A transformer training diagnostic where epsilon stabilizer appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating epsilon stabilizer as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-where the update direction $\mathbf{s}_t$ is not simply $\mathbf{g}_t$. For diagonal adaptive methods,
+Useful formula:
 
 $$
-\mathbf{s}_t = A_t^{-1/2}\mathbf{u}_t,
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-where $A_t$ is diagonal and nonnegative, and $\mathbf{u}_t$ is usually a raw gradient or a momentum-smoothed gradient.
+Proof sketch or reasoning pattern:
 
-The **effective learning rate** for coordinate $i$ is the scalar multiplying the update signal:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving epsilon
+stabilizer, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
+Implementation consequence:
+- Log a metric that makes epsilon stabilizer visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\eta_{t,i}^{\mathrm{eff}}
-= \frac{\eta}{\sqrt{a_{t,i}}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about epsilon stabilizer is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-This quantity is diagnostic gold. If $\eta_{t,i}^{\mathrm{eff}}$ collapses to nearly zero, the parameter may stop learning. If it becomes too large because $a_{t,i}$ is tiny, updates can explode.
+### 2.2 Secondary definition: diagonal preconditioner
 
-### 2.2 Gradient Accumulators and Second-Moment Estimates
+In this section, AMSGrad is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Secondary definition: diagonal preconditioner" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
 
-Adaptive optimizers rely on gradient history. The two most common state variables are:
+> **Definition.**
+>
+> For this section, **AMSGrad** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
+Examples:
+- A small synthetic quadratic where AMSGrad can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where AMSGrad affects optimization but the model remains interpretable.
+- A transformer training diagnostic where AMSGrad appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating AMSGrad as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-m_t \approx \mathbb{E}[\mathbf{g}_t],
-\qquad
-v_t \approx \mathbb{E}[\mathbf{g}_t \odot \mathbf{g}_t].
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving AMSGrad,
+and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
-Here $\odot$ denotes elementwise multiplication. $m_t$ tracks direction; $v_t$ tracks magnitude. For Adam,
+Implementation consequence:
+- Log a metric that makes AMSGrad visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-m_t = \beta_1 m_{t-1} + (1-\beta_1)\mathbf{g}_t,
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about AMSGrad is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 2.3 Algorithmic object: AdaGrad accumulator
+
+In this section, AdamW is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Algorithmic object: AdaGrad accumulator" means a precise mathematical
+habit: state the assumptions, write the update, identify what can be measured, and connect the
+result to a real AI training decision.
 
-and
+> **Definition.**
+>
+> For this section, **AdamW** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
+Examples:
+- A small synthetic quadratic where AdamW can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where AdamW affects optimization but the model remains interpretable.
+- A transformer training diagnostic where AdamW appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating AdamW as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-v_t = \beta_2 v_{t-1} + (1-\beta_2)(\mathbf{g}_t \odot \mathbf{g}_t).
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-The hyperparameters $\beta_1$ and $\beta_2$ are decay rates. Large values mean long memory. Common defaults are $\beta_1=0.9$ and $\beta_2=0.999$, though LLM training often uses $\beta_2$ values such as $0.95$ or $0.98$ depending on scale, batch, and schedule.
+Proof sketch or reasoning pattern:
 
-### 2.3 Diagonal Preconditioners
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving AdamW, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
-A **preconditioner** changes the geometry of gradient descent. In ordinary gradient descent,
+Implementation consequence:
+- Log a metric that makes AdamW visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\Delta \boldsymbol{\theta}_t = -\eta \mathbf{g}_t.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about AdamW is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 2.4 Examples, non-examples, and boundary cases
+
+In this section, coupled L2 is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Examples, non-examples, and boundary cases" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **coupled L2** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-With a preconditioner $P_t$,
+Examples:
+- A small synthetic quadratic where coupled L2 can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where coupled L2 affects optimization but the model remains interpretable.
+- A transformer training diagnostic where coupled L2 appears through gradient norms, update norms, curvature, or validation loss.
 
+Non-examples:
+- Treating coupled L2 as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\Delta \boldsymbol{\theta}_t = -\eta P_t \mathbf{g}_t.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-If $P_t$ is diagonal, this is coordinatewise rescaling:
+Proof sketch or reasoning pattern:
 
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving coupled
+L2, and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes coupled L2 visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\Delta \theta_{t,i}
-= -\eta p_{t,i} g_{t,i}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about coupled L2 is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 2.5 Notation, dimensions, and assumptions
+
+In this section, decoupled weight decay is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Notation, dimensions, and assumptions" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **decoupled weight decay** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-AdaGrad uses a cumulative diagonal preconditioner. RMSProp and Adam use exponential moving averages. Adafactor uses a factored approximation to avoid storing a full $v_t$ tensor. Shampoo uses richer matrix preconditioners, but that belongs mostly to the structured preconditioning bridge rather than the core diagonal family.
+Examples:
+- A small synthetic quadratic where decoupled weight decay can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where decoupled weight decay affects optimization but the model remains interpretable.
+- A transformer training diagnostic where decoupled weight decay appears through gradient norms, update norms, curvature, or validation loss.
 
-### 2.4 Bias Correction and Initialization Effects
+Non-examples:
+- Treating decoupled weight decay as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-Moment estimates initialized at zero are biased toward zero in early steps. If
+Useful formula:
 
 $$
-m_t = \beta_1 m_{t-1} + (1-\beta_1)\mathbf{g}_t,
-\qquad
-m_0=\mathbf{0},
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-and the gradient is constant $\mathbf{g}$, then
+Proof sketch or reasoning pattern:
 
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving decoupled
+weight decay, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes decoupled weight decay visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-m_t = (1-\beta_1^t)\mathbf{g}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about decoupled weight decay is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 3. Core Theory I: Geometry and Guarantees
+
+This block develops core theory i: geometry and guarantees for Adaptive Learning Rate. It keeps
+the scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
+
+### 3.1 Geometry of RMSProp exponential averaging
+
+In this section, coupled L2 is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Geometry of RMSProp exponential averaging" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
 
-So Adam uses
+> **Definition.**
+>
+> For this section, **coupled L2** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
+Examples:
+- A small synthetic quadratic where coupled L2 can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where coupled L2 affects optimization but the model remains interpretable.
+- A transformer training diagnostic where coupled L2 appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating coupled L2 as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\widehat{m}_t = \frac{m_t}{1-\beta_1^t},
-\qquad
-\widehat{v}_t = \frac{v_t}{1-\beta_2^t}.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving coupled
+L2, and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
-The corrected Adam update is
+Implementation consequence:
+- Log a metric that makes coupled L2 visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t
-- \eta \frac{\widehat{m}_t}{\sqrt{\widehat{v}_t}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
 
-Without bias correction, the early steps can be mis-scaled. This is especially relevant during warmup, where optimizer state and schedule both change quickly.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-### 2.5 Optimizer State, Memory Cost, and Numerical Stabilizers
+Diagnostic questions:
+- Which assumption about coupled L2 is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-Adaptive methods are not free. For a parameter vector with $d$ scalar parameters:
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-| Optimizer | State per parameter | Main state |
-| --- | ---: | --- |
-| SGD | $0$ | none |
-| SGD + momentum | $1$ | velocity |
-| AdaGrad | $1$ | cumulative squared gradients |
-| RMSProp | $1$ | EMA squared gradients |
-| Adam / AdamW | $2$ | first and second moments |
-| Adafactor | sublinear for matrices | factored second moment |
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-For a billion parameters in FP32, one state tensor costs about $4$ GB. AdamW with two FP32 state tensors costs about $8$ GB just for optimizer state, before parameters, gradients, activations, and distributed optimizer sharding.
+### 3.2 Key inequality for Adam first moment
 
-The stabilizer $\epsilon$ also matters:
+In this section, decoupled weight decay is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Key inequality for Adam first moment" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-$$
-\frac{1}{\sqrt{v_{t,i}}+\epsilon}.
-$$
+> **Definition.**
+>
+> For this section, **decoupled weight decay** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where decoupled weight decay can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where decoupled weight decay affects optimization but the model remains interpretable.
+- A transformer training diagnostic where decoupled weight decay appears through gradient norms, update norms, curvature, or validation loss.
 
-If $\epsilon$ is too small, coordinates with tiny $v_{t,i}$ can take huge steps. If it is too large, adaptivity is damped. Framework defaults are useful starting points, not laws.
+Non-examples:
+- Treating decoupled weight decay as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
----
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
 
-## 3. Core Theory I: AdaGrad and RMSProp
+Proof sketch or reasoning pattern:
 
-### 3.1 AdaGrad Derivation and Sparse-Feature Behavior
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving decoupled
+weight decay, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-AdaGrad accumulates squared gradients:
+Implementation consequence:
+- Log a metric that makes decoupled weight decay visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\mathbf{r}_t = \mathbf{r}_{t-1} + \mathbf{g}_t \odot \mathbf{g}_t,
-\qquad
-\mathbf{r}_0 = \mathbf{0}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
 
-Then it updates
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
+Diagnostic questions:
+- Which assumption about decoupled weight decay is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 3.3 Role of Adam second moment
+
+In this section, Adafactor is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Role of Adam second moment" means a precise mathematical habit: state
+the assumptions, write the update, identify what can be measured, and connect the result to a
+real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Adafactor** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Adafactor can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Adafactor affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Adafactor appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Adafactor as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t
-- \eta \frac{\mathbf{g}_t}{\sqrt{\mathbf{r}_t}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Adafactor,
+and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
-For coordinate $i$,
+Implementation consequence:
+- Log a metric that makes Adafactor visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\eta_{t,i}^{\mathrm{eff}}
-= \frac{\eta}{\sqrt{\sum_{\tau=1}^t g_{\tau,i}^2}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
 
-Frequent coordinates accumulate large denominators and receive smaller future steps. Rare coordinates accumulate slowly and keep larger effective learning rates. This is exactly what you want for sparse features.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-**Examples.**
+Diagnostic questions:
+- Which assumption about Adafactor is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-1. Text classification with rare words: rare features should not be ignored merely because they update less often.
-2. Recommendation embeddings: infrequent users or items need meaningful updates when observed.
-3. Online learning: the feature distribution may be long-tailed and nonstationary.
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-**Non-examples.**
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-1. Dense homogeneous gradients: AdaGrad's sparsity advantage may not matter.
-2. Long deep-network training: the denominator can grow forever, making effective steps too small.
+### 3.4 Proof template and what the proof actually buys
 
-### 3.2 AdaGrad Regret Intuition and Diminishing Steps
+In this section, factored second moment is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Proof template and what the proof actually buys"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
 
-AdaGrad has strong roots in online convex optimization. The regret analysis shows that coordinatewise adaptation can improve bounds when gradients are sparse or unevenly distributed. The informal idea is:
+> **Definition.**
+>
+> For this section, **factored second moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
+Examples:
+- A small synthetic quadratic where factored second moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where factored second moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where factored second moment appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating factored second moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\sum_{t=1}^T g_{t,i}^2
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-measures how much coordinate $i$ has mattered historically. Coordinates that matter often get cautious updates; coordinates that matter rarely retain larger steps.
+Proof sketch or reasoning pattern:
 
-The same property is also AdaGrad's weakness. Because $\mathbf{r}_t$ only grows,
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving factored
+second moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
+Implementation consequence:
+- Log a metric that makes factored second moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\eta_{t,i}^{\mathrm{eff}} \to 0
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about factored second moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 3.5 Failure modes when assumptions are removed
+
+In this section, LARS is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Failure modes when assumptions are removed" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **LARS** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-if coordinate $i$ receives persistent nonzero gradients. This can prematurely stop learning in long nonconvex training runs.
+Examples:
+- A small synthetic quadratic where LARS can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where LARS affects optimization but the model remains interpretable.
+- A transformer training diagnostic where LARS appears through gradient norms, update norms, curvature, or validation loss.
 
-### 3.3 RMSProp as Exponential Forgetting
+Non-examples:
+- Treating LARS as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-RMSProp replaces AdaGrad's cumulative sum with exponential forgetting:
+Useful formula:
 
 $$
-\mathbf{r}_t
-= \rho \mathbf{r}_{t-1}
-+ (1-\rho)(\mathbf{g}_t \odot \mathbf{g}_t).
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-The update is
+Proof sketch or reasoning pattern:
 
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving LARS, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes LARS visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t
-- \eta \frac{\mathbf{g}_t}{\sqrt{\mathbf{r}_t}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about LARS is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 4. Core Theory II: Algorithms and Dynamics
+
+This block develops core theory ii: algorithms and dynamics for Adaptive Learning Rate. It keeps
+the scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
+
+### 4.1 Algorithmic update for bias correction
+
+In this section, factored second moment is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Algorithmic update for bias correction" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-Now the optimizer remembers recent gradient scale but eventually forgets old scale. This is more suitable for nonstationary objectives and long training runs.
+> **Definition.**
+>
+> For this section, **factored second moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-RMSProp is historically important because Adam is essentially RMSProp plus momentum plus bias correction.
+Examples:
+- A small synthetic quadratic where factored second moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where factored second moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where factored second moment appears through gradient norms, update norms, curvature, or validation loss.
 
-### 3.4 Choosing Epsilon and Accumulator Decay
+Non-examples:
+- Treating factored second moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-The decay $\rho$ controls the time horizon. The effective memory length is roughly
+Useful formula:
 
 $$
-\frac{1}{1-\rho}.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-So $\rho=0.9$ remembers roughly $10$ steps, while $\rho=0.99$ remembers roughly $100$ steps. Adam's $\beta_2=0.999$ remembers even longer.
+Proof sketch or reasoning pattern:
 
-The stabilizer $\epsilon$ has two roles:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving factored
+second moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-- prevent division by zero
-- limit the maximum effective learning rate
+Implementation consequence:
+- Log a metric that makes factored second moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
-For AI systems, $\epsilon$ can interact with mixed precision. A value that is harmless in FP32 may behave differently with BF16 or FP16 state if implementation details change. Good frameworks usually keep optimizer state in FP32 for this reason.
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-### 3.5 AdaDelta and Practical Historical Variants
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-AdaDelta was designed to reduce manual learning-rate sensitivity by tracking both squared gradients and squared updates. Its practical influence is historical: it helped establish the idea that adaptive update magnitudes could be controlled by running statistics.
+Diagnostic questions:
+- Which assumption about factored second moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-The modern lesson is not that AdaDelta should be your default optimizer. The lesson is that every adaptive method chooses:
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-- what statistic to track
-- how long to remember it
-- whether to track gradients, updates, or both
-- how to stabilize division
-- how much state memory to pay
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-Once you see optimizers through this lens, new variants become less mysterious.
+### 4.2 Stability role of epsilon stabilizer
 
----
+In this section, LARS is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Stability role of epsilon stabilizer" means a precise mathematical
+habit: state the assumptions, write the update, identify what can be measured, and connect the
+result to a real AI training decision.
 
-## 4. Core Theory II: Adam Family
+> **Definition.**
+>
+> For this section, **LARS** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-### 4.1 Adam as Momentum plus RMSProp
+Examples:
+- A small synthetic quadratic where LARS can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where LARS affects optimization but the model remains interpretable.
+- A transformer training diagnostic where LARS appears through gradient norms, update norms, curvature, or validation loss.
 
-Adam tracks two exponential moving averages:
+Non-examples:
+- Treating LARS as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
+Useful formula:
+
 $$
-m_t = \beta_1 m_{t-1} + (1-\beta_1)\mathbf{g}_t,
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving LARS, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
+Implementation consequence:
+- Log a metric that makes LARS visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-v_t = \beta_2 v_{t-1} + (1-\beta_2)(\mathbf{g}_t \odot \mathbf{g}_t).
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about LARS is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 4.3 Rate or complexity controlled by AMSGrad
 
-After bias correction,
+In this section, LAMB is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Rate or complexity controlled by AMSGrad" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
 
+> **Definition.**
+>
+> For this section, **LAMB** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where LAMB can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where LAMB affects optimization but the model remains interpretable.
+- A transformer training diagnostic where LAMB appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating LAMB as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\widehat{m}_t = \frac{m_t}{1-\beta_1^t},
-\qquad
-\widehat{v}_t = \frac{v_t}{1-\beta_2^t}.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
+
+Proof sketch or reasoning pattern:
 
-The update is
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving LAMB, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
+Implementation consequence:
+- Log a metric that makes LAMB visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t
-- \eta \frac{\widehat{m}_t}{\sqrt{\widehat{v}_t}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
 
-Adam's first moment behaves like momentum. Its second moment behaves like RMSProp. Bias correction fixes the fact that both estimates start at zero.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-### 4.2 First Moment, Second Moment, and Bias Correction
+Diagnostic questions:
+- Which assumption about LAMB is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-The first moment $m_t$ smooths direction. It reduces update jitter and accumulates persistent descent directions. The second moment $v_t$ smooths scale. It prevents coordinates with large historical gradients from dominating the update.
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-For a constant scalar gradient $g$, the uncorrected moments are:
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-$$
-m_t = (1-\beta_1^t)g,
-\qquad
-v_t = (1-\beta_2^t)g^2.
-$$
+### 4.4 Diagnostic interpretation of the update path
+
+In this section, trust ratio is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Diagnostic interpretation of the update path" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **trust ratio** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where trust ratio can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where trust ratio affects optimization but the model remains interpretable.
+- A transformer training diagnostic where trust ratio appears through gradient norms, update norms, curvature, or validation loss.
 
-Bias correction recovers $g$ and $g^2$ exactly in this idealized case:
+Non-examples:
+- Treating trust ratio as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
+Useful formula:
+
 $$
-\widehat{m}_t=g,
-\qquad
-\widehat{v}_t=g^2.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-That explains why bias correction matters most early in training.
+Proof sketch or reasoning pattern:
 
-### 4.3 Effective Step Size and Update Normalization
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving trust
+ratio, and use the section assumptions to bound the change in objective value. If the assumption
+is geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
-Ignoring $\epsilon$, if the gradient is constant and bias correction is applied, Adam's scalar update approximately becomes
+Implementation consequence:
+- Log a metric that makes trust ratio visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
--\eta \frac{g}{\sqrt{g^2}}
-= -\eta \operatorname{sign}(g).
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about trust ratio is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-This sign-like behavior is one reason Adam is robust to gradient scale, but it is also a caution. Adam does not simply take a smaller step when gradients are small. It normalizes by estimated magnitude.
+### 4.5 Connection to the next section in the chapter
 
-In vector form, Adam can produce update directions that differ substantially from SGD. This is useful when scale mismatch is real, but it can be harmful when the second-moment estimate is noisy or when normalization amplifies unimportant coordinates.
+In this section, layerwise scaling is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Connection to the next section in the chapter" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-### 4.4 Adam Convergence Caveats and AMSGrad
+> **Definition.**
+>
+> For this section, **layerwise scaling** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-Adam works extremely well in practice, but its original convergence story is subtler than the headline suggests. Reddi, Kale, and Kumar showed examples where Adam can fail to converge under certain online convex settings because the adaptive denominator can change in problematic ways.
+Examples:
+- A small synthetic quadratic where layerwise scaling can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where layerwise scaling affects optimization but the model remains interpretable.
+- A transformer training diagnostic where layerwise scaling appears through gradient norms, update norms, curvature, or validation loss.
 
-AMSGrad modifies Adam by keeping a nondecreasing second-moment maximum:
+Non-examples:
+- Treating layerwise scaling as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
+Useful formula:
+
 $$
-\widehat{v}_t^{\max}
-= \max(\widehat{v}_{t-1}^{\max}, \widehat{v}_t),
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-and updates with $\widehat{v}_t^{\max}$ in the denominator. This prevents the effective learning rate from increasing in a way that breaks the proof.
+Proof sketch or reasoning pattern:
 
-In deep learning practice, AMSGrad is not universally better than Adam. Its main value in this curriculum is conceptual: adaptive methods need stability conditions, not just appealing formulas.
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving layerwise
+scaling, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-### 4.5 AdamW and Decoupled Weight Decay
+Implementation consequence:
+- Log a metric that makes layerwise scaling visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
-Standard $L_2$ regularization adds a penalty to the loss:
-
 $$
-\mathcal{L}_{\lambda}(\boldsymbol{\theta})
-= \mathcal{L}(\boldsymbol{\theta})
-+ \frac{\lambda}{2}\lVert \boldsymbol{\theta} \rVert_2^2.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about layerwise scaling is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-The gradient becomes
+## 5. Core Theory III: Practical Variants
 
+This block develops core theory iii: practical variants for Adaptive Learning Rate. It keeps the
+scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
+
+### 5.1 Variant built around AdamW
+
+In this section, trust ratio is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Variant built around AdamW" means a precise mathematical habit: state
+the assumptions, write the update, identify what can be measured, and connect the result to a
+real AI training decision.
+
+> **Definition.**
+>
+> For this section, **trust ratio** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where trust ratio can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where trust ratio affects optimization but the model remains interpretable.
+- A transformer training diagnostic where trust ratio appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating trust ratio as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\nabla \mathcal{L}_{\lambda}(\boldsymbol{\theta})
-= \nabla \mathcal{L}(\boldsymbol{\theta}) + \lambda \boldsymbol{\theta}.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-For vanilla SGD, this is equivalent to weight decay under common conventions. For Adam, it is not equivalent because $\lambda \boldsymbol{\theta}$ enters the adaptive preconditioner. Large and small coordinates get decayed through the same nonlinear denominator used for gradients.
+Proof sketch or reasoning pattern:
 
-AdamW decouples decay from the adaptive gradient step:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving trust
+ratio, and use the section assumptions to bound the change in objective value. If the assumption
+is geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
+Implementation consequence:
+- Log a metric that makes trust ratio visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\boldsymbol{\theta}_{t+1}
-= (1-\eta\lambda)\boldsymbol{\theta}_t
-- \eta \frac{\widehat{m}_t}{\sqrt{\widehat{v}_t}+\epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about trust ratio is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-This separation is one of the most important optimizer details in modern transformer training.
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-> **Forward link:** The broader regularization interpretation of weight decay belongs to [Regularization Methods](../08-Regularization-Methods/notes.md). Here the focus is the optimizer-level distinction between coupled and decoupled decay.
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
----
+### 5.2 Variant built around coupled L2
 
-## 5. Core Theory III: Layerwise and Memory-Efficient Adaptation
+In this section, layerwise scaling is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Variant built around coupled L2" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
 
-### 5.1 LARS and LAMB for Large-Batch Training
+> **Definition.**
+>
+> For this section, **layerwise scaling** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-Large-batch training changes the scale of optimization. Gradient noise decreases, throughput improves, and learning-rate scaling becomes tempting, but very large global updates can destabilize some layers.
+Examples:
+- A small synthetic quadratic where layerwise scaling can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where layerwise scaling affects optimization but the model remains interpretable.
+- A transformer training diagnostic where layerwise scaling appears through gradient norms, update norms, curvature, or validation loss.
 
-LARS and LAMB introduce layerwise trust ratios. For a layer parameter vector $\boldsymbol{\theta}^{[\ell]}$ and update vector $\mathbf{u}^{[\ell]}$, the trust ratio is roughly
+Non-examples:
+- Treating layerwise scaling as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving layerwise
+scaling, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes layerwise scaling visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-r^{[\ell]}
-= \frac{\lVert \boldsymbol{\theta}^{[\ell]} \rVert_2}
-{\lVert \mathbf{u}^{[\ell]} \rVert_2 + \epsilon}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about layerwise scaling is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-The update becomes
+### 5.3 Variant built around decoupled weight decay
 
+In this section, Shampoo preview is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Variant built around decoupled weight decay" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Shampoo preview** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Shampoo preview can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Shampoo preview affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Shampoo preview appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Shampoo preview as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\boldsymbol{\theta}_{t+1}^{[\ell]}
-= \boldsymbol{\theta}_t^{[\ell]}
-- \eta r^{[\ell]}\mathbf{u}^{[\ell]}.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-LAMB combines this layerwise scaling with Adam-style moments. It was introduced for large-batch BERT training, where layerwise update normalization helped maintain stable progress at huge batch sizes.
+Proof sketch or reasoning pattern:
 
-### 5.2 Trust Ratio and Layerwise Update Scaling
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Shampoo
+preview, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-The trust ratio compares update norm to parameter norm. The dimensionless ratio
+Implementation consequence:
+- Log a metric that makes Shampoo preview visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\frac{\lVert \Delta \boldsymbol{\theta}^{[\ell]} \rVert_2}
-{\lVert \boldsymbol{\theta}^{[\ell]} \rVert_2}
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
 
-is often more informative than raw update norm. If this ratio is too high, the layer is being rewritten too aggressively. If it is too low, the layer is barely moving.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-**For AI:** Monitoring this ratio is useful in large-scale training. Many training failures look mysterious in loss curves but obvious in update-to-parameter norm diagnostics.
+Diagnostic questions:
+- Which assumption about Shampoo preview is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-### 5.3 Adafactor and Factored Second-Moment State
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-Adam stores a second-moment tensor $v_t$ with the same shape as the parameter. For a matrix $W \in \mathbb{R}^{m \times n}$, that costs $mn$ state entries.
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-Adafactor approximates the second-moment matrix using row and column statistics. Instead of storing all of $V \in \mathbb{R}^{m \times n}$, it stores
+### 5.4 Implementation constraints and numerical stability
 
+In this section, SOAP preview is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Implementation constraints and numerical stability" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **SOAP preview** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where SOAP preview can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where SOAP preview affects optimization but the model remains interpretable.
+- A transformer training diagnostic where SOAP preview appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating SOAP preview as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-\mathbf{r} \in \mathbb{R}^m,
-\qquad
-\mathbf{c} \in \mathbb{R}^n.
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
+
+Proof sketch or reasoning pattern:
 
-A simple factored reconstruction has the flavor
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving SOAP
+preview, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
+Implementation consequence:
+- Log a metric that makes SOAP preview visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
 $$
-\widehat{V}_{ij}
-\approx \frac{r_i c_j}{\frac{1}{m}\sum_{k=1}^m r_k}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about SOAP preview is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-This reduces memory from $O(mn)$ to $O(m+n)$ for matrix-shaped parameters. That is a major difference for large models.
+### 5.5 What belongs here versus neighboring sections
 
-### 5.4 Optimizer State Memory in Large Models
+In this section, Muon preview is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "What belongs here versus neighboring sections" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
 
-For $N$ parameters, FP32 AdamW state costs approximately:
+> **Definition.**
+>
+> For this section, **Muon preview** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
+Examples:
+- A small synthetic quadratic where Muon preview can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Muon preview affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Muon preview appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Muon preview as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
 $$
-2 \times 4N \text{ bytes}
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-for $m_t$ and $v_t$. With FP32 master weights and gradients, the full training memory picture can be much larger. Distributed training systems therefore use sharding, offloading, lower-precision state, or memory-efficient optimizers.
+Proof sketch or reasoning pattern:
 
-| Model scale | AdamW state only, FP32 | Practical implication |
-| ---: | ---: | --- |
-| $10^8$ params | about $0.8$ GB | easy on a modern accelerator |
-| $10^9$ params | about $8$ GB | optimizer state is a major budget item |
-| $10^{10}$ params | about $80$ GB | requires sharding/offload/factoring |
-| $10^{11}$ params | about $800$ GB | optimizer engineering dominates |
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Muon
+preview, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-### 5.5 When Layerwise Adaptation Helps or Hurts
+Implementation consequence:
+- Log a metric that makes Muon preview visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
-Layerwise adaptation helps when:
-
-- layers have very different parameter norms
-- large-batch training reduces gradient noise enough to permit bigger global steps
-- update-to-parameter ratios are unstable across layers
-- the model is large enough that layerwise scale mismatch matters
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-It can hurt when:
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-- parameter norms are tiny or not meaningful
-- normalization parameters or biases are treated like large matrices
-- the trust ratio masks bad gradients
-- hyperparameters are copied blindly from another workload
+Diagnostic questions:
+- Which assumption about Muon preview is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-The right lesson is not "LAMB is better than AdamW." It is "layerwise scale is another axis of adaptation, useful when scale mismatch is layer-level rather than coordinate-level."
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
----
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
 ## 6. Advanced Topics
 
-### 6.1 Adaptive Methods as Diagonal Natural-Gradient Approximations
+This block develops advanced topics for Adaptive Learning Rate. It keeps the scope local to this
+section while pointing forward when a neighboring topic owns the full treatment.
 
-Natural gradient rescales updates by the inverse Fisher information matrix:
+### 6.1 Advanced view of Adafactor
 
-$$
-\Delta \boldsymbol{\theta}
-= -\eta F(\boldsymbol{\theta})^{-1}\nabla \mathcal{L}(\boldsymbol{\theta}).
-$$
+In this section, SOAP preview is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Advanced view of Adafactor" means a precise mathematical habit: state
+the assumptions, write the update, identify what can be measured, and connect the result to a
+real AI training decision.
 
-If $F$ is approximated by a diagonal matrix whose entries are estimated by squared gradients, the update begins to resemble AdaGrad, RMSProp, or Adam without momentum. This is not an exact identity, but it is a useful mental bridge.
+> **Definition.**
+>
+> For this section, **SOAP preview** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-The distinction matters. Natural gradient is invariant to certain reparameterizations because it uses the geometry of distributions. Adam uses coordinatewise gradient statistics. It is cheaper and easier, but less geometrically principled.
+Examples:
+- A small synthetic quadratic where SOAP preview can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where SOAP preview affects optimization but the model remains interpretable.
+- A transformer training diagnostic where SOAP preview appears through gradient norms, update norms, curvature, or validation loss.
 
-### 6.2 Relationship to Curvature and Preconditioning
+Non-examples:
+- Treating SOAP preview as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-Adaptive methods are sometimes described as curvature methods. That is partly true and partly misleading.
-
-True:
-
-- they rescale gradients like preconditioned methods
-- squared gradients can estimate diagonal Fisher-like quantities
-- they reduce some coordinatewise ill-conditioning
-
-Misleading:
-
-- they do not estimate the full Hessian
-- they ignore off-diagonal curvature
-- they can amplify noise if moment estimates are poor
-
-So Adam is best understood as a practical diagonal preconditioner with momentum, not as a cheap Newton method.
-
-### 6.3 Sign-Based and Low-Memory Optimizers
-
-Sign-based methods update using the sign of a gradient or momentum vector:
+Useful formula:
 
 $$
-\boldsymbol{\theta}_{t+1}
-= \boldsymbol{\theta}_t - \eta \operatorname{sign}(\mathbf{u}_t).
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
 $$
 
-Because Adam's normalized update can become sign-like in simple regimes, sign-based optimizers such as Lion are natural relatives. They may reduce state memory or improve certain workloads, but they should be treated as empirical optimizer proposals, not universal replacements.
+Proof sketch or reasoning pattern:
 
-The 2026 practical stance is conservative: compare against strong AdamW baselines with the same schedule, compute budget, parameter groups, and regularization.
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving SOAP
+preview, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-### 6.4 Structured Preconditioners
-
-Diagonal preconditioners are cheap but limited. Structured methods such as Shampoo use matrix preconditioners for tensor dimensions. For a weight matrix $W$ and gradient $G$, a Shampoo-style update may use
-
-$$
-L^{-1/4} G R^{-1/4},
-$$
-
-where $L$ and $R$ approximate curvature along output and input dimensions.
-
-This can capture correlations that diagonal methods miss, but it costs more memory, computation, and systems complexity. The full treatment of curvature methods belongs to [Second-Order Methods](../03-Second-Order-Methods/notes.md); here Shampoo is a bridge showing how far optimizer design can move beyond coordinatewise adaptation.
-
-### 6.5 Stability Diagnostics
-
-A serious training run should log more than loss. Useful optimizer diagnostics include:
+Implementation consequence:
+- Log a metric that makes SOAP preview visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\lVert \mathbf{g}_t \rVert_2,
-\qquad
-\lVert \Delta \boldsymbol{\theta}_t \rVert_2,
-\qquad
-\frac{\lVert \Delta \boldsymbol{\theta}_t \rVert_2}
-{\lVert \boldsymbol{\theta}_t \rVert_2},
-\qquad
-\eta_{t,i}^{\mathrm{eff}}.
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
 $$
 
-These reveal different failures:
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-- exploding gradient norm: backward instability or loss scaling issue
-- tiny update norm: learning rate too small or denominators too large
-- huge update-to-parameter ratio: optimizer is rewriting weights
-- effective LR spikes: second-moment estimate too small or $\epsilon$ too small
-- layerwise imbalance: some modules learn while others stagnate
+Diagnostic questions:
+- Which assumption about SOAP preview is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
----
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.2 Advanced view of factored second moment
+
+In this section, Muon preview is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For Adaptive
+Learning Rate, the phrase "Advanced view of factored second moment" means a precise mathematical
+habit: state the assumptions, write the update, identify what can be measured, and connect the
+result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Muon preview** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Muon preview can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Muon preview affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Muon preview appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Muon preview as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Muon
+preview, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Muon preview visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Muon preview is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.3 Advanced view of LARS
+
+In this section, optimizer state diagnostics is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Advanced view of LARS" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **optimizer state diagnostics** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where optimizer state diagnostics can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where optimizer state diagnostics affects optimization but the model remains interpretable.
+- A transformer training diagnostic where optimizer state diagnostics appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating optimizer state diagnostics as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving optimizer
+state diagnostics, and use the section assumptions to bound the change in objective value. If
+the assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes optimizer state diagnostics visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about optimizer state diagnostics is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.4 Infinite-dimensional or large-scale interpretation
+
+In this section, effective learning rate is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Infinite-dimensional or large-scale
+interpretation" means a precise mathematical habit: state the assumptions, write the update,
+identify what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **effective learning rate** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where effective learning rate can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where effective learning rate affects optimization but the model remains interpretable.
+- A transformer training diagnostic where effective learning rate appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating effective learning rate as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving effective
+learning rate, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes effective learning rate visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about effective learning rate is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.5 Open questions for frontier model training
+
+In this section, diagonal preconditioner is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Open questions for frontier model training" means
+a precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **diagonal preconditioner** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where diagonal preconditioner can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where diagonal preconditioner affects optimization but the model remains interpretable.
+- A transformer training diagnostic where diagonal preconditioner appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating diagonal preconditioner as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving diagonal
+preconditioner, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes diagonal preconditioner visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about diagonal preconditioner is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
 ## 7. Applications in Machine Learning
 
-### 7.1 AdamW for Transformer Pretraining and Fine-Tuning
+This block develops applications in machine learning for Adaptive Learning Rate. It keeps the
+scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
 
-AdamW is the default starting point for transformer training because it handles scale mismatch, sparse embeddings, noisy gradients, and decoupled weight decay. Typical parameter grouping excludes biases and normalization parameters from weight decay:
+### 7.1 AdamW as the default optimizer for transformer pretraining and fine-tuning
 
-```text
-decay:
-  large weight matrices
+In this section, effective learning rate is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "AdamW as the default optimizer for transformer
+pretraining and fine-tuning" means a precise mathematical habit: state the assumptions, write
+the update, identify what can be measured, and connect the result to a real AI training
+decision.
 
-no_decay:
-  bias terms
-  LayerNorm / RMSNorm scale parameters
-  sometimes embeddings depending on recipe
-```
+> **Definition.**
+>
+> For this section, **effective learning rate** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-Fine-tuning usually uses much smaller learning rates than pretraining because pretrained weights already encode useful structure. The optimizer's job is to adapt without destroying.
+Examples:
+- A small synthetic quadratic where effective learning rate can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where effective learning rate affects optimization but the model remains interpretable.
+- A transformer training diagnostic where effective learning rate appears through gradient norms, update norms, curvature, or validation loss.
 
-### 7.2 Sparse Embeddings and Recommendation Models
+Non-examples:
+- Treating effective learning rate as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-Sparse embeddings are one of the cleanest use cases for adaptive methods. If a rare item appears once every million examples, it should not be forced to use the same historical step scale as a common item. AdaGrad's original motivation fits this setting well.
+Useful formula:
 
-For recommender systems, optimizer choice interacts with:
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
 
-- embedding frequency
-- delayed updates
-- distributed parameter servers
-- per-row accumulators
-- memory constraints
+Proof sketch or reasoning pattern:
 
-### 7.3 Reinforcement Learning and Non-Stationary Objectives
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving effective
+learning rate, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-Reinforcement learning gradients are noisy and nonstationary. The data distribution changes as the policy changes, and gradient estimates often have high variance. Adam and RMSProp are common because their running statistics smooth unstable update directions.
+Implementation consequence:
+- Log a metric that makes effective learning rate visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
-However, adaptivity can also hide instability. If the objective changes rapidly, old moment estimates can become stale. In RL, logging KL divergence, entropy, gradient norm, and update norm is often as important as optimizer choice.
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-### 7.4 Large-Batch Training with LAMB
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-Large-batch training tries to improve throughput by using more examples per optimizer step. But very large batches can destabilize the relationship between global learning rate, gradient noise, and layerwise update scale.
+Diagnostic questions:
+- Which assumption about effective learning rate is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-LAMB addresses this by combining Adam-style updates with layerwise trust ratios. It was designed for BERT-scale large-batch training, where batch sizes can be much larger than ordinary single-node training.
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
 
-Use LAMB when large-batch scaling is the bottleneck and AdamW with careful scheduling is not enough. Do not use it just because it sounds more advanced.
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-### 7.5 Practical Optimizer Selection Checklist
+### 7.2 Adafactor for memory-constrained large models
 
-| Workload | Strong starting point | Watch |
-| --- | --- | --- |
-| Transformer pretraining | AdamW | update norm, weight decay groups, schedule |
-| LLM fine-tuning | AdamW | catastrophic forgetting, LR too high |
-| Sparse embeddings | AdaGrad or Adam | rare-feature learning, state memory |
-| Vision classification | SGD + momentum or AdamW | generalization gap |
-| RL | Adam or RMSProp | nonstationarity and stale moments |
-| Large-batch BERT-style training | AdamW, then LAMB | trust ratio and schedule |
-| Memory-constrained large model | Adafactor or sharded AdamW | quality-memory trade-off |
+In this section, diagonal preconditioner is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Adafactor for memory-constrained large models"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
 
----
+> **Definition.**
+>
+> For this section, **diagonal preconditioner** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-## 8. Common Mistakes
+Examples:
+- A small synthetic quadratic where diagonal preconditioner can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where diagonal preconditioner affects optimization but the model remains interpretable.
+- A transformer training diagnostic where diagonal preconditioner appears through gradient norms, update norms, curvature, or validation loss.
 
-| # | Mistake | Why It's Wrong | Fix |
+Non-examples:
+- Treating diagonal preconditioner as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving diagonal
+preconditioner, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes diagonal preconditioner visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about diagonal preconditioner is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.3 LAMB and LARS for large-batch training
+
+In this section, AdaGrad accumulator is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "LAMB and LARS for large-batch training" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **AdaGrad accumulator** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where AdaGrad accumulator can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where AdaGrad accumulator affects optimization but the model remains interpretable.
+- A transformer training diagnostic where AdaGrad accumulator appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating AdaGrad accumulator as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving AdaGrad
+accumulator, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes AdaGrad accumulator visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about AdaGrad accumulator is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.4 optimizer-state diagnostics for training failures and loss spikes
+
+In this section, RMSProp exponential averaging is treated as a concrete optimization object
+rather than a slogan. The goal is to understand how it changes the objective, the update rule,
+the convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "optimizer-state diagnostics for training failures
+and loss spikes" means a precise mathematical habit: state the assumptions, write the update,
+identify what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **RMSProp exponential averaging** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where RMSProp exponential averaging can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where RMSProp exponential averaging affects optimization but the model remains interpretable.
+- A transformer training diagnostic where RMSProp exponential averaging appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating RMSProp exponential averaging as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving RMSProp
+exponential averaging, and use the section assumptions to bound the change in objective value.
+If the assumption is geometric, the proof turns a picture into an inequality. If the assumption
+is stochastic, the proof takes conditional expectation before applying the bound. If the
+assumption is algorithmic, the proof checks that the proposed update is a descent, projection,
+or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes RMSProp exponential averaging visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about RMSProp exponential averaging is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.5 Diagnostic checklist for real experiments
+
+In this section, Adam first moment is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Diagnostic checklist for real experiments" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Adam first moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Adam first moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Adam first moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Adam first moment appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Adam first moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Adam first
+moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Adam first moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Adam first moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 8. Implementation and Diagnostics
+
+This block develops implementation and diagnostics for Adaptive Learning Rate. It keeps the
+scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
+
+### 8.1 Minimal NumPy experiment for LAMB
+
+In this section, RMSProp exponential averaging is treated as a concrete optimization object
+rather than a slogan. The goal is to understand how it changes the objective, the update rule,
+the convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Adaptive Learning Rate, the phrase "Minimal NumPy experiment for LAMB" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **RMSProp exponential averaging** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where RMSProp exponential averaging can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where RMSProp exponential averaging affects optimization but the model remains interpretable.
+- A transformer training diagnostic where RMSProp exponential averaging appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating RMSProp exponential averaging as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving RMSProp
+exponential averaging, and use the section assumptions to bound the change in objective value.
+If the assumption is geometric, the proof turns a picture into an inequality. If the assumption
+is stochastic, the proof takes conditional expectation before applying the bound. If the
+assumption is algorithmic, the proof checks that the proposed update is a descent, projection,
+or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes RMSProp exponential averaging visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about RMSProp exponential averaging is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.2 Monitoring signal for trust ratio
+
+In this section, Adam first moment is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Monitoring signal for trust ratio" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Adam first moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Adam first moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Adam first moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Adam first moment appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Adam first moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Adam first
+moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Adam first moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Adam first moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.3 Failure signature for layerwise scaling
+
+In this section, Adam second moment is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Failure signature for layerwise scaling" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Adam second moment** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Adam second moment can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Adam second moment affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Adam second moment appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Adam second moment as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Adam
+second moment, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Adam second moment visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Adam second moment is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.4 Framework-level implementation pattern
+
+In this section, bias correction is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Framework-level implementation pattern" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **bias correction** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where bias correction can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where bias correction affects optimization but the model remains interpretable.
+- A transformer training diagnostic where bias correction appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating bias correction as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving bias
+correction, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes bias correction visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about bias correction is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.5 Reproducibility and logging checklist
+
+In this section, epsilon stabilizer is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Adaptive Learning Rate, the phrase "Reproducibility and logging checklist" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **epsilon stabilizer** is the part of Adaptive Learning Rate that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where epsilon stabilizer can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where epsilon stabilizer affects optimization but the model remains interpretable.
+- A transformer training diagnostic where epsilon stabilizer appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating epsilon stabilizer as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving epsilon
+stabilizer, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes epsilon stabilizer visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about epsilon stabilizer is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- AdamW as the default optimizer for transformer pretraining and fine-tuning.
+- Adafactor for memory-constrained large models.
+- LAMB and LARS for large-batch training.
+- optimizer-state diagnostics for training failures and loss spikes.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 9. Common Mistakes
+
+| # | Mistake | Why It Is Wrong | Fix |
 | --- | --- | --- | --- |
-| 1 | "Adam chooses the learning rate for me." | Adam rescales coordinates but still has a global $\eta$ that strongly controls training. | Tune $\eta$ and use diagnostics for effective learning rates. |
-| 2 | "Adaptive optimizer means learning-rate schedule is unnecessary." | Internal adaptivity and external schedules solve different problems. | Use AdamW with warmup/decay when the workload calls for it. |
-| 3 | "Adam + $L_2$ is the same as AdamW." | Coupled $L_2$ enters the adaptive denominator; AdamW decouples decay. | Use AdamW for decoupled weight decay. |
-| 4 | "Weight decay should apply to every parameter." | Bias and normalization parameters often should not be decayed. | Use explicit parameter groups. |
-| 5 | "A smaller $\epsilon$ is always more accurate." | Tiny $\epsilon$ can create huge effective learning rates when $v_t$ is small. | Treat $\epsilon$ as a stability hyperparameter. |
-| 6 | "AMSGrad is always better because it has a proof." | Proof conditions do not guarantee better empirical deep-learning performance. | Use AMSGrad when stability demands it, not by default. |
-| 7 | "LAMB is a drop-in AdamW replacement." | LAMB changes layerwise update scaling and is mainly motivated by large batches. | Use it when trust ratios solve a real scaling issue. |
-| 8 | "Optimizer state memory is secondary." | AdamW state can exceed parameter memory at large scale. | Budget optimizer state early; consider sharding or Adafactor. |
-| 9 | "New optimizer beats AdamW in one paper, so switch." | Optimizer comparisons are highly schedule- and implementation-dependent. | Compare under equal compute, schedule, and tuning. |
-| 10 | "Diagonal adaptivity handles curvature." | It handles coordinatewise scale, not off-diagonal curvature. | Use structured preconditioners only when justified. |
-| 11 | "Effective learning rate is the same for all parameters." | The whole point of adaptive methods is coordinatewise effective LR. | Inspect distributions of effective LR and update norms. |
-| 12 | "Bias correction is a small implementation detail." | Early-step moments are biased toward zero without correction. | Keep bias correction unless reproducing a specific variant. |
+| 1 | Using a recipe without checking assumptions | Optimization guarantees depend on smoothness, convexity, stochasticity, or feasibility assumptions. | Write the assumptions next to the update rule before choosing hyperparameters. |
+| 2 | Confusing objective decrease with validation improvement | The optimizer sees the training objective; validation behavior also depends on generalization and data split quality. | Track objective, train metric, validation metric, and update norm separately. |
+| 3 | Treating all norms as interchangeable | The geometry changes when the norm changes, especially for constraints and regularizers. | State whether you use $\ell_1$, $\ell_2$, Frobenius, spectral, or another norm. |
+| 4 | Ignoring scale | Learning rates, penalties, curvature, and gradient norms are all scale-sensitive. | Normalize units and inspect effective update size $\lVert \Delta\boldsymbol{\theta}\rVert_2 / \lVert\boldsymbol{\theta}\rVert_2$. |
+| 5 | Overfitting to a single seed | Optimization can look stable for one seed and fail under another. | Run small seed sweeps for important claims. |
+| 6 | Hiding instability behind smoothed plots | A moving average can hide spikes, divergence, and bad curvature events. | Plot raw metrics alongside smoothed metrics. |
+| 7 | Using test data during tuning | This contaminates the final evaluation. | Reserve test data until after model and hyperparameter selection. |
+| 8 | Assuming large models make theory irrelevant | Large models often make diagnostics more important because failures are expensive. | Use theory to decide what to log, not to pretend every theorem applies exactly. |
+| 9 | Mixing optimizer state with model state carelessly | State corruption changes the effective algorithm. | Checkpoint parameters, gradients if needed, optimizer moments, scheduler state, and random seeds. |
+| 10 | Not checking numerical precision | BF16, FP16, FP8, and accumulation choices can change the observed optimizer. | Cross-check suspicious runs against higher precision on a small batch. |
 
----
+## 10. Exercises
 
-## 9. Exercises
+1. **Exercise 1 [*] - Adagrad Accumulator**
+   (a) Define AdaGrad accumulator using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-1. **Exercise 1 (★): AdaGrad by Hand**
-   Given a sequence of scalar gradients, compute AdaGrad's accumulator, effective learning rate, and parameter updates.
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-2. **Exercise 2 (★): RMSProp Forgetting**
-   Compare cumulative AdaGrad and exponentially weighted RMSProp on a gradient sequence whose scale changes halfway through.
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-3. **Exercise 3 (★): Adam Bias Correction**
-   For a constant gradient, derive uncorrected and bias-corrected first and second moments.
+2. **Exercise 2 [*] - Adam First Moment**
+   (a) Define Adam first moment using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-4. **Exercise 4 (★★): Effective Learning Rate Diagnostics**
-   Simulate multi-coordinate gradients and plot the effective learning rates under AdaGrad, RMSProp, and Adam.
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-5. **Exercise 5 (★★): AdamW vs Coupled $L_2$**
-   Show numerically that coupled $L_2$ regularization and decoupled weight decay differ for Adam.
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-6. **Exercise 6 (★★): LAMB Trust Ratio**
-   Compute layerwise trust ratios and explain how they change update magnitudes.
+3. **Exercise 3 [*] - Bias Correction**
+   (a) Define bias correction using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-7. **Exercise 7 (★★★): Adafactor Memory Savings**
-   Compare full Adam second-moment memory to factored Adafactor memory for matrix-shaped parameters.
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
 
-8. **Exercise 8 (★★★): Optimizer Diagnosis for a Failed Run**
-   Given synthetic logs of gradients, updates, parameters, and effective LRs, identify the likely failure mode and propose a fix.
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
----
+4. **Exercise 4 [**] - Amsgrad**
+   (a) Define AMSGrad using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-## 10. Why This Matters for AI (2026 Perspective)
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+5. **Exercise 5 [**] - Coupled L2**
+   (a) Define coupled L2 using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+6. **Exercise 6 [**] - Adafactor**
+   (a) Define Adafactor using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+7. **Exercise 7 [**] - Lars**
+   (a) Define LARS using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+8. **Exercise 8 [***] - Trust Ratio**
+   (a) Define trust ratio using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+9. **Exercise 9 [***] - Shampoo Preview**
+   (a) Define Shampoo preview using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+10. **Exercise 10 [***] - Muon Preview**
+   (a) Define Muon preview using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
+
+$$
+\boldsymbol{\theta}_{t+1} = (1-\eta\lambda)\boldsymbol{\theta}_t - \eta \mathbf{u}_t
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+## 11. Why This Matters for AI (2026 Perspective)
 
 | Concept | AI Impact |
 | --- | --- |
-| AdaGrad | Strong for sparse features, embeddings, and online learning |
-| RMSProp | Historical bridge from AdaGrad to Adam; useful in noisy/nonstationary settings |
-| Adam | Robust adaptive optimizer for stochastic objectives |
-| AdamW | Default baseline for transformers and LLM fine-tuning |
-| Bias correction | Stabilizes early optimizer steps |
-| Effective learning rate | Explains why adaptive methods still need global LR tuning |
-| Decoupled weight decay | Separates optimization step from regularization effect |
-| LAMB / LARS | Helps large-batch training by controlling layerwise update scale |
-| Adafactor | Reduces optimizer memory for large matrix-shaped parameters |
-| Optimizer diagnostics | Turns training failures into measurable signals |
-| Structured preconditioning | Active research direction beyond diagonal adaptation |
+| effective learning rate | AdamW as the default optimizer for transformer pretraining and fine-tuning |
+| diagonal preconditioner | Adafactor for memory-constrained large models |
+| AdaGrad accumulator | LAMB and LARS for large-batch training |
+| RMSProp exponential averaging | optimizer-state diagnostics for training failures and loss spikes |
+| Adam first moment | AdamW as the default optimizer for transformer pretraining and fine-tuning |
+| Adam second moment | Adafactor for memory-constrained large models |
+| bias correction | LAMB and LARS for large-batch training |
+| epsilon stabilizer | optimizer-state diagnostics for training failures and loss spikes |
+| AMSGrad | AdamW as the default optimizer for transformer pretraining and fine-tuning |
+| AdamW | Adafactor for memory-constrained large models |
 
-The key 2026 lesson is that optimizer choice is now a systems decision as much as a mathematical one. AdamW may be mathematically simple compared with full curvature methods, but its memory footprint, mixed-precision behavior, parameter grouping, distributed state sharding, and interaction with schedules determine whether large model training is stable.
+## 12. Conceptual Bridge
 
-At the same time, the field should be skeptical of optimizer hype. Many new optimizers look strong under one schedule, one model scale, or one benchmark. A serious comparison must control for learning-rate schedule, weight decay, parameter grouping, batch size, precision, and compute.
+Adaptive Learning Rate sits inside a chain. Earlier sections give the calculus, probability, and
+linear algebra needed to write the objective and interpret the update. Later sections use this
+material to reason about noisy gradients, adaptive state, regularization, tuning, schedules, and
+finally information-theoretic losses.
 
----
+Backward link: [Optimization Landscape](../06-Optimization-Landscape/notes.md) supplies the
+immediate prerequisite vocabulary.
 
-## 11. Conceptual Bridge
-
-Adaptive learning-rate methods sit at the center of the practical optimization stack. They inherit stochastic-gradient noise from [Stochastic Optimization](../05-Stochastic-Optimization/notes.md), respond to geometry studied in [Optimization Landscape](../06-Optimization-Landscape/notes.md), and borrow the preconditioning idea from [Second-Order Methods](../03-Second-Order-Methods/notes.md).
-
-They also point forward. [Regularization Methods](../08-Regularization-Methods/notes.md) explains why weight decay and other penalties affect generalization. [Hyperparameter Optimization](../09-Hyperparameter-Optimization/notes.md) studies how to tune optimizer hyperparameters systematically. [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md) studies external time-varying schedules such as warmup, cosine decay, and WSD.
-
-The most important mental model is this: adaptive optimizers are not replacements for understanding learning rates. They are mechanisms for distributing one global learning-rate budget across coordinates, layers, and time.
+Forward link: [Regularization Methods](../08-Regularization-Methods/notes.md) uses this section
+as a building block.
 
 ```text
-ADAPTIVE LEARNING RATE IN THE OPTIMIZATION CHAPTER
-════════════════════════════════════════════════════════════════════════
-
-  05 Stochastic Optimization
-       noisy gradient estimates
-              |
-              v
-  06 Optimization Landscape
-       geometry, sharpness, curvature
-              |
-              v
-  07 Adaptive Learning Rate
-       per-coordinate and layerwise update scaling
-              |
-      +-------+--------+
-      |                |
-      v                v
-  08 Regularization   10 Learning Rate Schedules
-      weight decay        warmup, cosine, WSD
-
-════════════════════════════════════════════════════════════════════════
++------------------------------------------------------------+
+| Chapter 8: Optimization                                    |
+|    01-Convex-Optimization          Convex Optimization    |
+|    02-Gradient-Descent             Gradient Descent       |
+|    03-Second-Order-Methods         Second-Order Methods   |
+|    04-Constrained-Optimization     Constrained Optimization |
+|    05-Stochastic-Optimization      Stochastic Optimization |
+|    06-Optimization-Landscape       Optimization Landscape |
+| >> 07-Adaptive-Learning-Rate       Adaptive Learning Rate |
+|    08-Regularization-Methods       Regularization Methods |
+|    09-Hyperparameter-Optimization  Hyperparameter Optimization |
+|    10-Learning-Rate-Schedules      Learning Rate Schedules |
++------------------------------------------------------------+
 ```
+
+## Appendix A. Extended Derivation and Diagnostic Cards
 
 ## References
 
-1. Duchi, J., Hazan, E., and Singer, Y. (2011). "Adaptive Subgradient Methods for Online Learning and Stochastic Optimization." *Journal of Machine Learning Research*. https://jmlr.org/papers/v12/duchi11a.html
-2. Tieleman, T., and Hinton, G. (2012). "Lecture 6.5 - RMSProp." *Neural Networks for Machine Learning*.
-3. Kingma, D. P., and Ba, J. (2014). "Adam: A Method for Stochastic Optimization." https://arxiv.org/abs/1412.6980
-4. Reddi, S. J., Kale, S., and Kumar, S. (2018). "On the Convergence of Adam and Beyond." https://arxiv.org/abs/1904.09237
-5. Loshchilov, I., and Hutter, F. (2017). "Decoupled Weight Decay Regularization." https://arxiv.org/abs/1711.05101
-6. You, Y. et al. (2019). "Large Batch Optimization for Deep Learning: Training BERT in 76 minutes." https://arxiv.org/abs/1904.00962
-7. Shazeer, N., and Stern, M. (2018). "Adafactor: Adaptive Learning Rates with Sublinear Memory Cost." https://arxiv.org/abs/1804.04235
-8. Gupta, V., Koren, T., and Singer, Y. (2018). "Shampoo: Preconditioned Stochastic Tensor Optimization." https://arxiv.org/abs/1802.09568
-9. PyTorch Documentation. `torch.optim.AdamW`. https://docs.pytorch.org/docs/stable/generated/torch.optim.AdamW.html
-10. Optax Documentation. Optimizers API. https://optax.readthedocs.io/en/stable/api/optimizers.html
+- Duchi et al., Adaptive Subgradient Methods.
+- Kingma and Ba, Adam: A Method for Stochastic Optimization.
+- Loshchilov and Hutter, Decoupled Weight Decay Regularization.
+- Shazeer and Stern, Adafactor.
+- You et al., Large Batch Optimization for Deep Learning: Training BERT in 76 minutes.
+- Goodfellow, Bengio, and Courville, Deep Learning.
+- Bottou, Curtis, and Nocedal, Optimization Methods for Large-Scale Machine Learning.
+- PyTorch optimizer and scheduler documentation.
+- Optax documentation for composable optimizer transformations.

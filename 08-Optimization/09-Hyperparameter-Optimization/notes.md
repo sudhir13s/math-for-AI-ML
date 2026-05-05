@@ -1,2533 +1,3058 @@
-[← Back to Optimization](../README.md) | [Previous: Regularization Methods ←](../08-Regularization-Methods/notes.md) | [Next: Learning Rate Schedules →](../10-Learning-Rate-Schedules/notes.md)
+[Previous: Regularization Methods](../08-Regularization-Methods/notes.md) | [Back to Chapter 8: Optimization](../README.md) | [Next: Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md)
 
 ---
 
 # Hyperparameter Optimization
 
-> _"A training run is an experiment; hyperparameter optimization is the mathematics of spending experiments wisely."_
+> _"Hyperparameter optimization is experimental design under a compute budget."_
 
 ## Overview
 
-Hyperparameter optimization is the outer loop around learning.
-The inner loop updates model parameters $\boldsymbol{\theta}$ by minimizing a loss.
-The outer loop chooses the configuration $\boldsymbol{\lambda}$ that defines how the inner loop behaves:
-learning rate, weight decay, batch size, optimizer, architecture width, dropout rate, data augmentation strength,
-LoRA rank, number of training steps, early-stopping patience, and many other choices that are not directly learned by backpropagation.
+Hyperparameter Optimization is part of the optimization spine of this curriculum. It explains
+how mathematical assumptions become training behavior, and how training behavior becomes
+measurable engineering evidence. The section is the canonical home for search spaces, grid and
+random search, Bayesian optimization, acquisition functions, multi-fidelity methods, Hyperband,
+ASHA, PBT, and leakage-aware tuning.
 
-This section treats hyperparameter optimization as noisy, budgeted, derivative-free optimization over a structured configuration space.
-The validation score is expensive because each evaluation may require training a model.
-It is noisy because initialization, data order, hardware nondeterminism, and finite validation sets perturb the measured result.
-It is constrained because compute, memory, wall-clock time, and safety requirements matter.
-The central question is not "which tuner is fashionable?"
-The central question is:
+The rewrite is deliberately AI-facing: every definition is connected to a loss, an update rule,
+a notebook experiment, or a concrete model-training failure mode. Classical guarantees remain
+important, but they are used as instruments for reasoning about neural networks, transformers,
+large-batch runs, fine-tuning, and optimizer diagnostics.
 
-$$
-\text{How should we allocate a limited experiment budget to find a configuration that generalizes?}
-$$
-
-This section is the canonical home for grid search, random search, Bayesian optimization, successive halving, Hyperband,
-BOHB, population-based training, statistical selection bias, and practical tuning workflows.
-It does not re-teach optimizer internals from [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md),
-regularization theory from [Regularization Methods](../08-Regularization-Methods/notes.md),
-or schedule formulas from [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md).
-Those topics appear only as hyperparameters to be selected, evaluated, and reported.
+A recurring principle runs through the entire chapter: do not memorize optimizer names. Instead,
+identify the objective, the geometry, the stochasticity, the state carried by the method, and
+the quantities that must be logged. That habit transfers from convex baselines to frontier-scale
+LLM training.
 
 ## Prerequisites
 
-- **Gradient descent and stochastic optimization** - training loss, validation loss, gradient noise, mini-batch training - [Gradient Descent](../02-Gradient-Descent/notes.md), [Stochastic Optimization](../05-Stochastic-Optimization/notes.md)
-- **Adaptive optimizers** - AdamW, effective learning rate, optimizer state, weight decay - [Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md)
-- **Regularization and early stopping** - model complexity controls and validation-based stopping - [Regularization Methods](../08-Regularization-Methods/notes.md)
-- **Bayesian inference** - posterior uncertainty and probabilistic modeling - [Bayesian Inference](../../07-Statistics/04-Bayesian-Inference/notes.md)
-- **Gaussian processes and kernels** - surrogate modeling intuition for Bayesian optimization - [Kernel Methods](../../12-Functional-Analysis/03-Kernel-Methods/notes.md)
-- **Cross-validation and evaluation** - validation sets, test sets, variance, and selection bias - [Statistics](../../07-Statistics/README.md)
+- Gradients $\nabla f(\boldsymbol{\theta})$, Hessians $H_f(\boldsymbol{\theta})$, Jacobians $J_f$, and Taylor expansions from Chapter 5.
+- Eigenvalues $\lambda_i$, positive definite matrices $A \succ 0$, matrix norms $\lVert A\rVert$, and condition numbers $\kappa(A)$ from Chapters 2-3.
+- Expectation $\mathbb{E}[X]$, variance $\operatorname{Var}(X)$, concentration, and empirical risk from Chapters 6-7.
+- Loss functions $\ell(\boldsymbol{\theta}; \mathbf{x}, y)$, cross-entropy, and negative log-likelihood from Statistics and Information Theory.
+- Basic Python, NumPy arrays, and matplotlib plotting for the companion notebooks.
+- The previous optimization section, [Regularization Methods](../08-Regularization-Methods/notes.md), is assumed as local context.
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
-| [theory.ipynb](theory.ipynb) | Interactive simulations of search spaces, grid/random search, Bayesian optimization, successive halving, Hyperband, PBT, leakage, and Pareto tuning |
-| [exercises.ipynb](exercises.ipynb) | 10 graded exercises covering HPO mechanics, validation noise, search algorithms, bandit allocation, bias, and LLM fine-tuning budgets |
+| [theory.ipynb](theory.ipynb) | Interactive derivations, numerical checks, and visual diagnostics for Hyperparameter Optimization. |
+| [exercises.ipynb](exercises.ipynb) | Graded implementation and proof exercises for Hyperparameter Optimization. |
 
 ## Learning Objectives
 
-After completing this section, you will:
+- Define the canonical objects used in Hyperparameter Optimization with repository notation.
+- Derive the main update rule and state the assumptions under which it is valid.
+- Explain at least three examples and two non-examples for every major definition.
+- Prove or sketch the core inequality that controls convergence or stability.
+- Connect the theory to at least four modern AI or LLM training practices.
+- Implement a minimal NumPy experiment that checks the mathematical claim numerically.
+- Diagnose divergence, stagnation, overfitting, or instability using logged quantities.
+- Identify which neighboring section owns related but non-canonical material.
+- Translate formulas into practical framework-level implementation decisions.
+- Explain why the topic still matters in a 2026 AI training stack.
 
-1. Define hyperparameters, configuration spaces, studies, trials, objectives, budgets, resources, and fidelities precisely.
-2. Distinguish model parameters $\boldsymbol{\theta}$ from hyperparameters $\boldsymbol{\lambda}$ and explain why the latter usually need an outer optimization loop.
-3. Construct search spaces with categorical, ordinal, continuous, log-scaled, and conditional variables.
-4. Explain why grid search becomes inefficient when only a few hyperparameters matter.
-5. Derive why random search is a strong baseline for high-dimensional, low-effective-dimensional tuning problems.
-6. Implement simple surrogate-based Bayesian optimization with a probabilistic response model and acquisition function.
-7. Explain expected improvement, probability of improvement, upper confidence bound, and Thompson-style acquisition policies.
-8. Simulate successive halving, Hyperband, and asynchronous resource allocation for multi-fidelity model training.
-9. Describe population-based training as joint optimization of weights and time-varying hyperparameters.
-10. Detect validation leakage, nested cross-validation mistakes, and selection bias caused by repeated tuning.
-11. Design fair HPO experiments with fixed budgets, repeated seeds, logging, and multi-metric reporting.
-12. Choose a practical tuning strategy for classical ML, deep learning, and LLM fine-tuning under compute constraints.
+## Notation and LaTeX Markdown Conventions
+
+This section is written in LaTeX-in-Markdown style. Inline mathematical expressions are
+delimited with single dollar signs, while central identities and updates are displayed in
+double-dollar equation blocks. Vectors are bold lowercase, matrices are uppercase, sets and
+spaces are calligraphic, and norms use $\lVert \cdot \rVert$ rather than bare vertical bars.
+
+| Object | Convention | Example |
+| --- | --- | --- |
+| Parameter vector | bold lowercase | $\boldsymbol{\theta} \in \mathbb{R}^d$ |
+| Data vector | bold lowercase | $\mathbf{x}^{(i)} \in \mathbb{R}^d$ |
+| Objective | scalar function | $f : \mathbb{R}^d \to \mathbb{R}$ |
+| Loss | calligraphic or script-style scalar | $\mathcal{L}(\boldsymbol{\theta})$ |
+| Gradient | column vector | $\nabla f(\boldsymbol{\theta})$ |
+| Hessian | matrix | $H_f(\boldsymbol{\theta}) = \nabla^2 f(\boldsymbol{\theta})$ |
+| Learning rate | scalar schedule | $\eta_t > 0$ |
+| Constraint set | calligraphic set | $\mathcal{C} \subseteq \mathbb{R}^d$ |
+
+The canonical update for this section is:
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
 ---
 
 ## Table of Contents
 
 - [1. Intuition](#1-intuition)
-  - [1.1 Hyperparameters as the Outer Optimization Loop](#11-hyperparameters-as-the-outer-optimization-loop)
-  - [1.2 Why Manual Tuning and Grid Intuition Fail](#12-why-manual-tuning-and-grid-intuition-fail)
-  - [1.3 Expensive, Noisy Validation Objectives](#13-expensive-noisy-validation-objectives)
-  - [1.4 Budgets, Fidelities, and Early Signals](#14-budgets-fidelities-and-early-signals)
-  - [1.5 HPO Algorithm Families for ML and LLMs](#15-hpo-algorithm-families-for-ml-and-llms)
+  - [1.1 Why Hyperparameter Optimization matters for training systems](#11-why-hyperparameter-optimization-matters-for-training-systems)
+  - [1.2 The optimization object: parameters, objective, algorithm, and diagnostic](#12-the-optimization-object-parameters-objective-algorithm-and-diagnostic)
+  - [1.3 Historical arc from classical optimization to modern AI](#13-historical-arc-from-classical-optimization-to-modern-ai)
+  - [1.4 What this section treats as canonical scope](#14-what-this-section-treats-as-canonical-scope)
+  - [1.5 A first mental model for LLM training](#15-a-first-mental-model-for-llm-training)
 - [2. Formal Definitions](#2-formal-definitions)
-  - [2.1 Configuration Spaces, Trials, Studies, and Objectives](#21-configuration-spaces-trials-studies-and-objectives)
-  - [2.2 Search Distributions and Conditional Structure](#22-search-distributions-and-conditional-structure)
-  - [2.3 Validation Score as a Noisy Estimator](#23-validation-score-as-a-noisy-estimator)
-  - [2.4 Budget, Resource, Fidelity, and Cost](#24-budget-resource-fidelity-and-cost)
-  - [2.5 Constraints, Multi-Objective Metrics, and Reproducibility](#25-constraints-multi-objective-metrics-and-reproducibility)
-- [3. Baseline Search Methods](#3-baseline-search-methods)
-  - [3.1 Manual Search and Ablation Discipline](#31-manual-search-and-ablation-discipline)
-  - [3.2 Grid Search and the Curse of Dimensionality](#32-grid-search-and-the-curse-of-dimensionality)
-  - [3.3 Random Search and Effective Dimension](#33-random-search-and-effective-dimension)
-  - [3.4 Quasi-Random and Space-Filling Designs](#34-quasi-random-and-space-filling-designs)
-  - [3.5 Choosing Defensible Baselines](#35-choosing-defensible-baselines)
-- [4. Bayesian and Surrogate-Based Optimization](#4-bayesian-and-surrogate-based-optimization)
-  - [4.1 Sequential Model-Based Optimization](#41-sequential-model-based-optimization)
-  - [4.2 Gaussian-Process Surrogate Intuition](#42-gaussian-process-surrogate-intuition)
-  - [4.3 Acquisition Functions: PI, EI, UCB, and Thompson Sampling](#43-acquisition-functions-pi-ei-ucb-and-thompson-sampling)
-  - [4.4 Tree-Structured Parzen Estimators](#44-tree-structured-parzen-estimators)
-  - [4.5 Noisy, Constrained, Cost-Aware, and Multi-Objective BO](#45-noisy-constrained-cost-aware-and-multi-objective-bo)
-- [5. Multi-Fidelity and Bandit Methods](#5-multi-fidelity-and-bandit-methods)
-  - [5.1 Resource Allocation as Optimization](#51-resource-allocation-as-optimization)
-  - [5.2 Successive Halving](#52-successive-halving)
-  - [5.3 Hyperband](#53-hyperband)
-  - [5.4 ASHA and Asynchronous Distributed Tuning](#54-asha-and-asynchronous-distributed-tuning)
-  - [5.5 BOHB: Bayesian Optimization plus Hyperband](#55-bohb-bayesian-optimization-plus-hyperband)
-- [6. Population and Dynamic Hyperparameters](#6-population-and-dynamic-hyperparameters)
-  - [6.1 Evolutionary and Population Search](#61-evolutionary-and-population-search)
-  - [6.2 Population-Based Training](#62-population-based-training)
-  - [6.3 Fixed Hyperparameters versus Learned Schedules](#63-fixed-hyperparameters-versus-learned-schedules)
-  - [6.4 Architecture and Augmentation Policy Search](#64-architecture-and-augmentation-policy-search)
-  - [6.5 Transfer HPO, Warm Starts, and Meta-Learning](#65-transfer-hpo-warm-starts-and-meta-learning)
-- [7. Statistical Reliability and Selection Bias](#7-statistical-reliability-and-selection-bias)
-  - [7.1 Train, Validation, and Test Discipline](#71-train-validation-and-test-discipline)
-  - [7.2 Nested Cross-Validation and Model-Selection Bias](#72-nested-cross-validation-and-model-selection-bias)
-  - [7.3 Multiple Comparisons, Seeds, and Confidence Intervals](#73-multiple-comparisons-seeds-and-confidence-intervals)
-  - [7.4 Multi-Metric and Pareto Reporting](#74-multi-metric-and-pareto-reporting)
-  - [7.5 Reproducible HPO Reports](#75-reproducible-hpo-reports)
-- [8. Applications in ML and LLM Systems](#8-applications-in-ml-and-llm-systems)
-  - [8.1 Classical ML Pipelines](#81-classical-ml-pipelines)
-  - [8.2 Deep Learning Knobs](#82-deep-learning-knobs)
-  - [8.3 LLM Fine-Tuning Knobs](#83-llm-fine-tuning-knobs)
-  - [8.4 Practical Tooling](#84-practical-tooling)
-  - [8.5 When Not to Tune](#85-when-not-to-tune)
+  - [2.1 Primary definition: configuration space](#21-primary-definition-configuration-space)
+  - [2.2 Secondary definition: conditional parameter](#22-secondary-definition-conditional-parameter)
+  - [2.3 Algorithmic object: log-uniform sampling](#23-algorithmic-object-loguniform-sampling)
+  - [2.4 Examples, non-examples, and boundary cases](#24-examples-nonexamples-and-boundary-cases)
+  - [2.5 Notation, dimensions, and assumptions](#25-notation-dimensions-and-assumptions)
+- [3. Core Theory I: Geometry and Guarantees](#3-core-theory-i-geometry-and-guarantees)
+  - [3.1 Geometry of grid search](#31-geometry-of-grid-search)
+  - [3.2 Key inequality for random search](#32-key-inequality-for-random-search)
+  - [3.3 Role of Sobol initialization](#33-role-of-sobol-initialization)
+  - [3.4 Proof template and what the proof actually buys](#34-proof-template-and-what-the-proof-actually-buys)
+  - [3.5 Failure modes when assumptions are removed](#35-failure-modes-when-assumptions-are-removed)
+- [4. Core Theory II: Algorithms and Dynamics](#4-core-theory-ii-algorithms-and-dynamics)
+  - [4.1 Algorithmic update for surrogate model](#41-algorithmic-update-for-surrogate-model)
+  - [4.2 Stability role of Gaussian process](#42-stability-role-of-gaussian-process)
+  - [4.3 Rate or complexity controlled by expected improvement](#43-rate-or-complexity-controlled-by-expected-improvement)
+  - [4.4 Diagnostic interpretation of the update path](#44-diagnostic-interpretation-of-the-update-path)
+  - [4.5 Connection to the next section in the chapter](#45-connection-to-the-next-section-in-the-chapter)
+- [5. Core Theory III: Practical Variants](#5-core-theory-iii-practical-variants)
+  - [5.1 Variant built around upper confidence bound](#51-variant-built-around-upper-confidence-bound)
+  - [5.2 Variant built around Thompson sampling](#52-variant-built-around-thompson-sampling)
+  - [5.3 Variant built around Bayesian optimization](#53-variant-built-around-bayesian-optimization)
+  - [5.4 Implementation constraints and numerical stability](#54-implementation-constraints-and-numerical-stability)
+  - [5.5 What belongs here versus neighboring sections](#55-what-belongs-here-versus-neighboring-sections)
+- [6. Advanced Topics](#6-advanced-topics)
+  - [6.1 Advanced view of successive halving](#61-advanced-view-of-successive-halving)
+  - [6.2 Advanced view of Hyperband](#62-advanced-view-of-hyperband)
+  - [6.3 Advanced view of ASHA](#63-advanced-view-of-asha)
+  - [6.4 Infinite-dimensional or large-scale interpretation](#64-infinitedimensional-or-largescale-interpretation)
+  - [6.5 Open questions for frontier model training](#65-open-questions-for-frontier-model-training)
+- [7. Applications in Machine Learning](#7-applications-in-machine-learning)
+  - [7.1 learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning](#71-learningrate-weightdecay-batchsize-and-schedule-tuning-for-llm-finetuning)
+  - [7.2 Hyperband and ASHA for neural architecture and training-budget search](#72-hyperband-and-asha-for-neural-architecture-and-trainingbudget-search)
+  - [7.3 Bayesian optimization for expensive, low-dimensional continuous tuning](#73-bayesian-optimization-for-expensive-lowdimensional-continuous-tuning)
+  - [7.4 validation leakage prevention in model-selection pipelines](#74-validation-leakage-prevention-in-modelselection-pipelines)
+  - [7.5 Diagnostic checklist for real experiments](#75-diagnostic-checklist-for-real-experiments)
+- [8. Implementation and Diagnostics](#8-implementation-and-diagnostics)
+  - [8.1 Minimal NumPy experiment for BOHB](#81-minimal-numpy-experiment-for-bohb)
+  - [8.2 Monitoring signal for population-based training](#82-monitoring-signal-for-populationbased-training)
+  - [8.3 Failure signature for multi-objective tuning](#83-failure-signature-for-multiobjective-tuning)
+  - [8.4 Framework-level implementation pattern](#84-frameworklevel-implementation-pattern)
+  - [8.5 Reproducibility and logging checklist](#85-reproducibility-and-logging-checklist)
 - [9. Common Mistakes](#9-common-mistakes)
 - [10. Exercises](#10-exercises)
-- [11. Why This Matters for AI](#11-why-this-matters-for-ai)
+- [11. Why This Matters for AI (2026 Perspective)](#11-why-this-matters-for-ai-2026-perspective)
 - [12. Conceptual Bridge](#12-conceptual-bridge)
+- [Appendix A. Extended Derivation and Diagnostic Cards](#appendix-a-extended-derivation-and-diagnostic-cards)
 - [References](#references)
 
 ---
 
 ## 1. Intuition
 
-### 1.1 Hyperparameters as the Outer Optimization Loop
+This block develops intuition for Hyperparameter Optimization. It keeps the scope local to this
+section while pointing forward when a neighboring topic owns the full treatment.
 
-Training a model usually solves an inner optimization problem:
+### 1.1 Why Hyperparameter Optimization matters for training systems
 
-$$
-\boldsymbol{\theta}^{*}(\boldsymbol{\lambda})
-\in
-\arg\min_{\boldsymbol{\theta}}
-\mathcal{L}_{\mathrm{train}}(\boldsymbol{\theta}; \boldsymbol{\lambda}).
-$$
+In this section, random search is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Why Hyperparameter Optimization matters for training
+systems" means a precise mathematical habit: state the assumptions, write the update, identify
+what can be measured, and connect the result to a real AI training decision.
 
-Here $\boldsymbol{\theta}$ contains learned parameters such as weights, biases, embedding vectors, LoRA matrices, or classifier coefficients.
-The vector $\boldsymbol{\lambda}$ contains choices that shape the training process but are not usually learned by gradient descent.
-Examples include:
+> **Definition.**
+>
+> For this section, **random search** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-| Hyperparameter | Meaning | Typical scale |
-| --- | --- | --- |
-| $\eta$ | Base learning rate | log scale |
-| $\lambda_{\mathrm{wd}}$ | Weight decay coefficient | log scale |
-| $B$ | Batch size | powers of two or hardware-constrained integers |
-| $p_{\mathrm{drop}}$ | Dropout probability | bounded continuous |
-| $r_{\mathrm{LoRA}}$ | LoRA rank | small integer |
-| $\tau$ | Contrastive temperature | positive continuous |
-| $T$ | Number of training steps | resource variable |
-| optimizer | SGD, AdamW, Adafactor, etc. | categorical |
+Examples:
+- A small synthetic quadratic where random search can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where random search affects optimization but the model remains interpretable.
+- A transformer training diagnostic where random search appears through gradient norms, update norms, curvature, or validation loss.
 
-The outer problem evaluates the trained model on validation data:
+Non-examples:
+- Treating random search as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-$$
-\boldsymbol{\lambda}^{*}
-\in
-\arg\min_{\boldsymbol{\lambda} \in \mathcal{X}}
-F(\boldsymbol{\lambda}),
-\qquad
-F(\boldsymbol{\lambda})
-=
-\mathcal{L}_{\mathrm{val}}(\boldsymbol{\theta}^{*}(\boldsymbol{\lambda}); \boldsymbol{\lambda}).
-$$
-
-In real systems, we do not observe $F(\boldsymbol{\lambda})$ exactly.
-We observe a noisy trial result:
+Useful formula:
 
 $$
-Y(\boldsymbol{\lambda})
-=
-F(\boldsymbol{\lambda})
-+ \varepsilon,
-\qquad
-\mathbb{E}[\varepsilon \mid \boldsymbol{\lambda}] = 0.
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-This one equation explains why HPO is different from ordinary calculus-based optimization:
+Proof sketch or reasoning pattern:
 
-1. Each evaluation of $Y(\boldsymbol{\lambda})$ may require minutes, hours, or days.
-2. The gradient $\nabla_{\boldsymbol{\lambda}} F$ is usually unavailable.
-3. The objective is noisy.
-4. The search space mixes discrete, continuous, conditional, and constrained variables.
-5. Good performance is measured on validation or deployment metrics, not training loss alone.
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving random
+search, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-The outer-loop picture is:
-
-```text
-configuration lambda
-        |
-        v
-train model parameters theta
-        |
-        v
-measure validation score
-        |
-        v
-choose next lambda
-```
-
-Hyperparameter optimization is the design of the final arrow.
-
-**Example: learning rate.**
-The learning rate $\eta$ is not a parameter of the model.
-It is a parameter of the training process.
-Too small and training wastes compute.
-Too large and training diverges.
-The HPO problem is to find a useful region for $\eta$ while not spending the whole project on trial runs.
-
-**Example: LoRA fine-tuning.**
-For a fixed base model, the learned parameters are adapter weights.
-The hyperparameters include rank $r$, scaling $\alpha$, adapter target modules, learning rate, batch size, weight decay, number of epochs, and data mixture.
-A good configuration can be more important than a clever new adapter trick.
-
-**Example: retrieval-augmented generation.**
-The learned model may be frozen.
-The hyperparameters are chunk size, overlap, embedding model, retrieval depth $k$, reranker choice, prompt template, and score threshold.
-The same mathematical issue appears: evaluate a costly configuration under noisy validation metrics.
-
-### 1.2 Why Manual Tuning and Grid Intuition Fail
-
-Manual tuning is useful when it encodes expert knowledge.
-It becomes dangerous when it silently turns into unlogged, biased search.
-A human tries a few settings, remembers the best run, forgets failed runs, and reports a test score.
-That is not a controlled experiment.
-It is a selection process with missing data.
-
-Grid search looks principled:
+Implementation consequence:
+- Log a metric that makes random search visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\mathcal{G}
-=
-\mathcal{G}_1 \times \mathcal{G}_2 \times \cdots \times \mathcal{G}_d.
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-If each of $d$ hyperparameters has $m$ candidate values, the full grid has:
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about random search is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 1.2 The optimization object: parameters, objective, algorithm, and diagnostic
+
+In this section, Sobol initialization is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "The optimization object: parameters, objective,
+algorithm, and diagnostic" means a precise mathematical habit: state the assumptions, write the
+update, identify what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Sobol initialization** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Sobol initialization can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Sobol initialization affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Sobol initialization appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Sobol initialization as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
 
 $$
-\lvert \mathcal{G} \rvert = m^d
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-trials.
-This is already expensive.
-But the deeper problem is not only the number of trials.
-The deeper problem is that a grid spends equal resolution on every coordinate.
+Proof sketch or reasoning pattern:
 
-Suppose only two hyperparameters matter:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Sobol
+initialization, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-$$
-F(\lambda_1,\ldots,\lambda_d)
-\approx
-f(\lambda_2,\lambda_7).
-$$
-
-A grid with $m=3$ and $d=10$ uses $3^{10}=59049$ total points,
-but only $3^2=9$ distinct settings on the two important coordinates.
-Most trials differ only in irrelevant coordinates.
-Random search, by contrast, samples many distinct values along every coordinate.
-Bergstra and Bengio's random-search result is built around this effective-dimension phenomenon.
-
-The grid failure mode is easiest to see in a two-dimensional slice:
-
-```text
-grid search:
-
-  x     x     x     x
-
-  x     x     x     x
-
-  x     x     x     x
-
-  x     x     x     x
-
-random search:
-
-    x      x
- x       x    x
-      x
-   x        x
-        x
-```
-
-The grid is tidy but rigid.
-Random search is untidy but explores more unique coordinate values.
-When the important scale is logarithmic, a linear grid can be worse:
+Implementation consequence:
+- Log a metric that makes Sobol initialization visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\eta \in \{0.001, 0.251, 0.501, 0.751, 1.0\}
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-is a poor learning-rate grid for neural networks.
-A log-scale search such as
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Sobol initialization is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 1.3 Historical arc from classical optimization to modern AI
+
+In this section, surrogate model is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Historical arc from classical optimization to modern
+AI" means a precise mathematical habit: state the assumptions, write the update, identify what
+can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **surrogate model** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where surrogate model can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where surrogate model affects optimization but the model remains interpretable.
+- A transformer training diagnostic where surrogate model appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating surrogate model as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
 
 $$
-\log_{10}\eta \sim \mathcal{U}(-5,-2)
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-is usually more sensible.
+Proof sketch or reasoning pattern:
 
-**Manual tuning is not forbidden.**
-It is often the first stage.
-The rule is:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving surrogate
+model, and use the section assumptions to bound the change in objective value. If the assumption
+is geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
 
-$$
-\text{manual tuning should define the search space, not replace measurement.}
-$$
-
-### 1.3 Expensive, Noisy Validation Objectives
-
-If every trial returned the exact value $F(\boldsymbol{\lambda})$, HPO would be hard but clean.
-In practice, a trial returns:
+Implementation consequence:
+- Log a metric that makes surrogate model visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-Y_j
-=
-F(\boldsymbol{\lambda}_j)
-+ \varepsilon_j.
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-The noise $\varepsilon_j$ comes from many sources:
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-| Noise source | Example | Consequence |
-| --- | --- | --- |
-| Random initialization | different initial weights | one lucky seed can win |
-| Data order | shuffled batches | early dynamics vary |
-| Dropout and augmentation | stochastic transforms | validation score varies |
-| Hardware nondeterminism | GPU kernels | tiny numerical differences can amplify |
-| Finite validation data | limited sample size | metric has sampling variance |
-| Distributed training | asynchronous timing | effective order differs |
+Diagnostic questions:
+- Which assumption about surrogate model is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-For a validation set of size $n_{\mathrm{val}}$, a simple accuracy estimate has approximate standard error:
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-$$
-\operatorname{SE}(\hat{p})
-\approx
-\sqrt{\frac{\hat{p}(1-\hat{p})}{n_{\mathrm{val}}}}.
-$$
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-Two configurations whose validation accuracies differ by less than this scale may not be meaningfully different.
-For loss metrics, the same idea appears through variance of per-example loss:
+### 1.4 What this section treats as canonical scope
 
-$$
-\operatorname{SE}(\bar{\ell}_{\mathrm{val}})
-=
-\sqrt{\frac{1}{n_{\mathrm{val}}}
-\operatorname{Var}(\ell(\mathbf{x},y))}.
-$$
+In this section, Gaussian process is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "What this section treats as canonical scope" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-This matters because HPO optimizes over many noisy measurements.
-The best observed trial can be best partly because of favorable noise.
-If $N$ independent configurations have equal true performance but noisy observed scores, then the minimum observed score tends to look better as $N$ grows.
-This is selection bias.
+> **Definition.**
+>
+> For this section, **Gaussian process** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-**For AI systems:** leaderboard chasing, prompt tuning, RAG threshold tuning, and LLM fine-tuning can all overfit validation sets.
-The outer loop is still an optimizer.
-Anything optimized repeatedly against a finite validation metric can overfit that metric.
+Examples:
+- A small synthetic quadratic where Gaussian process can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Gaussian process affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Gaussian process appears through gradient norms, update norms, curvature, or validation loss.
 
-### 1.4 Budgets, Fidelities, and Early Signals
+Non-examples:
+- Treating Gaussian process as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-A full training run is not the only possible evaluation.
-We can evaluate a configuration at a smaller resource level:
-
-$$
-y(\boldsymbol{\lambda}, r),
-$$
-
-where $r$ might be:
-
-- number of epochs,
-- number of training steps,
-- number of data samples,
-- fraction of dataset,
-- model width,
-- image resolution,
-- sequence length,
-- number of trees,
-- number of RL environment frames.
-
-The resource $r$ defines the fidelity.
-Low fidelity is cheap but biased.
-High fidelity is expensive but closer to the target.
-
-Multi-fidelity HPO asks:
+Useful formula:
 
 $$
-\text{Which configurations deserve more resource?}
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-This is the core idea behind successive halving and Hyperband.
-Start many configurations cheaply.
-Discard weak ones.
-Allocate more budget to survivors.
+Proof sketch or reasoning pattern:
 
-```text
-many cheap trials
-  lambda_1 lambda_2 lambda_3 lambda_4 lambda_5 lambda_6 lambda_7 lambda_8
-      |        |        |        |        |        |        |        |
-      v        v        v        v        v        v        v        v
-   score    score    score    score    score    score    score    score
-      \        /        \        /        \        /        \        /
-       keep best half             keep best half
-              \                       /
-               v                     v
-             train longer        train longer
-                    \             /
-                     v           v
-                     final comparison
-```
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Gaussian
+process, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-The key assumption is rank correlation:
+Implementation consequence:
+- Log a metric that makes Gaussian process visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\operatorname{corr}(y(\boldsymbol{\lambda}, r_{\mathrm{low}}),
-y(\boldsymbol{\lambda}, r_{\mathrm{high}})) > 0.
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-If early validation scores are completely uninformative, early stopping kills good configurations.
-If early validation scores are strongly predictive, multi-fidelity methods save enormous compute.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-### 1.5 HPO Algorithm Families for ML and LLMs
+Diagnostic questions:
+- Which assumption about Gaussian process is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-The main HPO families differ in what information they use.
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-| Family | Uses past scores? | Uses resource levels? | Handles dynamic hyperparameters? | Typical use |
-| --- | --- | --- | --- | --- |
-| Manual search | human memory | maybe | maybe | first pass, debugging |
-| Grid search | no | no | no | tiny categorical spaces |
-| Random search | no | no | no | strong baseline |
-| Quasi-random design | no | no | no | space-filling initial design |
-| Bayesian optimization | yes | usually no | no | expensive black-box objective |
-| Successive halving | yes, via ranking | yes | no | iterative training |
-| Hyperband / ASHA | yes, via ranking | yes | no | parallel deep-learning tuning |
-| BOHB | yes | yes | no | guided multi-fidelity HPO |
-| Evolutionary search | yes | maybe | yes | architecture and policy search |
-| Population-based training | yes | yes | yes | schedules, RL, non-stationary training |
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-For small tabular models, grid and random search may be enough.
-For medium neural networks, random search plus Hyperband-style early stopping is often strong.
-For expensive training runs with a small continuous search space, Bayesian optimization can be sample-efficient.
-For long-running distributed training where schedules matter, population-based methods can adapt hyperparameters during training.
+### 1.5 A first mental model for LLM training
 
-The correct choice is not universal.
-It depends on the objective cost, noise level, search-space dimension, parallelism, budget, and whether partial learning curves are informative.
+In this section, expected improvement is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "A first mental model for LLM training" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
 
----
+> **Definition.**
+>
+> For this section, **expected improvement** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where expected improvement can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where expected improvement affects optimization but the model remains interpretable.
+- A transformer training diagnostic where expected improvement appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating expected improvement as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving expected
+improvement, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes expected improvement visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about expected improvement is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
 ## 2. Formal Definitions
 
-### 2.1 Configuration Spaces, Trials, Studies, and Objectives
-
-A **configuration space** is the set $\mathcal{X}$ of allowed hyperparameter configurations.
-A configuration is a point:
-
-$$
-\boldsymbol{\lambda}
-=
-(\lambda_1,\ldots,\lambda_d)
-\in
-\mathcal{X}.
-$$
-
-The components may have different types:
-
-$$
-\mathcal{X}
-=
-\mathcal{X}_1 \times \cdots \times \mathcal{X}_d
-$$
-
-when independent, or a structured tree when conditional.
-
-**Examples.**
-
-1. Logistic regression:
-
-$$
-\boldsymbol{\lambda}
-=
-(C,\text{penalty},\text{class weight}).
-$$
-
-2. Transformer fine-tuning:
-
-$$
-\boldsymbol{\lambda}
-=
-(\eta,\lambda_{\mathrm{wd}},B,T,r_{\mathrm{LoRA}},\alpha_{\mathrm{LoRA}},p_{\mathrm{drop}}).
-$$
-
-3. RAG pipeline:
-
-$$
-\boldsymbol{\lambda}
-=
-(\text{chunk size},\text{overlap},k,\text{embedding model},\text{reranker},\tau_{\mathrm{score}}).
-$$
-
-**Non-examples.**
-
-1. A weight matrix $W$ learned by backpropagation is not a hyperparameter in ordinary training.
-2. A learned embedding vector $\mathbf{e}_i$ is not a hyperparameter.
-3. A batch's sampled gradient $\mathbf{g}_t$ is not a hyperparameter.
-4. A validation loss value is not a hyperparameter; it is an observation.
-
-A **trial** is one evaluation of a configuration.
-It usually consists of:
-
-1. choose $\boldsymbol{\lambda}_j$,
-2. train model parameters $\boldsymbol{\theta}$ under $\boldsymbol{\lambda}_j$,
-3. evaluate a metric $Y_j$,
-4. log artifacts, cost, seed, and status.
-
-A **study** is the whole sequence:
-
-$$
-\mathcal{S}_N
-=
-\{(\boldsymbol{\lambda}_j,Y_j,c_j,s_j)\}_{j=1}^{N},
-$$
-
-where $c_j$ is cost and $s_j$ is status or metadata.
-
-The **objective function** is the unknown mapping:
-
-$$
-F:\mathcal{X} \to \mathbb{R}.
-$$
-
-For minimization:
-
-$$
-\boldsymbol{\lambda}^{*}
-\in
-\arg\min_{\boldsymbol{\lambda} \in \mathcal{X}} F(\boldsymbol{\lambda}).
-$$
-
-For maximization of score $A(\boldsymbol{\lambda})$, convert by minimizing:
-
-$$
-F(\boldsymbol{\lambda}) = -A(\boldsymbol{\lambda}).
-$$
-
-In practice, $F$ is not directly available.
-We observe $Y$:
-
-$$
-Y \mid \boldsymbol{\lambda}
-\sim
-p(y \mid \boldsymbol{\lambda}).
-$$
-
-This statistical view is essential.
-HPO is not merely deterministic search over a table.
-It is decision-making under noisy observations.
-
-### 2.2 Search Distributions and Conditional Structure
-
-A search algorithm needs a way to propose configurations.
-Random search defines a distribution $q$ over $\mathcal{X}$:
-
-$$
-\boldsymbol{\lambda}_j \sim q(\boldsymbol{\lambda}).
-$$
-
-The distribution should respect the geometry of each hyperparameter.
-
-| Hyperparameter type | Example | Sensible distribution |
-| --- | --- | --- |
-| categorical | optimizer | uniform or weighted categorical |
-| ordinal | number of layers | discrete ordered set |
-| integer | tree depth | integer interval |
-| positive scale | learning rate | log-uniform |
-| bounded probability | dropout rate | uniform or beta distribution |
-| constrained pair | warmup and total steps | conditional or transformed |
-| architecture branch | model family | tree-structured conditional |
-
-For a learning rate, log-uniform means:
-
-$$
-\log \eta \sim \mathcal{U}(\log a,\log b).
-$$
-
-Equivalently, the density on $\eta$ is:
-
-$$
-p(\eta)
-=
-\frac{1}{\eta(\log b - \log a)},
-\qquad
-a \le \eta \le b.
-$$
-
-This gives equal probability mass to multiplicative intervals:
-
-$$
-P(10^{-5} \le \eta \le 10^{-4})
-=
-P(10^{-4} \le \eta \le 10^{-3}).
-$$
-
-That is usually what we want for learning rates and regularization coefficients.
-
-Conditional spaces arise when one choice activates other choices.
-For example:
-
-```text
-optimizer
-  AdamW
-    beta_1
-    beta_2
-    epsilon
-  SGD
-    momentum
-    nesterov
-  Adafactor
-    relative_step
-    factored
-```
-
-Mathematically, a tree-structured space can be written as:
-
-$$
-\mathcal{X}
-=
-\bigcup_{k=1}^{K}
-\{k\} \times \mathcal{X}^{(k)}.
-$$
-
-Each branch $\mathcal{X}^{(k)}$ has its own active hyperparameters.
-Treating inactive variables as ordinary numeric dimensions can confuse surrogate models.
-
-**Example: LoRA target modules.**
-If `use_lora = false`, then `rank`, `alpha`, and `target_modules` are inactive.
-They should not be sampled as if they affect the objective.
-
-**Example: augmentation.**
-If `augmentation = none`, then `crop_scale`, `mixup_alpha`, and `color_jitter_strength` are inactive.
-
-**Non-example: post-hoc metric threshold.**
-If the threshold is tuned after training on a validation set, it is still a hyperparameter of the decision rule.
-It must be logged and included in model selection.
-
-### 2.3 Validation Score as a Noisy Estimator
-
-Let the target deployment risk be:
-
-$$
-R(\boldsymbol{\lambda})
-=
-\mathbb{E}_{(\mathbf{x},y) \sim p_{\mathrm{deploy}}}
-\left[
-\ell(f_{\boldsymbol{\theta}^{*}(\boldsymbol{\lambda})}(\mathbf{x}),y)
-\right].
-$$
-
-We cannot compute this exactly.
-We estimate it on validation data:
-
-$$
-\hat{R}_{\mathrm{val}}(\boldsymbol{\lambda})
-=
-\frac{1}{n_{\mathrm{val}}}
-\sum_{i=1}^{n_{\mathrm{val}}}
-\ell(f_{\boldsymbol{\theta}^{*}(\boldsymbol{\lambda})}(\mathbf{x}^{(i)}),y^{(i)}).
-$$
-
-This estimate has at least two kinds of error:
-
-$$
-\hat{R}_{\mathrm{val}}(\boldsymbol{\lambda})
-=
-R(\boldsymbol{\lambda})
-+ b(\boldsymbol{\lambda})
-+ \varepsilon(\boldsymbol{\lambda}).
-$$
-
-Here $b(\boldsymbol{\lambda})$ is systematic bias from validation/deployment mismatch,
-and $\varepsilon(\boldsymbol{\lambda})$ is random estimation noise.
-
-If the validation set is representative, $b$ may be small.
-If the validation set is stale, leaked, too easy, or off-distribution, $b$ can dominate.
-HPO will optimize the metric it is given.
-It will not magically optimize the metric you intended.
-
-The best observed configuration after $N$ trials is:
-
-$$
-\hat{\boldsymbol{\lambda}}_N
-\in
-\arg\min_{1 \le j \le N} Y_j.
-$$
-
-Its observed score $Y(\hat{\boldsymbol{\lambda}}_N)$ is optimistically biased as an estimate of its true future performance.
-This is the same problem as model-selection bias.
-Cawley and Talbot emphasized that overfitting can occur in the model-selection criterion itself, not only in model parameters.
-
-**Practical implication.**
-Keep a final test set untouched until the search process is over.
-If the test set influences search-space design, stopping decisions, seed choices, or reporting choices, it has become a validation set.
-
-### 2.4 Budget, Resource, Fidelity, and Cost
-
-A **budget** is the total resource available to the study:
-
-$$
-B_{\mathrm{total}}
-=
-\sum_{j=1}^{N} c_j.
-$$
-
-The cost $c_j$ may be measured in:
-
-- GPU-hours,
-- wall-clock hours,
-- dollars,
-- training steps,
-- number of examples processed,
-- energy,
-- memory footprint,
-- annotation cost,
-- human evaluation cost.
-
-A **resource** $r$ is a controllable amount of training effort for one trial:
-
-$$
-y_j(r) = y(\boldsymbol{\lambda}_j,r).
-$$
-
-A **fidelity** is the quality level of an approximation to the full objective.
-Low-fidelity evaluations are cheaper but less faithful.
-
-| Fidelity variable | Low-fidelity trial | High-fidelity trial | Risk |
-| --- | --- | --- | --- |
-| epochs | 1 epoch | 30 epochs | late bloomers can be killed |
-| data fraction | 10 percent | full data | small data may change ranking |
-| model size | small proxy | target model | scaling behavior may differ |
-| sequence length | short context | full context | long-context effects missed |
-| image resolution | low resolution | target resolution | architecture ranking changes |
-| human eval samples | small panel | large panel | high variance |
-
-Multi-fidelity methods are useful only when low-fidelity signals correlate with high-fidelity outcomes.
-If the correlation is negative or unstable, aggressive early stopping is harmful.
-
-The cost-aware objective can be written as:
-
-$$
-\min_{\boldsymbol{\lambda} \in \mathcal{X}}
-\left(F(\boldsymbol{\lambda}), C(\boldsymbol{\lambda})\right),
-$$
-
-where $C$ is cost.
-Sometimes this is converted to a scalar:
-
-$$
-J(\boldsymbol{\lambda})
-=
-F(\boldsymbol{\lambda})
-+ \rho C(\boldsymbol{\lambda}),
-$$
-
-but the choice of $\rho$ encodes a tradeoff.
-For many AI systems, Pareto reporting is more honest than hiding cost inside one scalar.
-
-### 2.5 Constraints, Multi-Objective Metrics, and Reproducibility
-
-Many HPO problems are constrained:
-
-$$
-\begin{aligned}
-\min_{\boldsymbol{\lambda} \in \mathcal{X}} \quad
-& F(\boldsymbol{\lambda}) \\
-\text{s.t.} \quad
-& G_k(\boldsymbol{\lambda}) \le 0,
-\qquad k = 1,\ldots,K.
-\end{aligned}
-$$
+This block develops formal definitions for Hyperparameter Optimization. It keeps the scope local
+to this section while pointing forward when a neighboring topic owns the full treatment.
+
+### 2.1 Primary definition: configuration space
+
+In this section, Gaussian process is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Primary definition: configuration space" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Gaussian process** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
 Examples:
+- A small synthetic quadratic where Gaussian process can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Gaussian process affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Gaussian process appears through gradient norms, update norms, curvature, or validation loss.
 
-| Constraint | Meaning |
-| --- | --- |
-| memory $\le$ 24 GB | must fit on one GPU |
-| latency $\le$ 100 ms | production serving requirement |
-| toxicity rate $\le$ threshold | safety requirement |
-| cost $\le$ budget | experiment budget |
-| calibration error $\le$ threshold | reliability requirement |
-| parameter count $\le$ limit | deployment constraint |
+Non-examples:
+- Treating Gaussian process as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-Multi-objective HPO does not have a single best solution in general.
-For objectives $F_1,\ldots,F_m$, configuration $\boldsymbol{\lambda}_a$ **Pareto dominates** $\boldsymbol{\lambda}_b$ if:
+Useful formula:
 
 $$
-F_k(\boldsymbol{\lambda}_a)
-\le
-F_k(\boldsymbol{\lambda}_b)
-\quad
-\text{for all } k,
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-and strict inequality holds for at least one $k$.
+Proof sketch or reasoning pattern:
 
-The **Pareto frontier** is the set of non-dominated configurations.
-For model deployment, this is often the right object:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Gaussian
+process, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-```text
-loss
- ^
- |      dominated points
- |        x   x
- |    x
- |       o
- |   o
- | o
- +-----------------> latency
+Implementation consequence:
+- Log a metric that makes Gaussian process visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
-o = Pareto frontier
-```
-
-Reproducibility requires logging:
-
-1. search space,
-2. sampler or scheduler,
-3. random seeds,
-4. budget,
-5. early-stopping rule,
-6. code version,
-7. data version,
-8. hardware,
-9. training metrics,
-10. validation metrics,
-11. failed trials,
-12. final selection rule.
-
-Without failed trials, an HPO report is incomplete.
-The failures define the search process as much as the winner.
-
----
-
-## 3. Baseline Search Methods
-
-### 3.1 Manual Search and Ablation Discipline
-
-Manual search means a human chooses configurations based on prior knowledge, diagnostics, and previous runs.
-It is not automatically bad.
-Most serious projects begin manually because the search space is not known yet.
-
-A disciplined manual phase answers:
-
-1. Is the training loop correct?
-2. Does loss decrease under a known-safe configuration?
-3. Which hyperparameters are sensitive?
-4. What ranges are plausible?
-5. Which metrics should define selection?
-6. Which failures are invalid trials rather than poor configurations?
-
-The manual phase should produce a search-space specification such as:
-
-$$
-\eta \sim \log\mathcal{U}(10^{-5},3 \cdot 10^{-3}),
-\qquad
-\lambda_{\mathrm{wd}} \sim \log\mathcal{U}(10^{-6},10^{-1}),
-\qquad
-r_{\mathrm{LoRA}} \in \{4,8,16,32\}.
-$$
-
-Manual search becomes weak science when:
-
-- failed runs are not logged,
-- ranges change after seeing test results,
-- multiple seeds are tried but only the best seed is reported,
-- the stopping rule is informal,
-- the final comparison uses unequal compute,
-- the chosen configuration is explained after the fact.
-
-**Ablation discipline.**
-When changing one hyperparameter, hold others fixed.
-When changing many, admit that the result is a configuration-level comparison.
-For example, comparing:
-
-$$
-(\eta=3\cdot10^{-4}, B=64)
-\quad \text{vs.} \quad
-(\eta=10^{-4}, B=256)
-$$
-
-does not isolate the learning rate.
-It tests a pair.
-
-Manual search is best viewed as human-guided experimental design.
-It should make later automatic search cheaper and more meaningful.
-
-### 3.2 Grid Search and the Curse of Dimensionality
-
-Grid search enumerates:
-
-$$
-\mathcal{G}
-=
-\mathcal{G}_1 \times \cdots \times \mathcal{G}_d.
-$$
-
-If $\mathcal{G}_i$ has $m_i$ values, then:
-
-$$
-\lvert \mathcal{G} \rvert
-=
-\prod_{i=1}^{d} m_i.
-$$
-
-This product grows rapidly.
-With six hyperparameters and five choices each:
-
-$$
-5^6 = 15625
-$$
-
-trials.
-If each trial costs 30 minutes on one GPU, the total cost is:
-
-$$
-15625 \cdot 0.5 = 7812.5
-$$
-
-GPU-hours.
-
-Grid search is defensible when:
-
-1. the space is tiny,
-2. variables are categorical,
-3. every combination is meaningful,
-4. parallel compute is abundant,
-5. the goal is a complete factorial ablation,
-6. the evaluation is cheap.
-
-Grid search is weak when:
-
-1. important variables are continuous,
-2. useful scales are logarithmic,
-3. only a few dimensions matter,
-4. conditional branches exist,
-5. the grid boundaries were chosen casually,
-6. the budget is fixed and small.
-
-The random-search paper showed that grid search wastes trials when many hyperparameters have little effect.
-This is common in ML.
-A deep model may be very sensitive to learning rate, moderately sensitive to weight decay, and almost insensitive to some augmentation parameter within a broad range.
-A grid does not know this.
-It spreads resolution evenly.
-
-The expected best grid result is therefore limited by grid resolution on the important dimensions.
-If the best learning rate lies between grid points, the grid cannot find it.
-Random search can.
-
-### 3.3 Random Search and Effective Dimension
-
-Random search samples:
-
-$$
-\boldsymbol{\lambda}_j \sim q(\boldsymbol{\lambda}),
-\qquad
-j=1,\ldots,N.
-$$
-
-It is embarrassingly parallel.
-It needs no surrogate model.
-It handles mixed spaces.
-It is easy to reproduce.
-It is a strong baseline.
-
-The probability that random search samples at least one point in a good region $\mathcal{A} \subseteq \mathcal{X}$ is:
-
-$$
-P(\text{hit } \mathcal{A})
-=
-1 - (1 - q(\mathcal{A}))^N.
-$$
-
-If $q(\mathcal{A})=0.05$, then after $N=60$ trials:
-
-$$
-1 - 0.95^{60} \approx 0.954.
-$$
-
-This simple formula is useful.
-It says random search becomes reliable when the good region has nontrivial probability under the search distribution.
-The art is defining $q$ so good regions are not tiny.
-
-Effective dimension explains why random search often beats grid search.
-Suppose:
-
-$$
-F(\boldsymbol{\lambda})
-=
-f(\lambda_1,\lambda_2)
-$$
-
-even though $\boldsymbol{\lambda} \in \mathbb{R}^{20}$.
-A grid with two values per coordinate uses $2^{20}$ trials and only two values on $\lambda_1$.
-Random search with $N=100$ uses 100 different values on $\lambda_1$ and $\lambda_2$.
-
-**Search-space quality dominates sampler cleverness.**
-A random sampler over a bad range is bad.
-For learning rates:
-
-$$
-\eta \sim \mathcal{U}(0,1)
-$$
-
-puts almost all mass on values far too large for many neural networks.
-The same sampler over:
-
-$$
-\log_{10}\eta \sim \mathcal{U}(-5,-3)
-$$
-
-may work well.
-
-Random search should usually be the first automatic baseline.
-If a fancy HPO algorithm cannot beat a well-designed random search at the same budget, the fancy algorithm is not helping.
-
-### 3.4 Quasi-Random and Space-Filling Designs
-
-Random points can cluster.
-Space-filling designs try to cover the search space more evenly.
-Examples include:
-
-- Sobol sequences,
-- Halton sequences,
-- Latin hypercube sampling,
-- orthogonal arrays,
-- maximin designs.
-
-The aim is to reduce empty regions in the initial design.
-For a normalized box $\mathcal{X}=[0,1]^d$, a space-filling design tries to make the set:
-
-$$
-\{\boldsymbol{\lambda}_1,\ldots,\boldsymbol{\lambda}_N\}
-$$
-
-spread across the box.
-
-One criterion is maximin distance:
-
-$$
-\max_{\boldsymbol{\lambda}_1,\ldots,\boldsymbol{\lambda}_N}
-\min_{i \ne j}
-\lVert \boldsymbol{\lambda}_i - \boldsymbol{\lambda}_j \rVert_2.
-$$
-
-This criterion prefers points far apart.
-It is useful for initial Bayesian optimization designs because surrogate models need broad coverage before exploiting.
-
-Space-filling designs are not magic.
-They still depend on transformations.
-If learning rate is sampled in linear space, a Sobol design will evenly fill the wrong geometry.
-First choose the right parameterization, then choose the design.
-
-**Good use.**
-Use 20 Sobol or Latin-hypercube initial points before Bayesian optimization in a 6-dimensional continuous search.
-
-**Bad use.**
-Use a space-filling design over 100 mostly irrelevant variables and expect it to solve high-dimensional HPO.
-
-### 3.5 Choosing Defensible Baselines
-
-A defensible HPO baseline has:
-
-1. a written search space,
-2. a fixed trial budget,
-3. a fixed validation metric,
-4. a fixed seed policy,
-5. failed-trial handling,
-6. equal compute across compared methods,
-7. final evaluation on data not used for selection.
-
-For most projects:
-
-| Situation | Baseline |
-| --- | --- |
-| tiny categorical space | grid search |
-| medium mixed space | random search |
-| expensive continuous objective | random search plus Bayesian optimization |
-| iterative training with early metrics | random search plus ASHA or Hyperband |
-| schedule-sensitive RL or GAN training | PBT baseline |
-| final paper claim | repeated random search and fixed-budget comparison |
-
-The baseline should not be a strawman.
-For example, grid search over linearly spaced learning rates is a weak baseline.
-A fair comparison uses log-scaled random search.
-
----
-
-## 4. Bayesian and Surrogate-Based Optimization
-
-### 4.1 Sequential Model-Based Optimization
-
-Bayesian optimization is a special case of sequential model-based optimization.
-It maintains a surrogate model of the unknown objective and uses that model to choose the next trial.
-
-At step $t$, the data are:
-
-$$
-\mathcal{D}_t
-=
-\{(\boldsymbol{\lambda}_j,Y_j)\}_{j=1}^{t}.
-$$
-
-The surrogate gives a predictive distribution:
-
-$$
-p(F(\boldsymbol{\lambda}) \mid \mathcal{D}_t).
-$$
-
-An acquisition function $a_t(\boldsymbol{\lambda})$ scores candidate points.
-For minimization, the next point is:
-
-$$
-\boldsymbol{\lambda}_{t+1}
-\in
-\arg\max_{\boldsymbol{\lambda} \in \mathcal{X}}
-a_t(\boldsymbol{\lambda}).
-$$
-
-Then the expensive training run evaluates $Y_{t+1}$.
-The loop repeats.
-
-```text
-observed trials D_t
-        |
-        v
-fit/update surrogate model
-        |
-        v
-compute acquisition function
-        |
-        v
-choose next configuration
-        |
-        v
-train and validate
-        |
-        v
-append result to D_{t+1}
-```
-
-The surrogate does not need to be perfect.
-It needs to be useful enough to guide exploration.
-Bayesian optimization is most attractive when:
-
-- each trial is expensive,
-- dimension is modest,
-- parallelism is limited,
-- the objective has exploitable structure,
-- uncertainty estimates help decide where to sample.
-
-It is less attractive when:
-
-- thousands of cheap trials are available,
-- the search space is very high-dimensional,
-- many variables are conditional categorical variables,
-- the objective changes over time,
-- the surrogate overhead is comparable to trial cost.
-
-### 4.2 Gaussian-Process Surrogate Intuition
-
-A Gaussian process places a prior over functions:
-
-$$
-F \sim \mathcal{GP}(m,k),
-$$
-
-where $m(\boldsymbol{\lambda})$ is a mean function and $k(\boldsymbol{\lambda},\boldsymbol{\lambda}')$ is a kernel.
-For any finite set of configurations, function values have a multivariate Gaussian distribution.
-
-Assume noisy observations:
-
-$$
-Y_j = F(\boldsymbol{\lambda}_j) + \varepsilon_j,
-\qquad
-\varepsilon_j \sim \mathcal{N}(0,\sigma_n^2).
-$$
-
-Let:
-
-$$
-K_{ij}
-=
-k(\boldsymbol{\lambda}_i,\boldsymbol{\lambda}_j),
-\qquad
-\mathbf{y}
-=
-(Y_1,\ldots,Y_t)^\top.
-$$
-
-For a candidate $\boldsymbol{\lambda}$, define:
-
-$$
-\mathbf{k}_{*}
-=
-\left(k(\boldsymbol{\lambda},\boldsymbol{\lambda}_1),\ldots,
-k(\boldsymbol{\lambda},\boldsymbol{\lambda}_t)\right)^\top.
-$$
-
-The posterior predictive mean and variance are:
-
-$$
-\mu_t(\boldsymbol{\lambda})
-=
-m(\boldsymbol{\lambda})
-+ \mathbf{k}_{*}^{\top}
-(K + \sigma_n^2 I)^{-1}
-(\mathbf{y} - \mathbf{m}),
-$$
-
-$$
-\sigma_t^2(\boldsymbol{\lambda})
-=
-k(\boldsymbol{\lambda},\boldsymbol{\lambda})
-- \mathbf{k}_{*}^{\top}
-(K + \sigma_n^2 I)^{-1}
-\mathbf{k}_{*}.
-$$
-
-The mean $\mu_t$ says where the model expects good performance.
-The standard deviation $\sigma_t$ says where the model is uncertain.
-Acquisition functions combine both.
-
-The kernel matters.
-An RBF kernel assumes smooth variation:
-
-$$
-k(\boldsymbol{\lambda},\boldsymbol{\lambda}')
-=
-\sigma_f^2
-\exp\left(
--\frac{1}{2}
-\sum_{i=1}^{d}
-\frac{(\lambda_i-\lambda_i')^2}{\ell_i^2}
-\right).
-$$
-
-The lengthscale $\ell_i$ controls sensitivity to dimension $i$.
-Small $\ell_i$ means the objective changes quickly along that coordinate.
-Large $\ell_i$ means the objective changes slowly.
-
-This connects to effective dimension:
-Bayesian optimization can learn that some dimensions matter less,
-but it needs enough data and a surrogate family capable of expressing that fact.
-
-### 4.3 Acquisition Functions: PI, EI, UCB, and Thompson Sampling
-
-Let the current best observed value for minimization be:
-
-$$
-y_{\min}
-=
-\min_{1 \le j \le t} Y_j.
-$$
-
-Assume the surrogate predictive distribution at $\boldsymbol{\lambda}$ is:
-
-$$
-F(\boldsymbol{\lambda}) \mid \mathcal{D}_t
-\sim
-\mathcal{N}(\mu_t(\boldsymbol{\lambda}),\sigma_t^2(\boldsymbol{\lambda})).
-$$
-
-**Probability of Improvement.**
-For margin $\xi \ge 0$:
-
-$$
-\operatorname{PI}(\boldsymbol{\lambda})
-=
-P(F(\boldsymbol{\lambda}) \le y_{\min} - \xi)
-=
-\Phi(z),
-$$
-
-where
-
-$$
-z
-=
-\frac{y_{\min} - \xi - \mu_t(\boldsymbol{\lambda})}
-{\sigma_t(\boldsymbol{\lambda})}.
-$$
-
-PI can be greedy.
-It asks for probability of any improvement, not size of improvement.
-
-**Expected Improvement.**
-Define improvement:
-
-$$
-I(\boldsymbol{\lambda})
-=
-\max(0, y_{\min} - F(\boldsymbol{\lambda}) - \xi).
-$$
-
-Then:
-
-$$
-\operatorname{EI}(\boldsymbol{\lambda})
-=
-\mathbb{E}[I(\boldsymbol{\lambda})]
-=
-(y_{\min}-\xi-\mu_t)\Phi(z)
-+ \sigma_t \phi(z).
-$$
-
-EI balances exploitation and exploration:
-
-- low $\mu_t$ gives expected good score,
-- high $\sigma_t$ gives room for improvement.
-
-**Lower Confidence Bound.**
-For minimization:
-
-$$
-\operatorname{LCB}(\boldsymbol{\lambda})
-=
-\mu_t(\boldsymbol{\lambda})
-- \kappa \sigma_t(\boldsymbol{\lambda}).
-$$
-
-Choose the point with smallest LCB.
-Larger $\kappa$ explores uncertain regions more aggressively.
-
-**Thompson sampling.**
-Sample a function from the posterior:
-
-$$
-\tilde{F} \sim p(F \mid \mathcal{D}_t),
-$$
-
-then choose:
-
-$$
-\boldsymbol{\lambda}_{t+1}
-\in
-\arg\min_{\boldsymbol{\lambda}}
-\tilde{F}(\boldsymbol{\lambda}).
-$$
-
-This turns posterior uncertainty into randomized exploration.
-
-**Acquisition optimization is itself an optimization problem.**
-Acquisition functions can be non-convex.
-They are cheap compared with training, so one can optimize them with dense candidate sampling, multistart local search, evolutionary search, or mixed strategies.
-
-### 4.4 Tree-Structured Parzen Estimators
-
-Gaussian processes are elegant but can struggle with high-dimensional, conditional, and categorical HPO spaces.
-Tree-structured Parzen estimators (TPE) model the problem differently.
-
-Instead of modeling $p(y \mid \boldsymbol{\lambda})$ directly, TPE models:
-
-$$
-p(\boldsymbol{\lambda} \mid y)
-$$
-
-by splitting observations into good and bad groups.
-Choose a threshold $y^{*}$ such that:
-
-$$
-P(y < y^{*}) = \gamma.
-$$
-
-For minimization, define:
-
-$$
-l(\boldsymbol{\lambda})
-=
-p(\boldsymbol{\lambda} \mid y < y^{*}),
-$$
-
-$$
-g(\boldsymbol{\lambda})
-=
-p(\boldsymbol{\lambda} \mid y \ge y^{*}).
-$$
-
-TPE proposes configurations that have high density under the good model and low density under the bad model.
-Expected improvement can be connected to the ratio:
-
-$$
-\frac{l(\boldsymbol{\lambda})}{g(\boldsymbol{\lambda})}.
-$$
-
-This representation handles tree-structured conditional spaces naturally because each branch can have its own density.
-That is why TPE-style methods are common in tools such as Hyperopt and Optuna.
-
-**Example.**
-If AdamW trials with $\eta$ near $2 \cdot 10^{-4}$ often land in the good group and trials near $10^{-2}$ land in the bad group,
-the TPE density ratio will favor the former region.
-
-**Caution.**
-TPE is still model-based search.
-It can exploit too early if initial trials are unlucky or if the search space is poorly encoded.
-Random exploration and good priors still matter.
-
-### 4.5 Noisy, Constrained, Cost-Aware, and Multi-Objective BO
-
-Practical Bayesian optimization extends the simple loop in several ways.
-
-**Noisy BO.**
-With noise:
-
-$$
-Y = F(\boldsymbol{\lambda}) + \varepsilon,
-\qquad
-\varepsilon \sim \mathcal{N}(0,\sigma_n^2).
-$$
-
-The best observed value may not be the best true value.
-Noisy acquisition functions account for uncertainty about the incumbent.
-A practical alternative is to repeat promising configurations across seeds.
-
-**Constrained BO.**
-Suppose feasibility depends on unknown constraints:
-
-$$
-G_k(\boldsymbol{\lambda}) \le 0.
-$$
-
-One can model each constraint with a surrogate and use:
-
-$$
-a_{\mathrm{constrained}}(\boldsymbol{\lambda})
-=
-a(\boldsymbol{\lambda})
-\prod_{k=1}^{K}
-P(G_k(\boldsymbol{\lambda}) \le 0 \mid \mathcal{D}_t).
-$$
-
-This favors candidates that are both promising and likely feasible.
-
-**Cost-aware BO.**
-If trials have different costs, use improvement per expected cost:
-
-$$
-a_{\mathrm{cost}}(\boldsymbol{\lambda})
-=
-\frac{\operatorname{EI}(\boldsymbol{\lambda})}
-\mathbb{E}[C(\boldsymbol{\lambda})]}.
-$$
-
-This is useful when larger models or longer sequence lengths cost more.
-
-**Multi-objective BO.**
-For objectives such as loss and latency, the acquisition can target expected hypervolume improvement.
-The output is a Pareto frontier, not a single scalar best.
-
-**Parallel BO.**
-When many workers are available, sequential BO can become a bottleneck.
-Batch acquisition functions or asynchronous pending-point heuristics are needed.
-In highly parallel settings, random search and ASHA can be more efficient in wall-clock time.
-
----
-
-## 5. Multi-Fidelity and Bandit Methods
-
-### 5.1 Resource Allocation as Optimization
-
-Multi-fidelity HPO evaluates configurations at different resource levels.
-Let:
-
-$$
-y(\boldsymbol{\lambda},r)
-$$
-
-be the observed score for configuration $\boldsymbol{\lambda}$ trained with resource $r$.
-The target is performance at maximum resource $R$:
-
-$$
-F(\boldsymbol{\lambda}) = y(\boldsymbol{\lambda},R).
-$$
-
-A resource-allocation policy decides which pairs $(\boldsymbol{\lambda},r)$ to evaluate.
-The total budget constraint is:
-
-$$
-\sum_{j} r_j \le B_{\mathrm{total}}.
-$$
-
-The simplest policy trains every configuration to $R$.
-Bandit methods do better when early results are informative.
-
-The exploration-exploitation tradeoff becomes:
-
-- explore many configurations at small $r$,
-- exploit promising configurations at larger $r$.
-
-This is similar to a multi-armed bandit, but arms are infinitely many possible configurations and rewards are non-stochastic or weakly modeled learning curves.
-
-### 5.2 Successive Halving
-
-Successive halving starts with $n$ configurations and a small resource $r_0$.
-At each rung:
-
-1. train all remaining configurations with current resource,
-2. rank by validation score,
-3. keep the top fraction $1/\eta_{\mathrm{SH}}$,
-4. multiply resource by $\eta_{\mathrm{SH}}$.
-
-Let $\eta_{\mathrm{SH}}>1$ be the halving factor.
-If lower score is better, survivors are:
-
 $$
-\mathcal{S}_{k+1}
-=
-\operatorname{Top}_{\lceil |\mathcal{S}_k|/\eta_{\mathrm{SH}} \rceil}
-\left\{
-(\boldsymbol{\lambda},y(\boldsymbol{\lambda},r_k)):
-\boldsymbol{\lambda} \in \mathcal{S}_k
-\right\}.
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-Resources follow:
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-$$
-r_{k+1} = \eta_{\mathrm{SH}} r_k.
-$$
-
-Candidate count follows approximately:
-
-$$
-n_{k+1} = \left\lfloor \frac{n_k}{\eta_{\mathrm{SH}}} \right\rfloor.
-$$
-
-The tournament view:
-
-```text
-r = 1        A B C D E F G H I
-             | | | | | | | | |
-keep top 3       B     D   F
-
-r = 3             B     D   F
-                  |     |   |
-keep top 1              D
-
-r = 9                   D
-```
-
-Successive halving works when bad configurations are bad early.
-It struggles when good configurations need long warmup.
-
-**Example: neural network learning rate.**
-Very high learning rates diverge early.
-Very low learning rates may look bad early but become stable later.
-Successive halving may discard very low learning rates too aggressively unless the minimum resource is large enough.
-
-### 5.3 Hyperband
-
-Successive halving depends on the starting number of configurations and initial resource.
-Hyperband runs multiple successive-halving brackets with different tradeoffs.
-Some brackets try many configurations with little initial resource.
-Others try fewer configurations with more initial resource.
-
-Let $R$ be the maximum resource and $\eta_{\mathrm{HB}}>1$ the downsampling rate.
-Define:
-
-$$
-s_{\max}
-=
-\left\lfloor \log_{\eta_{\mathrm{HB}}} R \right\rfloor.
-$$
-
-Hyperband loops over brackets $s \in \{s_{\max},\ldots,0\}$.
-Each bracket chooses:
-
-$$
-n_s
-\approx
-\left\lceil
-\frac{s_{\max}+1}{s+1}
-\eta_{\mathrm{HB}}^{s}
-\right\rceil,
-$$
-
-and:
-
-$$
-r_s
-=
-R\eta_{\mathrm{HB}}^{-s}.
-$$
-
-Large $s$ means many configurations with small initial resource.
-Small $s$ means fewer configurations with larger initial resource.
-
-The point is robust hedging.
-If early learning curves are reliable, aggressive brackets work.
-If early learning curves are unreliable, conservative brackets protect late bloomers.
-
-Hyperband's insight is:
-
-$$
-\text{resource allocation can beat smarter configuration choice.}
-$$
-
-The original Hyperband paper reported large speedups by combining random search with adaptive resource allocation.
-This is why Hyperband remains a practical baseline for deep learning.
-
-### 5.4 ASHA and Asynchronous Distributed Tuning
-
-Synchronous successive halving waits for all trials in a rung to finish before promotion.
-In distributed systems, this wastes time.
-Slow trials block fast trials.
-
-Asynchronous Successive Halving Algorithm (ASHA) promotes configurations as soon as enough evidence is available.
-Instead of waiting for a full rung, each trial reports intermediate metrics.
-The scheduler compares against completed trials at the same resource level and decides:
-
-$$
-\text{promote, pause, continue, or stop.}
-$$
-
-The benefit is better hardware utilization.
-Workers rarely sit idle.
-
-The risk is noisier promotion decisions.
-A trial may be stopped because the current comparison set is unlucky or biased.
-ASHA therefore needs careful choices for:
-
-- minimum resource,
-- reduction factor,
-- grace period,
-- metric smoothing,
-- handling missing reports,
-- retrying failed trials.
-
-For LLM fine-tuning, ASHA can be useful when many short fine-tunes are possible.
-For full pretraining, individual trials may be too expensive for naive HPO; scaling-law-informed sweeps and smaller proxy runs become more important.
-
-### 5.5 BOHB: Bayesian Optimization plus Hyperband
+Diagnostic questions:
+- Which assumption about Gaussian process is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-BOHB combines Bayesian optimization with Hyperband.
-Hyperband supplies multi-fidelity resource allocation.
-The Bayesian component guides which configurations to sample.
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-The motivation is:
-
-1. Random Hyperband explores broadly and allocates budget well.
-2. Bayesian optimization learns from prior results but can be expensive and slow for deep learning.
-3. BOHB tries to keep Hyperband's anytime behavior while improving sample quality.
-
-At a high level:
-
-```text
-previous trials
-      |
-      v
-fit density/surrogate model
-      |
-      v
-sample promising configurations
-      |
-      v
-run Hyperband-style brackets
-      |
-      v
-update model
-```
-
-BOHB is useful when:
-
-- multi-fidelity signals exist,
-- the search space is mixed,
-- pure random sampling is too wasteful,
-- pure Bayesian optimization is too slow,
-- parallel resources are available.
-
-It is not a theorem that BOHB always wins.
-The practical lesson is broader:
-
-$$
-\text{good HPO often combines better sampling with better resource allocation.}
-$$
-
----
-
-## 6. Population and Dynamic Hyperparameters
-
-### 6.1 Evolutionary and Population Search
-
-Evolutionary HPO maintains a population of configurations:
-
-$$
-\mathcal{P}_t
-=
-\{\boldsymbol{\lambda}_{t,1},\ldots,\boldsymbol{\lambda}_{t,M}\}.
-$$
-
-The loop is:
-
-1. evaluate population members,
-2. select better members,
-3. mutate or recombine configurations,
-4. repeat.
-
-Mutation might change:
-
-$$
-\eta' = \eta \cdot \exp(\delta),
-\qquad
-\delta \sim \mathcal{N}(0,\sigma^2).
-$$
-
-Categorical mutation might switch optimizer or augmentation policy.
-Architecture mutation might add a layer or change width.
-
-Population methods are attractive for rugged, mixed, or conditional spaces.
-They are less sample-efficient than good Bayesian optimization on smooth low-dimensional objectives, but they parallelize naturally and handle non-smooth choices.
-
-**Non-example.**
-Training one model and changing its hyperparameters manually after looking at validation curves is not a reproducible population method.
-It is manual intervention unless the rule is specified in advance.
-
-### 6.2 Population-Based Training
-
-Population-Based Training (PBT) jointly trains model weights and hyperparameters.
-Each population member has:
-
-$$
-(\boldsymbol{\theta}_{t,i}, \boldsymbol{\lambda}_{t,i}).
-$$
-
-During training, weak performers copy weights from stronger performers and perturb hyperparameters.
-This is often described as exploit and explore:
-
-- **exploit:** replace a weak member with a copy of a strong member,
-- **explore:** mutate the copied hyperparameters.
-
-PBT does not merely find a fixed $\boldsymbol{\lambda}$.
-It can discover a schedule:
-
-$$
-\boldsymbol{\lambda}_i(t).
-$$
-
-This is important for learning rates, entropy coefficients in reinforcement learning, augmentation strength, loss weights, and other time-dependent controls.
-
-PBT differs from ordinary HPO:
-
-| Ordinary HPO | PBT |
-| --- | --- |
-| train each trial independently | trials exchange weights |
-| usually fixed hyperparameters | dynamic hyperparameter schedules |
-| final configuration selected after training | selection happens during training |
-| easier statistical interpretation | more coupled and harder to analyze |
-
-PBT is powerful but less clean for final scientific claims because trials are not independent.
-The lineage of weights and hyperparameters must be logged.
-
-### 6.3 Fixed Hyperparameters versus Learned Schedules
-
-Some quantities called hyperparameters are really functions of time:
-
-$$
-\eta_t = s(t;\boldsymbol{\lambda}).
-$$
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-Learning-rate schedules belong in [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md).
-Here, the HPO question is how to select schedule parameters such as:
+### 2.2 Secondary definition: conditional parameter
 
-- peak learning rate,
-- warmup steps,
-- decay shape,
-- final learning-rate ratio,
-- cycle length,
-- restart policy,
-- stable phase duration.
+In this section, expected improvement is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Secondary definition: conditional parameter" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-> **Preview: Learning Rate Schedules**
+> **Definition.**
 >
-> Warmup, cosine decay, one-cycle schedules, and WSD schedules have their own mathematical structure.
-> This section treats them as tunable configuration families.
+> For this section, **expected improvement** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
 >
-> -> Full treatment: [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md)
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-The distinction matters.
-Optimizing a fixed learning rate $\eta$ is a different problem from optimizing a schedule $\eta_t$.
-A single scalar may be too weak for long training runs.
-But allowing arbitrary schedules makes the search space enormous.
-
-Common compromise:
-
-$$
-\eta_t
-=
-\eta_{\max} \cdot s(t;T_{\mathrm{warm}},T_{\mathrm{decay}},\rho).
-$$
-
-Tune a few schedule parameters rather than every time step.
-
-### 6.4 Architecture and Augmentation Policy Search
-
-Architecture search and augmentation search are related to HPO but can become full subfields.
-They include:
-
-- neural architecture search,
-- depth and width search,
-- convolution block search,
-- transformer head and MLP ratio search,
-- augmentation policy search,
-- data mixture search,
-- prompt template search,
-- tokenizer or vocabulary choices.
-
-This section gives only the HPO view:
-these are structured configuration spaces with expensive noisy objectives.
-
-Architecture search often has stronger coupling to model capacity and compute:
-
-$$
-F(\boldsymbol{\lambda})
-\quad \text{and} \quad
-C(\boldsymbol{\lambda})
-$$
-
-change together.
-A larger model may improve validation loss but violate latency, memory, or training budget.
-Therefore architecture HPO should usually be multi-objective.
-
-For LLMs, full architecture search is rare for ordinary teams because pretraining budgets are enormous.
-More common search targets are:
-
-- adapter rank,
-- target modules,
-- data mixture weights,
-- context length,
-- batch size,
-- optimizer and schedule parameters,
-- decoding and inference parameters.
-
-### 6.5 Transfer HPO, Warm Starts, and Meta-Learning
-
-HPO studies are not always independent.
-Past tasks can inform future search.
-Let task $m$ have objective:
-
-$$
-F_m(\boldsymbol{\lambda}).
-$$
-
-Transfer HPO uses previous studies:
-
-$$
-\{\mathcal{D}^{(1)},\ldots,\mathcal{D}^{(M-1)}\}
-$$
-
-to improve search on task $M$.
-
-Simple transfer:
-
-1. start from the best historical configurations,
-2. narrow search ranges around robust regions,
-3. reuse priors for learning rate and weight decay,
-4. initialize surrogate models with past observations.
-
-Meta-learning view:
-
-$$
-p(F_M \mid \mathcal{D}^{(1:M-1)},\mathcal{D}^{(M)}_t).
-$$
-
-This is attractive when an organization repeatedly trains similar models.
-It is dangerous when tasks differ in hidden ways.
-A hyperparameter prior from one dataset can be harmful on another.
-
-**Rule.**
-Transfer prior knowledge, but still measure.
-Do not treat historical defaults as proof of current optimality.
-
----
-
-## 7. Statistical Reliability and Selection Bias
-
-### 7.1 Train, Validation, and Test Discipline
-
-The correct split logic is:
-
-| Split | Used for |
-| --- | --- |
-| training | fit $\boldsymbol{\theta}$ |
-| validation | select $\boldsymbol{\lambda}$ |
-| test | estimate final generalization after selection |
-
-The test set must not influence:
-
-- search ranges,
-- early stopping,
-- architecture choice,
-- seed choice,
-- prompt choice,
-- data cleaning decisions,
-- final checkpoint selection,
-- retry decisions.
-
-If it does, it is no longer a test set.
-
-The validation objective is:
-
-$$
-\hat{R}_{\mathrm{val}}(\boldsymbol{\lambda}).
-$$
-
-The test estimate is:
-
-$$
-\hat{R}_{\mathrm{test}}(\hat{\boldsymbol{\lambda}}).
-$$
-
-where $\hat{\boldsymbol{\lambda}}$ is selected without using test labels.
-
-Leakage can be subtle.
 Examples:
+- A small synthetic quadratic where expected improvement can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where expected improvement affects optimization but the model remains interpretable.
+- A transformer training diagnostic where expected improvement appears through gradient norms, update norms, curvature, or validation loss.
 
-1. evaluating every trial on the test set and selecting the best,
-2. changing the search space after seeing test failures,
-3. selecting the best random seed by test performance,
-4. tuning a threshold on test data,
-5. removing difficult test examples after inspecting errors,
-6. choosing between papers' methods based on your test set.
+Non-examples:
+- Treating expected improvement as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-For LLM evaluation, the same issue appears with benchmark suites.
-If prompts, decoding settings, or checkpoints are repeatedly selected on the benchmark, the benchmark has become validation.
-
-### 7.2 Nested Cross-Validation and Model-Selection Bias
-
-In small-data settings, one often uses cross-validation.
-For hyperparameter tuning, cross-validation can estimate:
+Useful formula:
 
 $$
-\hat{R}_{\mathrm{CV}}(\boldsymbol{\lambda})
-=
-\frac{1}{K}
-\sum_{k=1}^{K}
-\hat{R}^{(k)}_{\mathrm{val}}(\boldsymbol{\lambda}).
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-If the same cross-validation scores are used both to select hyperparameters and report final performance, the estimate is optimistic.
-Nested cross-validation separates selection and evaluation.
+Proof sketch or reasoning pattern:
 
-Outer loop:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving expected
+improvement, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-1. hold out fold $k$ as outer test,
-2. tune hyperparameters using only the remaining data,
-3. train selected model,
-4. evaluate on outer fold.
-
-Inner loop:
-
-1. split the outer-training data,
-2. compare hyperparameters,
-3. choose $\hat{\boldsymbol{\lambda}}^{(k)}$.
-
-Nested CV estimates the performance of the full selection procedure:
+Implementation consequence:
+- Log a metric that makes expected improvement visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\hat{R}_{\mathrm{nested}}
-=
-\frac{1}{K_{\mathrm{outer}}}
-\sum_{k=1}^{K_{\mathrm{outer}}}
-\hat{R}_{\mathrm{outer},k}
-\left(
-\hat{\boldsymbol{\lambda}}^{(k)}
-\right).
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-This is more expensive than ordinary CV.
-It is worth it when data are small and performance claims must be reliable.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-For large deep learning, nested CV is often infeasible.
-The analogous discipline is a clean validation/test split plus limited final test evaluation.
+Diagnostic questions:
+- Which assumption about expected improvement is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-### 7.3 Multiple Comparisons, Seeds, and Confidence Intervals
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-If we test many configurations, some will look good by chance.
-Assume for intuition that all configurations have equal true mean $\mu$ and observed noise:
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-$$
-Y_j \sim \mathcal{N}(\mu,\sigma^2).
-$$
+### 2.3 Algorithmic object: log-uniform sampling
 
-Then:
+In this section, upper confidence bound is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Algorithmic object: log-uniform sampling"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
 
-$$
-\mathbb{E}[\min_j Y_j] < \mu.
-$$
+> **Definition.**
+>
+> For this section, **upper confidence bound** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-The more trials, the more optimistic the best observed score.
-This is the winner's curse.
+Examples:
+- A small synthetic quadratic where upper confidence bound can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where upper confidence bound affects optimization but the model remains interpretable.
+- A transformer training diagnostic where upper confidence bound appears through gradient norms, update norms, curvature, or validation loss.
 
-Repeated seeds help estimate training variability.
-For configuration $\boldsymbol{\lambda}$ and seeds $s=1,\ldots,S$:
+Non-examples:
+- Treating upper confidence bound as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-$$
-\bar{Y}(\boldsymbol{\lambda})
-=
-\frac{1}{S}
-\sum_{s=1}^{S}
-Y(\boldsymbol{\lambda},s).
-$$
-
-The standard error is:
-
-$$
-\operatorname{SE}(\bar{Y})
-=
-\frac{\hat{\sigma}}{\sqrt{S}}.
-$$
-
-But repeating every configuration across many seeds can be expensive.
-A practical pattern:
-
-1. use one seed for broad exploration,
-2. repeat top configurations across several seeds,
-3. choose based on mean and variance,
-4. report uncertainty.
-
-Do not select the best seed.
-A seed is part of the noise process, not a model improvement.
-
-### 7.4 Multi-Metric and Pareto Reporting
-
-Modern AI systems rarely optimize one metric.
-Consider:
+Useful formula:
 
 $$
-\left(
-\text{validation loss},
-\text{latency},
-\text{memory},
-\text{toxicity rate},
-\text{calibration error}
-\right).
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-Scalarizing:
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving upper
+confidence bound, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes upper confidence bound visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-J
-=
-\alpha_1 F_1 + \cdots + \alpha_m F_m
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-is convenient but hides tradeoffs.
-Pareto reporting is often clearer.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-A configuration is Pareto-efficient if no other configuration improves one metric without worsening another.
-For model deployment, a slightly worse loss may be acceptable if latency is much better.
-For safety-critical systems, a lower loss may not justify a higher violation rate.
+Diagnostic questions:
+- Which assumption about upper confidence bound is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-Good HPO reports include:
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-- primary selection metric,
-- secondary guardrail metrics,
-- Pareto frontier,
-- cost per trial,
-- total cost,
-- failed trials,
-- uncertainty over final candidates.
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-### 7.5 Reproducible HPO Reports
+### 2.4 Examples, non-examples, and boundary cases
 
-A reproducible HPO report should answer:
+In this section, Thompson sampling is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Examples, non-examples, and boundary cases" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-1. What was the exact search space?
-2. Which sampler and scheduler were used?
-3. What was the budget?
-4. What metric selected the winner?
-5. What seeds were used?
-6. Were trials pruned?
-7. How were failed trials handled?
-8. What code and data version were used?
-9. What hardware was used?
-10. How many total configurations were evaluated?
-11. How many reached full budget?
-12. Was the final test set touched before selection?
+> **Definition.**
+>
+> For this section, **Thompson sampling** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-Minimal table:
+Examples:
+- A small synthetic quadratic where Thompson sampling can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Thompson sampling affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Thompson sampling appears through gradient norms, update norms, curvature, or validation loss.
 
-| Field | Example |
-| --- | --- |
-| Study name | `hpo_lora_rank_lr_2026_05_05` |
-| Search space | YAML or JSON specification |
-| Sampler | TPE with random startup trials |
-| Scheduler | ASHA, grace period 500 steps |
-| Budget | 80 trials, max 3000 steps |
-| Metric | validation negative log-likelihood |
-| Seeds | one exploration seed, five final seeds |
-| Data version | hash or dataset release |
-| Code version | git commit |
-| Hardware | 1xA100 80GB |
+Non-examples:
+- Treating Thompson sampling as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-This may feel bureaucratic.
-It is how future-you knows whether the result is real.
-
----
-
-## 8. Applications in ML and LLM Systems
-
-### 8.1 Classical ML Pipelines
-
-Classical ML HPO often tunes preprocessing, model class, and estimator hyperparameters together.
-For an SVM pipeline:
+Useful formula:
 
 $$
-\boldsymbol{\lambda}
-=
-(\text{scaler}, C, \gamma, \text{kernel}).
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-For a random forest:
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Thompson
+sampling, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Thompson sampling visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-\boldsymbol{\lambda}
-=
-(\text{n_estimators}, \text{max_depth}, \text{min_samples_leaf}, \text{max_features}).
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-Cross-validation is common because datasets may be small.
-Pipelines are important because preprocessing must be fit inside each training fold.
-If scaling is fit before cross-validation on the whole dataset, validation information leaks into training.
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-Grid search can be fine for tiny categorical spaces.
-Randomized search is better when distributions matter.
-Successive halving can use resources such as number of samples or number of trees.
+Diagnostic questions:
+- Which assumption about Thompson sampling is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-### 8.2 Deep Learning Knobs
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-Deep learning HPO usually centers on:
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-| Hyperparameter | Notes |
-| --- | --- |
-| learning rate | most sensitive, usually log scale |
-| batch size | coupled with learning rate and hardware |
-| optimizer | AdamW is common, but not universal |
-| weight decay | interacts with optimizer and architecture |
-| dropout | task- and model-dependent |
-| gradient clipping | stabilizes but can slow learning |
-| warmup | crucial for large models |
-| number of steps | resource and performance variable |
-| augmentation | domain-specific |
-| label smoothing | affects calibration and loss |
+### 2.5 Notation, dimensions, and assumptions
 
-Many of these have canonical theory elsewhere in the chapter.
-In HPO, we treat them as coordinates of $\boldsymbol{\lambda}$.
+In this section, Bayesian optimization is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Notation, dimensions, and assumptions" means
+a precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
 
-Learning rate and batch size are coupled.
-A larger batch often supports a larger learning rate up to a point.
-Therefore independent one-dimensional sweeps can miss good regions.
+> **Definition.**
+>
+> For this section, **Bayesian optimization** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-Weight decay and learning rate are also coupled in AdamW because the decoupled decay update has scale:
+Examples:
+- A small synthetic quadratic where Bayesian optimization can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Bayesian optimization affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Bayesian optimization appears through gradient norms, update norms, curvature, or validation loss.
 
-$$
-\eta \lambda_{\mathrm{wd}} \boldsymbol{\theta}_t.
-$$
+Non-examples:
+- Treating Bayesian optimization as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
 
-Changing $\eta$ changes the effective decay per step.
-
-### 8.3 LLM Fine-Tuning Knobs
-
-LLM fine-tuning HPO is often constrained by memory and data quality.
-Common knobs:
-
-| Knob | Meaning |
-| --- | --- |
-| $\eta$ | adapter or full fine-tuning learning rate |
-| $B_{\mathrm{micro}}$ | per-device microbatch size |
-| $B_{\mathrm{eff}}$ | effective batch size after gradient accumulation |
-| $r$ | LoRA rank |
-| $\alpha$ | LoRA scaling |
-| target modules | which matrices receive adapters |
-| epochs or steps | training resource |
-| warmup ratio | schedule shape |
-| weight decay | regularization |
-| max sequence length | memory and task coverage |
-| data mixture weights | instruction, preference, domain data |
-| packing policy | sample packing for efficiency |
-
-A practical first search might be:
+Useful formula:
 
 $$
-\log_{10}\eta \sim \mathcal{U}(-5,-3),
-\qquad
-r \in \{4,8,16,32\},
-\qquad
-\lambda_{\mathrm{wd}} \in \{0,0.01,0.05\}.
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
 $$
 
-Do not tune only on training loss.
-Fine-tuning can overfit style, memorization, or benchmark artifacts.
-Use validation tasks aligned with deployment.
+Proof sketch or reasoning pattern:
 
-For instruction tuning, the objective may combine:
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Bayesian
+optimization, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
 
-- validation loss,
-- task accuracy,
-- preference win rate,
-- toxicity or safety filters,
-- format compliance,
-- latency and memory.
-
-This is a multi-objective HPO problem.
-
-### 8.4 Practical Tooling
-
-Common tools encode the same mathematical concepts:
-
-| Tool | Concepts |
-| --- | --- |
-| scikit-learn search | grid, randomized search, successive halving, cross-validation |
-| Optuna | studies, trials, TPE, pruning, conditional spaces |
-| Ray Tune | distributed trials, schedulers, ASHA, Hyperband, PBT |
-| KerasTuner | random, Bayesian, Hyperband tuners |
-| SageMaker tuning | managed random, Bayesian, Hyperband, grid strategies |
-| Weights and Biases sweeps | experiment tracking plus sweep strategies |
-| MLflow | tracking and model registry integration |
-
-The tool is not the method.
-You still must specify:
+Implementation consequence:
+- Log a metric that makes Bayesian optimization visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
 
 $$
-(\mathcal{X}, q, B_{\mathrm{total}}, \text{metric}, \text{selection rule}).
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-Good tooling helps with:
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
 
-- reproducibility,
-- failed-trial tracking,
-- parallel scheduling,
-- visualization,
-- artifact storage,
-- resuming studies,
-- comparing studies.
+Diagnostic questions:
+- Which assumption about Bayesian optimization is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
 
-Bad usage of good tooling is still bad science.
-A tuner cannot fix a leaked validation set or meaningless metric.
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
 
-### 8.5 When Not to Tune
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
-HPO has opportunity cost.
-Sometimes the right move is not another sweep.
+## 3. Core Theory I: Geometry and Guarantees
 
-Do not tune aggressively when:
+This block develops core theory i: geometry and guarantees for Hyperparameter Optimization. It
+keeps the scope local to this section while pointing forward when a neighboring topic owns the
+full treatment.
 
-1. the training loop is still buggy,
-2. the validation metric is untrusted,
-3. the dataset split is wrong,
-4. the search space is arbitrary,
-5. compute is better spent collecting data,
-6. a robust default is known,
-7. the expected improvement is smaller than noise,
-8. the model is under-instrumented,
-9. you cannot log failed trials,
-10. the deployment constraint is not defined.
+### 3.1 Geometry of grid search
 
-For LLM work, many teams should start with robust defaults:
+In this section, Thompson sampling is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Geometry of grid search" means a precise mathematical
+habit: state the assumptions, write the update, identify what can be measured, and connect the
+result to a real AI training decision.
 
-- AdamW or Adafactor depending on memory,
-- conservative learning-rate ranges,
-- modest LoRA rank,
-- clean validation set,
-- fixed seed policy,
-- short pilot runs,
-- only then automatic search.
+> **Definition.**
+>
+> For this section, **Thompson sampling** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
 
-HPO amplifies whatever objective it is given.
-If the objective is wrong, HPO makes you wrong faster.
+Examples:
+- A small synthetic quadratic where Thompson sampling can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Thompson sampling affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Thompson sampling appears through gradient norms, update norms, curvature, or validation loss.
 
----
+Non-examples:
+- Treating Thompson sampling as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Thompson
+sampling, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Thompson sampling visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Thompson sampling is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 3.2 Key inequality for random search
+
+In this section, Bayesian optimization is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Key inequality for random search" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Bayesian optimization** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Bayesian optimization can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Bayesian optimization affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Bayesian optimization appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Bayesian optimization as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Bayesian
+optimization, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Bayesian optimization visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Bayesian optimization is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 3.3 Role of Sobol initialization
+
+In this section, successive halving is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Role of Sobol initialization" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **successive halving** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where successive halving can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where successive halving affects optimization but the model remains interpretable.
+- A transformer training diagnostic where successive halving appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating successive halving as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving successive
+halving, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes successive halving visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about successive halving is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 3.4 Proof template and what the proof actually buys
+
+In this section, Hyperband is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Proof template and what the proof actually buys" means
+a precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Hyperband** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Hyperband can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Hyperband affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Hyperband appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Hyperband as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Hyperband,
+and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Hyperband visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Hyperband is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 3.5 Failure modes when assumptions are removed
+
+In this section, ASHA is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Hyperparameter
+Optimization, the phrase "Failure modes when assumptions are removed" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **ASHA** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where ASHA can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where ASHA affects optimization but the model remains interpretable.
+- A transformer training diagnostic where ASHA appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating ASHA as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving ASHA, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes ASHA visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about ASHA is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 4. Core Theory II: Algorithms and Dynamics
+
+This block develops core theory ii: algorithms and dynamics for Hyperparameter Optimization. It
+keeps the scope local to this section while pointing forward when a neighboring topic owns the
+full treatment.
+
+### 4.1 Algorithmic update for surrogate model
+
+In this section, Hyperband is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Algorithmic update for surrogate model" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Hyperband** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Hyperband can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Hyperband affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Hyperband appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Hyperband as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Hyperband,
+and use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Hyperband visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Hyperband is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 4.2 Stability role of Gaussian process
+
+In this section, ASHA is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Hyperparameter
+Optimization, the phrase "Stability role of Gaussian process" means a precise mathematical
+habit: state the assumptions, write the update, identify what can be measured, and connect the
+result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **ASHA** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where ASHA can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where ASHA affects optimization but the model remains interpretable.
+- A transformer training diagnostic where ASHA appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating ASHA as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving ASHA, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes ASHA visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about ASHA is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 4.3 Rate or complexity controlled by expected improvement
+
+In this section, BOHB is treated as a concrete optimization object rather than a slogan. The
+goal is to understand how it changes the objective, the update rule, the convergence story, and
+the diagnostics a practitioner should inspect when training a modern model. For Hyperparameter
+Optimization, the phrase "Rate or complexity controlled by expected improvement" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **BOHB** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where BOHB can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where BOHB affects optimization but the model remains interpretable.
+- A transformer training diagnostic where BOHB appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating BOHB as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving BOHB, and
+use the section assumptions to bound the change in objective value. If the assumption is
+geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes BOHB visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about BOHB is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 4.4 Diagnostic interpretation of the update path
+
+In this section, population-based training is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Diagnostic interpretation of the update
+path" means a precise mathematical habit: state the assumptions, write the update, identify what
+can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **population-based training** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where population-based training can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where population-based training affects optimization but the model remains interpretable.
+- A transformer training diagnostic where population-based training appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating population-based training as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+population-based training, and use the section assumptions to bound the change in objective
+value. If the assumption is geometric, the proof turns a picture into an inequality. If the
+assumption is stochastic, the proof takes conditional expectation before applying the bound. If
+the assumption is algorithmic, the proof checks that the proposed update is a descent,
+projection, or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes population-based training visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about population-based training is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 4.5 Connection to the next section in the chapter
+
+In this section, multi-objective tuning is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Connection to the next section in the
+chapter" means a precise mathematical habit: state the assumptions, write the update, identify
+what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **multi-objective tuning** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where multi-objective tuning can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where multi-objective tuning affects optimization but the model remains interpretable.
+- A transformer training diagnostic where multi-objective tuning appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating multi-objective tuning as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+multi-objective tuning, and use the section assumptions to bound the change in objective value.
+If the assumption is geometric, the proof turns a picture into an inequality. If the assumption
+is stochastic, the proof takes conditional expectation before applying the bound. If the
+assumption is algorithmic, the proof checks that the proposed update is a descent, projection,
+or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes multi-objective tuning visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about multi-objective tuning is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 5. Core Theory III: Practical Variants
+
+This block develops core theory iii: practical variants for Hyperparameter Optimization. It
+keeps the scope local to this section while pointing forward when a neighboring topic owns the
+full treatment.
+
+### 5.1 Variant built around upper confidence bound
+
+In this section, population-based training is treated as a concrete optimization object rather
+than a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Variant built around upper confidence bound"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **population-based training** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where population-based training can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where population-based training affects optimization but the model remains interpretable.
+- A transformer training diagnostic where population-based training appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating population-based training as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+population-based training, and use the section assumptions to bound the change in objective
+value. If the assumption is geometric, the proof turns a picture into an inequality. If the
+assumption is stochastic, the proof takes conditional expectation before applying the bound. If
+the assumption is algorithmic, the proof checks that the proposed update is a descent,
+projection, or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes population-based training visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about population-based training is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 5.2 Variant built around Thompson sampling
+
+In this section, multi-objective tuning is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Variant built around Thompson sampling"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **multi-objective tuning** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where multi-objective tuning can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where multi-objective tuning affects optimization but the model remains interpretable.
+- A transformer training diagnostic where multi-objective tuning appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating multi-objective tuning as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+multi-objective tuning, and use the section assumptions to bound the change in objective value.
+If the assumption is geometric, the proof turns a picture into an inequality. If the assumption
+is stochastic, the proof takes conditional expectation before applying the bound. If the
+assumption is algorithmic, the proof checks that the proposed update is a descent, projection,
+or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes multi-objective tuning visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about multi-objective tuning is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 5.3 Variant built around Bayesian optimization
+
+In this section, Pareto frontier is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Variant built around Bayesian optimization" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Pareto frontier** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Pareto frontier can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Pareto frontier affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Pareto frontier appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Pareto frontier as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Pareto
+frontier, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Pareto frontier visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Pareto frontier is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 5.4 Implementation constraints and numerical stability
+
+In this section, validation leakage is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Implementation constraints and numerical stability"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **validation leakage** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where validation leakage can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where validation leakage affects optimization but the model remains interpretable.
+- A transformer training diagnostic where validation leakage appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating validation leakage as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving validation
+leakage, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes validation leakage visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about validation leakage is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 5.5 What belongs here versus neighboring sections
+
+In this section, nested validation is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "What belongs here versus neighboring sections" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **nested validation** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where nested validation can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where nested validation affects optimization but the model remains interpretable.
+- A transformer training diagnostic where nested validation appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating nested validation as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving nested
+validation, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes nested validation visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about nested validation is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 6. Advanced Topics
+
+This block develops advanced topics for Hyperparameter Optimization. It keeps the scope local to
+this section while pointing forward when a neighboring topic owns the full treatment.
+
+### 6.1 Advanced view of successive halving
+
+In this section, validation leakage is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Advanced view of successive halving" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **validation leakage** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where validation leakage can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where validation leakage affects optimization but the model remains interpretable.
+- A transformer training diagnostic where validation leakage appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating validation leakage as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving validation
+leakage, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes validation leakage visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about validation leakage is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.2 Advanced view of Hyperband
+
+In this section, nested validation is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Advanced view of Hyperband" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **nested validation** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where nested validation can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where nested validation affects optimization but the model remains interpretable.
+- A transformer training diagnostic where nested validation appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating nested validation as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving nested
+validation, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes nested validation visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about nested validation is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.3 Advanced view of ASHA
+
+In this section, LLM fine-tuning search is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Advanced view of ASHA" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **LLM fine-tuning search** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where LLM fine-tuning search can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where LLM fine-tuning search affects optimization but the model remains interpretable.
+- A transformer training diagnostic where LLM fine-tuning search appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating LLM fine-tuning search as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving LLM
+fine-tuning search, and use the section assumptions to bound the change in objective value. If
+the assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes LLM fine-tuning search visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about LLM fine-tuning search is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.4 Infinite-dimensional or large-scale interpretation
+
+In this section, configuration space is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Infinite-dimensional or large-scale interpretation"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **configuration space** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where configuration space can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where configuration space affects optimization but the model remains interpretable.
+- A transformer training diagnostic where configuration space appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating configuration space as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+configuration space, and use the section assumptions to bound the change in objective value. If
+the assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes configuration space visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about configuration space is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 6.5 Open questions for frontier model training
+
+In this section, conditional parameter is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Open questions for frontier model training"
+means a precise mathematical habit: state the assumptions, write the update, identify what can
+be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **conditional parameter** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where conditional parameter can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where conditional parameter affects optimization but the model remains interpretable.
+- A transformer training diagnostic where conditional parameter appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating conditional parameter as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+conditional parameter, and use the section assumptions to bound the change in objective value.
+If the assumption is geometric, the proof turns a picture into an inequality. If the assumption
+is stochastic, the proof takes conditional expectation before applying the bound. If the
+assumption is algorithmic, the proof checks that the proposed update is a descent, projection,
+or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes conditional parameter visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about conditional parameter is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 7. Applications in Machine Learning
+
+This block develops applications in machine learning for Hyperparameter Optimization. It keeps
+the scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
+
+### 7.1 learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning
+
+In this section, configuration space is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "learning-rate, weight-decay, batch-size, and schedule
+tuning for LLM fine-tuning" means a precise mathematical habit: state the assumptions, write the
+update, identify what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **configuration space** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where configuration space can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where configuration space affects optimization but the model remains interpretable.
+- A transformer training diagnostic where configuration space appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating configuration space as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+configuration space, and use the section assumptions to bound the change in objective value. If
+the assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes configuration space visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about configuration space is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.2 Hyperband and ASHA for neural architecture and training-budget search
+
+In this section, conditional parameter is treated as a concrete optimization object rather than
+a slogan. The goal is to understand how it changes the objective, the update rule, the
+convergence story, and the diagnostics a practitioner should inspect when training a modern
+model. For Hyperparameter Optimization, the phrase "Hyperband and ASHA for neural architecture
+and training-budget search" means a precise mathematical habit: state the assumptions, write the
+update, identify what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **conditional parameter** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where conditional parameter can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where conditional parameter affects optimization but the model remains interpretable.
+- A transformer training diagnostic where conditional parameter appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating conditional parameter as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+conditional parameter, and use the section assumptions to bound the change in objective value.
+If the assumption is geometric, the proof turns a picture into an inequality. If the assumption
+is stochastic, the proof takes conditional expectation before applying the bound. If the
+assumption is algorithmic, the proof checks that the proposed update is a descent, projection,
+or preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes conditional parameter visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about conditional parameter is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.3 Bayesian optimization for expensive, low-dimensional continuous tuning
+
+In this section, log-uniform sampling is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Bayesian optimization for expensive, low-dimensional
+continuous tuning" means a precise mathematical habit: state the assumptions, write the update,
+identify what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **log-uniform sampling** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where log-uniform sampling can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where log-uniform sampling affects optimization but the model remains interpretable.
+- A transformer training diagnostic where log-uniform sampling appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating log-uniform sampling as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving
+log-uniform sampling, and use the section assumptions to bound the change in objective value. If
+the assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes log-uniform sampling visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about log-uniform sampling is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.4 validation leakage prevention in model-selection pipelines
+
+In this section, grid search is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "validation leakage prevention in model-selection
+pipelines" means a precise mathematical habit: state the assumptions, write the update, identify
+what can be measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **grid search** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where grid search can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where grid search affects optimization but the model remains interpretable.
+- A transformer training diagnostic where grid search appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating grid search as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving grid
+search, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes grid search visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about grid search is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 7.5 Diagnostic checklist for real experiments
+
+In this section, random search is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Diagnostic checklist for real experiments" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **random search** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where random search can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where random search affects optimization but the model remains interpretable.
+- A transformer training diagnostic where random search appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating random search as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving random
+search, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes random search visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about random search is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+## 8. Implementation and Diagnostics
+
+This block develops implementation and diagnostics for Hyperparameter Optimization. It keeps the
+scope local to this section while pointing forward when a neighboring topic owns the full
+treatment.
+
+### 8.1 Minimal NumPy experiment for BOHB
+
+In this section, grid search is treated as a concrete optimization object rather than a slogan.
+The goal is to understand how it changes the objective, the update rule, the convergence story,
+and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Minimal NumPy experiment for BOHB" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **grid search** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where grid search can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where grid search affects optimization but the model remains interpretable.
+- A transformer training diagnostic where grid search appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating grid search as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving grid
+search, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes grid search visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about grid search is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.2 Monitoring signal for population-based training
+
+In this section, random search is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Monitoring signal for population-based training" means
+a precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **random search** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where random search can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where random search affects optimization but the model remains interpretable.
+- A transformer training diagnostic where random search appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating random search as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving random
+search, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes random search visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about random search is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.3 Failure signature for multi-objective tuning
+
+In this section, Sobol initialization is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Failure signature for multi-objective tuning" means a
+precise mathematical habit: state the assumptions, write the update, identify what can be
+measured, and connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Sobol initialization** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Sobol initialization can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Sobol initialization affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Sobol initialization appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Sobol initialization as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Sobol
+initialization, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Sobol initialization visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Sobol initialization is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.4 Framework-level implementation pattern
+
+In this section, surrogate model is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Framework-level implementation pattern" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **surrogate model** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where surrogate model can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where surrogate model affects optimization but the model remains interpretable.
+- A transformer training diagnostic where surrogate model appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating surrogate model as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving surrogate
+model, and use the section assumptions to bound the change in objective value. If the assumption
+is geometric, the proof turns a picture into an inequality. If the assumption is stochastic, the
+proof takes conditional expectation before applying the bound. If the assumption is algorithmic,
+the proof checks that the proposed update is a descent, projection, or preconditioning step.
+This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes surrogate model visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about surrogate model is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
+
+### 8.5 Reproducibility and logging checklist
+
+In this section, Gaussian process is treated as a concrete optimization object rather than a
+slogan. The goal is to understand how it changes the objective, the update rule, the convergence
+story, and the diagnostics a practitioner should inspect when training a modern model. For
+Hyperparameter Optimization, the phrase "Reproducibility and logging checklist" means a precise
+mathematical habit: state the assumptions, write the update, identify what can be measured, and
+connect the result to a real AI training decision.
+
+> **Definition.**
+>
+> For this section, **Gaussian process** is the part of Hyperparameter Optimization that controls how the objective, feasible region, or update rule behaves under the assumptions currently in force.
+>
+> Symbolically, we track it through $f$, $\boldsymbol{\theta}$, $\eta$, $\nabla f(\boldsymbol{\theta})$, and any auxiliary state used by the algorithm.
+
+Examples:
+- A small synthetic quadratic where Gaussian process can be computed directly and compared with theory.
+- A logistic-regression or softmax objective where Gaussian process affects optimization but the model remains interpretable.
+- A transformer training diagnostic where Gaussian process appears through gradient norms, update norms, curvature, or validation loss.
+
+Non-examples:
+- Treating Gaussian process as a hyperparameter recipe without checking the objective assumptions.
+- Inferring global behavior from one noisy minibatch when the section requires a population or full-batch statement.
+
+Useful formula:
+
+$$
+\boldsymbol{\lambda}^* \in \arg\min_{\boldsymbol{\lambda}\in\Lambda} \mathcal{V}(\mathcal{A}(\boldsymbol{\lambda}), \mathcal{D}_{\mathrm{val}})
+$$
+
+Proof sketch or reasoning pattern:
+
+Start with the local model around $\boldsymbol{\theta}_t$, isolate the term involving Gaussian
+process, and use the section assumptions to bound the change in objective value. If the
+assumption is geometric, the proof turns a picture into an inequality. If the assumption is
+stochastic, the proof takes conditional expectation before applying the bound. If the assumption
+is algorithmic, the proof checks that the proposed update is a descent, projection, or
+preconditioning step. This pattern is reusable across optimization theory.
+
+Implementation consequence:
+- Log a metric that makes Gaussian process visible; otherwise a training run can fail while the scalar loss hides the cause.
+- Compare the measured update with the mathematical update below before blaming data or architecture.
+
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+- Keep units straight: parameter norm, gradient norm, update norm, objective value, and validation metric are different objects.
+
+Diagnostic questions:
+- Which assumption about Gaussian process is most fragile in the current training setup?
+- What number would you log to catch the failure one thousand steps before divergence?
+
+AI connection:
+- learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning.
+- Hyperband and ASHA for neural architecture and training-budget search.
+- Bayesian optimization for expensive, low-dimensional continuous tuning.
+- validation leakage prevention in model-selection pipelines.
+
+Local scope boundary:
+This subsection may reference neighboring material, but the full canonical treatment stays in
+its own folder. For example, stochastic gradient noise belongs to [Stochastic
+Optimization](../05-Stochastic-Optimization/notes.md), external schedule shapes belong to
+[Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md), and cross-entropy as an
+information measure belongs to
+[Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md).
 
 ## 9. Common Mistakes
 
 | # | Mistake | Why It Is Wrong | Fix |
 | --- | --- | --- | --- |
-| 1 | Tuning on the test set | The test set becomes part of the optimization loop, so the final score is biased | Keep test data untouched until final evaluation |
-| 2 | Searching learning rate on a linear scale | Useful learning-rate regions are usually multiplicative | Search $\log \eta$ or use log-uniform ranges |
-| 3 | Comparing HPO methods with unequal budgets | More trials or more resource can masquerade as a better algorithm | Fix total budget, max resource, and parallelism |
-| 4 | Reporting only the best trial | The winner may be noise-favored and hides failed attempts | Report full study summary, top trials, and uncertainty |
-| 5 | Selecting the best random seed | A seed is not a hyperparameter you can expect to reproduce | Repeat final candidates and report mean and variance |
-| 6 | Using grid search in high-dimensional continuous spaces | Grid resolution collapses on important dimensions | Use random or model-based search with sensible distributions |
-| 7 | Pruning before learning curves are informative | Late-blooming configurations are discarded | Use a grace period and inspect low/high-fidelity correlation |
-| 8 | Tuning too many knobs at once | Search budget becomes too thin for the space | Start with sensitive knobs and expand gradually |
-| 9 | Ignoring conditional structure | Inactive hyperparameters confuse samplers and surrogates | Use tree-structured spaces or branch-specific variables |
-| 10 | Optimizing one metric while caring about another | HPO finds what the metric rewards, not what deployment needs | Define primary metric and guardrails before search |
-| 11 | Forgetting preprocessing leakage in CV | Validation fold information enters training transformations | Put preprocessing inside the cross-validation pipeline |
-| 12 | Treating PBT as ordinary independent trials | Weight copying couples runs and changes interpretation | Log lineage and report the dynamic schedule |
-
----
+| 1 | Using a recipe without checking assumptions | Optimization guarantees depend on smoothness, convexity, stochasticity, or feasibility assumptions. | Write the assumptions next to the update rule before choosing hyperparameters. |
+| 2 | Confusing objective decrease with validation improvement | The optimizer sees the training objective; validation behavior also depends on generalization and data split quality. | Track objective, train metric, validation metric, and update norm separately. |
+| 3 | Treating all norms as interchangeable | The geometry changes when the norm changes, especially for constraints and regularizers. | State whether you use $\ell_1$, $\ell_2$, Frobenius, spectral, or another norm. |
+| 4 | Ignoring scale | Learning rates, penalties, curvature, and gradient norms are all scale-sensitive. | Normalize units and inspect effective update size $\lVert \Delta\boldsymbol{\theta}\rVert_2 / \lVert\boldsymbol{\theta}\rVert_2$. |
+| 5 | Overfitting to a single seed | Optimization can look stable for one seed and fail under another. | Run small seed sweeps for important claims. |
+| 6 | Hiding instability behind smoothed plots | A moving average can hide spikes, divergence, and bad curvature events. | Plot raw metrics alongside smoothed metrics. |
+| 7 | Using test data during tuning | This contaminates the final evaluation. | Reserve test data until after model and hyperparameter selection. |
+| 8 | Assuming large models make theory irrelevant | Large models often make diagnostics more important because failures are expensive. | Use theory to decide what to log, not to pretend every theorem applies exactly. |
+| 9 | Mixing optimizer state with model state carelessly | State corruption changes the effective algorithm. | Checkpoint parameters, gradients if needed, optimizer moments, scheduler state, and random seeds. |
+| 10 | Not checking numerical precision | BF16, FP16, FP8, and accumulation choices can change the observed optimizer. | Cross-check suspicious runs against higher precision on a small batch. |
 
 ## 10. Exercises
 
-### Exercise 1: Configuration Space Identification *
-
-For each item below, decide whether it is a model parameter, hyperparameter, metric, resource, or metadata.
-
-(a) A transformer MLP weight matrix $W$.
-
-(b) Learning rate $\eta$.
-
-(c) Validation loss after 2000 steps.
-
-(d) Number of training epochs.
-
-(e) Git commit hash.
-
-Explain each answer.
-
-### Exercise 2: Grid Size and Budget *
-
-A grid search uses:
+1. **Exercise 1 [*] - Log-Uniform Sampling**
+   (a) Define log-uniform sampling using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
 $$
-\eta \in \{10^{-5},10^{-4},10^{-3},10^{-2}\},
-\quad
-\lambda_{\mathrm{wd}} \in \{0,0.01,0.1\},
-\quad
-r \in \{4,8,16,32\},
-\quad
-B \in \{16,32\}.
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-(a) How many trials are required?
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-(b) If each trial costs 45 minutes, what is the GPU-hour cost?
-
-(c) What happens if two more 5-value hyperparameters are added?
-
-### Exercise 3: Random Search Hit Probability *
-
-Assume the good region has probability $q(\mathcal{A})=0.03$ under your search distribution.
-
-(a) Derive the probability of at least one hit after $N$ trials.
-
-(b) Compute this probability for $N=20,50,100$.
-
-(c) Solve for $N$ needed to exceed 95 percent hit probability.
-
-### Exercise 4: Log-Uniform Learning Rate **
-
-Let $\log_{10}\eta \sim \mathcal{U}(-5,-2)$.
-
-(a) Derive the probability that $\eta \in [10^{-4},10^{-3}]$.
-
-(b) Compare with $\eta \sim \mathcal{U}(10^{-5},10^{-2})$.
-
-(c) Explain why the log-uniform distribution is usually better for learning rates.
-
-### Exercise 5: Expected Improvement **
-
-Suppose the surrogate predictive distribution at a candidate is:
+2. **Exercise 2 [*] - Random Search**
+   (a) Define random search using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
 $$
-F(\boldsymbol{\lambda}) \sim \mathcal{N}(\mu,\sigma^2),
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-with $\mu=0.42$, $\sigma=0.05$, current best $y_{\min}=0.40$, and $\xi=0$.
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-(a) Compute $z$.
-
-(b) Compute probability of improvement.
-
-(c) Compute expected improvement.
-
-(d) Interpret whether the point is exploratory or exploitative.
-
-### Exercise 6: Successive Halving **
-
-You start with 27 configurations, reduction factor $\eta_{\mathrm{SH}}=3$, and initial resource $r_0=1$ epoch.
-
-(a) How many configurations remain after each rung?
-
-(b) What resource does each rung use?
-
-(c) What is the total epoch budget?
-
-(d) Compare with training all 27 configurations for the final resource.
-
-### Exercise 7: Hyperband Brackets **
-
-Let maximum resource be $R=81$ and reduction factor $\eta_{\mathrm{HB}}=3$.
-
-(a) Compute $s_{\max}$.
-
-(b) Describe the most aggressive and most conservative brackets.
-
-(c) Explain why Hyperband runs multiple brackets instead of one.
-
-### Exercise 8: Validation Selection Bias ***
-
-Assume 100 configurations have identical true score $\mu=0.5$ and observed scores:
+3. **Exercise 3 [*] - Surrogate Model**
+   (a) Define surrogate model using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
 $$
-Y_j \sim \mathcal{N}(0.5,0.02^2).
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
 $$
 
-(a) Simulate the best observed score.
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-(b) Repeat the simulation many times and estimate the expected best observed score.
+4. **Exercise 4 [**] - Expected Improvement**
+   (a) Define expected improvement using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-(c) Explain why the selected configuration's observed score is optimistic.
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
-### Exercise 9: Pareto Frontier ***
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-Given configurations with validation loss and latency:
+5. **Exercise 5 [**] - Thompson Sampling**
+   (a) Define Thompson sampling using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-| Config | Loss | Latency |
-| --- | --- | --- |
-| A | 0.42 | 120 |
-| B | 0.40 | 180 |
-| C | 0.45 | 90 |
-| D | 0.41 | 110 |
-| E | 0.39 | 240 |
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
-(a) Identify dominated configurations.
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-(b) List the Pareto frontier.
+6. **Exercise 6 [**] - Successive Halving**
+   (a) Define successive halving using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-(c) Choose a configuration if latency must be at most 130 ms.
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
-### Exercise 10: LLM Fine-Tuning Study Design ***
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-Design a 60-trial HPO study for LoRA fine-tuning.
+7. **Exercise 7 [**] - Asha**
+   (a) Define ASHA using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-Specify:
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
-(a) search space,
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-(b) validation metrics,
+8. **Exercise 8 [***] - Population-Based Training**
+   (a) Define population-based training using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-(c) budget and pruning rule,
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
-(d) seed policy,
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-(e) final selection rule,
+9. **Exercise 9 [***] - Pareto Frontier**
+   (a) Define Pareto frontier using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-(f) final test evaluation protocol.
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
 
----
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
 
-## 11. Why This Matters for AI
+10. **Exercise 10 [***] - Nested Validation**
+   (a) Define nested validation using the notation of this repository.
+   (b) Give three valid examples and two non-examples.
+   (c) Derive the relevant update or inequality shown below.
 
-| Concept | AI impact |
+$$
+\boldsymbol{\lambda}_{t+1} = \arg\max_{\boldsymbol{\lambda}\in\Lambda} a_t(\boldsymbol{\lambda})
+$$
+
+   (d) Implement a NumPy check on a synthetic two-dimensional objective.
+   (e) Explain what metric you would log in a real LLM or fine-tuning run.
+
+## 11. Why This Matters for AI (2026 Perspective)
+
+| Concept | AI Impact |
 | --- | --- |
-| Search-space design | Determines whether the tuner can even sample good configurations |
-| Random search | Strong baseline for neural networks with a few sensitive knobs |
-| Bayesian optimization | Saves expensive trials when the search space is modest and smooth enough |
-| TPE | Handles tree-structured conditional spaces common in real ML pipelines |
-| Successive halving | Converts early learning curves into compute savings |
-| Hyperband and ASHA | Practical for parallel neural-network tuning with intermediate metrics |
-| BOHB | Combines guided sampling with multi-fidelity allocation |
-| PBT | Learns dynamic hyperparameter schedules in RL, GANs, and long training |
-| Nested CV | Prevents optimistic claims in small-data model selection |
-| Multi-objective HPO | Makes tradeoffs among loss, latency, memory, cost, and safety explicit |
-| Repeated seeds | Separates robust configurations from lucky runs |
-| Experiment tracking | Turns HPO from folklore into reproducible engineering |
-
-In 2026-era AI systems, HPO is not only a convenience layer.
-It is part of the scientific claim.
-If a new optimizer, adapter method, retrieval pipeline, or alignment recipe wins only because it received a better tuning budget, the comparison is weak.
-If the validation set leaks into prompt selection or checkpoint choice, the benchmark number is inflated.
-If final candidates are not repeated across seeds, a lucky run may become a false default.
-
-For LLMs, the largest runs are too expensive for naive HPO.
-That does not make HPO irrelevant.
-It makes the experimental design more important:
-small proxy runs, scaling-law-informed sweeps, careful data-mixture studies, robust defaults, and limited high-fidelity confirmations.
-
----
+| configuration space | learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning |
+| conditional parameter | Hyperband and ASHA for neural architecture and training-budget search |
+| log-uniform sampling | Bayesian optimization for expensive, low-dimensional continuous tuning |
+| grid search | validation leakage prevention in model-selection pipelines |
+| random search | learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning |
+| Sobol initialization | Hyperband and ASHA for neural architecture and training-budget search |
+| surrogate model | Bayesian optimization for expensive, low-dimensional continuous tuning |
+| Gaussian process | validation leakage prevention in model-selection pipelines |
+| expected improvement | learning-rate, weight-decay, batch-size, and schedule tuning for LLM fine-tuning |
+| upper confidence bound | Hyperband and ASHA for neural architecture and training-budget search |
 
 ## 12. Conceptual Bridge
 
-This section sits after adaptive optimizers and regularization because HPO treats those earlier ideas as choices in an outer loop.
-[Adaptive Learning Rate](../07-Adaptive-Learning-Rate/notes.md) explains the internal mechanics of AdamW, Adafactor, and related methods.
-[Regularization Methods](../08-Regularization-Methods/notes.md) explains how weight decay, dropout, early stopping, and penalties control model complexity.
-Hyperparameter optimization asks how to choose those knobs under uncertainty and budget constraints.
+Hyperparameter Optimization sits inside a chain. Earlier sections give the calculus,
+probability, and linear algebra needed to write the objective and interpret the update. Later
+sections use this material to reason about noisy gradients, adaptive state, regularization,
+tuning, schedules, and finally information-theoretic losses.
 
-It points forward to [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md).
-Schedules are time-varying hyperparameters.
-This section teaches how to tune schedule families; the next section teaches the mathematical forms and training dynamics of those schedules themselves.
+Backward link: [Regularization Methods](../08-Regularization-Methods/notes.md) supplies the
+immediate prerequisite vocabulary.
 
-It also points outward to statistics and production ML.
-Selection bias, cross-validation, repeated seeds, and test-set discipline are statistical ideas.
-Experiment tracking, lineage, failed-trial handling, and reproducible reports are MLOps ideas.
-HPO is where mathematical optimization, statistical estimation, and engineering discipline meet.
+Forward link: [Learning Rate Schedules](../10-Learning-Rate-Schedules/notes.md) uses this
+section as a building block.
 
 ```text
-HYPERPARAMETER OPTIMIZATION IN THE OPTIMIZATION CHAPTER
-══════════════════════════════════════════════════════════════════════
-
-  05 Stochastic Optimization
-        noisy training dynamics
-              |
-              v
-  07 Adaptive Learning Rate          08 Regularization Methods
-        optimizer knobs                    complexity knobs
-              \                              /
-               \                            /
-                v                          v
-             09 Hyperparameter Optimization
-                outer-loop noisy budgeted search
-                         |
-                         v
-             10 Learning Rate Schedules
-                time-varying hyperparameters
-
-══════════════════════════════════════════════════════════════════════
++------------------------------------------------------------+
+| Chapter 8: Optimization                                    |
+|    01-Convex-Optimization          Convex Optimization    |
+|    02-Gradient-Descent             Gradient Descent       |
+|    03-Second-Order-Methods         Second-Order Methods   |
+|    04-Constrained-Optimization     Constrained Optimization |
+|    05-Stochastic-Optimization      Stochastic Optimization |
+|    06-Optimization-Landscape       Optimization Landscape |
+|    07-Adaptive-Learning-Rate       Adaptive Learning Rate |
+|    08-Regularization-Methods       Regularization Methods |
+| >> 09-Hyperparameter-Optimization  Hyperparameter Optimization |
+|    10-Learning-Rate-Schedules      Learning Rate Schedules |
++------------------------------------------------------------+
 ```
 
-The durable lesson is simple:
-hyperparameter optimization is not a bag of tricks.
-It is the disciplined optimization of an expensive, noisy validation objective under compute, statistical, and deployment constraints.
+## Appendix A. Extended Derivation and Diagnostic Cards
 
 ## References
 
-1. Bergstra, J., and Bengio, Y. (2012). "Random Search for Hyper-Parameter Optimization." *Journal of Machine Learning Research*, 13(10), 281-305. https://jmlr.org/papers/v13/bergstra12a.html
-2. Snoek, J., Larochelle, H., and Adams, R. P. (2012). "Practical Bayesian Optimization of Machine Learning Algorithms." *NeurIPS 2012*. https://papers.nips.cc/paper/4522-practical-bayesian-optimization-of-machine-learning-algorithms
-3. Li, L., Jamieson, K., DeSalvo, G., Rostamizadeh, A., and Talwalkar, A. (2018). "Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization." *Journal of Machine Learning Research*. https://www.jmlr.org/beta/papers/v18/16-558.html
-4. Falkner, S., Klein, A., and Hutter, F. (2018). "BOHB: Robust and Efficient Hyperparameter Optimization at Scale." *ICML 2018*. https://proceedings.mlr.press/v80/falkner18a.html
-5. Jaderberg, M. et al. (2017). "Population Based Training of Neural Networks." https://arxiv.org/abs/1711.09846
-6. Cawley, G. C., and Talbot, N. L. C. (2010). "On Over-fitting in Model Selection and Subsequent Selection Bias in Performance Evaluation." *Journal of Machine Learning Research*. https://jmlr.csail.mit.edu/beta/papers/v11/cawley10a.html
-7. Bergstra, J., Bardenet, R., Bengio, Y., and Kegl, B. (2011). "Algorithms for Hyper-Parameter Optimization." *NeurIPS 2011*. https://proceedings.neurips.cc/paper/4443-algorithms-for-hyper-parameter-optimization
-8. scikit-learn Developers. "Tuning the hyper-parameters of an estimator." https://scikit-learn.org/1.5/modules/grid_search.html
-9. Optuna Developers. "Optuna: A hyperparameter optimization framework." https://github.com/optuna/optuna
-10. Ray Developers. "Ray Tune: Hyperparameter Tuning." https://docs.ray.io/en/master/tune/index.html
-11. Amazon Web Services. "Understand the hyperparameter tuning strategies available in Amazon SageMaker AI." https://docs.aws.amazon.com/sagemaker/latest/dg/automatic-model-tuning-how-it-works.html
+- Bergstra and Bengio, Random Search for Hyper-Parameter Optimization.
+- Snoek, Larochelle, and Adams, Practical Bayesian Optimization of Machine Learning Algorithms.
+- Li et al., Hyperband.
+- Jaderberg et al., Population Based Training of Neural Networks.
+- Goodfellow, Bengio, and Courville, Deep Learning.
+- Bottou, Curtis, and Nocedal, Optimization Methods for Large-Scale Machine Learning.
+- PyTorch optimizer and scheduler documentation.
+- Optax documentation for composable optimizer transformations.
