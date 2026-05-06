@@ -1,32 +1,32 @@
-[← Back to §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: Interpolation and Approximation →](../04-Interpolation-and-Approximation/notes.md)
+[<- Back to Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: Interpolation and Approximation ->](../04-Interpolation-and-Approximation/notes.md)
 
 ---
 
 # Numerical Optimization
 
-> _"In theory there is no difference between theory and practice. In practice there is."_ — Yogi Berra
+> _"In theory there is no difference between theory and practice. In practice there is."_ - Yogi Berra
 
 ## Overview
 
-Numerical optimization is the computational science of finding minima (or maxima) of functions. While §08-Optimization covered the mathematical theory of gradient-based methods, convergence analysis, and adaptive learning rates, this section focuses on the **numerical implementation** aspects: how floating-point arithmetic affects algorithm behavior, how to implement robust line search, how to exploit problem structure, and how the algorithms used in deep learning trace their lineage to classical numerical optimization.
+Numerical optimization is the computational science of finding minima (or maxima) of functions. While Section08-Optimization covered the mathematical theory of gradient-based methods, convergence analysis, and adaptive learning rates, this section focuses on the **numerical implementation** aspects: how floating-point arithmetic affects algorithm behavior, how to implement robust line search, how to exploit problem structure, and how the algorithms used in deep learning trace their lineage to classical numerical optimization.
 
-The central insight: every optimization algorithm is implicitly solving a sequence of linear systems. Understanding this connection — and how the numerical properties of those systems determine convergence — is the key to understanding why Adam works, why Newton's method is quadratically convergent, and why gradient descent can stall.
+The central insight: every optimization algorithm is implicitly solving a sequence of linear systems. Understanding this connection - and how the numerical properties of those systems determine convergence - is the key to understanding why Adam works, why Newton's method is quadratically convergent, and why gradient descent can stall.
 
-**Scope note:** Gradient descent theory, convergence rates, and adaptive learning rates are fully covered in [§08-Optimization](../../08-Optimization/README.md). This section covers the *numerical implementation* aspects that §08 does not address in depth: line search implementations, trust region methods, quasi-Newton methods (L-BFGS), second-order methods, and the floating-point behavior of optimization algorithms.
+**Scope note:** Gradient descent theory, convergence rates, and adaptive learning rates are fully covered in [Section08-Optimization](../../08-Optimization/README.md). This section covers the *numerical implementation* aspects that Section08 does not address in depth: line search implementations, trust region methods, quasi-Newton methods (L-BFGS), second-order methods, and the floating-point behavior of optimization algorithms.
 
 ## Prerequisites
 
-- [§01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) — machine epsilon, condition numbers, stability
-- [§02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) — CG, condition numbers, matrix decompositions
-- [§08-01 Gradient Descent](../../08-Optimization/01-Gradient-Descent/notes.md) — gradient descent theory
-- [§08-05 Stochastic Optimization](../../08-Optimization/05-Stochastic-Optimization/notes.md) — SGD, Adam, momentum
+- [Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) - machine epsilon, condition numbers, stability
+- [Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) - CG, condition numbers, matrix decompositions
+- [Section08-01 Gradient Descent](../../08-Optimization/01-Gradient-Descent/notes.md) - gradient descent theory
+- [Section08-05 Stochastic Optimization](../../08-Optimization/05-Stochastic-Optimization/notes.md) - SGD, Adam, momentum
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Line search, Newton's method, L-BFGS, trust region, convergence analysis |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises on optimization algorithms and their numerical properties |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises on optimization algorithms and their numerical properties |
 
 ## Learning Objectives
 
@@ -88,9 +88,9 @@ Numerical optimization differs from mathematical optimization in one fundamental
 
 **The gradient is never exact:** Even with automatic differentiation, the computed gradient $\hat{g}$ satisfies $\hat{g} = g + O(\varepsilon_{\text{mach}} \|g\|)$. For well-conditioned objectives, this is fine. For ill-conditioned objectives near a minimum, gradients can be numerically zero before we actually reach the minimum.
 
-**The Hessian is expensive and often unavailable:** Computing $H \in \mathbb{R}^{d \times d}$ requires $O(d^2)$ memory and $O(d^2)$ Hessian-vector products. For $d = 10^8$ (typical LLM size), storing $H$ requires $10^{16}$ bytes — impossible. This is why first-order and quasi-Newton methods dominate.
+**The Hessian is expensive and often unavailable:** Computing $H \in \mathbb{R}^{d \times d}$ requires $O(d^2)$ memory and $O(d^2)$ Hessian-vector products. For $d = 10^8$ (typical LLM size), storing $H$ requires $10^{16}$ bytes - impossible. This is why first-order and quasi-Newton methods dominate.
 
-**Ill-conditioning slows convergence:** Gradient descent on a quadratic $f(x) = \frac{1}{2} x^\top H x$ converges at rate $\left(\frac{\kappa-1}{\kappa+1}\right)^k$ — exponentially slow for large $\kappa(H)$. Preconditioning (approximating $H^{-1}$) is the key to faster convergence.
+**Ill-conditioning slows convergence:** Gradient descent on a quadratic $f(x) = \frac{1}{2} x^\top H x$ converges at rate $\left(\frac{\kappa-1}{\kappa+1}\right)^k$ - exponentially slow for large $\kappa(H)$. Preconditioning (approximating $H^{-1}$) is the key to faster convergence.
 
 **The minimum is almost never reached:** Gradient descent converges to a point where $\|g\| < \varepsilon$ for some tolerance $\varepsilon$. In deep learning, we stop early (for generalization, not just optimization), so the numerical optimization problem is always underdetermined by design.
 
@@ -101,7 +101,7 @@ Numerical optimization differs from mathematical optimization in one fundamental
 A **line search** determines how far to move in a given direction $p_k$:
 $$x_{k+1} = x_k + \alpha_k p_k$$
 
-The step size $\alpha_k$ must be chosen carefully: too small → slow convergence; too large → divergence or oscillation.
+The step size $\alpha_k$ must be chosen carefully: too small -> slow convergence; too large -> divergence or oscillation.
 
 ### 2.1 Exact Line Search
 
@@ -111,14 +111,14 @@ $$\alpha_k = \arg\min_{\alpha > 0} \phi(\alpha)$$
 **For quadratic objectives:** $f(x) = \frac{1}{2} x^\top H x - b^\top x$, the exact step is:
 $$\alpha_k = \frac{p_k^\top r_k}{p_k^\top H p_k}, \quad r_k = b - Hx_k$$
 
-This is exactly the CG step size — CG with steepest descent direction is "exact line search gradient descent."
+This is exactly the CG step size - CG with steepest descent direction is "exact line search gradient descent."
 
 **Limitation:** For general nonlinear $f$, finding the exact minimum of $\phi(\alpha)$ requires many function evaluations. Inexact line search conditions (Wolfe, Armijo) are far more practical.
 
 ### 2.2 Wolfe Conditions
 
 The **Wolfe conditions** define a set of acceptable step sizes that ensure:
-1. Sufficient decrease (Armijo condition): 
+1. Sufficient decrease (Armijo condition):
    $$f(x_k + \alpha_k p_k) \leq f(x_k) + c_1 \alpha_k \nabla f_k^\top p_k$$
 2. Curvature condition:
    $$\nabla f(x_k + \alpha_k p_k)^\top p_k \geq c_2 \nabla f_k^\top p_k$$
@@ -133,7 +133,7 @@ This prevents steps at points where the derivative is positive but not too large
 **Theorem (Zoutendijk):** If the search direction satisfies $p_k^\top g_k < 0$ (descent direction) and the Wolfe conditions are satisfied, then:
 $$\sum_{k=0}^\infty \frac{(\nabla f_k^\top p_k)^2}{\|p_k\|^2} < \infty$$
 
-This guarantees $\liminf_{k \to \infty} \|\nabla f_k\| = 0$ — the gradients eventually become small.
+This guarantees $\liminf_{k \to \infty} \|\nabla f_k\| = 0$ - the gradients eventually become small.
 
 ### 2.3 Backtracking Armijo
 
@@ -145,16 +145,16 @@ def backtracking_armijo(f, g, x, p, alpha0=1.0, rho=0.5, c1=1e-4):
     alpha = alpha0
     f0 = f(x)
     slope = g(x) @ p  # Directional derivative (should be negative)
-    
+
     while f(x + alpha * p) > f0 + c1 * alpha * slope:
         alpha *= rho
-    
+
     return alpha
 ```
 
-**Analysis:** The Armijo condition ensures "sufficient decrease" — each step reduces $f$ by at least a fraction of what a linear model predicts. Backtracking automatically adjusts the step when the initial trial step is too large.
+**Analysis:** The Armijo condition ensures "sufficient decrease" - each step reduces $f$ by at least a fraction of what a linear model predicts. Backtracking automatically adjusts the step when the initial trial step is too large.
 
-**For AI:** PyTorch's `torch.optim.LBFGS` uses a strong Wolfe line search. Standard SGD/Adam do not use line search — the learning rate is a fixed hyperparameter.
+**For AI:** PyTorch's `torch.optim.LBFGS` uses a strong Wolfe line search. Standard SGD/Adam do not use line search - the learning rate is a fixed hyperparameter.
 
 ### 2.4 Strong Wolfe and Zoom
 
@@ -196,7 +196,7 @@ At non-convex points (saddle points or near maxima), $H_k$ may be indefinite. Ap
 The modified Newton step solves:
 $$(H_k + \tau_k I) d_k = -g_k$$
 
-**Choosing $\tau_k$:** 
+**Choosing $\tau_k$:**
 - If $H_k$ is already positive definite with $\lambda_{\min}(H_k) > \delta$: set $\tau_k = 0$.
 - Otherwise: set $\tau_k = |\lambda_{\min}(H_k)| + \delta$ for some $\delta > 0$.
 
@@ -253,7 +253,7 @@ where $\rho_k = 1 / (y_k^\top s_k)$.
 
 ### 4.2 L-BFGS: Limited Memory BFGS
 
-Full BFGS requires $O(d^2)$ memory to store $H_k$. For $d = 10^6$, this is $\sim 8$ TB — impractical.
+Full BFGS requires $O(d^2)$ memory to store $H_k$. For $d = 10^6$, this is $\sim 8$ TB - impractical.
 
 **L-BFGS** stores only the last $m$ pairs $(s_k, y_k)$ and implicitly computes $H_k g$ via the **two-loop recursion**:
 
@@ -262,15 +262,15 @@ def lbfgs_direction(g, s_list, y_list):
     """Compute H^{-1} g using the two-loop L-BFGS recursion."""
     m = len(s_list)
     rho = [1.0 / (y @ s) for s, y in zip(s_list, y_list)]
-    
+
     q = g.copy()
     alpha = np.zeros(m)
-    
+
     # First loop (backward)
     for i in range(m-1, -1, -1):
         alpha[i] = rho[i] * s_list[i] @ q
         q -= alpha[i] * y_list[i]
-    
+
     # Scale by initial Hessian approximation
     # H_0^{-1} = (s_m^T y_m) / (y_m^T y_m) * I (Barzilai-Borwein scaling)
     if m > 0:
@@ -278,16 +278,16 @@ def lbfgs_direction(g, s_list, y_list):
     else:
         gamma = 1.0
     r = gamma * q
-    
+
     # Second loop (forward)
     for i in range(m):
         beta = rho[i] * y_list[i] @ r
         r += s_list[i] * (alpha[i] - beta)
-    
+
     return -r  # Search direction
 ```
 
-**Memory requirement:** $O(md)$ — just $2m$ vectors of dimension $d$. Typically $m = 5$ to $20$.
+**Memory requirement:** $O(md)$ - just $2m$ vectors of dimension $d$. Typically $m = 5$ to $20$.
 
 **Convergence:** L-BFGS with $m$ vectors has memory of $m$ gradient changes, giving super-linear convergence locally (linear globally for general non-convex $f$).
 
@@ -366,7 +366,7 @@ Error: $O(h) + O(\varepsilon_{\text{mach}} / h)$.
 **Centered difference:**
 $$\frac{\partial f}{\partial x_i} \approx \frac{f(x + h e_i) - f(x - h e_i)}{2h}$$
 
-Error: $O(h^2) + O(\varepsilon_{\text{mach}} / h)$ — more accurate but requires two function evaluations.
+Error: $O(h^2) + O(\varepsilon_{\text{mach}} / h)$ - more accurate but requires two function evaluations.
 
 **Richardson extrapolation:** Eliminate the leading-order error term:
 $$f'(x) \approx \frac{4 \cdot \text{CD}(h/2) - \text{CD}(h)}{3}$$
@@ -394,7 +394,7 @@ $$f'(x) \approx \frac{\text{Im}[f(x + ih)]}{h}$$
 
 where $i = \sqrt{-1}$. This requires evaluating $f$ at a complex argument.
 
-**Error:** $O(h^2)$ — same as centered difference, but **no rounding error** from cancellation (imaginary part is computed by addition, not subtraction). With $h = 10^{-20}$, the error is $\sim 10^{-40}$ — essentially machine precision.
+**Error:** $O(h^2)$ - same as centered difference, but **no rounding error** from cancellation (imaginary part is computed by addition, not subtraction). With $h = 10^{-20}$, the error is $\sim 10^{-40}$ - essentially machine precision.
 
 **Limitation:** Requires the function $f$ to be analytically extendable to complex arguments (which almost all smooth functions are, but branch cuts can cause issues).
 
@@ -410,9 +410,9 @@ $$x_{k+1} = \mathcal{P}_\mathcal{C}(x_k - \alpha_k \nabla f(x_k))$$
 where $\mathcal{P}_\mathcal{C}(y) = \arg\min_{x \in \mathcal{C}} \|x - y\|_2$ is the Euclidean projection.
 
 **Common projections:**
-- **Box** $\{x : \ell \leq x \leq u\}$: $\mathcal{P}(y)_i = \min(\max(y_i, \ell_i), u_i)$ — O(n)
+- **Box** $\{x : \ell \leq x \leq u\}$: $\mathcal{P}(y)_i = \min(\max(y_i, \ell_i), u_i)$ - O(n)
 - **Simplex** $\{x : x \geq 0, \sum x_i = 1\}$: sort and find threshold (O(n log n))
-- **Ball** $\{x : \|x\| \leq r\}$: $\mathcal{P}(y) = r y / \|y\|$ if $\|y\| > r$, else $y$ — O(n)
+- **Ball** $\{x : \|x\| \leq r\}$: $\mathcal{P}(y) = r y / \|y\|$ if $\|y\| > r$, else $y$ - O(n)
 
 **For AI:** Gradient clipping is a projected gradient step onto the ball $\{g : \|g\| \leq c\}$. Softmax output can be seen as optimization over the simplex. Spectral normalization maintains weights on the unit spectral norm ball via projected gradient.
 
@@ -533,7 +533,7 @@ where $F = \mathbb{E}[\nabla \log p_\theta \nabla \log p_\theta^\top]$ is the Fi
 
 ## 10. Exercises
 
-### Exercise 1 ★ — Backtracking Armijo Line Search
+### Exercise 1 * - Backtracking Armijo Line Search
 
 Implement the backtracking Armijo line search.
 
@@ -543,7 +543,7 @@ Implement the backtracking Armijo line search.
 
 (c) Plot $f(x + \alpha p)$ and the Armijo line, marking the accepted step.
 
-### Exercise 2 ★ — Newton's Method
+### Exercise 2 * - Newton's Method
 
 Implement Newton's method with line search.
 
@@ -553,7 +553,7 @@ Implement Newton's method with line search.
 
 (c) Compare convergence (iterations to $10^{-8}$ accuracy) between gradient descent, Newton's method, and gradient descent with exact line search.
 
-### Exercise 3 ★★ — L-BFGS Two-Loop Recursion
+### Exercise 3 ** - L-BFGS Two-Loop Recursion
 
 Implement the L-BFGS two-loop recursion.
 
@@ -563,7 +563,7 @@ Implement the L-BFGS two-loop recursion.
 
 (c) Test on quadratic minimization with varying condition numbers. Compare convergence to gradient descent.
 
-### Exercise 4 ★★ — Finite Difference Gradient Check
+### Exercise 4 ** - Finite Difference Gradient Check
 
 Implement gradient checking via finite differences.
 
@@ -573,7 +573,7 @@ Implement gradient checking via finite differences.
 
 (c) Plot error vs $h$ on log-log scale. Verify the $O(h^2) + O(\varepsilon/h)$ form.
 
-### Exercise 5 ★★ — Trust Region vs Line Search
+### Exercise 5 ** - Trust Region vs Line Search
 
 Compare trust region and line search methods.
 
@@ -583,7 +583,7 @@ Compare trust region and line search methods.
 
 (c) Plot the trajectory of iterates for both methods.
 
-### Exercise 6 ★★ — Adam as Diagonal Quasi-Newton
+### Exercise 6 ** - Adam as Diagonal Quasi-Newton
 
 Demonstrate Adam's connection to diagonal preconditioning.
 
@@ -593,7 +593,7 @@ Demonstrate Adam's connection to diagonal preconditioning.
 
 (c) Show that Adam converges at a rate close to the optimal diagonal-preconditioned rate, and much faster than vanilla gradient descent.
 
-### Exercise 7 ★★ — Numerical Differentiation Accuracy
+### Exercise 7 ** - Numerical Differentiation Accuracy
 
 Implement finite differences and compare to automatic differentiation.
 
@@ -603,7 +603,7 @@ Implement finite differences and compare to automatic differentiation.
 
 (c) Implement the complex-step derivative and verify it achieves near machine precision.
 
-### Exercise 8 ★★★ — Hessian-Vector Product via Autograd
+### Exercise 8 *** - Hessian-Vector Product via Autograd
 
 Compute Hessian-vector products efficiently using automatic differentiation.
 
@@ -633,9 +633,9 @@ Compute Hessian-vector products efficiently using automatic differentiation.
 
 ## 12. Conceptual Bridge
 
-**What you learned:** This section bridges the gap between theoretical optimization (§08) and practical computation. The key themes:
+**What you learned:** This section bridges the gap between theoretical optimization (Section08) and practical computation. The key themes:
 
-1. **Line search ensures convergence:** Without proper step size selection (Armijo, Wolfe), gradient-based methods may diverge or stagnate. Adam uses a fixed learning rate with momentum — it lacks a formal convergence guarantee for general non-convex problems but works well in practice.
+1. **Line search ensures convergence:** Without proper step size selection (Armijo, Wolfe), gradient-based methods may diverge or stagnate. Adam uses a fixed learning rate with momentum - it lacks a formal convergence guarantee for general non-convex problems but works well in practice.
 
 2. **Quasi-Newton approximates the second-order structure:** BFGS/L-BFGS use past gradient differences to build up a Hessian approximation. Adam does this diagonally, using running second-moment estimates. Shampoo/K-FAC do it in a structured block-diagonal form.
 
@@ -645,28 +645,28 @@ Compute Hessian-vector products efficiently using automatic differentiation.
 
 ```
 NUMERICAL OPTIMIZATION IN CONTEXT
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §08 Optimization (theory)     →   §10-03 Numerical Optimization
-  ├── Gradient descent           ──► Line search, convergence guarantees
-  ├── Adam/momentum              ──► Diagonal quasi-Newton interpretation
-  ├── Convergence theory         ──► Condition number analysis
-  └── Constrained opt.          ──► Projected gradient, ADMM
+  Section08 Optimization (theory)     ->   Section10-03 Numerical Optimization
+  +-- Gradient descent           --> Line search, convergence guarantees
+  +-- Adam/momentum              --> Diagonal quasi-Newton interpretation
+  +-- Convergence theory         --> Condition number analysis
+  +-- Constrained opt.          --> Projected gradient, ADMM
 
-  §10-02 Numerical Linear Algebra →  §10-03 Numerical Optimization
-  ├── CG method                  ──► Newton-CG, Hessian-free opt
-  ├── Condition numbers          ──► GD convergence rate
-  ├── Iterative refinement       ──► Inexact Newton methods
-  └── Sparse systems             ──► Large-scale quasi-Newton
+  Section10-02 Numerical Linear Algebra ->  Section10-03 Numerical Optimization
+  +-- CG method                  --> Newton-CG, Hessian-free opt
+  +-- Condition numbers          --> GD convergence rate
+  +-- Iterative refinement       --> Inexact Newton methods
+  +-- Sparse systems             --> Large-scale quasi-Newton
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-*[← Back to §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: §04 Interpolation and Approximation →](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Back to Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: Section04 Interpolation and Approximation ->](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
-## Appendix A: Wolfe Conditions — Detailed Analysis
+## Appendix A: Wolfe Conditions - Detailed Analysis
 
 ### A.1 Why the Armijo Condition Alone Is Insufficient
 
@@ -685,18 +685,18 @@ $$y_k^\top s_k = (\nabla f_{k+1} - \nabla f_k)^\top s_k = (\nabla f_{k+1}^\top p
 The curvature condition says $\nabla f_{k+1}^\top p_k \geq c_2 \nabla f_k^\top p_k$. Since $\nabla f_k^\top p_k < 0$ (descent direction) and $c_2 \in (0, 1)$:
 $$y_k^\top s_k = \alpha_k (\underbrace{\nabla f_{k+1}^\top p_k - \nabla f_k^\top p_k}_{\geq (c_2 - 1)\nabla f_k^\top p_k = (1-c_2)|\nabla f_k^\top p_k| > 0})$$
 
-So $y_k^\top s_k > 0$ — the curvature condition ensures the BFGS update remains positive definite.
+So $y_k^\top s_k > 0$ - the curvature condition ensures the BFGS update remains positive definite.
 
 ---
 
-## Appendix B: L-BFGS Two-Loop Recursion — Derivation
+## Appendix B: L-BFGS Two-Loop Recursion - Derivation
 
 The L-BFGS direction $d = -H_k g_k$ where $H_k$ approximates the inverse Hessian. $H_k$ is implicitly defined by:
 $$H_k = V_{k-1}^\top \cdots V_{k-m}^\top H_0 V_{k-m} \cdots V_{k-1} + \sum_{i=k-m}^{k-1} \rho_i V_{k-1}^\top \cdots V_{i+1}^\top s_i s_i^\top V_{i+1} \cdots V_{k-1}$$
 
 where $V_i = I - \rho_i y_i s_i^\top$ and $\rho_i = 1 / (y_i^\top s_i)$.
 
-Directly computing $H_k g$ via this formula requires $O(m^2 d)$ operations — expensive if we expand the products. The two-loop recursion computes $H_k g$ in $O(md)$ operations by expanding the matrix-vector product recursively without ever forming $H_k$.
+Directly computing $H_k g$ via this formula requires $O(m^2 d)$ operations - expensive if we expand the products. The two-loop recursion computes $H_k g$ in $O(md)$ operations by expanding the matrix-vector product recursively without ever forming $H_k$.
 
 **Two-loop recursion (Nocedal, 1980):**
 
@@ -714,12 +714,12 @@ The result $d = -r_k = -H_k g_k$ is the L-BFGS search direction.
 
 ---
 
-## Appendix C: Trust Region Subproblem — Eigenvalue Approach
+## Appendix C: Trust Region Subproblem - Eigenvalue Approach
 
 The exact trust region subproblem:
 $$\min_p \frac{1}{2} p^\top B p + g^\top p \quad \text{s.t.} \|p\| \leq \Delta$$
 
-is solved by the **Moré-Sorensen** algorithm (1983):
+is solved by the **More-Sorensen** algorithm (1983):
 
 **KKT conditions:** The optimal $p^*$ satisfies:
 $$(B + \lambda^* I) p^* = -g, \quad \lambda^* \geq 0, \quad \lambda^* (\Delta - \|p^*\|) = 0$$
@@ -748,9 +748,9 @@ A gradient check compares $\frac{\partial f}{\partial x_i}$ from `autograd` with
 
 ### D.2 Pitfalls
 
-1. **Non-differentiable operations:** ReLU at zero, `abs(0)`, `max(a, b)` at the boundary — finite differences may give a subgradient, not the same subgradient as autograd.
+1. **Non-differentiable operations:** ReLU at zero, `abs(0)`, `max(a, b)` at the boundary - finite differences may give a subgradient, not the same subgradient as autograd.
 
-2. **Numerically sensitive operations:** Softmax with very large logits, log(tiny number) — both methods may have errors here, but they may differ.
+2. **Numerically sensitive operations:** Softmax with very large logits, log(tiny number) - both methods may have errors here, but they may differ.
 
 3. **Wrong random seed:** Always check with a fixed random seed; bugs can be masked by lucky initialization.
 
@@ -767,7 +767,7 @@ def gradient_check(f, x, grad_f, eps=1e-5, rtol=1e-5, atol=1e-8):
     n = len(x.ravel())
     g_analytic = grad_f(x).ravel()
     g_numerical = np.zeros(n)
-    
+
     for i in range(n):
         x_plus = x.copy().ravel()
         x_minus = x.copy().ravel()
@@ -775,7 +775,7 @@ def gradient_check(f, x, grad_f, eps=1e-5, rtol=1e-5, atol=1e-8):
         x_minus[i] -= eps
         g_numerical[i] = (f(x_plus.reshape(x.shape)) -
                           f(x_minus.reshape(x.shape))) / (2 * eps)
-    
+
     # Relative error (with absolute tolerance floor)
     denom = np.maximum(np.abs(g_analytic), atol)
     rel_err = np.abs(g_analytic - g_numerical) / denom
@@ -784,7 +784,7 @@ def gradient_check(f, x, grad_f, eps=1e-5, rtol=1e-5, atol=1e-8):
 
 ---
 
-## Appendix E: Adam — Complete Update Rule and Variants
+## Appendix E: Adam - Complete Update Rule and Variants
 
 ### E.1 Standard Adam
 
@@ -799,26 +799,26 @@ def adam_step(g, m, v, t, lr=1e-3, beta1=0.9, beta2=0.999, eps=1e-8):
     return m, v, delta
 ```
 
-### E.2 AdamW — Weight Decay Decoupling
+### E.2 AdamW - Weight Decay Decoupling
 
 Standard Adam with L2 regularization: add $\lambda \|x\|^2$ to the loss. This makes the update:
 $$\delta = \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \varepsilon} + \lambda x_t$$
 
-The weight decay term is scaled by $\hat{v}_t^{-1/2}$ — large for coordinates with small gradient variance. **AdamW** decouples weight decay from the adaptive scaling:
+The weight decay term is scaled by $\hat{v}_t^{-1/2}$ - large for coordinates with small gradient variance. **AdamW** decouples weight decay from the adaptive scaling:
 $$\delta = \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \varepsilon} + \lambda x_t \cdot \text{(no adaptive scaling)}$$
 
 This is a better regularizer: all weights decay at the same rate, not faster for rarely-updated weights.
 
-### E.3 AdaFactor — Memory-Efficient Adam
+### E.3 AdaFactor - Memory-Efficient Adam
 
 **AdaFactor** (Shazeer & Stern, 2018) reduces Adam's $O(d)$ memory for second moments by approximating the second moment matrix as a rank-1 outer product:
 $$v_t \approx r_t c_t^\top \quad \text{where } r_t \in \mathbb{R}^m, c_t \in \mathbb{R}^n$$
 
 For a weight matrix $W \in \mathbb{R}^{m \times n}$, this reduces memory from $O(mn)$ to $O(m + n)$.
 
-**Trade-off:** Less accurate second moment estimate → slightly worse convergence in practice, but viable for very large models where Adam's memory cost is prohibitive.
+**Trade-off:** Less accurate second moment estimate -> slightly worse convergence in practice, but viable for very large models where Adam's memory cost is prohibitive.
 
-### E.4 Shampoo — Block Preconditioning
+### E.4 Shampoo - Block Preconditioning
 
 **Shampoo** (Gupta et al., 2018) applies a full-matrix preconditioner to each layer:
 
@@ -941,41 +941,41 @@ optimizer = optax.chain(
 ## Appendix H: Summary and Quick Reference
 
 ```
-NUMERICAL OPTIMIZATION — ALGORITHM SELECTION GUIDE
-════════════════════════════════════════════════════════════════════════
+NUMERICAL OPTIMIZATION - ALGORITHM SELECTION GUIDE
+========================================================================
 
   STOCHASTIC (mini-batch, noisy gradients)
-  ─────────────────────────────────────────
+  -----------------------------------------
   Adam (default for LLMs/transformers)
-  AdamW (with weight decay — preferred for fine-tuning)
+  AdamW (with weight decay - preferred for fine-tuning)
   SGD + momentum (slower to converge, better generalization sometimes)
   Adafactor (when memory is very constrained)
   Shampoo/K-FAC (when second-order info is affordable)
 
   FULL-BATCH (all data, low noise)
-  ─────────────────────────────────
+  ---------------------------------
   L-BFGS (the gold standard for full-batch)
   Nonlinear CG (memory efficient, similar to L-BFGS)
   Newton-CG (when Hessian-vector products are cheap)
   Trust-region (when Hessian is indefinite)
 
-  CONVERGENCE RATE COMPARISON (quadratic objective, κ = 100)
-  ─────────────────────────────────────────────────────────
-  GD (optimal step):    ~100 iters to 1e-6 (rate = (κ-1)/(κ+1) = 0.98)
-  CG:                   ~10 iters to 1e-6 (rate ≈ (√κ-1)/(√κ+1) = 0.82)
+  CONVERGENCE RATE COMPARISON (quadratic objective,  = 100)
+  ---------------------------------------------------------
+  GD (optimal step):    ~100 iters to 1e-6 (rate = (-1)/(+1) = 0.98)
+  CG:                   ~10 iters to 1e-6 (rate \\approx (\\sqrt-1)/(\\sqrt+1) = 0.82)
   L-BFGS (m=10):        ~10 iters to 1e-6 (super-linear)
   Newton:               ~3 iters to 1e-6 (quadratic convergence!)
 
   GRADIENT CHECKING STEP SIZE
-  ────────────────────────────
-  Forward differences:  h = sqrt(eps_mach) ≈ 1.5e-8
-  Centered differences: h = cbrt(eps_mach) ≈ 6e-6
+  ----------------------------
+  Forward differences:  h = sqrt(eps_mach) \\approx 1.5e-8
+  Centered differences: h = cbrt(eps_mach) \\approx 6e-6
   Complex step:         h = 1e-20 (essentially exact)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-*[← Back to §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: §04 Interpolation and Approximation →](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Back to Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: Section04 Interpolation and Approximation ->](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
@@ -989,7 +989,7 @@ Deterministic optimization (with exact gradients) benefits greatly from line sea
 
 **Problem 2: Gradient noise breaks secant condition.** The L-BFGS secant condition $y_k^\top s_k > 0$ requires the gradient change $y_k = g_{k+1} - g_k$ to be in a specific relationship to the step $s_k$. With stochastic gradients, $y_k$ is corrupted by noise, and the condition may fail.
 
-**Adam's solution:** Instead of adapting the step size using function evaluations (line search), Adam adapts using the history of gradient squares ($v_t$). This is "implicit line search" — steps are small where gradients have been large historically, and large where gradients have been small.
+**Adam's solution:** Instead of adapting the step size using function evaluations (line search), Adam adapts using the history of gradient squares ($v_t$). This is "implicit line search" - steps are small where gradients have been large historically, and large where gradients have been small.
 
 ### I.2 When L-BFGS Beats Adam
 
@@ -1046,7 +1046,7 @@ When accumulating gradients over $K$ mini-batches before an update:
 $$G = \frac{1}{K} \sum_{k=1}^K g_k$$
 
 In fp32 with Kahan summation: error $= O(\varepsilon_{\text{fp32}})$ independent of $K$.
-In bf16 with naive summation: error $= O(K \varepsilon_{\text{bf16}})$ — grows with accumulation steps.
+In bf16 with naive summation: error $= O(K \varepsilon_{\text{bf16}})$ - grows with accumulation steps.
 
 **Fix:** Accumulate gradients in fp32, even if the forward/backward pass uses bf16. This is the default behavior in PyTorch AMP when `scaler.scale(loss).backward()` is used.
 
@@ -1056,18 +1056,18 @@ In bf16 with naive summation: error $= O(K \varepsilon_{\text{bf16}})$ — grows
 
 Numerical optimization connects to statistical learning theory through the bias-variance tradeoff:
 
-**Optimization error:** $f(x_k) - f(x^*)$ — how far we are from the training loss minimum.
+**Optimization error:** $f(x_k) - f(x^*)$ - how far we are from the training loss minimum.
 
-**Approximation error:** $f(x^*) - f^*_{\text{Bayes}}$ — how far the best model in our function class is from the Bayes optimal.
+**Approximation error:** $f(x^*) - f^*_{\text{Bayes}}$ - how far the best model in our function class is from the Bayes optimal.
 
-**Estimation error:** $f^*_{\text{Bayes}} - $ (error on new data) — generalization gap.
+**Estimation error:** $f^*_{\text{Bayes}} - $ (error on new data) - generalization gap.
 
 **The over-optimization paradox:** Running optimization to convergence (small optimization error) often leads to overfitting (large estimation error). This is why:
 - We use early stopping (stop before convergence)
 - We use weight decay (adds regularization that changes $x^*$)
 - We use dropout and other regularizers (change the optimization landscape)
 
-**Implicit regularization in SGD:** Stochastic gradient descent, by virtue of its noise, converges to "flat minima" — regions where the Hessian has small eigenvalues. Such minima generalize better (Hochreiter & Schmidhuber, 1997; Keskar et al., 2016). This is NOT a numerical issue — it's a feature of the stochastic optimization process.
+**Implicit regularization in SGD:** Stochastic gradient descent, by virtue of its noise, converges to "flat minima" - regions where the Hessian has small eigenvalues. Such minima generalize better (Hochreiter & Schmidhuber, 1997; Keskar et al., 2016). This is NOT a numerical issue - it's a feature of the stochastic optimization process.
 
 ---
 
@@ -1075,31 +1075,31 @@ Numerical optimization connects to statistical learning theory through the bias-
 
 ```
 OPTIMIZATION METHODS: TIMELINE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1847  Cauchy — steepest descent method (gradient descent)
-  1944  Levenberg — damped least squares (LM algorithm)
-  1952  Kaczmarz — projection-based iterative method
-  1952  Hestenes & Stiefel — conjugate gradient method
-  1959  Broyden, Fletcher, Goldfarb, Shanno (BFGS) — quasi-Newton
-  1963  Marquardt — generalized LM algorithm
-  1970  Sargent & Sebastian — first L-BFGS-like method
-  1980  Nocedal — limited-memory BFGS
-  1988  Armijo — sufficient decrease condition
-  1969  Wolfe — curvature condition for line search
-  1994  Byrd, Lu, Nocedal, Zhu — L-BFGS-B (bounds constrained)
-  1997  Hochreiter & Schmidhuber — flat minima and generalization
-  2010  Martens — Hessian-free optimization for deep nets
-  2012  Duchi et al. — Adagrad
-  2014  Kingma & Ba — Adam
-  2015  Bottou — stochastic optimization in ML survey
-  2016  Keskar et al. — sharp vs flat minima for generalization
-  2017  Loshchilov & Hutter — AdamW (decoupled weight decay)
-  2018  Gupta et al. — Shampoo (block-diagonal preconditioning)
-  2018  Anil et al. — Scalable second-order optimization
-  2021+ Vyas et al., Dettmers — training efficiency, mixed precision
+  1847  Cauchy - steepest descent method (gradient descent)
+  1944  Levenberg - damped least squares (LM algorithm)
+  1952  Kaczmarz - projection-based iterative method
+  1952  Hestenes & Stiefel - conjugate gradient method
+  1959  Broyden, Fletcher, Goldfarb, Shanno (BFGS) - quasi-Newton
+  1963  Marquardt - generalized LM algorithm
+  1970  Sargent & Sebastian - first L-BFGS-like method
+  1980  Nocedal - limited-memory BFGS
+  1988  Armijo - sufficient decrease condition
+  1969  Wolfe - curvature condition for line search
+  1994  Byrd, Lu, Nocedal, Zhu - L-BFGS-B (bounds constrained)
+  1997  Hochreiter & Schmidhuber - flat minima and generalization
+  2010  Martens - Hessian-free optimization for deep nets
+  2012  Duchi et al. - Adagrad
+  2014  Kingma & Ba - Adam
+  2015  Bottou - stochastic optimization in ML survey
+  2016  Keskar et al. - sharp vs flat minima for generalization
+  2017  Loshchilov & Hutter - AdamW (decoupled weight decay)
+  2018  Gupta et al. - Shampoo (block-diagonal preconditioning)
+  2018  Anil et al. - Scalable second-order optimization
+  2021+ Vyas et al., Dettmers - training efficiency, mixed precision
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1107,40 +1107,40 @@ OPTIMIZATION METHODS: TIMELINE
 ## Appendix M: Chapter Position and Summary
 
 ```
-§10 NUMERICAL METHODS — SECTION 03 SUMMARY
-════════════════════════════════════════════════════════════════════════
+Section10 NUMERICAL METHODS - SECTION 03 SUMMARY
+========================================================================
 
   PREREQUISITE CHAIN:
-  §01 Floating Point → §02 Numerical LA → §03 Numerical Optimization
+  Section01 Floating Point -> Section02 Numerical LA -> Section03 Numerical Optimization
 
   CONNECTIONS FROM THIS SECTION:
-    ┌──────────────────────────────────────────────────────────────┐
-    │  Line search (Wolfe)      → Used in L-BFGS, BFGS            │
-    │  Newton's method          → Quasi-Newton (BFGS, L-BFGS)     │
-    │  L-BFGS                   → torch.optim.LBFGS               │
-    │  Trust region             → TRPO, PPO (RL policy updates)    │
-    │  Diagonal quasi-Newton    → Adam, AdaGrad, RMSProp          │
-    │  Natural gradient         → K-FAC, Shampoo                  │
-    │  Condition numbers        → §02 Numerical LA                 │
-    │  Gradient checking        → Debugging autodiff implementations│
-    └──────────────────────────────────────────────────────────────┘
+    +--------------------------------------------------------------+
+    |  Line search (Wolfe)      -> Used in L-BFGS, BFGS            |
+    |  Newton's method          -> Quasi-Newton (BFGS, L-BFGS)     |
+    |  L-BFGS                   -> torch.optim.LBFGS               |
+    |  Trust region             -> TRPO, PPO (RL policy updates)    |
+    |  Diagonal quasi-Newton    -> Adam, AdaGrad, RMSProp          |
+    |  Natural gradient         -> K-FAC, Shampoo                  |
+    |  Condition numbers        -> Section02 Numerical LA                 |
+    |  Gradient checking        -> Debugging autodiff implementations|
+    +--------------------------------------------------------------+
 
   KEY FORMULAS:
-    GD convergence rate:   (κ-1)/(κ+1) per iteration
-    CG convergence rate:   (√κ-1)/(√κ+1) per iteration
+    GD convergence rate:   (-1)/(+1) per iteration
+    CG convergence rate:   (\\sqrt-1)/(\\sqrt+1) per iteration
     Newton convergence:    quadratic near minimum
     L-BFGS convergence:    super-linear (between GD and Newton)
 
-    Optimal finite diff h: cbrt(eps_mach) ≈ 6e-6  (centered)
-    Finite diff error:     O(h²) + O(eps/h)
-    Complex step error:    O(h²) — no rounding error
+    Optimal finite diff h: cbrt(eps_mach) \\approx 6e-6  (centered)
+    Finite diff error:     O(h^2) + O(eps/h)
+    Complex step error:    O(h^2) - no rounding error
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-*Section statistics: 12 main sections, 22 subsections, 12 common mistakes, 8 exercises, 13 appendices.*
+*Section statistics: 12 main sections, 22 subsections, 12 common mistakes, 10 exercises, 13 appendices.*
 
-*[← Back to §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: §04 Interpolation and Approximation →](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Back to Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: Section04 Interpolation and Approximation ->](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
@@ -1158,7 +1158,7 @@ where the scalar $\beta_k$ determines which variant of NCG:
 | Formula | Name | Best for |
 |---------|------|----------|
 | $\beta_k = \frac{g_{k+1}^\top g_{k+1}}{g_k^\top g_k}$ | Fletcher-Reeves | Smooth convex |
-| $\beta_k = \frac{g_{k+1}^\top (g_{k+1} - g_k)}{g_k^\top g_k}$ | Polak-Ribière | General nonlinear |
+| $\beta_k = \frac{g_{k+1}^\top (g_{k+1} - g_k)}{g_k^\top g_k}$ | Polak-Ribiere | General nonlinear |
 | $\beta_k = \max\left(\frac{g_{k+1}^\top (g_{k+1} - g_k)}{d_k^\top (g_{k+1} - g_k)}, 0\right)$ | Hestenes-Stiefel | Non-convex |
 
 **NCG vs L-BFGS:**
@@ -1185,12 +1185,12 @@ For finite-sum objectives $f(x) = \frac{1}{n} \sum_i f_i(x)$, **variance-reduced
 **SVRG (Johnson & Zhang, 2013):**
 ```
 for outer loop s = 1, 2, ..., S:
-    compute full gradient μ = ∇f(x̃_s)
+    compute full gradient \\mu = f(x_s)
     for inner loop t = 1, ..., m:
         sample i uniformly
-        g_t = ∇f_i(x_t) - ∇f_i(x̃_s) + μ  # Variance-reduced gradient
-        x_{t+1} = x_t - α g_t
-    x̃_{s+1} = x_{t_m} (some iterate from inner loop)
+        g_t = f_i(x_t) - f_i(x_s) + \\mu  # Variance-reduced gradient
+        x_{t+1} = x_t - \\alpha g_t
+    x_{s+1} = x_{t_m} (some iterate from inner loop)
 ```
 
 The key: $\mathbb{E}[g_t] = \nabla f(x_t)$ (unbiased) and $\text{Var}(g_t) \to 0$ as $x_t \to x^*$ (variance vanishes at optimum). SVRG achieves linear convergence (like GD) with per-iteration cost similar to SGD.
@@ -1201,7 +1201,7 @@ The key: $\mathbb{E}[g_t] = \nabla f(x_t)$ (unbiased) and $\text{Var}(g_t) \to 0
 
 ## Appendix O: Extended Exercises
 
-### O.1 Implementing the Wolfe Zoom Algorithm (★★★)
+### O.1 Implementing the Wolfe Zoom Algorithm (***)
 
 The Wolfe zoom algorithm is the industry-standard line search for L-BFGS. Implement it from scratch:
 
@@ -1216,7 +1216,7 @@ def wolfe_zoom(f, g, x, p, alpha_lo, alpha_hi, phi_lo, phi0, dphi0,
         # Cubic interpolation to find trial step
         alpha_j = 0.5 * (alpha_lo + alpha_hi)  # Simplified: bisection
         phi_j = f(x + alpha_j * p)
-        
+
         if phi_j > phi0 + c1 * alpha_j * dphi0 or phi_j >= phi_lo:
             alpha_hi = alpha_j
         else:
@@ -1227,11 +1227,11 @@ def wolfe_zoom(f, g, x, p, alpha_lo, alpha_hi, phi_lo, phi0, dphi0,
                 alpha_hi = alpha_lo
             alpha_lo = alpha_j
             phi_lo = phi_j
-    
+
     return alpha_j  # Return best found
 ```
 
-### O.2 Numerical Gradient Check via PyTorch (★)
+### O.2 Numerical Gradient Check via PyTorch (*)
 
 ```python
 import torch
@@ -1243,7 +1243,7 @@ class MyFunc(torch.autograd.Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         return x ** 3 + torch.sin(x)
-    
+
     @staticmethod
     def backward(ctx, grad_output):
         x, = ctx.saved_tensors
@@ -1255,7 +1255,7 @@ result = gradcheck(MyFunc.apply, x, eps=1e-6, atol=1e-4, rtol=1e-3)
 print(f"Gradient check passed: {result}")
 ```
 
-### O.3 Computing Hessian Spectrum via Lanczos (★★★)
+### O.3 Computing Hessian Spectrum via Lanczos (***)
 
 The Hessian spectrum of a trained neural network reveals the curvature structure of the loss landscape:
 
@@ -1266,32 +1266,32 @@ def hessian_spectrum_lanczos(loss, params, n_iters=100):
     Each iteration requires one Hessian-vector product (one backward pass).
     """
     d = sum(p.numel() for p in params)
-    
+
     # Initial vector
     v = [torch.randn_like(p) for p in params]
     v_norm = sum(torch.sum(vi**2) for vi in v).sqrt()
     v = [vi / v_norm for vi in v]
-    
+
     alphas, betas = [], []
-    
+
     for i in range(n_iters):
         # Hessian-vector product
         Hv = hvp(loss, params, v)
-        
+
         alpha = sum(torch.sum(vi * Hvi) for vi, Hvi in zip(v, Hv)).item()
         alphas.append(alpha)
-        
+
         # Orthogonalize
         w = [Hvi - alpha * vi for Hvi, vi in zip(Hv, v)]
         if i > 0:
             w = [wi - beta * vi_old for wi, vi_old in zip(w, v_old)]
-        
+
         beta = sum(torch.sum(wi**2) for wi in w).sqrt().item()
         betas.append(beta)
-        
+
         v_old = v
         v = [wi / beta for wi in w]
-    
+
     # The Lanczos tridiagonal matrix T has diag=alphas, off-diag=betas
     T = np.diag(alphas) + np.diag(betas[:-1], 1) + np.diag(betas[:-1], -1)
     eigvals = np.linalg.eigvalsh(T)
@@ -1325,17 +1325,17 @@ $$\sum_k \frac{|\nabla f_k^\top p_k|^2}{\|p_k\|^2} < \infty \implies \liminf \|\
 
 **Second-order sufficient:** $\nabla f(x^*) = 0$ and $\nabla^2 f(x^*) \succ 0$ (positive definite Hessian)
 
-**KKT conditions** (constrained): See [§08-04 Constrained Optimization](../../08-Optimization/04-Constrained-Optimization/notes.md)
+**KKT conditions** (constrained): See [Section08-04 Constrained Optimization](../../08-Optimization/04-Constrained-Optimization/notes.md)
 
 ---
 
-*End of §03 Numerical Optimization*
+*End of Section03 Numerical Optimization*
 
-*[← Back to §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: §04 Interpolation and Approximation →](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Back to Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [Next: Section04 Interpolation and Approximation ->](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
-## Appendix Q: Deep Dive — The Rosenbrock Function
+## Appendix Q: Deep Dive - The Rosenbrock Function
 
 The **Rosenbrock function** $f(x, y) = 100(y - x^2)^2 + (1-x)^2$ is the canonical test for optimization algorithms:
 
@@ -1405,7 +1405,7 @@ Recent research (2020-2024) has revealed interesting properties of the optimizat
 
 **Implication:** The loss oscillates but decreases on average. The learning rate implicitly controls the curvature of the loss landscape that training "settles into."
 
-**Numerical analysis view:** $2/\eta$ is the stability threshold for gradient descent ($\eta < 2/\lambda_{\max}$ for convergence). The EoS phenomenon shows that neural networks are often training at the boundary of instability — aggressive but not diverging.
+**Numerical analysis view:** $2/\eta$ is the stability threshold for gradient descent ($\eta < 2/\lambda_{\max}$ for convergence). The EoS phenomenon shows that neural networks are often training at the boundary of instability - aggressive but not diverging.
 
 ### R.2 Catastrophic Forgetting and Flat Minima
 
@@ -1489,9 +1489,9 @@ For L-BFGS:
 
 ---
 
-*End of §03 Numerical Optimization Notes (1600+ lines)*
+*End of Section03 Numerical Optimization Notes (1600+ lines)*
 
-*[← §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [→ §04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [-> Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
@@ -1499,12 +1499,12 @@ For L-BFGS:
 
 ### T.1 First-Order Methods
 
-| Method | Cost/Iter | Conv. Rate (smooth convex) | Conv. Rate (strongly convex, κ) |
+| Method | Cost/Iter | Conv. Rate (smooth convex) | Conv. Rate (strongly convex, ) |
 |--------|-----------|---------------------------|----------------------------------|
 | Gradient descent | $O(d)$ | $O(1/k)$ | $O((1 - 1/\kappa)^k)$ |
-| GD (optimal step) | $O(d)$ | $O(L/k)$ | $O(((κ-1)/(κ+1))^k)$ |
-| GD + momentum | $O(d)$ | $O(1/k^2)$ (Nesterov) | $O(((\sqrt{κ}-1)/(\sqrt{κ}+1))^{2k})$ |
-| CG | $O(d)$ | $O(1/k^2)$ | $O(((\sqrt{κ}-1)/(\sqrt{κ}+1))^k)$ |
+| GD (optimal step) | $O(d)$ | $O(L/k)$ | $O(((-1)/(+1))^k)$ |
+| GD + momentum | $O(d)$ | $O(1/k^2)$ (Nesterov) | $O(((\sqrt{}-1)/(\sqrt{}+1))^{2k})$ |
+| CG | $O(d)$ | $O(1/k^2)$ | $O(((\sqrt{}-1)/(\sqrt{}+1))^k)$ |
 | SGD | $O(d)$ | $O(1/\sqrt{k})$ | $O(1/k)$ |
 | Adam | $O(d)$ | $O(1/\sqrt{k})$ | Empirically fast |
 
@@ -1516,7 +1516,7 @@ For L-BFGS:
 | Newton-CG | $O(d)$ | $O(d)$ per CG step | Super-linear |
 | BFGS | $O(d^2)$ | $O(d^2)$ | Super-linear |
 | L-BFGS | $O(md)$ | $O(md)$ | Super-linear locally |
-| Diagonal precond. | $O(d)$ | $O(d)$ | Linear, rate $((\sqrt{κ_D}-1)/...)^k$ |
+| Diagonal precond. | $O(d)$ | $O(d)$ | Linear, rate $((\sqrt{_D}-1)/...)^k$ |
 
 where $\kappa_D$ is the condition number after diagonal preconditioning.
 
@@ -1531,7 +1531,7 @@ where $\kappa_D$ is the condition number after diagonal preconditioning.
 
 ---
 
-## Appendix U: Worked Numerical Example — L-BFGS Step
+## Appendix U: Worked Numerical Example - L-BFGS Step
 
 **Setup:** Minimize $f(x) = x_1^2 + 10x_2^2$ starting from $x_0 = (2, 1)$.
 
@@ -1570,13 +1570,13 @@ This is much better aligned with the steepest descent direction scaled by approx
 
 ---
 
-*[← §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [→ §04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [-> Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
 ## Appendix V: Extended Exercises with Solutions
 
-### V.1 Verifying Adam's Diagonal Preconditioning (★★)
+### V.1 Verifying Adam's Diagonal Preconditioning (**)
 
 **Problem:** On the quadratic $f(x) = \frac{1}{2} x^\top H x$ with $H = \text{diag}(h_1, \ldots, h_d)$:
 
@@ -1587,16 +1587,16 @@ $$\Delta x_i \approx -\frac{\alpha}{\sqrt{h_i} + \varepsilon} g_i \approx -\frac
 
 This is gradient descent with step $\alpha / \sqrt{h_i}$ in coordinate $i$.
 
-(c) For the quadratic $f$, this corresponds to the Newton step $H^{-1} g$ with step size $\alpha / \sqrt{h_i} \cdot g_i / (h_i g_i) = \alpha / \sqrt{h_i}$ ... wait, the Newton step in coordinate $i$ is $g_i / h_i$. Adam gives $g_i / \sqrt{h_i}$ — this is a half-Newton step (square root of the Hessian diagonal, not the Hessian diagonal itself).
+(c) For the quadratic $f$, this corresponds to the Newton step $H^{-1} g$ with step size $\alpha / \sqrt{h_i} \cdot g_i / (h_i g_i) = \alpha / \sqrt{h_i}$ ... wait, the Newton step in coordinate $i$ is $g_i / h_i$. Adam gives $g_i / \sqrt{h_i}$ - this is a half-Newton step (square root of the Hessian diagonal, not the Hessian diagonal itself).
 
 **This is why Adam is not full Newton:** Adam uses $\sqrt{H_{\text{diag}}}$ as the preconditioner, not $H_{\text{diag}}$. For a quadratic, the optimal preconditioner is $H$ (Newton), not $\sqrt{H}$.
 
 **Consequence for convergence:** With Adam on a quadratic $H = \text{diag}(h_1, \ldots, h_d)$:
 - Gradient descent rate: $1 - 2\alpha \mu$ where $\mu = \min h_i / \kappa = h_{\min}$
-- Adam rate: $1 - 2\alpha / \sqrt{h_{\max}} \cdot h_{\min}^{1/2}$ — better but not optimal
+- Adam rate: $1 - 2\alpha / \sqrt{h_{\max}} \cdot h_{\min}^{1/2}$ - better but not optimal
 - Optimal diagonal Newton rate: $1 - 2\alpha$ (constant, independent of $\kappa$)
 
-### V.2 Finite Difference Gradient Check (★)
+### V.2 Finite Difference Gradient Check (*)
 
 Implement a gradient check for a custom loss function:
 
@@ -1632,7 +1632,7 @@ rel_err = np.abs(g_num - g_ana).max() / (np.abs(g_ana).max() + 1e-12)
 print(f"Max relative error: {rel_err:.2e}")  # Should be < 1e-5
 ```
 
-### V.3 Trust Region Radius Adaptation (★★)
+### V.3 Trust Region Radius Adaptation (**)
 
 Implement the trust region ratio test and radius update:
 
@@ -1642,10 +1642,10 @@ def trust_region_update(f, x, p, delta, f_k, m_decrease):
     f_new = f(x + p)
     actual = f_k - f_new
     rho = actual / m_decrease  # Ratio: actual/predicted decrease
-    
+
     # Accept or reject step
     x_new = x + p if rho > 0.1 else x
-    
+
     # Update radius
     if rho < 0.25:
         delta_new = 0.25 * delta
@@ -1653,7 +1653,7 @@ def trust_region_update(f, x, p, delta, f_k, m_decrease):
         delta_new = min(2 * delta, 1e6)  # Cap at maximum
     else:
         delta_new = delta
-    
+
     return x_new, delta_new, rho
 ```
 
@@ -1661,7 +1661,7 @@ def trust_region_update(f, x, p, delta, f_k, m_decrease):
 
 ## Appendix W: Self-Assessment Checklist
 
-After completing §03, you should be able to:
+After completing Section03, you should be able to:
 
 **Core algorithms:**
 - [ ] Implement backtracking Armijo line search
@@ -1684,7 +1684,7 @@ After completing §03, you should be able to:
 - [ ] Describe Shampoo/K-FAC as block quasi-Newton methods
 - [ ] Connect gradient clipping to projected gradient descent
 
-*Total content: §1-§12 (main), Appendices A-W (extended). Full coverage of numerical optimization for ML practitioners.*
+*Total content: Section1-Section12 (main), Appendices A-W (extended). Full coverage of numerical optimization for ML practitioners.*
 
 ---
 
@@ -1712,7 +1712,7 @@ for step, batch in enumerate(dataloader):
     with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
         loss = model(batch) / accumulation_steps  # Scale loss
     scaler.scale(loss).backward()
-    
+
     if (step + 1) % accumulation_steps == 0:
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -1736,10 +1736,10 @@ for step, batch in enumerate(dataloader):
 For a 7B parameter model with Adam:
 - fp32 params: 28 GB
 - fp32 Adam states ($m$, $v$): 56 GB
-- **Total:** 84 GB per GPU → requires 8× A100 (80 GB) without ZeRO
+- **Total:** 84 GB per GPU -> requires 8x A100 (80 GB) without ZeRO
 - With ZeRO-3 across 64 GPUs: ~1.3 GB per GPU
 
-**Numerical impact:** ZeRO doesn't change the mathematical update — it just distributes the storage. The optimizer state is identical to non-distributed Adam.
+**Numerical impact:** ZeRO doesn't change the mathematical update - it just distributes the storage. The optimizer state is identical to non-distributed Adam.
 
 ---
 
@@ -1750,7 +1750,7 @@ For a 7B parameter model with Adam:
 **Connection to numerical optimization:**
 - The acquisition function maximization is itself a classical optimization problem (e.g., L-BFGS on the acquisition function)
 - The surrogate model (GP) must be numerically stable: Cholesky factorization of the kernel matrix
-- Ill-conditioning of the kernel matrix → add noise $\sigma^2 I$ (numerical regularization)
+- Ill-conditioning of the kernel matrix -> add noise $\sigma^2 I$ (numerical regularization)
 
 **For AI hyperparameter tuning:** Bayesian optimization is used to tune:
 - Learning rate, batch size, weight decay
@@ -1765,13 +1765,13 @@ Tools: Optuna (Python), GPyOpt, BoTorch (PyTorch-native).
 
 **This section covered:**
 
-1. Line search methods (Armijo, Wolfe, backtracking) — essential for convergence guarantees
-2. Newton's method — quadratic convergence, modified Newton for non-convex settings
-3. Quasi-Newton methods (BFGS, L-BFGS) — practical second-order optimization
-4. Trust region methods — alternative to line search for non-convex landscapes
-5. Numerical differentiation — finite differences, optimal step size, complex-step
-6. Constrained optimization — projected gradient, ADMM
-7. AI applications — Adam as diagonal quasi-Newton, L-BFGS for full-batch training, HF optimization
+1. Line search methods (Armijo, Wolfe, backtracking) - essential for convergence guarantees
+2. Newton's method - quadratic convergence, modified Newton for non-convex settings
+3. Quasi-Newton methods (BFGS, L-BFGS) - practical second-order optimization
+4. Trust region methods - alternative to line search for non-convex landscapes
+5. Numerical differentiation - finite differences, optimal step size, complex-step
+6. Constrained optimization - projected gradient, ADMM
+7. AI applications - Adam as diagonal quasi-Newton, L-BFGS for full-batch training, HF optimization
 
 **Key takeaways:**
 - Adam is not an arbitrary heuristic: it approximates diagonal preconditioning of the gradient
@@ -1780,7 +1780,7 @@ Tools: Optuna (Python), GPyOpt, BoTorch (PyTorch-native).
 - Trust region methods (TRPO, PPO) provide a sound theoretical framework for policy gradient RL
 - Gradient checking is essential for debugging custom autodiff implementations
 
-*Notes length: ~2000 lines. Companion: [theory.ipynb](theory.ipynb) (50+ cells) | [exercises.ipynb](exercises.ipynb) (8 exercises)*
+*Notes length: ~2000 lines. Companion: [theory.ipynb](theory.ipynb) (50+ cells) | [exercises.ipynb](exercises.ipynb) (10 exercises)*
 
 ---
 
@@ -1858,9 +1858,9 @@ print(f"Iterations: {result.nit}")      # Typically ~30-50
 
 ---
 
-*[← §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [→ §04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [-> Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
 
-*End of §03 Numerical Optimization*
+*End of Section03 Numerical Optimization*
 
 ---
 
@@ -1868,39 +1868,39 @@ print(f"Iterations: {result.nit}")      # Typically ~30-50
 
 ### Books
 
-- **Nocedal & Wright, "Numerical Optimization"** (2nd ed., 2006) — The definitive reference. Chapters 2-7 cover all algorithms in this section in depth.
-- **Boyd & Vandenberghe, "Convex Optimization"** — Available free online. Rigorous treatment of convex optimization theory.
-- **Bertsekas, "Nonlinear Programming"** — Comprehensive treatment including constrained methods.
+- **Nocedal & Wright, "Numerical Optimization"** (2nd ed., 2006) - The definitive reference. Chapters 2-7 cover all algorithms in this section in depth.
+- **Boyd & Vandenberghe, "Convex Optimization"** - Available free online. Rigorous treatment of convex optimization theory.
+- **Bertsekas, "Nonlinear Programming"** - Comprehensive treatment including constrained methods.
 
 ### Papers
 
-- Kingma & Ba, "Adam: A Method for Stochastic Optimization" (2014) — Original Adam paper
-- Nocedal, "Updating quasi-Newton matrices with limited storage" (1980) — Original L-BFGS paper
-- Martens, "Deep learning via Hessian-free optimization" (2010) — Hessian-free for neural networks
-- Gupta, Koren, Singer, "Shampoo: Preconditioned stochastic tensor optimization" (2018) — Shampoo
-- Foret et al., "Sharpness-Aware Minimization" (2021) — SAM optimizer
-- Cohen et al., "Gradient descent on neural networks typically occurs at the edge of stability" (2021) — EoS phenomenon
+- Kingma & Ba, "Adam: A Method for Stochastic Optimization" (2014) - Original Adam paper
+- Nocedal, "Updating quasi-Newton matrices with limited storage" (1980) - Original L-BFGS paper
+- Martens, "Deep learning via Hessian-free optimization" (2010) - Hessian-free for neural networks
+- Gupta, Koren, Singer, "Shampoo: Preconditioned stochastic tensor optimization" (2018) - Shampoo
+- Foret et al., "Sharpness-Aware Minimization" (2021) - SAM optimizer
+- Cohen et al., "Gradient descent on neural networks typically occurs at the edge of stability" (2021) - EoS phenomenon
 
 ### Software
 
-- `scipy.optimize` — Reference implementations of L-BFGS-B, Newton-CG, trust region methods
-- `torch.optim` — Adam, AdamW, LBFGS, SGD with momentum, Adagrad, RMSProp
-- `optax` (JAX) — Composable optimizer building blocks
-- `bfgs` (Julia) — Clean reference implementation of BFGS
-- `Optuna` — Bayesian hyperparameter optimization
+- `scipy.optimize` - Reference implementations of L-BFGS-B, Newton-CG, trust region methods
+- `torch.optim` - Adam, AdamW, LBFGS, SGD with momentum, Adagrad, RMSProp
+- `optax` (JAX) - Composable optimizer building blocks
+- `bfgs` (Julia) - Clean reference implementation of BFGS
+- `Optuna` - Bayesian hyperparameter optimization
 
 ---
 
 ## Appendix DD: Summary Statistics
 
 ```
-§03 NUMERICAL OPTIMIZATION — SUMMARY
-════════════════════════════════════════════════════════════════════════
+Section03 NUMERICAL OPTIMIZATION - SUMMARY
+========================================================================
 
   Main sections:        12 (Intuition through Conceptual Bridge)
   Subsections:          22
   Common mistakes:      12
-  Exercises:            8 (★ to ★★★)
+  Exercises:            8 (* to ***)
   Appendices:           30 (A through DD)
 
   Algorithms covered:   15 (GD, CG, NCG, BFGS, L-BFGS, SR1, Newton,
@@ -1913,9 +1913,9 @@ print(f"Iterations: {result.nit}")      # Typically ~30-50
 
   Approximate notes length: 2000 lines
   Theory cells: 50+ (planned)
-  Exercises: 8 graded problems (24+ cells)
+  Exercises: 10 graded problems (24+ cells)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1941,7 +1941,7 @@ Running L-BFGS, gradient descent, and conjugate gradient on the Rosenbrock funct
 ```
 Starting from x0 = (-1, 0):
   Method         Iterations  Final Loss    Final ||g||
-  ─────────────────────────────────────────────────────
+  -----------------------------------------------------
   GD (optimal)   ~10,000    ~1e-5         ~1e-3
   CG (FR)        ~500       ~1e-8         ~1e-4
   BFGS           ~50        ~1e-10        ~1e-5
@@ -1955,7 +1955,7 @@ These numbers are approximate and depend on the line search implementation and t
 
 For Adam on a quadratic loss with varying condition numbers:
 
-| κ(H) | Steps to ε=10^-4 | Steps to ε=10^-8 |
+| (H) | Steps to \\varepsilon=10^-4 | Steps to \\varepsilon=10^-8 |
 |-------|------------------|------------------|
 | 1 | ~100 | ~200 |
 | 10 | ~200 | ~400 |
@@ -1967,13 +1967,13 @@ Adam improves on vanilla gradient descent but still scales poorly with condition
 
 ---
 
-*[← §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [→ §04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [-> Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
 
 ---
 
-*End of §03 Numerical Optimization. See [theory.ipynb](theory.ipynb) for implementations and [exercises.ipynb](exercises.ipynb) for practice problems.*
+*End of Section03 Numerical Optimization. See [theory.ipynb](theory.ipynb) for implementations and [exercises.ipynb](exercises.ipynb) for practice problems.*
 
-*Total content: 30+ appendices, 12 main sections, 8 exercises, 15 algorithms covered.*
+*Total content: 30+ appendices, 12 main sections, 10 exercises, 15 algorithms covered.*
 
 ## Appendix FF: Practice Problems
 
@@ -1995,6 +1995,6 @@ Adam improves on vanilla gradient descent but still scales poorly with condition
 
 ---
 
-*[← §02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [→ §04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
+*[<- Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) | [-> Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)*
 
 *End of file.*

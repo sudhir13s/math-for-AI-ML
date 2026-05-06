@@ -1028,9 +1028,9 @@ In machine learning, this viewpoint appears indirectly in:
 
 The determinant is the scalar object that tells you when the resolvent is allowed to exist.
 
-> **Scope of this section:** Section 5 covers the _determinantal_ side of eigenvalue theory — how the characteristic polynomial is defined, why its roots are eigenvalues, and what Cayley-Hamilton says about matrix polynomials. The full eigenvalue story (computation, geometric multiplicity, diagonalization, spectral theorem, Jordan form, applications in gradient dynamics and transformers) is the canonical subject of the next chapter.
+> **Scope of this section:** Section 5 covers the _determinantal_ side of eigenvalue theory - how the characteristic polynomial is defined, why its roots are eigenvalues, and what Cayley-Hamilton says about matrix polynomials. The full eigenvalue story (computation, geometric multiplicity, diagonalization, spectral theorem, Jordan form, applications in gradient dynamics and transformers) is the canonical subject of the next chapter.
 >
-> → _Full treatment: [Eigenvalues and Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md)_
+> -> _Full treatment: [Eigenvalues and Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md)_
 
 ## 6. Cofactor Matrix and Adjugate
 

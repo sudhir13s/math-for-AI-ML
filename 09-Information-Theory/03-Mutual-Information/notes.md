@@ -1,11 +1,11 @@
-[← Back to Curriculum](../../README.md) | [Previous: KL Divergence ←](../02-KL-Divergence/notes.md) | [Next: Cross-Entropy →](../04-Cross-Entropy/notes.md)
+[<- Back to Curriculum](../../README.md) | [Previous: KL Divergence <-](../02-KL-Divergence/notes.md) | [Next: Cross-Entropy ->](../04-Cross-Entropy/notes.md)
 
 ---
 
 # Mutual Information
 
 > _"Information is a difference that makes a difference."_
-> — Gregory Bateson
+> - Gregory Bateson
 
 ## Overview
 
@@ -17,18 +17,18 @@ This section develops mutual information from first principles, but keeps the sc
 
 ## Prerequisites
 
-- **Entropy and conditional entropy** — definitions, chain rule, and basic properties — [01-Entropy](../01-Entropy/notes.md)
-- **KL divergence** — non-negativity, asymmetry, and interpretation as relative entropy — [02-KL-Divergence](../02-KL-Divergence/notes.md)
-- **Conditional probability and Bayes' rule** — from [Probability Theory](../../06-Probability-Theory/README.md)
-- **Markov chains and conditional independence** — for data processing and sufficiency — [07-Markov-Chains](../../06-Probability-Theory/07-Markov-Chains/notes.md)
-- **Convexity and optimization basics** — useful for variational bounds and information bottleneck objectives — [08-Optimization](../../08-Optimization/README.md)
+- **Entropy and conditional entropy** - definitions, chain rule, and basic properties - [01-Entropy](../01-Entropy/notes.md)
+- **KL divergence** - non-negativity, asymmetry, and interpretation as relative entropy - [02-KL-Divergence](../02-KL-Divergence/notes.md)
+- **Conditional probability and Bayes' rule** - from [Probability Theory](../../06-Probability-Theory/README.md)
+- **Markov chains and conditional independence** - for data processing and sufficiency - [07-Markov-Chains](../../06-Probability-Theory/07-Markov-Chains/notes.md)
+- **Convexity and optimization basics** - useful for variational bounds and information bottleneck objectives - [08-Optimization](../../08-Optimization/README.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive mutual-information examples, data-processing visualizations, channel-capacity experiments, and InfoNCE demonstrations |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from tabular MI computation to contrastive-learning and active-learning applications |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from tabular MI computation to contrastive-learning and active-learning applications |
 
 ## Learning Objectives
 
@@ -1321,28 +1321,28 @@ behavior more broadly.
 
 ## 9. Exercises
 
-1. **Exercise 1 (★): Tabular Mutual Information**
+1. **Exercise 1 (*): Tabular Mutual Information**
    Given a $2\times 2$ joint probability table, compute $I(X;Y)$ directly from the definition and verify symmetry.
 
-2. **Exercise 2 (★): Zero Correlation, Positive MI**
+2. **Exercise 2 (*): Zero Correlation, Positive MI**
    Construct a nonlinear example with zero covariance but positive mutual information, and explain why the difference arises.
 
-3. **Exercise 3 (★): MI as KL Divergence**
+3. **Exercise 3 (*): MI as KL Divergence**
    Starting from $I(X;Y)=H(X)+H(Y)-H(X,Y)$, derive the KL form $D_{\mathrm{KL}}(p_{XY} \Vert p_X p_Y)$.
 
-4. **Exercise 4 (★★): Chain Rule and Conditional MI**
+4. **Exercise 4 (**): Chain Rule and Conditional MI**
    Prove a chain rule such as $I(X,Z;Y)=I(X;Y)+I(Z;Y\mid X)$, then interpret it in a feature-selection setting.
 
-5. **Exercise 5 (★★): Binary Symmetric Channel**
+5. **Exercise 5 (**): Binary Symmetric Channel**
    Compute the mutual information of a BSC numerically as a function of flip probability $\varepsilon$, and recover the formula $1-h_2(\varepsilon)$ for uniform input.
 
-6. **Exercise 6 (★★): Estimating MI from Samples**
+6. **Exercise 6 (**): Estimating MI from Samples**
    Generate dependent and independent synthetic datasets, estimate MI using a simple classical estimator, and analyze estimator bias and variance.
 
-7. **Exercise 7 (★★★): InfoNCE Lower Bound**
+7. **Exercise 7 (***): InfoNCE Lower Bound**
    Derive the $\log K - \mathcal{L}_{\mathrm{InfoNCE}}$ lower-bound form and explain what changes as the number of negatives grows.
 
-8. **Exercise 8 (★★★): MI in Modern ML**
+8. **Exercise 8 (***): MI in Modern ML**
    Choose one of feature selection, CLIP-style alignment, information bottleneck, or active learning and formulate the exact mutual-information quantity that the system is trying to maximize or preserve.
 
 ---

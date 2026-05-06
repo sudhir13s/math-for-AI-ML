@@ -1,25 +1,25 @@
-[← Back to Advanced Linear Algebra](../README.md) | [← PCA](../03-Principal-Component-Analysis/notes.md) | [Orthogonality →](../05-Orthogonality-and-Orthonormality/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- PCA](../03-Principal-Component-Analysis/notes.md) | [Orthogonality ->](../05-Orthogonality-and-Orthonormality/notes.md)
 
 ---
 
 # Linear Transformations
 
-> _"The matrix is not the territory. It is a coordinate representation of a linear map — and the map exists independently of any basis you choose to describe it."_
+> _"The matrix is not the territory. It is a coordinate representation of a linear map - and the map exists independently of any basis you choose to describe it."_
 
 ## Overview
 
-Linear transformations are the language in which all of machine learning is written. Every forward pass through a neural network is a sequence of linear maps punctuated by nonlinearities. Every attention head projects queries, keys, and values through learned linear transformations. Every gradient computation traces the chain rule backward through compositions of Jacobians — which are themselves linear maps. Understanding linear transformations at the abstract level — beyond matrices, beyond coordinates — is what separates a practitioner who can apply formulas from one who can reason about why those formulas work.
+Linear transformations are the language in which all of machine learning is written. Every forward pass through a neural network is a sequence of linear maps punctuated by nonlinearities. Every attention head projects queries, keys, and values through learned linear transformations. Every gradient computation traces the chain rule backward through compositions of Jacobians - which are themselves linear maps. Understanding linear transformations at the abstract level - beyond matrices, beyond coordinates - is what separates a practitioner who can apply formulas from one who can reason about why those formulas work.
 
-This section develops the full theory of linear transformations between vector spaces. We begin with the geometric intuition: what does a linear map *do* to space? We then build the formal machinery — kernel, image, rank-nullity theorem, matrix representation in arbitrary bases, change of basis, isomorphisms, and composition — that makes this intuition precise. We extend to affine maps (which include bias terms), to the Jacobian as the canonical linear approximation of a nonlinear function, and to the dual space, where gradients live.
+This section develops the full theory of linear transformations between vector spaces. We begin with the geometric intuition: what does a linear map *do* to space? We then build the formal machinery - kernel, image, rank-nullity theorem, matrix representation in arbitrary bases, change of basis, isomorphisms, and composition - that makes this intuition precise. We extend to affine maps (which include bias terms), to the Jacobian as the canonical linear approximation of a nonlinear function, and to the dual space, where gradients live.
 
-Throughout, the AI connections are not decorative but structural: LoRA is a rank-$r$ linear map composition; attention is a sequence of linear projections; backpropagation is reverse-mode accumulation of Jacobians. By the end of this section, you will see matrix multiplication not as arithmetic, but as function composition — the most powerful organizing principle in applied mathematics.
+Throughout, the AI connections are not decorative but structural: LoRA is a rank-$r$ linear map composition; attention is a sequence of linear projections; backpropagation is reverse-mode accumulation of Jacobians. By the end of this section, you will see matrix multiplication not as arithmetic, but as function composition - the most powerful organizing principle in applied mathematics.
 
 ## Prerequisites
 
-- Vector spaces, subspaces, basis, and dimension — [Chapter 2 §06: Vector Spaces and Subspaces](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md)
-- Matrix multiplication, inverse, transpose — [Chapter 2 §02: Matrix Operations](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
-- Rank and null space — [Chapter 2 §05: Matrix Rank](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md)
-- Eigenvalues and eigenvectors (used in §3.4, §5.1) — [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
+- Vector spaces, subspaces, basis, and dimension - [Chapter 2 06: Vector Spaces and Subspaces](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md)
+- Matrix multiplication, inverse, transpose - [Chapter 2 02: Matrix Operations](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
+- Rank and null space - [Chapter 2 05: Matrix Rank](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md)
+- Eigenvalues and eigenvectors (used in 3.4, 5.1) - [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
 
 ## Companion Notebooks
 
@@ -102,34 +102,34 @@ After completing this section, you will be able to:
 
 A matrix $A \in \mathbb{R}^{m \times n}$ admits three distinct but equivalent interpretations, and fluent practitioners shift between them effortlessly.
 
-**View 1: Data container.** The matrix is a rectangular array of numbers — $m$ rows, $n$ columns. This is the computational view. We use it when we care about entries: $A_{ij}$, the element in row $i$, column $j$.
+**View 1: Data container.** The matrix is a rectangular array of numbers - $m$ rows, $n$ columns. This is the computational view. We use it when we care about entries: $A_{ij}$, the element in row $i$, column $j$.
 
 **View 2: Column geometry.** The matrix is a collection of $n$ column vectors in $\mathbb{R}^m$. The product $A\mathbf{x}$ is then a linear combination: $A\mathbf{x} = x_1 \mathbf{a}_1 + x_2 \mathbf{a}_2 + \cdots + x_n \mathbf{a}_n$, where $\mathbf{a}_i$ is the $i$-th column. This view makes the column space visible and illuminates when $A\mathbf{x} = \mathbf{b}$ has solutions.
 
-**View 3: Linear transformation.** The matrix defines a function $T: \mathbb{R}^n \to \mathbb{R}^m$ by $T(\mathbf{x}) = A\mathbf{x}$. This is the abstract, coordinate-free view. The *map* $T$ exists independently of any coordinate representation — the matrix $A$ is merely its description in a particular pair of bases (standard basis for both $\mathbb{R}^n$ and $\mathbb{R}^m$).
+**View 3: Linear transformation.** The matrix defines a function $T: \mathbb{R}^n \to \mathbb{R}^m$ by $T(\mathbf{x}) = A\mathbf{x}$. This is the abstract, coordinate-free view. The *map* $T$ exists independently of any coordinate representation - the matrix $A$ is merely its description in a particular pair of bases (standard basis for both $\mathbb{R}^n$ and $\mathbb{R}^m$).
 
 ```
 THREE VIEWS OF THE MATRIX A
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   [2  1]         Column geometry:          Linear map:
-  [0  3]         A = [a₁ | a₂]            T: ℝ² → ℝ²
+  [0  3]         A = [a_1 | a_2]            T: \mathbb{R}^2 -> \mathbb{R}^2
   [1 -1]                                  T(x) = Ax
 
-  Data container      Span{a₁, a₂}         Sends basis vectors
-  A₂₁ = 0            = column space        e₁ → col 1 of A
-  A₃₂ = -1                                e₂ → col 2 of A
+  Data container      Span{a_1, a_2}         Sends basis vectors
+  A_2_1 = 0            = column space        e_1 -> col 1 of A
+  A_3_2 = -1                                e_2 -> col 2 of A
 
   All three describe the same mathematical object.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **For AI:** In a transformer, the weight matrix $W_Q \in \mathbb{R}^{d_k \times d}$ is simultaneously all three: raw parameters to be optimized (View 1), a basis for the query subspace (View 2), and a linear projection from the residual stream to query space (View 3). Understanding which view you're using prevents confusion about what "the attention head is doing."
 
 ### 1.2 Geometric Action of Linear Maps
 
-What does $T(\mathbf{x}) = A\mathbf{x}$ *do* to space? The two axioms — additivity and homogeneity — impose strong geometric constraints:
+What does $T(\mathbf{x}) = A\mathbf{x}$ *do* to space? The two axioms - additivity and homogeneity - impose strong geometric constraints:
 
 1. **The origin is fixed.** $T(\mathbf{0}) = A\mathbf{0} = \mathbf{0}$ always. A linear map cannot translate; it cannot move the origin. This is the most important geometric fact about linear transformations.
 
@@ -158,29 +158,29 @@ The superposition principle is the reason linear algebra is tractable. For a lin
 
 $$T\!\left(\sum_{i=1}^n c_i \mathbf{v}_i\right) = \sum_{i=1}^n c_i T(\mathbf{v}_i)$$
 
-This means: to know $T$ on **all** of $V$, you only need to know $T$ on a **basis**. A basis has $\dim(V)$ elements. The map on an infinite space is encoded in finitely many column vectors. This is extraordinary compression: infinite → finite.
+This means: to know $T$ on **all** of $V$, you only need to know $T$ on a **basis**. A basis has $\dim(V)$ elements. The map on an infinite space is encoded in finitely many column vectors. This is extraordinary compression: infinite -> finite.
 
 **Linearity vs nonlinearity in neural networks.** A deep neural network with no nonlinearities is just a single linear transformation: $W_L W_{L-1} \cdots W_1 \mathbf{x} = W_{\text{eff}} \mathbf{x}$. Multiple linear layers collapse to one. The nonlinearities (ReLU, GELU, SiLU) are what allow composition to create genuinely new representational power. The *linear* layers provide the parameterized directions; the *nonlinear* activations provide the expressive capacity.
 
 **Linearity in analysis.** Many of the hardest problems in mathematics and ML become tractable when restricted to linear functions: linear regression has a closed-form solution, linear systems have complete theory, spectral analysis of linear operators is well-understood. The strategy of "linearize, solve, interpret" recurs throughout calculus, optimization, and signal processing.
 
-**For AI:** The linear representation hypothesis (Elhage et al. 2022, Park et al. 2023) conjectures that many high-level features in LLMs are encoded as *directions* in representation space — i.e., they are linear features. If true, this means the crucial structure of LLM computation is linear, and all the machinery of this section applies directly to understanding what models are doing.
+**For AI:** The linear representation hypothesis (Elhage et al. 2022, Park et al. 2023) conjectures that many high-level features in LLMs are encoded as *directions* in representation space - i.e., they are linear features. If true, this means the crucial structure of LLM computation is linear, and all the machinery of this section applies directly to understanding what models are doing.
 
 ### 1.4 Historical Timeline
 
 | Year | Person | Contribution |
 | --- | --- | --- |
-| 1844 | Hermann Grassmann | *Die lineale Ausdehnungslehre* — first abstract treatment of linear spaces |
+| 1844 | Hermann Grassmann | *Die lineale Ausdehnungslehre* - first abstract treatment of linear spaces |
 | 1855 | Arthur Cayley | Matrix algebra as formal system; composition of matrices |
 | 1888 | Giuseppe Peano | First rigorous axiomatization of vector spaces |
 | 1902 | Henri Lebesgue | Integration as a linear functional on function spaces |
-| 1904–1910 | Hilbert, Riesz, Fischer | Infinite-dimensional linear algebra; Hilbert spaces; spectral theory |
+| 1904-1910 | Hilbert, Riesz, Fischer | Infinite-dimensional linear algebra; Hilbert spaces; spectral theory |
 | 1929 | John von Neumann | Operator theory; linear transformations on Hilbert spaces |
 | 1940s | Alan Turing, von Neumann | Linear algebra for numerical computation; matrix algorithms |
-| 1986 | Rumelhart, Hinton, Williams | Backpropagation — chains of Jacobians as the training algorithm |
+| 1986 | Rumelhart, Hinton, Williams | Backpropagation - chains of Jacobians as the training algorithm |
 | 2017 | Vaswani et al. | Attention = linear projections + scaled dot product; transformers |
 | 2021 | Hu et al. (LoRA) | Low-rank linear map updates for efficient fine-tuning |
-| 2022– | Elhage, Park et al. | Linear representation hypothesis; mechanistic interpretability |
+| 2022- | Elhage, Park et al. | Linear representation hypothesis; mechanistic interpretability |
 
 ---
 
@@ -225,7 +225,7 @@ $$A = \begin{bmatrix} T(\mathbf{e}_1) & T(\mathbf{e}_2) & \cdots & T(\mathbf{e}_
 **Definition (Kernel).** The **kernel** (or **null space**) of a linear map $T: V \to W$ is:
 $$\ker(T) = \{\mathbf{v} \in V : T(\mathbf{v}) = \mathbf{0}_W\}$$
 
-It is the set of all inputs that $T$ maps to zero — the "lost information" of the map.
+It is the set of all inputs that $T$ maps to zero - the "lost information" of the map.
 
 **Theorem 2.2.1.** $\ker(T)$ is a subspace of $V$.
 
@@ -248,7 +248,7 @@ The dimension of the kernel, $\dim(\ker(T))$, is called the **nullity** of $T$.
 **Definition (Image).** The **image** (or **range**) of a linear map $T: V \to W$ is:
 $$\operatorname{im}(T) = \{T(\mathbf{v}) : \mathbf{v} \in V\} = T(V)$$
 
-It is the set of all possible outputs — the "reachable" part of $W$.
+It is the set of all possible outputs - the "reachable" part of $W$.
 
 **Theorem 2.3.1.** $\operatorname{im}(T)$ is a subspace of $W$.
 
@@ -285,35 +285,35 @@ We claim $\{T(\mathbf{b}_1), \ldots, T(\mathbf{b}_q)\}$ is a basis for $\operato
 
 ```
 RANK-NULLITY THEOREM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  T: V ──────────────────────────────────→ W
-       │                                  │
-       ├── ker(T) ──→ {0}                 │
-       │   (nullity)   collapsed           │
-       │                                  │
-       └── "rest" ──→ im(T) ⊆ W          │
-           (rank)      transmitted         │
+  T: V -----------------------------------> W
+       |                                  |
+       +-- ker(T) ---> {0}                 |
+       |   (nullity)   collapsed           |
+       |                                  |
+       +-- "rest" ---> im(T) \subseteq W          |
+           (rank)      transmitted         |
 
   dim(V)    =    nullity(T)    +    rank(T)
   [total]     [collapsed dims]  [surviving dims]
 
-  Example: T: ℝ⁵ → ℝ³, rank 2
-  → nullity = 5 - 2 = 3
-  → 3 dimensions collapse, 2 survive
+  Example: T: \mathbb{R}^5 -> \mathbb{R}^3, rank 2
+  -> nullity = 5 - 2 = 3
+  -> 3 dimensions collapse, 2 survive
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Example.** $T: \mathbb{R}^4 \to \mathbb{R}^3$ defined by $A = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}$. Rank = 3 (full row rank). Nullity = $4 - 3 = 1$. The null space is $\ker(T) = \operatorname{span}\{(-1, -1, 1, 0)^\top\}$.
 
-**For AI:** In LoRA, a weight update $\Delta W = BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$ has rank at most $r$. By rank-nullity, its kernel has dimension at least $k - r$. When $r \ll k$, the update leaves most of the input space unchanged — it only "speaks to" an $r$-dimensional subspace.
+**For AI:** In LoRA, a weight update $\Delta W = BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$ has rank at most $r$. By rank-nullity, its kernel has dimension at least $k - r$. When $r \ll k$, the update leaves most of the input space unchanged - it only "speaks to" an $r$-dimensional subspace.
 
 ### 2.5 Examples and Non-Examples
 
 **Linear transformations:**
 
-| Map | Domain → Codomain | Kernel | Image |
+| Map | Domain -> Codomain | Kernel | Image |
 | --- | --- | --- | --- |
 | $T(\mathbf{x}) = A\mathbf{x}$ (matrix mult.) | $\mathbb{R}^n \to \mathbb{R}^m$ | null space of $A$ | column space of $A$ |
 | $T(f) = f'$ (differentiation) | $\mathcal{P}_n \to \mathcal{P}_{n-1}$ | constants | all polynomials of degree $\leq n-1$ |
@@ -334,7 +334,7 @@ RANK-NULLITY THEOREM
 | $T(\mathbf{x}) = \operatorname{ReLU}(\mathbf{x})$ | $T(\mathbf{u} + \mathbf{v}) \neq T(\mathbf{u}) + T(\mathbf{v})$ in general | Additivity |
 | $T(\mathbf{x}) = \mathbf{x} \odot \mathbf{x}$ (elementwise square) | $T(c\mathbf{x}) = c^2 \mathbf{x} \odot \mathbf{x} \neq c(\mathbf{x} \odot \mathbf{x})$ | Homogeneity |
 
-**Note on ReLU:** Though ReLU is not linear, it is **piecewise linear** — linear on each orthant. This means neural networks with ReLU are piecewise linear functions, which is a key fact for understanding their behavior.
+**Note on ReLU:** Though ReLU is not linear, it is **piecewise linear** - linear on each orthant. This means neural networks with ReLU are piecewise linear functions, which is a key fact for understanding their behavior.
 
 ---
 
@@ -381,12 +381,12 @@ $$[T(\mathbf{v})]_{\mathcal{C}} = [T]_{\mathcal{B}}^{\mathcal{C}} \, [\mathbf{v}
 The commutative diagram:
 
 ```
-  v ∈ V  ────────────────T────────────────→  T(v) ∈ W
-     │                                            │
-   [·]_B (coord in B)                       [·]_C (coord in C)
-     │                                            │
-     ↓                                            ↓
-  [v]_B ─────────[T]_B^C (matrix mult.)────→  [T(v)]_C
+  v \in V  ----------------T----------------->  T(v) \in W
+     |                                            |
+   [*]_B (coord in B)                       [*]_C (coord in C)
+     |                                            |
+     down                                            down
+  [v]_B ---------[T]_B^C (matrix mult.)----->  [T(v)]_C
 ```
 
 The matrix $[T]_{\mathcal{B}}^{\mathcal{C}}$ is the bridge between coordinates: it takes $\mathcal{B}$-coordinates of input to $\mathcal{C}$-coordinates of output.
@@ -398,7 +398,7 @@ $T(1,-1) = (0, 2) = 1 \cdot (1,1) + (-1) \cdot (1,-1)$, so column 2 is $(1, -1)^
 
 $$[T]_{\mathcal{B}}^{\mathcal{B}} = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$$
 
-This is diagonal-like: in the basis $\mathcal{B}$, $T$ acts as a simple scaling on each basis vector — exactly the diagonalization idea.
+This is diagonal-like: in the basis $\mathcal{B}$, $T$ acts as a simple scaling on each basis vector - exactly the diagonalization idea.
 
 ### 3.3 The Change-of-Basis Matrix
 
@@ -443,7 +443,7 @@ Geometrically: $A$ and $B$ represent the **same linear map** in **different base
 
 > **Forward reference: Eigenvalues and Eigenvectors**
 >
-> The full theory of diagonalization, the spectral theorem, and when a matrix is diagonalizable is developed in [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md). Here we note only that diagonalization is a special case of change of basis.
+> The full theory of diagonalization, the spectral theorem, and when a matrix is diagonalizable is developed in [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md). Here we note only that diagonalization is a special case of change of basis.
 
 ---
 
@@ -459,7 +459,7 @@ Let $T: U \to V$ and $S: V \to W$ be linear maps. Their **composition** $S \circ
 
 This is the fundamental theorem connecting composition of functions to matrix multiplication. It explains:
 - **Non-commutativity:** $S \circ T \neq T \circ S$ in general (different domains/codomains, or $BA \neq AB$ for square matrices).
-- **Associativity:** $(R \circ S) \circ T = R \circ (S \circ T)$ — matches matrix associativity.
+- **Associativity:** $(R \circ S) \circ T = R \circ (S \circ T)$ - matches matrix associativity.
 - **Deep learning:** A network $f = f_L \circ \cdots \circ f_1$ is a composition. The forward pass computes this product. The backward pass (backprop) uses the chain rule, which is exactly the composition of Jacobians.
 
 **Collapse of linear-only networks.** If $f_i(\mathbf{x}) = W_i \mathbf{x}$ (all layers linear, no activations):
@@ -491,13 +491,13 @@ where $W_{\text{eff}} = W_L \cdots W_1$ is a single matrix. No depth benefit wit
 
 **Definition.** A bijective linear map $T: V \to W$ is called an **isomorphism**. If such a map exists, $V$ and $W$ are **isomorphic**, written $V \cong W$.
 
-Isomorphic spaces are "the same" as vector spaces — they have the same algebraic structure. An isomorphism is a relabeling of elements that preserves all linear operations.
+Isomorphic spaces are "the same" as vector spaces - they have the same algebraic structure. An isomorphism is a relabeling of elements that preserves all linear operations.
 
 **Theorem 4.3.1 (Fundamental Classification).** Two finite-dimensional vector spaces over the same field are isomorphic if and only if they have the same dimension.
 
 *Consequence:* Every $n$-dimensional vector space over $\mathbb{R}$ is isomorphic to $\mathbb{R}^n$. The space $\mathcal{P}_n$ of polynomials of degree $\leq n$ (dimension $n+1$) is isomorphic to $\mathbb{R}^{n+1}$. The space $\mathbb{R}^{2 \times 2}$ (dimension 4) is isomorphic to $\mathbb{R}^4$.
 
-**For AI:** The residual stream of a transformer (a vector in $\mathbb{R}^d$) is isomorphic to any other $d$-dimensional space. Features are not inherently "in $\mathbb{R}^d$" — they live in an abstract vector space and $\mathbb{R}^d$ is just one coordinate representation. The linear representation hypothesis says this space has meaningful geometric structure independent of the coordinate system.
+**For AI:** The residual stream of a transformer (a vector in $\mathbb{R}^d$) is isomorphic to any other $d$-dimensional space. Features are not inherently "in $\mathbb{R}^d$" - they live in an abstract vector space and $\mathbb{R}^d$ is just one coordinate representation. The linear representation hypothesis says this space has meaningful geometric structure independent of the coordinate system.
 
 **Properties of isomorphisms:**
 - The inverse $T^{-1}: W \to V$ is also an isomorphism.
@@ -520,7 +520,7 @@ So $T^{-1}(a\mathbf{w}_1 + b\mathbf{w}_2) = a\mathbf{v}_1 + b\mathbf{v}_2 = aT^{
 
 > **Forward reference: Moore-Penrose Pseudo-Inverse**
 >
-> The general pseudo-inverse $A^+$, defined via SVD as $A^+ = V\Sigma^+ U^\top$, handles all cases uniformly and gives the least-squares solution when an exact solution doesn't exist. Full treatment in [§02: Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md#pseudo-inverse).
+> The general pseudo-inverse $A^+$, defined via SVD as $A^+ = V\Sigma^+ U^\top$, handles all cases uniformly and gives the least-squares solution when an exact solution doesn't exist. Full treatment in [02: Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md#pseudo-inverse).
 
 ### 4.5 The Four Fundamental Subspaces via Linear Maps
 
@@ -533,27 +533,27 @@ Every linear map $T: V \to W$ (with $V = \mathbb{R}^n$, $W = \mathbb{R}^m$, matr
 | Row space $\operatorname{row}(A)$ | $\operatorname{im}(T^\top)$ | $\mathbb{R}^n$ | $r$ |
 | Left null space $\operatorname{null}(A^\top)$ | $\ker(T^\top)$ | $\mathbb{R}^m$ | $m - r$ |
 
-**Orthogonality relations** (proven using the dual map — see §6):
+**Orthogonality relations** (proven using the dual map - see 6):
 $$\operatorname{null}(A) \perp \operatorname{row}(A), \quad \operatorname{null}(A^\top) \perp \operatorname{col}(A)$$
 
 This splits $\mathbb{R}^n = \operatorname{row}(A) \oplus \operatorname{null}(A)$ and $\mathbb{R}^m = \operatorname{col}(A) \oplus \operatorname{null}(A^\top)$.
 
 ```
 THE FOUR FUNDAMENTAL SUBSPACES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  ℝⁿ (domain)                    ℝᵐ (codomain)
-  ┌────────────────────┐         ┌────────────────────┐
-  │ row space          │──T──→   │ column space       │
-  │ (dim r)            │         │ (dim r)            │
-  ├────────────────────┤         ├────────────────────┤
-  │ null space         │──T──→   │ left null space    │
-  │ (dim n-r)          │ {0}     │ (dim m-r)          │
-  └────────────────────┘         └────────────────────┘
-        ↕ ⊥                               ↕ ⊥
+  \mathbb{R}^n (domain)                    \mathbb{R}^m (codomain)
+  +--------------------+         +--------------------+
+  | row space          |--T--->   | column space       |
+  | (dim r)            |         | (dim r)            |
+  +--------------------+         +--------------------+
+  | null space         |--T--->   | left null space    |
+  | (dim n-r)          | {0}     | (dim m-r)          |
+  +--------------------+         +--------------------+
+        <-> \perp                               <-> \perp
      orthogonal complement            orthogonal complement
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -564,7 +564,7 @@ THE FOUR FUNDAMENTAL SUBSPACES
 
 **Definition.** A linear map $P: V \to V$ is a **projection** if it is **idempotent**: $P^2 = P$.
 
-Idempotency means "doing it twice is the same as doing it once." Once you project onto a subspace, you're already there — projecting again does nothing.
+Idempotency means "doing it twice is the same as doing it once." Once you project onto a subspace, you're already there - projecting again does nothing.
 
 **Theorem 5.1.1.** If $P$ is a projection, then:
 - $\operatorname{im}(P) = \ker(I - P)$: the image of $P$ is the fixed-point set.
@@ -576,14 +576,14 @@ Idempotency means "doing it twice is the same as doing it once." Once you projec
 **Rank and trace.** For a projection: $\operatorname{rank}(P) = \operatorname{tr}(P)$ (eigenvalues are only 0 and 1; trace = sum of eigenvalues = number of 1s = rank).
 
 **Orthogonal vs oblique projections.** An **orthogonal projection** satisfies additionally $P = P^\top$ (i.e., $P$ is symmetric). In this case:
-- $\ker(P) = \operatorname{im}(P)^\perp$ — the kernel is the orthogonal complement of the image.
+- $\ker(P) = \operatorname{im}(P)^\perp$ - the kernel is the orthogonal complement of the image.
 - Formula: $P = A(A^\top A)^{-1}A^\top$ for projection onto $\operatorname{col}(A)$.
 
-An **oblique projection** has $P^2 = P$ but $P \neq P^\top$ — it projects along a subspace that is not orthogonal to the target.
+An **oblique projection** has $P^2 = P$ but $P \neq P^\top$ - it projects along a subspace that is not orthogonal to the target.
 
 > **Forward reference: Orthogonal Projections**
 >
-> The full theory of orthogonal projections — including the projection formula, orthogonal decompositions, and the relationship to least squares — is in [§05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md).
+> The full theory of orthogonal projections - including the projection formula, orthogonal decompositions, and the relationship to least squares - is in [05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md).
 
 **For AI:** Attention heads in transformers apply projections onto query/key/value subspaces. The head-specific projection matrices $W_Q, W_K, W_V$ define low-dimensional subspaces of the residual stream. The attention mechanism then computes weighted combinations within these projected spaces. Projection is also central to layer normalization (projecting onto the unit sphere in the mean-subtracted subspace).
 
@@ -597,8 +597,8 @@ Equivalently, their matrices satisfy $A^\top A = I$, i.e., $A^{-1} = A^\top$.
 The set of all $n \times n$ orthogonal matrices forms the **orthogonal group** $O(n)$.
 
 **Determinant splits them into two classes:**
-- $\det(A) = +1$: **proper rotations** — preserve orientation. These form $SO(n)$, the **special orthogonal group**.
-- $\det(A) = -1$: **improper rotations** (reflections, or rotation + reflection) — reverse orientation.
+- $\det(A) = +1$: **proper rotations** - preserve orientation. These form $SO(n)$, the **special orthogonal group**.
+- $\det(A) = -1$: **improper rotations** (reflections, or rotation + reflection) - reverse orientation.
 
 **2D rotation by angle $\theta$:**
 $$R_\theta = \begin{bmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{bmatrix} \in SO(2)$$
@@ -623,16 +623,16 @@ Properties: $H = H^\top$, $H^2 = I$, $\det(H) = -1$.
 **Shear maps** in $\mathbb{R}^2$: the horizontal shear by factor $k$ is:
 $$S_k = \begin{bmatrix} 1 & k \\ 0 & 1 \end{bmatrix}, \quad S_k(x, y) = (x + ky, y)$$
 
-$\det(S_k) = 1$ — shear preserves area. $S_k^{-1} = S_{-k}$.
+$\det(S_k) = 1$ - shear preserves area. $S_k^{-1} = S_{-k}$.
 
 Geometrically: the $x$-axis is fixed; each horizontal line slides by a distance proportional to its height. Parallelograms are tilted but area is preserved.
 
 **Elementary matrices** (from row operations) are all either shears, row swaps, or scalings:
-- Row scaling by $c$: $E_{ii}(c)$ — multiply row $i$ by $c$
-- Row swap: $E_{ij}$ — swap rows $i$ and $j$
-- Row addition: $E_{ij}(c)$ — add $c$ times row $j$ to row $i$ (this is a shear)
+- Row scaling by $c$: $E_{ii}(c)$ - multiply row $i$ by $c$
+- Row swap: $E_{ij}$ - swap rows $i$ and $j$
+- Row addition: $E_{ij}(c)$ - add $c$ times row $j$ to row $i$ (this is a shear)
 
-Every invertible matrix is a product of elementary matrices — Gaussian elimination as composition of linear maps.
+Every invertible matrix is a product of elementary matrices - Gaussian elimination as composition of linear maps.
 
 ### 5.4 The Geometry of Low-Rank Maps
 
@@ -645,13 +645,13 @@ This is a sum of $k$ rank-1 outer products. Each rank-1 term $\sigma_i \mathbf{u
 
 > **Forward reference: SVD and Low-Rank Approximation**
 >
-> The full theory of SVD — including the Eckart-Young theorem (best rank-$k$ approximation) and the geometric interpretation of singular values — is in [§02: Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md).
+> The full theory of SVD - including the Eckart-Young theorem (best rank-$k$ approximation) and the geometric interpretation of singular values - is in [02: Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md).
 
 **LoRA preview.** A rank-$r$ update $\Delta W = BA$ (with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, $r \ll \min(d,k)$) is a composition of two low-rank linear maps:
 1. $A: \mathbb{R}^k \to \mathbb{R}^r$ compresses the input to $r$ dimensions.
 2. $B: \mathbb{R}^r \to \mathbb{R}^d$ expands back to $d$ dimensions.
 
-The effective map $\Delta W = BA$ has rank $\leq r$, so it only modifies the network's behavior along $r$ directions in the input space. The hypothesis underlying LoRA is that the task-relevant weight changes lie in a low-dimensional subspace — a statement directly about the geometry of linear maps.
+The effective map $\Delta W = BA$ has rank $\leq r$, so it only modifies the network's behavior along $r$ directions in the input space. The hypothesis underlying LoRA is that the task-relevant weight changes lie in a low-dimensional subspace - a statement directly about the geometry of linear maps.
 
 ---
 
@@ -673,7 +673,7 @@ The dual basis is a basis for $V^*$, so $\dim(V^*) = \dim(V)$.
 
 **Key example: Row vectors.** In $\mathbb{R}^n$, a linear functional is any map $f(\mathbf{x}) = \mathbf{a}^\top \mathbf{x}$ for some fixed $\mathbf{a} \in \mathbb{R}^n$. So $(\mathbb{R}^n)^* \cong \mathbb{R}^n$, but the identification $\mathbf{a}^\top$ (row vector) $\leftrightarrow$ $\mathbf{a}$ (column vector) is coordinate-dependent. A **row vector** $\mathbf{a}^\top$ is intrinsically an element of $(\mathbb{R}^n)^*$, not of $\mathbb{R}^n$.
 
-**Why the distinction matters.** When you write $\mathbf{a}^\top \mathbf{x}$, you're applying the dual vector $\mathbf{a}^\top \in (\mathbb{R}^n)^*$ to the vector $\mathbf{x} \in \mathbb{R}^n$. This is a pairing between a space and its dual — not a dot product of two vectors in the same space. In Riemannian geometry and general relativity, this distinction is essential. In ML, it matters for understanding gradients.
+**Why the distinction matters.** When you write $\mathbf{a}^\top \mathbf{x}$, you're applying the dual vector $\mathbf{a}^\top \in (\mathbb{R}^n)^*$ to the vector $\mathbf{x} \in \mathbb{R}^n$. This is a pairing between a space and its dual - not a dot product of two vectors in the same space. In Riemannian geometry and general relativity, this distinction is essential. In ML, it matters for understanding gradients.
 
 ### 6.2 The Dual Map and the Transpose
 
@@ -703,7 +703,7 @@ This connection between linear maps and gradients is one of the deepest in all o
 **The gradient as a linear functional.** For a differentiable function $f: \mathbb{R}^n \to \mathbb{R}$, the derivative at $\mathbf{x}$ is a linear functional $Df_{\mathbf{x}}: \mathbb{R}^n \to \mathbb{R}$, defined by:
 $$Df_{\mathbf{x}}(\mathbf{h}) = \lim_{t \to 0} \frac{f(\mathbf{x} + t\mathbf{h}) - f(\mathbf{x})}{t} = \nabla f(\mathbf{x})^\top \mathbf{h}$$
 
-The derivative $Df_{\mathbf{x}}$ is an element of $(\mathbb{R}^n)^*$ — a **covector**, represented as a row vector $\nabla f(\mathbf{x})^\top$.
+The derivative $Df_{\mathbf{x}}$ is an element of $(\mathbb{R}^n)^*$ - a **covector**, represented as a row vector $\nabla f(\mathbf{x})^\top$.
 
 The **gradient vector** $\nabla f(\mathbf{x}) \in \mathbb{R}^n$ is obtained by identifying $(\mathbb{R}^n)^*$ with $\mathbb{R}^n$ via the standard inner product. This identification is coordinate-dependent: on a curved manifold (like a constraint surface or the space of probability distributions), gradients and vectors must be treated differently.
 
@@ -713,7 +713,7 @@ $$\frac{\partial \ell}{\partial \mathbf{x}} = W^\top \frac{\partial \ell}{\parti
 This is exactly the dual map $T^\top$ applied to the incoming gradient $\frac{\partial \ell}{\partial \mathbf{y}}$. Backpropagation propagates gradients backward through the transpose of each weight matrix. The chain of transposes in the backward pass is the dual map composition:
 $$(W_L \cdots W_1)^\top = W_1^\top \cdots W_L^\top$$
 
-**For AI:** Modern deep learning frameworks (PyTorch, JAX) compute gradients using automatic differentiation, which is precisely the evaluation of dual maps via the chain rule. Every `.backward()` call accumulates contributions via transpose weight matrices — it is applying the adjoint (dual) of the forward linear map.
+**For AI:** Modern deep learning frameworks (PyTorch, JAX) compute gradients using automatic differentiation, which is precisely the evaluation of dual maps via the chain rule. Every `.backward()` call accumulates contributions via transpose weight matrices - it is applying the adjoint (dual) of the forward linear map.
 
 ---
 
@@ -721,15 +721,15 @@ $$(W_L \cdots W_1)^\top = W_1^\top \cdots W_L^\top$$
 
 ### 7.1 Beyond Linearity: Affine Maps
 
-A linear map fixes the origin: $T(\mathbf{0}) = \mathbf{0}$. But many practical transformations in geometry and ML need to shift the origin — they include a **translation** component.
+A linear map fixes the origin: $T(\mathbf{0}) = \mathbf{0}$. But many practical transformations in geometry and ML need to shift the origin - they include a **translation** component.
 
 **Definition.** A function $f: \mathbb{R}^n \to \mathbb{R}^m$ is an **affine transformation** if it has the form:
 $$f(\mathbf{x}) = A\mathbf{x} + \mathbf{b}$$
 where $A \in \mathbb{R}^{m \times n}$ is a matrix (the **linear part**) and $\mathbf{b} \in \mathbb{R}^m$ is a vector (the **translation**).
 
-Affine maps are linear maps composed with a translation. They are NOT linear (unless $\mathbf{b} = \mathbf{0}$) — they fail the zero test: $f(\mathbf{0}) = \mathbf{b} \neq \mathbf{0}$ when $\mathbf{b} \neq \mathbf{0}$.
+Affine maps are linear maps composed with a translation. They are NOT linear (unless $\mathbf{b} = \mathbf{0}$) - they fail the zero test: $f(\mathbf{0}) = \mathbf{b} \neq \mathbf{0}$ when $\mathbf{b} \neq \mathbf{0}$.
 
-**Affine subspaces.** The image of $\mathbb{R}^n$ under an affine map is an **affine subspace** — a translate of a linear subspace. Solutions to $A\mathbf{x} = \mathbf{b}$ (when they exist) form an affine subspace: $\mathbf{x}_0 + \ker(A)$.
+**Affine subspaces.** The image of $\mathbb{R}^n$ under an affine map is an **affine subspace** - a translate of a linear subspace. Solutions to $A\mathbf{x} = \mathbf{b}$ (when they exist) form an affine subspace: $\mathbf{x}_0 + \ker(A)$.
 
 **Composition of affine maps.** If $f(\mathbf{x}) = A\mathbf{x} + \mathbf{b}$ and $g(\mathbf{y}) = C\mathbf{y} + \mathbf{d}$, then:
 $$(g \circ f)(\mathbf{x}) = g(A\mathbf{x} + \mathbf{b}) = C(A\mathbf{x} + \mathbf{b}) + \mathbf{d} = CA\mathbf{x} + (C\mathbf{b} + \mathbf{d})$$
@@ -750,7 +750,7 @@ Now $\tilde{f}$ is a **linear map** in $\mathbb{R}^{n+1}$. The last coordinate i
 **Key benefit: composition becomes matrix multiplication.** Two affine maps $\tilde{M}_1, \tilde{M}_2$ compose as:
 $$\tilde{M}_2 \tilde{M}_1 = \begin{bmatrix} A_2 & \mathbf{b}_2 \\ \mathbf{0}^\top & 1 \end{bmatrix} \begin{bmatrix} A_1 & \mathbf{b}_1 \\ \mathbf{0}^\top & 1 \end{bmatrix} = \begin{bmatrix} A_2 A_1 & A_2\mathbf{b}_1 + \mathbf{b}_2 \\ \mathbf{0}^\top & 1 \end{bmatrix}$$
 
-No special cases needed — composition is just matrix multiplication.
+No special cases needed - composition is just matrix multiplication.
 
 **Inverse of an affine map:**
 $$\begin{bmatrix} A & \mathbf{b} \\ \mathbf{0}^\top & 1 \end{bmatrix}^{-1} = \begin{bmatrix} A^{-1} & -A^{-1}\mathbf{b} \\ \mathbf{0}^\top & 1 \end{bmatrix}$$
@@ -784,12 +784,12 @@ Multiple affine layers compose to a single affine layer. Depth without nonlinear
 
 ### 8.1 Linearization of Nonlinear Maps
 
-Every differentiable function is "locally linear" — at any point, it looks like a linear map to first order. This principle underlies calculus, optimization, and all of numerical analysis.
+Every differentiable function is "locally linear" - at any point, it looks like a linear map to first order. This principle underlies calculus, optimization, and all of numerical analysis.
 
 **Definition (Total Derivative).** A function $f: \mathbb{R}^n \to \mathbb{R}^m$ is **differentiable** at $\mathbf{x}$ if there exists a linear map $Df_{\mathbf{x}}: \mathbb{R}^n \to \mathbb{R}^m$ such that:
 $$\lim_{\lVert\mathbf{h}\rVert \to 0} \frac{\lVert f(\mathbf{x} + \mathbf{h}) - f(\mathbf{x}) - Df_{\mathbf{x}}(\mathbf{h})\rVert}{\lVert\mathbf{h}\rVert} = 0$$
 
-The linear map $Df_{\mathbf{x}}$ is the **total derivative** or **Fréchet derivative** of $f$ at $\mathbf{x}$. The first-order approximation is:
+The linear map $Df_{\mathbf{x}}$ is the **total derivative** or **Frechet derivative** of $f$ at $\mathbf{x}$. The first-order approximation is:
 $$f(\mathbf{x} + \mathbf{h}) \approx f(\mathbf{x}) + Df_{\mathbf{x}}(\mathbf{h})$$
 
 For small $\mathbf{h}$, the function looks like an affine map: constant $f(\mathbf{x})$ plus linear correction $Df_{\mathbf{x}}(\mathbf{h})$.
@@ -801,7 +801,7 @@ For small $\mathbf{h}$, the function looks like an affine map: constant $f(\math
 **Definition.** The matrix representation of $Df_{\mathbf{x}}$ in standard coordinates is the **Jacobian matrix**:
 $$J_f(\mathbf{x}) = \begin{bmatrix} \frac{\partial f_1}{\partial x_1} & \cdots & \frac{\partial f_1}{\partial x_n} \\ \vdots & \ddots & \vdots \\ \frac{\partial f_m}{\partial x_1} & \cdots & \frac{\partial f_m}{\partial x_n} \end{bmatrix} \in \mathbb{R}^{m \times n}$$
 
-Entry $(i, j)$: $J_{ij} = \frac{\partial f_i}{\partial x_j}$ — how the $i$-th output changes with the $j$-th input.
+Entry $(i, j)$: $J_{ij} = \frac{\partial f_i}{\partial x_j}$ - how the $i$-th output changes with the $j$-th input.
 
 **Shape mnemonic:** output dimension $\times$ input dimension: $(m \times n)$ for $f: \mathbb{R}^n \to \mathbb{R}^m$.
 
@@ -818,7 +818,7 @@ This is a rank-deficient matrix (rank $n-1$) because softmax outputs sum to 1: t
 **The Jacobian of ReLU.** For $\mathbf{a} = \operatorname{ReLU}(\mathbf{z})$ (elementwise):
 $$J_{\operatorname{ReLU}}(\mathbf{z}) = \operatorname{diag}(\mathbf{1}[\mathbf{z} > 0])$$
 
-A diagonal matrix with 1s where $z_i > 0$ and 0s elsewhere. ReLU's Jacobian is a projection — it zeroes out the gradient for dead neurons.
+A diagonal matrix with 1s where $z_i > 0$ and 0s elsewhere. ReLU's Jacobian is a projection - it zeroes out the gradient for dead neurons.
 
 **The Jacobian of layer normalization.** More complex: layer norm applies mean subtraction, variance normalization, and an affine transformation. Its Jacobian is a projection onto a specific hyperplane (orthogonal to the constant vector), scaled and shifted.
 
@@ -833,27 +833,27 @@ This is **matrix multiplication** of Jacobians. The composition of two different
 
 $$\frac{\partial \ell}{\partial \mathbf{x}} = J_{f_1}^\top \cdots J_{f_L}^\top \nabla_{\mathbf{y}} L$$
 
-Reading right to left: start with $\nabla_{\mathbf{y}} L$, multiply by $J_{f_L}^\top$, then $J_{f_{L-1}}^\top$, etc. At each step, we multiply by the **transpose Jacobian** of a layer — which is the **dual map** of that layer's linear approximation.
+Reading right to left: start with $\nabla_{\mathbf{y}} L$, multiply by $J_{f_L}^\top$, then $J_{f_{L-1}}^\top$, etc. At each step, we multiply by the **transpose Jacobian** of a layer - which is the **dual map** of that layer's linear approximation.
 
 **Computational graph view.** Each node in the computation graph stores its local Jacobian. Forward pass evaluates the functions; backward pass multiplies the transpose Jacobians (right to left). This is the mathematical content of `autograd`.
 
 ```
 BACKPROPAGATION AS JACOBIAN CHAIN
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Forward:  x ──J₁──→ z₁ ──J₂──→ z₂ ── ... ──J_L──→ y ──→ ℓ
+  Forward:  x --J_1---> z_1 --J_2---> z_2 -- ... --J_L---> y ---> ell
 
-  Backward: ∂ℓ/∂x ←──J₁ᵀ── ∂ℓ/∂z₁ ←──J₂ᵀ── ∂ℓ/∂z₂ ←── ... ←──J_Lᵀ── ∇y L
+  Backward: \partialell/\partialx <---J_1^T-- \partialell/\partialz_1 <---J_2^T-- \partialell/\partialz_2 <--- ... <---J_L^T-- \nablay L
 
-  Each backward step:  (grad at input) = Jᵀ × (grad at output)
+  Each backward step:  (grad at input) = J^T \times (grad at output)
                      = (dual map) applied to incoming gradient
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Why Jacobians matter for training dynamics:**
-- Large Jacobian singular values → exploding gradients
-- Small Jacobian singular values → vanishing gradients
+- Large Jacobian singular values -> exploding gradients
+- Small Jacobian singular values -> vanishing gradients
 - The spectral norm of $J_f$ measures how much the linear approximation of $f$ can amplify inputs
 
 **For AI:** Gradient clipping, careful weight initialization (Xavier, He), and residual connections all address the Jacobian conditioning problem. Residual connections add an identity Jacobian contribution: $J_{x + F(x)} = I + J_F$, which prevents the singular values from collapsing to zero (vanishing gradients).
@@ -872,14 +872,14 @@ $$Q = XW_Q, \quad K = XW_K, \quad V = XW_V$$
 
 Each is a linear transformation: $Q$ projects each token into "query space", $K$ into "key space", $V$ into "value space".
 
-**Attention scores.** The attention pattern $\alpha = \operatorname{softmax}(QK^\top / \sqrt{d_k})$ is a soft selection matrix. For a fixed query vector $\mathbf{q}$, the attention scores $\mathbf{q}^\top K^\top$ are dot products in key space — a linear functional applied to each key.
+**Attention scores.** The attention pattern $\alpha = \operatorname{softmax}(QK^\top / \sqrt{d_k})$ is a soft selection matrix. For a fixed query vector $\mathbf{q}$, the attention scores $\mathbf{q}^\top K^\top$ are dot products in key space - a linear functional applied to each key.
 
-**Output.** $\operatorname{Attn}(Q,K,V) = \alpha V$. The output is a **weighted linear combination** of value vectors — a linear operation parameterized by $\alpha$. The output projection $W_O \in \mathbb{R}^{d_v \times d}$ maps back to the residual stream: another linear map.
+**Output.** $\operatorname{Attn}(Q,K,V) = \alpha V$. The output is a **weighted linear combination** of value vectors - a linear operation parameterized by $\alpha$. The output projection $W_O \in \mathbb{R}^{d_v \times d}$ maps back to the residual stream: another linear map.
 
 **Multi-head attention.** Each head $h$ applies its own projection matrices $(W_Q^h, W_K^h, W_V^h)$, computes attention independently, and the results are concatenated and projected:
 $$\operatorname{MHA}(X) = \operatorname{Concat}(\operatorname{head}_1, \ldots, \operatorname{head}_H) W_O$$
 
-This is a composition and concatenation of linear maps. The expressivity comes from the multiplicative interaction $QK^\top$ (which is bilinear, not linear) — but conditioned on fixed $\alpha$, the rest is linear.
+This is a composition and concatenation of linear maps. The expressivity comes from the multiplicative interaction $QK^\top$ (which is bilinear, not linear) - but conditioned on fixed $\alpha$, the rest is linear.
 
 **For AI:** The "OV circuit" and "QK circuit" decomposition (Elhage et al., 2021) analyzes transformer attention by studying the linear maps $W_OW_V$ (value writing) and $W_QW_K^\top$ (key-query matching) separately. This is possible precisely because attention is compositionally linear.
 
@@ -895,11 +895,11 @@ where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, and $r \
 **Rank-nullity interpretation.** The map $\Delta W = BA$ has rank at most $r$. By rank-nullity:
 $$\dim(\ker(\Delta W)) \geq k - r$$
 
-The update only changes the network's behavior along at most $r$ directions in the $k$-dimensional input space. When $r = 8$ and $k = 4096$, only $8/4096 \approx 0.2\%$ of input directions are affected — the update is extremely sparse in "direction space."
+The update only changes the network's behavior along at most $r$ directions in the $k$-dimensional input space. When $r = 8$ and $k = 4096$, only $8/4096 \approx 0.2\%$ of input directions are affected - the update is extremely sparse in "direction space."
 
 **The two-layer interpretation.** The update $\Delta W = BA$ is a composition of two maps:
-1. $A: \mathbb{R}^k \to \mathbb{R}^r$ — compression to rank-$r$ space
-2. $B: \mathbb{R}^r \to \mathbb{R}^d$ — expansion back to full dimension
+1. $A: \mathbb{R}^k \to \mathbb{R}^r$ - compression to rank-$r$ space
+2. $B: \mathbb{R}^r \to \mathbb{R}^d$ - expansion back to full dimension
 
 Initializing $A$ randomly and $B = 0$ ensures $\Delta W = 0$ at the start of fine-tuning, so the model starts from the pretrained weights.
 
@@ -912,21 +912,21 @@ Initializing $A$ randomly and $B = 0$ ensures $\Delta W = 0$ at the start of fin
 **Linear probing** tests whether a feature is linearly decodable from a model's representations. Given representations $\{\mathbf{h}_i\}$ and labels $\{y_i\}$, train a linear classifier:
 $$\hat{y} = \operatorname{sign}(\mathbf{w}^\top \mathbf{h} + b)$$
 
-If the probe achieves high accuracy, the feature is **linearly represented** — it corresponds to a direction $\mathbf{w}$ in representation space.
+If the probe achieves high accuracy, the feature is **linearly represented** - it corresponds to a direction $\mathbf{w}$ in representation space.
 
-**The Linear Representation Hypothesis** (Mikolov et al., 2013; Elhage et al., 2022; Park et al., 2023) states that high-level features (sentiment, syntax, factual attributes, world models) are encoded as **directions** in the residual stream — i.e., as linear features.
+**The Linear Representation Hypothesis** (Mikolov et al., 2013; Elhage et al., 2022; Park et al., 2023) states that high-level features (sentiment, syntax, factual attributes, world models) are encoded as **directions** in the residual stream - i.e., as linear features.
 
 **Evidence:**
 - Word2vec arithmetic: $\mathbf{v}(\text{king}) - \mathbf{v}(\text{man}) + \mathbf{v}(\text{woman}) \approx \mathbf{v}(\text{queen})$. Semantic relationships are linear offsets.
 - Steering vectors: adding $c\mathbf{d}$ to all residual stream activations controls model behavior (e.g., "banana" direction, sentiment directions).
 - Probing studies: most tested syntactic and semantic features are linearly decodable.
 
-**Superposition.** When there are more features than dimensions, the model stores features in near-orthogonal directions that partially overlap (superposition). This is still linear representation — just with interference.
+**Superposition.** When there are more features than dimensions, the model stores features in near-orthogonal directions that partially overlap (superposition). This is still linear representation - just with interference.
 
 **For AI:** If the linear representation hypothesis holds broadly, then:
 - Linear algebra provides the right toolkit for model interpretability.
 - Interventions on model behavior reduce to vector addition in representation space.
-- Feature extraction is a linear map — PCA/SVD on activations finds meaningful directions.
+- Feature extraction is a linear map - PCA/SVD on activations finds meaningful directions.
 
 ### 9.4 Embedding and Unembedding
 
@@ -935,11 +935,11 @@ If the probe achieves high accuracy, the feature is **linearly represented** —
 **Unembedding.** The unembedding matrix $W_U \in \mathbb{R}^{d \times |V|}$ maps residual stream vectors to logits over the vocabulary:
 $$\mathbf{l} = W_U \mathbf{h} \in \mathbb{R}^{|V|}$$
 
-This is a pure linear map. The logit for token $v$ is $l_v = \mathbf{w}_{U,v}^\top \mathbf{h}$ — a dot product (linear functional) between the unembedding direction $\mathbf{w}_{U,v}$ and the residual stream.
+This is a pure linear map. The logit for token $v$ is $l_v = \mathbf{w}_{U,v}^\top \mathbf{h}$ - a dot product (linear functional) between the unembedding direction $\mathbf{w}_{U,v}$ and the residual stream.
 
-**Logit lens.** Applying $W_U$ to intermediate residual stream states (before the final layer) gives "early predictions" — showing what the model is computing at each layer. This technique (Nostalgebraist, 2020) is possible because unembedding is linear.
+**Logit lens.** Applying $W_U$ to intermediate residual stream states (before the final layer) gives "early predictions" - showing what the model is computing at each layer. This technique (Nostalgebraist, 2020) is possible because unembedding is linear.
 
-**Tied embeddings.** Many models (GPT-2, LLaMA variants) use $W_U = W_E^\top$ — the same matrix for both embedding and unembedding. This enforces consistency: the most likely next token $v$ after seeing context $\mathbf{h}$ is the one whose embedding $W_E[v]$ has the highest dot product with $\mathbf{h}$ — i.e., $\operatorname{argmax}_v W_E[v] \cdot \mathbf{h}$.
+**Tied embeddings.** Many models (GPT-2, LLaMA variants) use $W_U = W_E^\top$ - the same matrix for both embedding and unembedding. This enforces consistency: the most likely next token $v$ after seeing context $\mathbf{h}$ is the one whose embedding $W_E[v]$ has the highest dot product with $\mathbf{h}$ - i.e., $\operatorname{argmax}_v W_E[v] \cdot \mathbf{h}$.
 
 ---
 
@@ -949,13 +949,13 @@ This is a pure linear map. The logit for token $v$ is $l_v = \mathbf{w}_{U,v}^\t
 | --- | --- | --- | --- |
 | 1 | **Assuming $T(\mathbf{0}) \neq \mathbf{0}$ is possible for a linear map** | Homogeneity immediately gives $T(\mathbf{0}) = T(0\cdot\mathbf{v}) = 0\cdot T(\mathbf{v}) = \mathbf{0}$. Any map with $T(\mathbf{0}) \neq \mathbf{0}$ is affine or nonlinear. | The zero-test is the fastest way to rule out linearity. |
 | 2 | **Treating translation as linear** | $f(\mathbf{x}) = \mathbf{x} + \mathbf{b}$ fails additivity: $f(\mathbf{u}+\mathbf{v}) = \mathbf{u}+\mathbf{v}+\mathbf{b} \neq f(\mathbf{u})+f(\mathbf{v}) = \mathbf{u}+\mathbf{v}+2\mathbf{b}$ | Neural network layers are affine ($W\mathbf{x}+\mathbf{b}$), not linear. This matters for composing and inverting. |
-| 3 | **Confusing rank of a map with rank of a matrix** | Rank is basis-independent (it's the dimension of the image) but the matrix depends on the basis. | $\operatorname{rank}(T) = \operatorname{rank}([T]_{\mathcal{B}}^{\mathcal{C}})$ for any bases — rank is a map invariant, not a matrix property. |
+| 3 | **Confusing rank of a map with rank of a matrix** | Rank is basis-independent (it's the dimension of the image) but the matrix depends on the basis. | $\operatorname{rank}(T) = \operatorname{rank}([T]_{\mathcal{B}}^{\mathcal{C}})$ for any bases - rank is a map invariant, not a matrix property. |
 | 4 | **Misapplying rank-nullity** | Forgetting that rank-nullity applies to the domain dimension, not the codomain. For $T: \mathbb{R}^5 \to \mathbb{R}^3$, rank + nullity = 5, not 3. | Identify $\dim(V)$ explicitly before applying the theorem. |
 | 5 | **Assuming $AB = BA$** | Matrix multiplication (= composition of linear maps) is generally not commutative. Even for square matrices, $AB \neq BA$ in general. | Non-commutativity is the default. Commutativity (e.g., diagonal matrices, polynomial functions of a matrix) is the special case. |
-| 6 | **Confusing similar matrices with equal matrices** | $A \sim B$ means they represent the same map in different bases — same eigenvalues, trace, determinant. But $A \neq B$ in general. | Similar matrices are equal only if the change-of-basis matrix $P$ is the identity. |
+| 6 | **Confusing similar matrices with equal matrices** | $A \sim B$ means they represent the same map in different bases - same eigenvalues, trace, determinant. But $A \neq B$ in general. | Similar matrices are equal only if the change-of-basis matrix $P$ is the identity. |
 | 7 | **Thinking the kernel is trivial when $A$ is tall** | A tall matrix $A \in \mathbb{R}^{m \times n}$ with $m > n$ can still have a non-trivial null space if its columns are linearly dependent. | Compute $\operatorname{rank}(A)$. Nullity = $n - \operatorname{rank}(A)$, regardless of whether $m > n$. |
 | 8 | **Applying the inverse when only a one-sided inverse exists** | A non-square $A \in \mathbb{R}^{m \times n}$ ($m \neq n$) cannot have a two-sided inverse. Attempting $A^{-1}$ for such matrices is undefined. | Use the pseudo-inverse $A^+$ for the least-squares solution. |
-| 9 | **Forgetting that the Jacobian is a linear map, not just partial derivatives** | The Jacobian matrix is the coordinate representation of the total derivative $Df_{\mathbf{x}}$. Partial derivatives individually give the columns but don't by themselves prove differentiability. | Differentiability requires the linear approximation error to go to zero — this requires the partials to exist AND be continuous. |
+| 9 | **Forgetting that the Jacobian is a linear map, not just partial derivatives** | The Jacobian matrix is the coordinate representation of the total derivative $Df_{\mathbf{x}}$. Partial derivatives individually give the columns but don't by themselves prove differentiability. | Differentiability requires the linear approximation error to go to zero - this requires the partials to exist AND be continuous. |
 | 10 | **Treating the gradient as a vector in the same space** | Strictly, $\nabla f(\mathbf{x}) \in (\mathbb{R}^n)^*$ (the dual space). In Euclidean space with standard basis, the identification $(\mathbb{R}^n)^* \cong \mathbb{R}^n$ makes this invisible. But for optimization on manifolds or with non-Euclidean metrics, treating gradients as primal vectors gives wrong answers. | Use the gradient as a covector when working with Fisher information, natural gradient, or Riemannian optimization. |
 | 11 | **Assuming all bijective functions are linear isomorphisms** | A function can be bijective but not linear. E.g., $f: \mathbb{R} \to \mathbb{R}$, $f(x) = x^3$ is bijective but not linear ($f(1+1) = 8 \neq f(1) + f(1) = 2$). | Isomorphisms must be both bijective AND linear. Check both conditions. |
 | 12 | **Forgetting that $\operatorname{im}(T)$ is in $W$, not in $V$** | The image is a subspace of the *codomain* $W$, not the domain $V$. The null space is in $V$. | Draw the diagram: $T: V \to W$. $\ker(T) \subseteq V$. $\operatorname{im}(T) \subseteq W$. |
@@ -964,7 +964,7 @@ This is a pure linear map. The logit for token $v$ is $l_v = \mathbf{w}_{U,v}^\t
 
 ## 11. Exercises
 
-### Exercise 1 ★ — Kernel and Image Computation
+### Exercise 1 * - Kernel and Image Computation
 
 **Goal:** Given explicit matrices, compute kernel and image and verify rank-nullity.
 
@@ -972,9 +972,9 @@ This is a pure linear map. The logit for token $v$ is $l_v = \mathbf{w}_{U,v}^\t
 
 **(b)** For $B = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix}$ (projection to first two coordinates): identify kernel and image without computation.
 
-**(c)** For the differentiation map $D: \mathcal{P}_3 \to \mathcal{P}_2$ with matrix as in §3.1: find kernel and image dimensions.
+**(c)** For the differentiation map $D: \mathcal{P}_3 \to \mathcal{P}_2$ with matrix as in 3.1: find kernel and image dimensions.
 
-### Exercise 2 ★ — Matrix of a Linear Map in Non-Standard Basis
+### Exercise 2 * - Matrix of a Linear Map in Non-Standard Basis
 
 **Goal:** Construct the matrix of a given transformation in a specified basis.
 
@@ -988,7 +988,7 @@ Let $T: \mathbb{R}^2 \to \mathbb{R}^2$ be reflection across the line $y = x$ (i.
 
 **(d)** Explain geometrically why $T$ is diagonal in the basis $\mathcal{B}$.
 
-### Exercise 3 ★ — Rank-Nullity and Linear Systems
+### Exercise 3 * - Rank-Nullity and Linear Systems
 
 **Goal:** Use rank-nullity to understand solution sets of linear systems.
 
@@ -998,7 +998,7 @@ Let $T: \mathbb{R}^2 \to \mathbb{R}^2$ be reflection across the line $y = x$ (i.
 
 **(c)** Prove: if $T: V \to V$ is a linear map on a finite-dimensional space, then $T$ is injective if and only if $T$ is surjective.
 
-### Exercise 4 ★★ — Projection Operator Construction
+### Exercise 4 ** - Projection Operator Construction
 
 **Goal:** Build an orthogonal projection onto a given subspace and verify idempotency.
 
@@ -1012,7 +1012,7 @@ Let $S = \operatorname{span}\{(1, 2, 0), (0, 1, 1)\} \subseteq \mathbb{R}^3$.
 
 **(d)** Compute $(I-P)$ and verify it is also a projection. What does it project onto?
 
-### Exercise 5 ★★ — Jacobian of Softmax
+### Exercise 5 ** - Jacobian of Softmax
 
 **Goal:** Derive and verify the Jacobian of the softmax function.
 
@@ -1024,12 +1024,12 @@ Let $S = \operatorname{span}\{(1, 2, 0), (0, 1, 1)\} \subseteq \mathbb{R}^3$.
 
 **(d)** Show that the rank of $J$ is at most $n-1$.
 
-### Exercise 6 ★★ — Affine Map Composition via Homogeneous Coordinates
+### Exercise 6 ** - Affine Map Composition via Homogeneous Coordinates
 
 **Goal:** Compose affine transformations using augmented matrices.
 
 In $\mathbb{R}^2$, let:
-- $f_1$: rotation by $45°$ then translate by $(1, 0)$
+- $f_1$: rotation by $45 degrees $ then translate by $(1, 0)$
 - $f_2$: scale by $2$ in both dimensions then translate by $(0, 1)$
 
 **(a)** Write augmented $3 \times 3$ matrices $\tilde{M}_1$ and $\tilde{M}_2$ for $f_1$ and $f_2$.
@@ -1038,7 +1038,7 @@ In $\mathbb{R}^2$, let:
 
 **(c)** Apply the composition to the point $(1, 0)$. Verify by applying $f_1$ then $f_2$ directly.
 
-### Exercise 7 ★★★ — LoRA Rank Analysis
+### Exercise 7 *** - LoRA Rank Analysis
 
 **Goal:** Analyze the geometry of low-rank weight updates.
 
@@ -1054,7 +1054,7 @@ Let $W_0 \in \mathbb{R}^{512 \times 512}$ be a pretrained weight. A LoRA update 
 
 **(e)** Compare the number of trainable parameters: $512 \times 512$ vs $r(512 + 512)$ for $r = 4, 8, 16, 32$.
 
-### Exercise 8 ★★★ — Linear Probing and the Linear Representation Hypothesis
+### Exercise 8 *** - Linear Probing and the Linear Representation Hypothesis
 
 **Goal:** Empirically test whether a concept is linearly represented in embedding space.
 
@@ -1075,14 +1075,14 @@ Let $W_0 \in \mathbb{R}^{512 \times 512}$ be a pretrained weight. A LoRA update 
 | Concept | AI Application | Why It Matters |
 | --- | --- | --- |
 | Linear map axioms | Neural layer computation | Every forward pass is a composition of linear maps + activations; understanding linearity separates what the layer does from what nonlinearity adds |
-| Kernel and image | Information compression | The null space of a weight matrix is "dead information" — inputs in $\ker(W)$ produce no signal. Attention heads have low-rank structure that defines their effective null space |
-| Rank-nullity theorem | LoRA, model compression | LoRA exploits rank-nullity: a rank-$r$ update has $(k-r)$-dimensional null space, leaving most of the input space unaffected — this is why it works with few parameters |
+| Kernel and image | Information compression | The null space of a weight matrix is "dead information" - inputs in $\ker(W)$ produce no signal. Attention heads have low-rank structure that defines their effective null space |
+| Rank-nullity theorem | LoRA, model compression | LoRA exploits rank-nullity: a rank-$r$ update has $(k-r)$-dimensional null space, leaving most of the input space unaffected - this is why it works with few parameters |
 | Change of basis | Diagonalization, eigenfeatures | The eigenvalue decomposition of weight matrices (studied in mechanistic interpretability) is a change to the "natural basis" in which the layer acts by simple scaling |
-| Composition = multiplication | Deep network analysis | The effective weight of a $k$-layer linear network is one matrix $W_L\cdots W_1$ — depth without nonlinearity has zero benefit. All depth benefits require nonlinearity |
+| Composition = multiplication | Deep network analysis | The effective weight of a $k$-layer linear network is one matrix $W_L\cdots W_1$ - depth without nonlinearity has zero benefit. All depth benefits require nonlinearity |
 | Projection operators | Attention heads, layer norm | Attention heads project onto query/key/value subspaces; layer norm projects onto the hyperplane of mean-zero vectors; understanding projections clarifies what information is preserved |
-| Affine maps + bias | Universal approximation | Bias terms are essential for shifting decision boundaries. Without bias, the model cannot represent affine functions — only linear ones. Universal approximation requires affine layers |
+| Affine maps + bias | Universal approximation | Bias terms are essential for shifting decision boundaries. Without bias, the model cannot represent affine functions - only linear ones. Universal approximation requires affine layers |
 | Jacobian and chain rule | Backpropagation | Every `.backward()` call is Jacobian-matrix multiplication via the chain rule. Gradient explosion/vanishing is about Jacobian singular value growth/decay through layers |
-| Dual maps and transposes | Gradient computation | The backward pass uses transpose weight matrices — these are the dual maps. Natural gradient and Fisher information matrix methods exploit the geometry of the dual space |
+| Dual maps and transposes | Gradient computation | The backward pass uses transpose weight matrices - these are the dual maps. Natural gradient and Fisher information matrix methods exploit the geometry of the dual space |
 | Linear representation hypothesis | Mechanistic interpretability | If features are linear, activation patching, steering vectors, and linear probing all work. This is why "linear algebra for interpretability" (e.g., representation engineering, logit lens) is a coherent research program |
 
 ---
@@ -1093,62 +1093,62 @@ Let $W_0 \in \mathbb{R}^{512 \times 512}$ be a pretrained weight. A LoRA update 
 
 This section builds on two foundational pillars from earlier in the curriculum.
 
-**From [Chapter 2 §06: Vector Spaces and Subspaces](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md):** We studied the axioms of abstract vector spaces (closure, associativity, identity, inverse, distributivity) and their subspaces (spans, null spaces, column spaces). Linear transformations are the *maps between* these abstract structures — the morphisms of the category of vector spaces. The four fundamental subspaces (column space, null space, row space, left null space) that were defined for matrices are now understood as $\operatorname{im}(T)$, $\ker(T)$, $\operatorname{im}(T^\top)$, and $\ker(T^\top)$ — intrinsic properties of the map, not the matrix.
+**From [Chapter 2 06: Vector Spaces and Subspaces](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md):** We studied the axioms of abstract vector spaces (closure, associativity, identity, inverse, distributivity) and their subspaces (spans, null spaces, column spaces). Linear transformations are the *maps between* these abstract structures - the morphisms of the category of vector spaces. The four fundamental subspaces (column space, null space, row space, left null space) that were defined for matrices are now understood as $\operatorname{im}(T)$, $\ker(T)$, $\operatorname{im}(T^\top)$, and $\ker(T^\top)$ - intrinsic properties of the map, not the matrix.
 
-**From [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md) and [§02: SVD](../02-Singular-Value-Decomposition/notes.md):** Both eigendecomposition and SVD are studied as **decompositions of linear maps into simple pieces**. Eigendecomposition finds a basis in which $T$ acts by scaling. SVD finds two orthonormal bases (for domain and codomain) in which $T$ acts by scaling. These are special cases of the general change-of-basis machinery developed here in §3.
+**From [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md) and [02: SVD](../02-Singular-Value-Decomposition/notes.md):** Both eigendecomposition and SVD are studied as **decompositions of linear maps into simple pieces**. Eigendecomposition finds a basis in which $T$ acts by scaling. SVD finds two orthonormal bases (for domain and codomain) in which $T$ acts by scaling. These are special cases of the general change-of-basis machinery developed here in 3.
 
-**From [§03: PCA](../03-Principal-Component-Analysis/notes.md):** PCA uses the linear structure of the data covariance matrix — the covariance $C = X^\top X / (n-1)$ is built from linear maps — to find the principal directions via SVD. The whitening transform and PCA projection are linear maps, and their geometry (dimension reduction, preserved variance) follows directly from the rank-nullity theorem.
+**From [03: PCA](../03-Principal-Component-Analysis/notes.md):** PCA uses the linear structure of the data covariance matrix - the covariance $C = X^\top X / (n-1)$ is built from linear maps - to find the principal directions via SVD. The whitening transform and PCA projection are linear maps, and their geometry (dimension reduction, preserved variance) follows directly from the rank-nullity theorem.
 
 ### Looking Forward
 
 The abstract machinery of linear transformations will appear throughout the rest of the curriculum in concrete technical forms.
 
-**[§05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md):** Gram-Schmidt is an algorithm that constructs a specific linear map (change of basis to an orthonormal basis). QR decomposition $A = QR$ factors a linear map as an orthogonal map $Q$ followed by a triangular map $R$. Orthogonal projections (§5.1 here) are studied in depth there.
+**[05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md):** Gram-Schmidt is an algorithm that constructs a specific linear map (change of basis to an orthonormal basis). QR decomposition $A = QR$ factors a linear map as an orthogonal map $Q$ followed by a triangular map $R$. Orthogonal projections (5.1 here) are studied in depth there.
 
-**[§06: Matrix Norms](../06-Matrix-Norms/notes.md):** The spectral norm $\lVert A \rVert_2 = \sigma_1(A)$ measures how much a linear map can amplify vectors. The nuclear norm $\lVert A \rVert_* = \sum \sigma_i$ measures the "effective rank." These norms quantify properties of the linear map that are invisible from the matrix entries.
+**[06: Matrix Norms](../06-Matrix-Norms/notes.md):** The spectral norm $\lVert A \rVert_2 = \sigma_1(A)$ measures how much a linear map can amplify vectors. The nuclear norm $\lVert A \rVert_* = \sum \sigma_i$ measures the "effective rank." These norms quantify properties of the linear map that are invisible from the matrix entries.
 
-**[Chapter 4: Calculus Fundamentals](../../04-Calculus-Fundamentals/README.md):** The Jacobian (§8 here) is the bridge between linear algebra and calculus. Multivariable calculus is essentially the study of how linear maps (Jacobians) approximate smooth nonlinear maps. The Hessian is the second-order analogue — a bilinear map that measures curvature. The implicit function theorem, inverse function theorem, and change-of-variables formula all rely on the Jacobian being an invertible linear map at the point of interest.
+**[Chapter 4: Calculus Fundamentals](../../04-Calculus-Fundamentals/README.md):** The Jacobian (8 here) is the bridge between linear algebra and calculus. Multivariable calculus is essentially the study of how linear maps (Jacobians) approximate smooth nonlinear maps. The Hessian is the second-order analogue - a bilinear map that measures curvature. The implicit function theorem, inverse function theorem, and change-of-variables formula all rely on the Jacobian being an invertible linear map at the point of interest.
 
 ### Curriculum Position
 
 ```
 POSITION IN THE MATH FOR LLMS CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Chapter 1: Mathematical Foundations
   Chapter 2: Linear Algebra Basics
-    ├── Vectors, Matrix Operations, Systems of Equations
-    ├── Determinants, Matrix Rank
-    └── Vector Spaces ────────────────────────────┐
-                                                  │ prerequisite
-  Chapter 3: Advanced Linear Algebra              │
-    ├── 01-Eigenvalues ──────────────────────────┤
-    ├── 02-SVD ─────────────────────────────────┤
-    ├── 03-PCA ─────────────────────────────────┤
-    │                                             │
-    ├── 04-Linear Transformations ◄──────────────┘
-    │      (YOU ARE HERE)
-    │      Kernel, Image, Rank-Nullity
-    │      Matrix Representation, Change of Basis
-    │      Composition, Isomorphisms, Jacobian
-    │      Affine Maps, Dual Spaces, AI Applications
-    │                                             │
-    ├── 05-Orthogonality ←─────────────────────┤
-    ├── 06-Matrix Norms ←──────────────────────┤
-    ├── 07-Positive Definite Matrices           │
-    └── 08-Matrix Decompositions               │
-                                               ↓
+    +-- Vectors, Matrix Operations, Systems of Equations
+    +-- Determinants, Matrix Rank
+    +-- Vector Spaces ----------------------------+
+                                                  | prerequisite
+  Chapter 3: Advanced Linear Algebra              |
+    +-- 01-Eigenvalues --------------------------+
+    +-- 02-SVD ---------------------------------+
+    +-- 03-PCA ---------------------------------+
+    |                                             |
+    +-- 04-Linear Transformations <--------------+
+    |      (YOU ARE HERE)
+    |      Kernel, Image, Rank-Nullity
+    |      Matrix Representation, Change of Basis
+    |      Composition, Isomorphisms, Jacobian
+    |      Affine Maps, Dual Spaces, AI Applications
+    |                                             |
+    +-- 05-Orthogonality <----------------------+
+    +-- 06-Matrix Norms <-----------------------+
+    +-- 07-Positive Definite Matrices           |
+    +-- 08-Matrix Decompositions               |
+                                               down
   Chapter 4: Calculus Fundamentals
     (Jacobians and chain rule developed further)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**The unifying theme:** Every major algorithm in deep learning is a composition of linear maps and nonlinearities. Understanding this section means understanding the *language* in which every neural network, every attention mechanism, every gradient computation, and every interpretability method is written. The matrix is not the territory — but knowing how to move between coordinate representations (change of basis), how to measure what a map collapses (kernel and rank), how to compose maps (matrix multiplication), and how to invert them (isomorphisms and pseudo-inverses) gives you the full algebraic toolkit to reason about any linear system you encounter in machine learning.
+**The unifying theme:** Every major algorithm in deep learning is a composition of linear maps and nonlinearities. Understanding this section means understanding the *language* in which every neural network, every attention mechanism, every gradient computation, and every interpretability method is written. The matrix is not the territory - but knowing how to move between coordinate representations (change of basis), how to measure what a map collapses (kernel and rank), how to compose maps (matrix multiplication), and how to invert them (isomorphisms and pseudo-inverses) gives you the full algebraic toolkit to reason about any linear system you encounter in machine learning.
 
 ---
 
-[← PCA](../03-Principal-Component-Analysis/notes.md) | [Back to Advanced Linear Algebra](../README.md) | [Orthogonality →](../05-Orthogonality-and-Orthonormality/notes.md)
+[<- PCA](../03-Principal-Component-Analysis/notes.md) | [Back to Advanced Linear Algebra](../README.md) | [Orthogonality ->](../05-Orthogonality-and-Orthonormality/notes.md)
 
 ---
 
@@ -1163,10 +1163,10 @@ We work out the differentiation operator in full detail to build intuition for l
 Define $D: V \to W$ by $D(p) = p'$ (differentiation).
 
 **Step 1: Apply $D$ to each basis vector of $V$.**
-- $D(1) = 0 = 0 \cdot 1 + 0 \cdot x + 0 \cdot x^2$ → coordinate vector $(0, 0, 0)^\top$
-- $D(x) = 1 = 1 \cdot 1 + 0 \cdot x + 0 \cdot x^2$ → coordinate vector $(1, 0, 0)^\top$
-- $D(x^2) = 2x = 0 \cdot 1 + 2 \cdot x + 0 \cdot x^2$ → coordinate vector $(0, 2, 0)^\top$
-- $D(x^3) = 3x^2 = 0 \cdot 1 + 0 \cdot x + 3 \cdot x^2$ → coordinate vector $(0, 0, 3)^\top$
+- $D(1) = 0 = 0 \cdot 1 + 0 \cdot x + 0 \cdot x^2$ -> coordinate vector $(0, 0, 0)^\top$
+- $D(x) = 1 = 1 \cdot 1 + 0 \cdot x + 0 \cdot x^2$ -> coordinate vector $(1, 0, 0)^\top$
+- $D(x^2) = 2x = 0 \cdot 1 + 2 \cdot x + 0 \cdot x^2$ -> coordinate vector $(0, 2, 0)^\top$
+- $D(x^3) = 3x^2 = 0 \cdot 1 + 0 \cdot x + 3 \cdot x^2$ -> coordinate vector $(0, 0, 3)^\top$
 
 **Step 2: Assemble into matrix.**
 $$[D]_{\mathcal{B}_V}^{\mathcal{B}_W} = \begin{bmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 2 & 0 \\ 0 & 0 & 0 & 3 \end{bmatrix}$$
@@ -1175,31 +1175,31 @@ $$[D]_{\mathcal{B}_V}^{\mathcal{B}_W} = \begin{bmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 &
 
 $$[D(p)]_{\mathcal{B}_W} = \begin{bmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & 2 & 0 \\ 0 & 0 & 0 & 3 \end{bmatrix} \begin{pmatrix} 2 \\ 3 \\ -1 \\ 4 \end{pmatrix} = \begin{pmatrix} 3 \\ -2 \\ 12 \end{pmatrix}$$
 
-So $D(p) = 3 - 2x + 12x^2$. Check: $(2 + 3x - x^2 + 4x^3)' = 3 - 2x + 12x^2$. ✓
+So $D(p) = 3 - 2x + 12x^2$. Check: $(2 + 3x - x^2 + 4x^3)' = 3 - 2x + 12x^2$. OK
 
 **Kernel of $D$:** The null space is $\{p : p' = 0\} = \{\text{constants}\} = \operatorname{span}\{1\}$. Dimension 1.
 
 **Image of $D$:** All polynomials of degree $\leq 2$ (since every $q \in \mathcal{P}_2$ equals $(p)'$ for some $p \in \mathcal{P}_3$). Dimension 3.
 
-**Rank-nullity check:** $\dim(\mathcal{P}_3) = 4 = 1 + 3 = \text{nullity} + \text{rank}$. ✓
+**Rank-nullity check:** $\dim(\mathcal{P}_3) = 4 = 1 + 3 = \text{nullity} + \text{rank}$. OK
 
 ### A.2 Change of Basis: Full Worked Example
 
-**Problem.** Let $T: \mathbb{R}^2 \to \mathbb{R}^2$ rotate vectors by $30°$ counterclockwise. Express $T$ in the rotated basis $\mathcal{B}' = \{R_{45°}\mathbf{e}_1, R_{45°}\mathbf{e}_2\}$.
+**Problem.** Let $T: \mathbb{R}^2 \to \mathbb{R}^2$ rotate vectors by $30 degrees $ counterclockwise. Express $T$ in the rotated basis $\mathcal{B}' = \{R_{45 degrees }\mathbf{e}_1, R_{45 degrees }\mathbf{e}_2\}$.
 
 **Step 1: Standard matrix of $T$.**
-$$A = R_{30°} = \begin{bmatrix} \cos 30° & -\sin 30° \\ \sin 30° & \cos 30° \end{bmatrix} = \begin{bmatrix} \sqrt{3}/2 & -1/2 \\ 1/2 & \sqrt{3}/2 \end{bmatrix}$$
+$$A = R_{30 degrees } = \begin{bmatrix} \cos 30 degrees  & -\sin 30 degrees  \\ \sin 30 degrees  & \cos 30 degrees  \end{bmatrix} = \begin{bmatrix} \sqrt{3}/2 & -1/2 \\ 1/2 & \sqrt{3}/2 \end{bmatrix}$$
 
 **Step 2: Change-of-basis matrix.** The new basis vectors, in standard coordinates:
-$$\mathbf{b}'_1 = R_{45°}\mathbf{e}_1 = (\cos 45°, \sin 45°)^\top = (1/\sqrt{2}, 1/\sqrt{2})^\top$$
-$$\mathbf{b}'_2 = R_{45°}\mathbf{e}_2 = (-\sin 45°, \cos 45°)^\top = (-1/\sqrt{2}, 1/\sqrt{2})^\top$$
+$$\mathbf{b}'_1 = R_{45 degrees }\mathbf{e}_1 = (\cos 45 degrees , \sin 45 degrees )^\top = (1/\sqrt{2}, 1/\sqrt{2})^\top$$
+$$\mathbf{b}'_2 = R_{45 degrees }\mathbf{e}_2 = (-\sin 45 degrees , \cos 45 degrees )^\top = (-1/\sqrt{2}, 1/\sqrt{2})^\top$$
 
-$$P = \begin{bmatrix} 1/\sqrt{2} & -1/\sqrt{2} \\ 1/\sqrt{2} & 1/\sqrt{2} \end{bmatrix} = R_{45°}$$
+$$P = \begin{bmatrix} 1/\sqrt{2} & -1/\sqrt{2} \\ 1/\sqrt{2} & 1/\sqrt{2} \end{bmatrix} = R_{45 degrees }$$
 
 **Step 3: New matrix.**
-$$[T]_{\mathcal{B}'} = P^{-1} A P = R_{-45°} R_{30°} R_{45°}$$
+$$[T]_{\mathcal{B}'} = P^{-1} A P = R_{-45 degrees } R_{30 degrees } R_{45 degrees }$$
 
-Since rotation matrices commute (they all rotate around the same axis in 2D): $R_{-45°} R_{30°} R_{45°} = R_{30°}$.
+Since rotation matrices commute (they all rotate around the same axis in 2D): $R_{-45 degrees } R_{30 degrees } R_{45 degrees } = R_{30 degrees }$.
 
 **Key insight:** A rotation in 2D has the same matrix in every orthonormal basis (since all such matrices are just $R_\theta$). This is because $R_\theta$ commutes with all rotations: $R_\alpha R_\theta R_\alpha^{-1} = R_\theta$.
 
@@ -1214,9 +1214,9 @@ Free variables: $x_2 = s$, $x_3 = t$ (free). Back-substitute: $x_1 = -2s + t$.
 
 $$\ker(A) = \left\{ s \begin{pmatrix} -2 \\ 1 \\ 0 \end{pmatrix} + t \begin{pmatrix} 1 \\ 0 \\ 1 \end{pmatrix} : s, t \in \mathbb{R} \right\}$$
 
-This is a **plane** through the origin in $\mathbb{R}^3$. The map $T_A: \mathbb{R}^3 \to \mathbb{R}^2$ collapses this entire plane to zero. By rank-nullity: rank $= 1$, nullity $= 2$, and $1 + 2 = 3 = \dim(\mathbb{R}^3)$. ✓
+This is a **plane** through the origin in $\mathbb{R}^3$. The map $T_A: \mathbb{R}^3 \to \mathbb{R}^2$ collapses this entire plane to zero. By rank-nullity: rank $= 1$, nullity $= 2$, and $1 + 2 = 3 = \dim(\mathbb{R}^3)$. OK
 
-The image of $T_A$ is $\operatorname{span}\{(1,2)^\top\}$ — a line in $\mathbb{R}^2$ — since the two columns of $A$ are $(1,2)^\top$ and $(2,4)^\top = 2 \cdot (1,2)^\top$, so rank = 1.
+The image of $T_A$ is $\operatorname{span}\{(1,2)^\top\}$ - a line in $\mathbb{R}^2$ - since the two columns of $A$ are $(1,2)^\top$ and $(2,4)^\top = 2 \cdot (1,2)^\top$, so rank = 1.
 
 ---
 
@@ -1232,7 +1232,7 @@ In the language of category theory (which provides a unifying framework for all 
 
 This forms a **category** denoted $\mathbf{Vect}_\mathbb{F}$.
 
-**Isomorphisms in the category** are exactly the invertible linear maps — this matches our definition of isomorphism in §4.3.
+**Isomorphisms in the category** are exactly the invertible linear maps - this matches our definition of isomorphism in 4.3.
 
 **Functors** are maps between categories that preserve the categorical structure. The "matrix representation" is a functor from $\mathbf{Vect}_\mathbb{F}$ (with chosen bases) to the category $\mathbf{Mat}_\mathbb{F}$ of matrices. Changing bases corresponds to a natural transformation.
 
@@ -1248,22 +1248,22 @@ The theory extends to infinite-dimensional spaces, where the familiar finite-dim
 
 **Functional analysis.** The study of linear maps on infinite-dimensional spaces is called functional analysis. Key results (Hahn-Banach, open mapping theorem, closed graph theorem) parallel finite-dimensional results but require additional technical hypotheses.
 
-**For AI:** Neural network function classes are subsets of infinite-dimensional function spaces ($L^2$ or Sobolev spaces). Understanding the "size" and "complexity" of these classes uses infinite-dimensional linear algebra — e.g., kernel methods and Gaussian processes operate in reproducing kernel Hilbert spaces (RKHS), and neural tangent kernel theory analyzes infinitely wide networks using spectral theory of linear operators.
+**For AI:** Neural network function classes are subsets of infinite-dimensional function spaces ($L^2$ or Sobolev spaces). Understanding the "size" and "complexity" of these classes uses infinite-dimensional linear algebra - e.g., kernel methods and Gaussian processes operate in reproducing kernel Hilbert spaces (RKHS), and neural tangent kernel theory analyzes infinitely wide networks using spectral theory of linear operators.
 
 ### B.3 The Tensor Product and Multilinear Maps
 
 **Bilinear maps.** A map $B: V \times W \to U$ is **bilinear** if it is linear in each argument separately. The attention score $B(\mathbf{q}, \mathbf{k}) = \mathbf{q}^\top \mathbf{k}$ is bilinear (linear in $\mathbf{q}$, linear in $\mathbf{k}$, but not linear jointly: $B(c\mathbf{q}, c\mathbf{k}) = c^2 B(\mathbf{q}, \mathbf{k}) \neq c B(\mathbf{q}, \mathbf{k})$ in general).
 
-**The tensor product $V \otimes W$** is the universal space for bilinear maps: every bilinear map $B: V \times W \to U$ factors through a unique linear map $\tilde{B}: V \otimes W \to U$. This is why tensors (in the ML sense: multi-dimensional arrays) are called tensors — they represent multilinear maps.
+**The tensor product $V \otimes W$** is the universal space for bilinear maps: every bilinear map $B: V \times W \to U$ factors through a unique linear map $\tilde{B}: V \otimes W \to U$. This is why tensors (in the ML sense: multi-dimensional arrays) are called tensors - they represent multilinear maps.
 
-**For AI:** The key operation in self-attention, $\mathbf{q}^\top \mathbf{k} = \langle \mathbf{q}, \mathbf{k} \rangle$, is a bilinear form. The matrix $W$ in the "weight matrix" formulation of attention ($\mathbf{q}^\top W_{\text{QK}} \mathbf{k}$) makes this explicit: $W_{\text{QK}} = W_Q^\top W_K$ is the matrix of the bilinear form. This is the reason attention is more expressive than standard linear transformations — it computes a bilinear (quadratic) function of the input.
-
----
-
+**For AI:** The key operation in self-attention, $\mathbf{q}^\top \mathbf{k} = \langle \mathbf{q}, \mathbf{k} \rangle$, is a bilinear form. The matrix $W$ in the "weight matrix" formulation of attention ($\mathbf{q}^\top W_{\text{QK}} \mathbf{k}$) makes this explicit: $W_{\text{QK}} = W_Q^\top W_K$ is the matrix of the bilinear form. This is the reason attention is more expressive than standard linear transformations - it computes a bilinear (quadratic) function of the input.
 
 ---
 
-## Appendix C: The Geometry of Linear Maps — A Deep Dive
+
+---
+
+## Appendix C: The Geometry of Linear Maps - A Deep Dive
 
 ### C.1 How Linear Maps Deform Space
 
@@ -1280,7 +1280,7 @@ The sphere becomes an ellipsoid. The "shape" of the ellipsoid is completely desc
 
 **Volume scaling.** The volume of the image of a set $S \subseteq \mathbb{R}^n$ under $A$ is $|\det(A)| \cdot \operatorname{vol}(S)$ (when $A$ is square). More precisely, $|\det(A)| = \prod \sigma_i$ = product of all singular values = volume of the image of the unit cube.
 
-For a rank-deficient map ($\det(A) = 0$), the image has lower dimension — and $m$-dimensional volume = 0. The map "collapses" $n$-dimensional space to a lower-dimensional flat object.
+For a rank-deficient map ($\det(A) = 0$), the image has lower dimension - and $m$-dimensional volume = 0. The map "collapses" $n$-dimensional space to a lower-dimensional flat object.
 
 **Angles.** Unless $A$ is orthogonal, linear maps change angles. The angle $\theta$ between $\mathbf{u}$ and $\mathbf{v}$ satisfies:
 $$\cos\theta = \frac{\mathbf{u}^\top\mathbf{v}}{\lVert\mathbf{u}\rVert\lVert\mathbf{v}\rVert}$$
@@ -1292,9 +1292,9 @@ The matrix $G = A^\top A$ (the **Gram matrix**) determines how $A$ distorts inne
 
 Given $T: \mathbb{R}^n \to \mathbb{R}^m$ with matrix $A$ and rank $r$:
 
-**The row space $\operatorname{row}(A)$:** This is the "input directions that survive" — the $r$-dimensional subspace of $\mathbb{R}^n$ that $T$ maps faithfully (injectively) onto the column space. Any $\mathbf{x} \in \operatorname{row}(A)$ is "noticed" by $T$.
+**The row space $\operatorname{row}(A)$:** This is the "input directions that survive" - the $r$-dimensional subspace of $\mathbb{R}^n$ that $T$ maps faithfully (injectively) onto the column space. Any $\mathbf{x} \in \operatorname{row}(A)$ is "noticed" by $T$.
 
-**The null space $\operatorname{null}(A)$:** This is the "input directions that are killed" — the $(n-r)$-dimensional subspace of $\mathbb{R}^n$ that $T$ maps to zero. Any $\mathbf{x} \in \operatorname{null}(A)$ is "invisible" to $T$.
+**The null space $\operatorname{null}(A)$:** This is the "input directions that are killed" - the $(n-r)$-dimensional subspace of $\mathbb{R}^n$ that $T$ maps to zero. Any $\mathbf{x} \in \operatorname{null}(A)$ is "invisible" to $T$.
 
 **The decomposition $\mathbb{R}^n = \operatorname{row}(A) \oplus \operatorname{null}(A)$:** Every input $\mathbf{x}$ splits uniquely as $\mathbf{x} = \mathbf{x}_r + \mathbf{x}_n$ where $\mathbf{x}_r$ is in the row space (the "signal" part) and $\mathbf{x}_n$ is in the null space (the "noise" invisible to $T$).
 
@@ -1304,29 +1304,29 @@ Given $T: \mathbb{R}^n \to \mathbb{R}^m$ with matrix $A$ and rank $r$:
 
 ```
 COMPLETE PICTURE OF THE FOUR FUNDAMENTAL SUBSPACES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  ℝⁿ (domain)                           ℝᵐ (codomain)
-  ─────────────────────────────────────────────────────────
+  \mathbb{R}^n (domain)                           \mathbb{R}^m (codomain)
+  ---------------------------------------------------------
 
-  ┌─────────────────────┐    T(x) = Ax    ┌─────────────────────┐
-  │    row space        │ ─────────────→  │    column space     │
-  │   (dim = r)         │  isomorphism    │    (dim = r)        │
-  │                     │                 │                     │
-  │   ─────────────     │                 │   ─────────────     │
-  │                     │                 │                     │
-  │    null space       │ ─────────────→  │    left null space  │
-  │   (dim = n-r)       │    maps to 0    │    (dim = m-r)      │
-  └─────────────────────┘                 └─────────────────────┘
-         ↑ ⊥ complement                          ↑ ⊥ complement
+  +---------------------+    T(x) = Ax    +---------------------+
+  |    row space        | -------------->  |    column space     |
+  |   (dim = r)         |  isomorphism    |    (dim = r)        |
+  |                     |                 |                     |
+  |   -------------     |                 |   -------------     |
+  |                     |                 |                     |
+  |    null space       | -------------->  |    left null space  |
+  |   (dim = n-r)       |    maps to 0    |    (dim = m-r)      |
+  +---------------------+                 +---------------------+
+         up \perp complement                          up \perp complement
 
   Every x = (row space part) + (null space part)
   T sees only the row space part.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI (linear systems / least squares):** When fitting a model $A\mathbf{w} = \mathbf{b}$ with more constraints than parameters ($m > n$), the system is overdetermined. A solution exists only if $\mathbf{b} \in \operatorname{col}(A)$. If not, the least-squares solution minimizes $\lVert A\mathbf{w} - \mathbf{b}\rVert^2$ — finding the projection of $\mathbf{b}$ onto $\operatorname{col}(A)$ and then solving in the row space.
+**For AI (linear systems / least squares):** When fitting a model $A\mathbf{w} = \mathbf{b}$ with more constraints than parameters ($m > n$), the system is overdetermined. A solution exists only if $\mathbf{b} \in \operatorname{col}(A)$. If not, the least-squares solution minimizes $\lVert A\mathbf{w} - \mathbf{b}\rVert^2$ - finding the projection of $\mathbf{b}$ onto $\operatorname{col}(A)$ and then solving in the row space.
 
 ### C.3 Linear Maps and Information Theory
 
@@ -1337,9 +1337,9 @@ The rank-nullity theorem has an information-theoretic interpretation.
 **Mutual information.** For a Gaussian input $\mathbf{x} \sim \mathcal{N}(\mathbf{0}, I_n)$ and output $\mathbf{y} = A\mathbf{x}$, the mutual information:
 $$I(\mathbf{x}; \mathbf{y}) = \frac{1}{2} \sum_{i=1}^r \log(1 + \sigma_i^2)$$
 
-depends only on the singular values — not on the specific directions. The null space of $A$ contributes zero mutual information.
+depends only on the singular values - not on the specific directions. The null space of $A$ contributes zero mutual information.
 
-**Compression.** If we want to compress $\mathbf{x} \in \mathbb{R}^n$ to $\mathbf{z} \in \mathbb{R}^r$ via a linear map $C \in \mathbb{R}^{r \times n}$, the maximum mutual information $I(\mathbf{x}; C\mathbf{x})$ is achieved when $C$ projects onto the top-$r$ right singular vectors of... itself (the row space). For structured data with covariance $\Sigma$, the optimal compression is PCA — projecting onto the top eigenvectors of $\Sigma$.
+**Compression.** If we want to compress $\mathbf{x} \in \mathbb{R}^n$ to $\mathbf{z} \in \mathbb{R}^r$ via a linear map $C \in \mathbb{R}^{r \times n}$, the maximum mutual information $I(\mathbf{x}; C\mathbf{x})$ is achieved when $C$ projects onto the top-$r$ right singular vectors of... itself (the row space). For structured data with covariance $\Sigma$, the optimal compression is PCA - projecting onto the top eigenvectors of $\Sigma$.
 
 This is why PCA is the optimal linear compressor under mean-squared error: it maximizes the retained variance (information) for any fixed rank $r$.
 
@@ -1389,7 +1389,7 @@ Setting $x_2 = 0, x_3 = 1$: $x_4 = 0$, $x_1 + 0 - 1 = 0 \Rightarrow x_1 = 1$. Ba
 
 **Null space basis:** $\ker(A) = \operatorname{span}\left\{(-2,1,0,0)^\top, (1,0,1,0)^\top\right\}$. Nullity = 2.
 
-Rank-nullity: $n = 4$, rank = 2 (two pivots), nullity = 2. Check: $2 + 2 = 4$. ✓
+Rank-nullity: $n = 4$, rank = 2 (two pivots), nullity = 2. Check: $2 + 2 = 4$. OK
 
 ### D.2 Numerical Stability of Basis Computations
 
@@ -1434,7 +1434,7 @@ RRQR is preferred over SVD when only a basis for the column space (not the singu
 
 ### E.1 Linear Maps in Physics
 
-In quantum mechanics, **operators** on Hilbert spaces are infinite-dimensional linear maps. The Hamiltonian $\hat{H}$, momentum $\hat{p}$, and position $\hat{x}$ are linear operators. The Schrödinger equation $i\hbar \partial_t |\psi\rangle = \hat{H}|\psi\rangle$ is a linear ODE on the Hilbert space of quantum states.
+In quantum mechanics, **operators** on Hilbert spaces are infinite-dimensional linear maps. The Hamiltonian $\hat{H}$, momentum $\hat{p}$, and position $\hat{x}$ are linear operators. The Schrodinger equation $i\hbar \partial_t |\psi\rangle = \hat{H}|\psi\rangle$ is a linear ODE on the Hilbert space of quantum states.
 
 The **spectral theorem** for self-adjoint operators (the quantum generalization of symmetric matrix diagonalization) guarantees that observables have real eigenvalues (the possible measurement outcomes) and that the eigenfunctions form a complete orthonormal basis.
 
@@ -1445,7 +1445,7 @@ The **spectral theorem** for self-adjoint operators (the quantum generalization 
 In algebraic topology, **chain complexes** are sequences of vector spaces connected by linear maps:
 $$\cdots \xrightarrow{\partial_3} C_2 \xrightarrow{\partial_2} C_1 \xrightarrow{\partial_1} C_0 \xrightarrow{\partial_0} 0$$
 
-where $\partial_{k-1} \circ \partial_k = 0$ (boundary of a boundary is zero — exactly the condition $\ker(\partial_{k-1}) \supseteq \operatorname{im}(\partial_k)$). The **homology groups** $H_k = \ker(\partial_k) / \operatorname{im}(\partial_{k+1})$ measure "holes" in topological spaces.
+where $\partial_{k-1} \circ \partial_k = 0$ (boundary of a boundary is zero - exactly the condition $\ker(\partial_{k-1}) \supseteq \operatorname{im}(\partial_k)$). The **homology groups** $H_k = \ker(\partial_k) / \operatorname{im}(\partial_{k+1})$ measure "holes" in topological spaces.
 
 **Persistent homology**, used in topological data analysis (TDA), applies this to point cloud data to find features that persist across scales. It's used in ML for analyzing data manifolds, protein structure prediction, and understanding neural network loss landscapes.
 
@@ -1453,7 +1453,7 @@ where $\partial_{k-1} \circ \partial_k = 0$ (boundary of a boundary is zero — 
 
 The **Discrete Fourier Transform** (DFT) is a linear map $F: \mathbb{C}^n \to \mathbb{C}^n$ with matrix entries $F_{kj} = e^{-2\pi i jk/n}$. The DFT matrix is unitary ($F^* F = nI$).
 
-Convolution is linear — convolving a signal with a kernel is a linear map — and in the Fourier domain it becomes pointwise multiplication. This is the key to making CNNs efficient: convolution is a structured linear map with shared weights (translation equivariance), and the Fourier transform diagonalizes the convolution operator.
+Convolution is linear - convolving a signal with a kernel is a linear map - and in the Fourier domain it becomes pointwise multiplication. This is the key to making CNNs efficient: convolution is a structured linear map with shared weights (translation equivariance), and the Fourier transform diagonalizes the convolution operator.
 
 **For AI:** The fast Fourier transform (FFT) is $O(n \log n)$ instead of $O(n^2)$ for the full DFT matrix multiply, by exploiting the structure (sparsity in a different basis) of the DFT linear map. Similarly, FlashAttention speeds up attention by exploiting the structure of the attention linear map to minimize memory bandwidth.
 
@@ -1462,7 +1462,7 @@ Convolution is linear — convolving a signal with a kernel is a linear map — 
 
 ---
 
-## Appendix F: The Algebra of Linear Maps — Structural Results
+## Appendix F: The Algebra of Linear Maps - Structural Results
 
 ### F.1 The Space of Linear Maps is a Vector Space
 
@@ -1482,7 +1482,7 @@ $$\dim(\mathcal{L}(V, W)) = mn$$
 
 ### F.2 Composition Gives $\mathcal{L}(V, V)$ an Algebra Structure
 
-When $V = W$, linear maps $T: V \to V$ can be composed. The space $\mathcal{L}(V, V)$ (endomorphisms of $V$) is a **ring** under composition (it is also a vector space — together, an **algebra**).
+When $V = W$, linear maps $T: V \to V$ can be composed. The space $\mathcal{L}(V, V)$ (endomorphisms of $V$) is a **ring** under composition (it is also a vector space - together, an **algebra**).
 
 **Properties of composition in $\mathcal{L}(V, V)$:**
 - **Associative:** $(RS)T = R(ST)$
@@ -1511,32 +1511,32 @@ This is the coordinate-free statement of the rank-nullity theorem: $V/\ker(T) \c
 
 **Geometric meaning.** The quotient map $\pi$ "collapses" the null space to a point, then $\tilde{T}$ acts faithfully (injectively) on the resulting space. Any linear map splits into: collapse (project out the null space) + inject faithfully into the codomain.
 
-**For AI:** In contrastive learning (SimCLR, MoCo), the projection head maps representations to a lower-dimensional space. This is a linear (or nonlinear) quotient map — it deliberately collapses some dimensions (those corresponding to nuisance factors like image augmentation) while preserving the semantically meaningful directions. The first isomorphism theorem says: what survives in the image is exactly what was not collapsed.
+**For AI:** In contrastive learning (SimCLR, MoCo), the projection head maps representations to a lower-dimensional space. This is a linear (or nonlinear) quotient map - it deliberately collapses some dimensions (those corresponding to nuisance factors like image augmentation) while preserving the semantically meaningful directions. The first isomorphism theorem says: what survives in the image is exactly what was not collapsed.
 
 ### F.4 Dual Bases and the Canonical Isomorphism
 
-We saw that $\dim(V^*) = \dim(V)$, so $V \cong V^*$. But this isomorphism is **non-canonical** — it depends on the choice of basis.
+We saw that $\dim(V^*) = \dim(V)$, so $V \cong V^*$. But this isomorphism is **non-canonical** - it depends on the choice of basis.
 
 **With an inner product.** When $V$ is an inner product space (like $\mathbb{R}^n$ with the standard dot product), there is a **canonical** isomorphism $\phi: V \to V^*$ defined by:
 $$\phi(\mathbf{v}) = \langle \mathbf{v}, \cdot \rangle$$
 
 That is, $\phi(\mathbf{v})$ is the linear functional that takes $\mathbf{w} \mapsto \langle \mathbf{v}, \mathbf{w}\rangle$.
 
-This isomorphism is canonical because it doesn't depend on any choice of basis — it uses only the inner product structure. When we identify $\nabla f(\mathbf{x}) \in \mathbb{R}^n$ as a column vector (primal) rather than a row vector (dual), we are implicitly using this canonical isomorphism via the standard inner product.
+This isomorphism is canonical because it doesn't depend on any choice of basis - it uses only the inner product structure. When we identify $\nabla f(\mathbf{x}) \in \mathbb{R}^n$ as a column vector (primal) rather than a row vector (dual), we are implicitly using this canonical isomorphism via the standard inner product.
 
-**For AI:** On non-Euclidean spaces (manifolds of probability distributions, manifolds of neural network weights under the Fisher metric), the identification $V \cong V^*$ is NO longer trivial — gradients and velocity vectors live in different spaces. The **natural gradient** method corrects for this by using the Fisher information matrix $F$ as the metric: $\tilde{\nabla} \theta = F^{-1} \nabla \theta$. This maps the gradient (a covector) to a tangent vector using the Riemannian metric instead of the Euclidean metric.
+**For AI:** On non-Euclidean spaces (manifolds of probability distributions, manifolds of neural network weights under the Fisher metric), the identification $V \cong V^*$ is NO longer trivial - gradients and velocity vectors live in different spaces. The **natural gradient** method corrects for this by using the Fisher information matrix $F$ as the metric: $\tilde{\nabla} \theta = F^{-1} \nabla \theta$. This maps the gradient (a covector) to a tangent vector using the Riemannian metric instead of the Euclidean metric.
 
 ---
 
-## Appendix G: Linear Maps in Practice — Worked Problems
+## Appendix G: Linear Maps in Practice - Worked Problems
 
 ### G.1 Verifying Linearity: Systematic Approach
 
 **Problem:** Is $T: \mathbb{R}^{2\times 2} \to \mathbb{R}$ defined by $T(A) = \operatorname{tr}(A)$ linear?
 
-**Check additivity:** $T(A + B) = \operatorname{tr}(A + B) = \operatorname{tr}(A) + \operatorname{tr}(B) = T(A) + T(B)$. ✓
+**Check additivity:** $T(A + B) = \operatorname{tr}(A + B) = \operatorname{tr}(A) + \operatorname{tr}(B) = T(A) + T(B)$. OK
 
-**Check homogeneity:** $T(cA) = \operatorname{tr}(cA) = c\operatorname{tr}(A) = cT(A)$. ✓
+**Check homogeneity:** $T(cA) = \operatorname{tr}(cA) = c\operatorname{tr}(A) = cT(A)$. OK
 
 **Conclusion:** $T$ is linear. Its matrix (viewing $\mathbb{R}^{2\times 2}$ with basis $\{E_{11}, E_{12}, E_{21}, E_{22}\}$):
 $$\operatorname{tr}(E_{11}) = 1, \quad \operatorname{tr}(E_{12}) = 0, \quad \operatorname{tr}(E_{21}) = 0, \quad \operatorname{tr}(E_{22}) = 1$$
@@ -1561,7 +1561,7 @@ $\ker(A) = \operatorname{span}\{(1,1,0)^\top, (-2,0,1)^\top\}$.
 
 **Approach 2: Inspection.** The columns satisfy $\mathbf{a}_2 = -\mathbf{a}_1$ and $\mathbf{a}_3 = 2\mathbf{a}_1$. So $A(1,-1,0)^\top = \mathbf{a}_1 + \mathbf{a}_1 = 0$... no, wait: $A(1,-1,0)^\top = 1\mathbf{a}_1 + (-1)(-\mathbf{a}_1) + 0 = \mathbf{a}_1 + \mathbf{a}_1 = 2\mathbf{a}_1 \neq \mathbf{0}$.
 
-Correcting: $\mathbf{a}_2 = -\mathbf{a}_1$ means $\mathbf{a}_1 + \mathbf{a}_2 = \mathbf{0}$, so $(1,1,0)^\top \in \ker(A)$. And $2\mathbf{a}_1 + 0\mathbf{a}_2 + (-1)\mathbf{a}_3 = 2\mathbf{a}_1 - 2\mathbf{a}_1 = \mathbf{0}$ since $\mathbf{a}_3 = 2\mathbf{a}_1$, so $(2,0,-1)^\top \in \ker(A)$ — or equivalently $(-2,0,1)^\top$.
+Correcting: $\mathbf{a}_2 = -\mathbf{a}_1$ means $\mathbf{a}_1 + \mathbf{a}_2 = \mathbf{0}$, so $(1,1,0)^\top \in \ker(A)$. And $2\mathbf{a}_1 + 0\mathbf{a}_2 + (-1)\mathbf{a}_3 = 2\mathbf{a}_1 - 2\mathbf{a}_1 = \mathbf{0}$ since $\mathbf{a}_3 = 2\mathbf{a}_1$, so $(2,0,-1)^\top \in \ker(A)$ - or equivalently $(-2,0,1)^\top$.
 
 **Approach 3: SVD.** Compute SVD of $A$; null space vectors are the right singular vectors with zero (or near-zero) singular values.
 
@@ -1612,7 +1612,7 @@ $$B(\mathbf{u}, \mathbf{v}) = \mathbf{u}^\top H \mathbf{v} = \text{rate of chang
 The Hessian determines the **curvature** of the loss landscape:
 - Positive definite Hessian ($\mathbf{u}^\top H\mathbf{u} > 0$ for all $\mathbf{u} \neq 0$): the point is a local minimum.
 - Indefinite Hessian (has both positive and negative eigenvalues): the point is a saddle point.
-- The ratio of largest to smallest eigenvalue is the **condition number** $\kappa(H)$ — it governs how slowly gradient descent converges.
+- The ratio of largest to smallest eigenvalue is the **condition number** $\kappa(H)$ - it governs how slowly gradient descent converges.
 
 **For AI:** Modern optimizers (Adam, AdaGrad) approximate Hessian-related quantities. Adam's second moment estimate $\hat{v}_t \approx \operatorname{diag}(H)$ approximates the diagonal of the Hessian. Dividing the gradient by $\sqrt{\hat{v}_t}$ is an approximation to Newton's method (which divides by $H$). This is why Adam often converges much faster than SGD on ill-conditioned problems.
 
@@ -1622,9 +1622,9 @@ The **neural tangent kernel** (NTK) theory (Jacot et al., 2018) analyzes infinit
 
 $$\dot{\mathbf{y}}_t = -\eta \, \Theta(\mathbf{X}, \mathbf{X}) (\mathbf{y}_t - \mathbf{y}^*)$$
 
-where $\Theta(\mathbf{X}, \mathbf{X})$ is the NTK matrix (constant in the infinite-width limit). This is an ODE with a constant **linear map** $\Theta$ — so its solution is $\mathbf{y}_t = \mathbf{y}^* + e^{-\eta \Theta t}(\mathbf{y}_0 - \mathbf{y}^*)$.
+where $\Theta(\mathbf{X}, \mathbf{X})$ is the NTK matrix (constant in the infinite-width limit). This is an ODE with a constant **linear map** $\Theta$ - so its solution is $\mathbf{y}_t = \mathbf{y}^* + e^{-\eta \Theta t}(\mathbf{y}_0 - \mathbf{y}^*)$.
 
-The eigenvalues of $\Theta$ determine which output directions are learned quickly (large eigenvalues → fast convergence) and which slowly (small eigenvalues → slow convergence). This is linear algebra — specifically, the spectral decomposition of a positive semidefinite linear map.
+The eigenvalues of $\Theta$ determine which output directions are learned quickly (large eigenvalues -> fast convergence) and which slowly (small eigenvalues -> slow convergence). This is linear algebra - specifically, the spectral decomposition of a positive semidefinite linear map.
 
 ### H.4 Gradient Flow through Linear Layers
 
@@ -1632,12 +1632,12 @@ Consider a linear layer $\mathbf{y} = W\mathbf{x}$ with loss $\mathcal{L}$. The 
 
 $$\frac{\partial \mathcal{L}}{\partial W} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \mathbf{x}^\top = \boldsymbol{\delta} \mathbf{x}^\top$$
 
-where $\boldsymbol{\delta} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \in \mathbb{R}^m$ is the "error signal" (upstream gradient). The gradient $\frac{\partial \mathcal{L}}{\partial W}$ is an **outer product** — a rank-1 matrix.
+where $\boldsymbol{\delta} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \in \mathbb{R}^m$ is the "error signal" (upstream gradient). The gradient $\frac{\partial \mathcal{L}}{\partial W}$ is an **outer product** - a rank-1 matrix.
 
 **This means gradient updates are always rank-1.** For a mini-batch of $B$ samples, the gradient is:
 $$\frac{\partial \mathcal{L}}{\partial W} = \frac{1}{B}\sum_{b=1}^B \boldsymbol{\delta}_b \mathbf{x}_b^\top$$
 
-A sum of $B$ rank-1 matrices — the gradient has rank at most $B$. For large models with batch size $B \ll n$, the gradient is a very low-rank update to the weight matrix. This low-rank structure of gradients is the empirical justification for gradient low-rank projection methods (GaLore, 2024).
+A sum of $B$ rank-1 matrices - the gradient has rank at most $B$. For large models with batch size $B \ll n$, the gradient is a very low-rank update to the weight matrix. This low-rank structure of gradients is the empirical justification for gradient low-rank projection methods (GaLore, 2024).
 
 ---
 
@@ -1780,9 +1780,9 @@ $$\mathbf{x}_{\ell+1} = \mathbf{x}_\ell + \underbrace{\text{Attn}_\ell(\mathbf{x
 
 Each update is (approximately) a low-rank linear map from the residual stream back to itself. The attention update's linear part is $W_O W_V$ (the "OV circuit"); the MLP's linear part is $W_{\text{out}} W_{\text{in}}$ after linearizing the activation.
 
-**SVD of the OV circuit.** The matrix $W_O W_V \in \mathbb{R}^{d \times d}$ can be analyzed via SVD. Its singular values reveal how strongly the attention head modifies the residual stream, and its singular vectors reveal which directions it reads from and writes to. Heads with near-zero singular values are "inattentive" — they barely modify the residual stream regardless of attention pattern.
+**SVD of the OV circuit.** The matrix $W_O W_V \in \mathbb{R}^{d \times d}$ can be analyzed via SVD. Its singular values reveal how strongly the attention head modifies the residual stream, and its singular vectors reveal which directions it reads from and writes to. Heads with near-zero singular values are "inattentive" - they barely modify the residual stream regardless of attention pattern.
 
-**Subspace decomposition.** The full set of $L \times H$ attention heads (for $L$ layers, $H$ heads per layer) collectively form a large linear map from the input to the residual stream updates. The total update is a sum of $LH$ low-rank linear maps. Understanding the structure of this sum — which heads are redundant, which are essential — is a central goal of circuit-level MI.
+**Subspace decomposition.** The full set of $L \times H$ attention heads (for $L$ layers, $H$ heads per layer) collectively form a large linear map from the input to the residual stream updates. The total update is a sum of $LH$ low-rank linear maps. Understanding the structure of this sum - which heads are redundant, which are essential - is a central goal of circuit-level MI.
 
 ### K.2 Linear Algebra of Diffusion Models
 
@@ -1792,7 +1792,7 @@ $$\mathbf{x}_t = \sqrt{\bar\alpha_t}\, \mathbf{x}_0 + \sqrt{1 - \bar\alpha_t}\, 
 
 This is an affine interpolation between the data $\mathbf{x}_0$ and pure noise. The coefficient $\sqrt{\bar\alpha_t}$ scales the data, and $\sqrt{1-\bar\alpha_t}$ scales the noise.
 
-**The denoising objective.** The neural network $\epsilon_\theta(\mathbf{x}_t, t)$ estimates $\boldsymbol{\varepsilon}$ (the noise) from the noisy input. Near a data point $\mathbf{x}_0$, this estimator is approximately a **linear function** of $\mathbf{x}_t - \sqrt{\bar\alpha_t}\mathbf{x}_0$ — the Tweedie formula gives the optimal estimator as:
+**The denoising objective.** The neural network $\epsilon_\theta(\mathbf{x}_t, t)$ estimates $\boldsymbol{\varepsilon}$ (the noise) from the noisy input. Near a data point $\mathbf{x}_0$, this estimator is approximately a **linear function** of $\mathbf{x}_t - \sqrt{\bar\alpha_t}\mathbf{x}_0$ - the Tweedie formula gives the optimal estimator as:
 
 $$\hat{\mathbf{x}}_0 = \frac{\mathbf{x}_t - \sqrt{1-\bar\alpha_t}\, \epsilon_\theta(\mathbf{x}_t, t)}{\sqrt{\bar\alpha_t}}$$
 
@@ -1807,15 +1807,15 @@ $$\mathbf{y}_t = C\mathbf{h}_t + D\mathbf{x}_t$$
 
 where $A \in \mathbb{R}^{N \times N}$, $B \in \mathbb{R}^{N \times d}$, $C \in \mathbb{R}^{d \times N}$, $D \in \mathbb{R}^{d \times d}$ are (possibly input-dependent) matrices.
 
-The state transition $\mathbf{h} \mapsto A\mathbf{h} + B\mathbf{x}$ is a **linear dynamical system** — the fundamental object of study in control theory and signal processing.
+The state transition $\mathbf{h} \mapsto A\mathbf{h} + B\mathbf{x}$ is a **linear dynamical system** - the fundamental object of study in control theory and signal processing.
 
 **Key linear algebra results for SSMs:**
 
 1. **Eigenvalues of $A$ determine memory.** If $|\lambda_i(A)| < 1$ for all $i$, the system has bounded memory decay. If any $|\lambda_i| > 1$, the state can grow unboundedly.
 
-2. **Diagonalization for efficiency.** If $A = P\Lambda P^{-1}$, the recurrence decouples into $N$ independent scalar recurrences — each computable independently. S4 uses diagonal $A$ (DPLR structure) for $O(N\log N)$ parallel computation via convolution.
+2. **Diagonalization for efficiency.** If $A = P\Lambda P^{-1}$, the recurrence decouples into $N$ independent scalar recurrences - each computable independently. S4 uses diagonal $A$ (DPLR structure) for $O(N\log N)$ parallel computation via convolution.
 
-3. **The convolution view.** Unrolling the recurrence: $\mathbf{y}_t = \sum_{\tau=0}^t C A^{t-\tau} B \mathbf{x}_\tau + D\mathbf{x}_t$. The impulse response $C A^k B$ is a sequence of matrix powers — analyzable by the spectral decomposition of $A$.
+3. **The convolution view.** Unrolling the recurrence: $\mathbf{y}_t = \sum_{\tau=0}^t C A^{t-\tau} B \mathbf{x}_\tau + D\mathbf{x}_t$. The impulse response $C A^k B$ is a sequence of matrix powers - analyzable by the spectral decomposition of $A$.
 
 4. **Mamba's selectivity.** Mamba makes $A, B, C$ input-dependent: $A(\mathbf{x}), B(\mathbf{x}), C(\mathbf{x})$. The recurrence becomes **bilinear** in $(\mathbf{h}, \mathbf{x})$, not purely linear. The linearization (around typical inputs) gives a locally linear system analyzable by the tools of this section.
 
@@ -1825,31 +1825,31 @@ The state transition $\mathbf{h} \mapsto A\mathbf{h} + B\mathbf{x}$ is a **linea
 
 ### Primary References
 
-1. **Axler, S. (2015).** *Linear Algebra Done Right* (3rd ed.). Springer. — The definitive abstract treatment of linear maps. Goes from axioms to spectral theory without matrices until chapter 10. Highly recommended for conceptual depth.
+1. **Axler, S. (2015).** *Linear Algebra Done Right* (3rd ed.). Springer. - The definitive abstract treatment of linear maps. Goes from axioms to spectral theory without matrices until chapter 10. Highly recommended for conceptual depth.
 
-2. **Strang, G. (2016).** *Introduction to Linear Algebra* (5th ed.). Wellesley-Cambridge Press. — Computational and applied focus. Excellent for four fundamental subspaces and applications.
+2. **Strang, G. (2016).** *Introduction to Linear Algebra* (5th ed.). Wellesley-Cambridge Press. - Computational and applied focus. Excellent for four fundamental subspaces and applications.
 
-3. **Horn, R. & Johnson, C. (2013).** *Matrix Analysis* (2nd ed.). Cambridge University Press. — Comprehensive advanced reference. Proofs of all major results, including Cayley-Hamilton, spectral theorems, singular values.
+3. **Horn, R. & Johnson, C. (2013).** *Matrix Analysis* (2nd ed.). Cambridge University Press. - Comprehensive advanced reference. Proofs of all major results, including Cayley-Hamilton, spectral theorems, singular values.
 
-4. **Trefethen, L. & Bau, D. (1997).** *Numerical Linear Algebra.* SIAM. — Gold standard for computational linear algebra and stability.
+4. **Trefethen, L. & Bau, D. (1997).** *Numerical Linear Algebra.* SIAM. - Gold standard for computational linear algebra and stability.
 
 ### AI-Focused References
 
-5. **Vaswani, A. et al. (2017).** "Attention is All You Need." NeurIPS. — The original transformer paper; read the attention mechanism as linear projections.
+5. **Vaswani, A. et al. (2017).** "Attention is All You Need." NeurIPS. - The original transformer paper; read the attention mechanism as linear projections.
 
-6. **Hu, E. et al. (2021).** "LoRA: Low-Rank Adaptation of Large Language Models." ICLR 2022. — LoRA rank-nullity argument.
+6. **Hu, E. et al. (2021).** "LoRA: Low-Rank Adaptation of Large Language Models." ICLR 2022. - LoRA rank-nullity argument.
 
-7. **Elhage, N. et al. (2021).** "A Mathematical Framework for Transformer Circuits." Anthropic. — OV and QK circuits as linear maps; residual stream as communication bus.
+7. **Elhage, N. et al. (2021).** "A Mathematical Framework for Transformer Circuits." Anthropic. - OV and QK circuits as linear maps; residual stream as communication bus.
 
-8. **Park, K. et al. (2023).** "The Linear Representation Hypothesis and the Geometry of Large Language Models." — Linear features in transformer representations.
+8. **Park, K. et al. (2023).** "The Linear Representation Hypothesis and the Geometry of Large Language Models." - Linear features in transformer representations.
 
-9. **Jacot, A. et al. (2018).** "Neural Tangent Kernel: Convergence and Generalization in Neural Networks." NeurIPS. — Training dynamics via linear maps (NTK theory).
+9. **Jacot, A. et al. (2018).** "Neural Tangent Kernel: Convergence and Generalization in Neural Networks." NeurIPS. - Training dynamics via linear maps (NTK theory).
 
-10. **Gu, A. et al. (2022).** "Efficiently Modeling Long Sequences with Structured State Spaces." ICLR. — SSMs as linear dynamical systems.
+10. **Gu, A. et al. (2022).** "Efficiently Modeling Long Sequences with Structured State Spaces." ICLR. - SSMs as linear dynamical systems.
 
 ---
 
-*This section is part of the [Math for LLMs](../../README.md) curriculum — a systematic treatment of the mathematics underlying modern large language models.*
+*This section is part of the [Math for LLMs](../../README.md) curriculum - a systematic treatment of the mathematics underlying modern large language models.*
 
 
 ---
@@ -1917,7 +1917,7 @@ After completing this section, you should be able to answer the following questi
 | $P$ | Change-of-basis matrix |
 | $T^\top$ | Dual (transpose) map |
 | $V^*$ | Dual space of $V$ |
-| $Df_{\mathbf{x}}$ | Total derivative (Fréchet derivative) of $f$ at $\mathbf{x}$ |
+| $Df_{\mathbf{x}}$ | Total derivative (Frechet derivative) of $f$ at $\mathbf{x}$ |
 | $J_f(\mathbf{x})$ | Jacobian matrix of $f$ at $\mathbf{x}$ |
 | $\mathcal{L}(V, W)$ | Space of all linear maps from $V$ to $W$ |
 | $V \cong W$ | $V$ and $W$ are isomorphic |
@@ -1943,11 +1943,11 @@ where $\rho_V: G \to GL(V)$ and $\rho_W: G \to GL(W)$ are representations of $G$
 Intuitively: "applying the group action then the map = applying the map then the group action." The map commutes with the symmetry.
 
 **Examples:**
-- **Translation equivariance:** $T(v + c) = T(v) + T(c)$... but this is additivity — every linear map is equivariant to the translation group on vector spaces.
+- **Translation equivariance:** $T(v + c) = T(v) + T(c)$... but this is additivity - every linear map is equivariant to the translation group on vector spaces.
 - **Rotation equivariance:** $T(R\mathbf{v}) = RT(\mathbf{v})$ for all rotations $R$. In 3D: implies $T = \lambda I$ for some scalar $\lambda$ (Schur's lemma for the rotation representation).
-- **Permutation equivariance:** $T(P\mathbf{v}) = PT(\mathbf{v})$ for all permutation matrices $P$. Implies $T$ is a sum of a "same-position" term and a "mean-field" term — this is why mean pooling and attention with tied weights are permutation equivariant.
+- **Permutation equivariance:** $T(P\mathbf{v}) = PT(\mathbf{v})$ for all permutation matrices $P$. Implies $T$ is a sum of a "same-position" term and a "mean-field" term - this is why mean pooling and attention with tied weights are permutation equivariant.
 
-**For AI:** CNNs achieve translation equivariance by using convolutional (shared-weight) linear maps. Equivariant graph neural networks use permutation-equivariant maps. Geometric deep learning is the systematic study of building neural networks as compositions of equivariant linear maps. Transformer attention (without positional encoding) is permutation equivariant — adding positional encodings explicitly breaks this symmetry.
+**For AI:** CNNs achieve translation equivariance by using convolutional (shared-weight) linear maps. Equivariant graph neural networks use permutation-equivariant maps. Geometric deep learning is the systematic study of building neural networks as compositions of equivariant linear maps. Transformer attention (without positional encoding) is permutation equivariant - adding positional encodings explicitly breaks this symmetry.
 
 ### O.2 Schur's Lemma and Irreducible Representations
 
@@ -1959,14 +1959,14 @@ This powerful result says: the only linear maps that commute with all symmetries
 
 ### O.3 Representation Theory Preview
 
-**Representation theory** studies how groups act on vector spaces via linear maps. Every group representation $\rho: G \to GL(V)$ is a group homomorphism — a map that takes group elements to invertible linear maps, preserving the group structure:
+**Representation theory** studies how groups act on vector spaces via linear maps. Every group representation $\rho: G \to GL(V)$ is a group homomorphism - a map that takes group elements to invertible linear maps, preserving the group structure:
 $$\rho(gh) = \rho(g)\rho(h) \quad \text{(composition respects group multiplication)}$$
 
-This is the language in which equivariant neural networks (E(3)-equivariant networks for molecular property prediction, SE(3)-equivariant networks for robotics, permutation-equivariant networks for sets) are designed. The "weights" of an equivariant linear layer are constrained to be equivariant — and representation theory tells you exactly what form these weights can take.
+This is the language in which equivariant neural networks (E(3)-equivariant networks for molecular property prediction, SE(3)-equivariant networks for robotics, permutation-equivariant networks for sets) are designed. The "weights" of an equivariant linear layer are constrained to be equivariant - and representation theory tells you exactly what form these weights can take.
 
 ---
 
-## Appendix P: Quick Reference — Common Linear Maps in $\mathbb{R}^2$ and $\mathbb{R}^3$
+## Appendix P: Quick Reference - Common Linear Maps in $\mathbb{R}^2$ and $\mathbb{R}^3$
 
 ### Common $2 \times 2$ Linear Maps
 
@@ -1998,4 +1998,4 @@ All these are linear maps. To make them affine (include translation), append a r
 
 ---
 
-*End of Linear Transformations section. Continue to [§05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md).*
+*End of Linear Transformations section. Continue to [05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md).*

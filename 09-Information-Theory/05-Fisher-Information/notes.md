@@ -1,4 +1,4 @@
-[← Back to Curriculum](../../README.md) | [Previous: Cross-Entropy ←](../04-Cross-Entropy/notes.md)
+[<- Back to Curriculum](../../README.md) | [Previous: Cross-Entropy <-](../04-Cross-Entropy/notes.md)
 
 ---
 
@@ -28,7 +28,7 @@ distinguishability.
 This section gives Fisher information its own canonical home inside the
 Information Theory chapter. The Statistics chapter already covers Fisher
 information as part of estimation theory, especially through maximum likelihood
-estimation, asymptotic normality, and the Cramér-Rao lower bound. The
+estimation, asymptotic normality, and the Cramer-Rao lower bound. The
 Optimization chapter already covers natural gradient and practical second-order
 methods. Here we focus on what is unique about Fisher information itself:
 score-based definitions, structural properties, local KL geometry,
@@ -37,19 +37,19 @@ identities, and the modern AI systems that use these ideas.
 
 ## Prerequisites
 
-- **Entropy, KL divergence, and cross-entropy** — [01-Entropy](../01-Entropy/notes.md), [02-KL-Divergence](../02-KL-Divergence/notes.md), [04-Cross-Entropy](../04-Cross-Entropy/notes.md)
-- **Mutual information and statistical dependence** — [03-Mutual-Information](../03-Mutual-Information/notes.md)
-- **Gradients, Hessians, and multivariate calculus** — [05-Multivariate-Calculus/README.md](../../05-Multivariate-Calculus/README.md)
-- **Maximum likelihood estimation and asymptotic statistics** — [07-Statistics/02-Estimation-Theory](../../07-Statistics/02-Estimation-Theory/notes.md)
-- **Natural gradient and curvature-aware optimization** — [08-Optimization/03-Second-Order-Methods](../../08-Optimization/03-Second-Order-Methods/notes.md)
-- **Basic probability distributions and expectations** — [06-Probability-Theory/README.md](../../06-Probability-Theory/README.md)
+- **Entropy, KL divergence, and cross-entropy** - [01-Entropy](../01-Entropy/notes.md), [02-KL-Divergence](../02-KL-Divergence/notes.md), [04-Cross-Entropy](../04-Cross-Entropy/notes.md)
+- **Mutual information and statistical dependence** - [03-Mutual-Information](../03-Mutual-Information/notes.md)
+- **Gradients, Hessians, and multivariate calculus** - [05-Multivariate-Calculus/README.md](../../05-Multivariate-Calculus/README.md)
+- **Maximum likelihood estimation and asymptotic statistics** - [07-Statistics/02-Estimation-Theory](../../07-Statistics/02-Estimation-Theory/notes.md)
+- **Natural gradient and curvature-aware optimization** - [08-Optimization/03-Second-Order-Methods](../../08-Optimization/03-Second-Order-Methods/notes.md)
+- **Basic probability distributions and expectations** - [06-Probability-Theory/README.md](../../06-Probability-Theory/README.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations, closed-form Fisher calculations, KL-curvature checks, Jeffreys priors, and natural-gradient demos |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises covering score functions, matrix Fisher information, KL curvature, Jeffreys priors, empirical Fisher pitfalls, and ML applications |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises covering score functions, matrix Fisher information, KL curvature, Jeffreys priors, empirical Fisher pitfalls, and ML applications |
 
 ## Learning Objectives
 
@@ -511,7 +511,7 @@ Interpretation:
 
 There is an important forward reference here:
 
-> **Preview: Cramér-Rao lower bound**
+> **Preview: Cramer-Rao lower bound**
 >
 > In [Estimation Theory](../../07-Statistics/02-Estimation-Theory/notes.md),
 > Fisher information appears in the bound
@@ -1602,11 +1602,11 @@ directly. This forces approximations.
 
 Common approximation families:
 
-- **Diagonal Fisher** — cheapest, but loses coupling
-- **Block-diagonal Fisher** — keeps some structure by layer or module
-- **Kronecker-factored approximations** — exploit layer structure in dense or
+- **Diagonal Fisher** - cheapest, but loses coupling
+- **Block-diagonal Fisher** - keeps some structure by layer or module
+- **Kronecker-factored approximations** - exploit layer structure in dense or
   convolutional modules
-- **Low-rank or sketching methods** — keep only dominant directions
+- **Low-rank or sketching methods** - keep only dominant directions
 
 Each approximation trades off:
 
@@ -1803,48 +1803,48 @@ coherent.
 | 7 | Believing Fisher must always be invertible. | Redundancy, symmetry, and non-identifiability create zero or tiny eigenvalues. | Expect singularity in overparameterized or symmetric models and use damping or pseudo-inverses where appropriate. |
 | 8 | Treating Jeffreys prior as always proper. | $\sqrt{\det I(\boldsymbol{\theta})}$ can fail to integrate over the parameter domain. | Check propriety separately from invariance arguments. |
 | 9 | Thinking natural gradient solves all optimization problems. | It improves local geometry, but inversion, noise, singularity, and approximation quality still matter. | View Fisher-based updates as principled geometry-aware tools, not universal silver bullets. |
-| 10 | Ignoring chapter boundaries and re-proving the full Cramér-Rao theory here. | The canonical home for CRB and asymptotic efficiency is Estimation Theory, not this Information Theory section. | Use forward and backward references instead of duplicating full proofs. |
+| 10 | Ignoring chapter boundaries and re-proving the full Cramer-Rao theory here. | The canonical home for CRB and asymptotic efficiency is Estimation Theory, not this Information Theory section. | Use forward and backward references instead of duplicating full proofs. |
 | 11 | Assuming Fisher and Gauss-Newton coincide everywhere in neural nets. | They align only in specific likelihood-structured settings and approximations. | State the conditions under which the approximation is justified. |
 | 12 | Missing the entropy connection. | Fisher can look like a purely statistical curvature object, but de Bruijn and related identities show it links directly to information theory. | Keep both the local-geometry and entropy-smoothing viewpoints in mind. |
 
 ## 9. Exercises
 
-1. **Exercise 1 [★] — Bernoulli and Poisson Fisher information.**
+1. **Exercise 1 [*] - Bernoulli and Poisson Fisher information.**
    Derive the score and Fisher information for Bernoulli($p$) and
    Poisson($\lambda$), and explain the parameter regions where each model is
    most informative.
 
-2. **Exercise 2 [★] — Additivity under iid sampling.**
+2. **Exercise 2 [*] - Additivity under iid sampling.**
    Starting from the score of an iid sample, prove that
    $I_n(\theta) = nI(\theta)$ for scalar parameters and explain the connection
    to $1/\sqrt{n}$ uncertainty scaling.
 
-3. **Exercise 3 [★★] — Reparameterization.**
+3. **Exercise 3 [**] - Reparameterization.**
    For the Bernoulli model, compute Fisher information both in probability
    coordinates $p$ and in logit coordinates
    $\phi = \log \frac{p}{1-p}$, and verify the transformation law explicitly.
 
-4. **Exercise 4 [★★] — Local KL curvature.**
+4. **Exercise 4 [**] - Local KL curvature.**
    Perform a second-order Taylor expansion of
    $D_{\mathrm{KL}}(p_\theta \| p_{\theta+\delta})$ for a smooth scalar model
    and show that the quadratic coefficient is $\frac{1}{2}I(\theta)$.
 
-5. **Exercise 5 [★★] — Jeffreys prior.**
+5. **Exercise 5 [**] - Jeffreys prior.**
    Derive Jeffreys prior for Bernoulli($p$), Poisson($\lambda$), and the
    Gaussian mean model with known variance. Identify which priors are proper and
    which are not.
 
-6. **Exercise 6 [★★★] — True Fisher, empirical Fisher, and Hessian.**
+6. **Exercise 6 [***] - True Fisher, empirical Fisher, and Hessian.**
    On a toy logistic-regression problem, compute a minibatch empirical Fisher,
    an observed Hessian, and a Monte-Carlo approximation to the true Fisher. Compare
    them numerically and interpret the differences.
 
-7. **Exercise 7 [★★★] — Natural gradient or K-FAC-style structure.**
+7. **Exercise 7 [***] - Natural gradient or K-FAC-style structure.**
    Derive the Fisher matrix for a logistic model and use it to construct a
    natural-gradient update. Then explain what would need to be approximated in a
    multilayer network for this idea to scale.
 
-8. **Exercise 8 [★★★] — Fisher in a modern AI workflow.**
+8. **Exercise 8 [***] - Fisher in a modern AI workflow.**
    Choose one of the following:
    (a) diagonal Fisher for continual-learning importance weights,
    (b) Fisher divergence in score matching,
@@ -1924,7 +1924,7 @@ local second-order structure of those model families.
 Backward, it connects strongly to
 [07-Statistics/02-Estimation-Theory](../../07-Statistics/02-Estimation-Theory/notes.md),
 where Fisher information appears in the asymptotic theory of maximum likelihood,
-standard errors, and the Cramér-Rao lower bound. That Statistics section is the
+standard errors, and the Cramer-Rao lower bound. That Statistics section is the
 canonical home of full efficiency theory. This section reframes the same object
 through the lens of local information geometry.
 
@@ -2003,17 +2003,17 @@ modeling.
 ## References
 
 1. Fisher, R. A. (1925). *Theory of Statistical Estimation*. Proceedings of the Cambridge Philosophical Society.
-2. Cramér, H. (1946). *Mathematical Methods of Statistics*. Princeton University Press.
-3. Rao, C. R. (1945). “Information and the Accuracy Attainable in the Estimation of Statistical Parameters.” *Bulletin of the Calcutta Mathematical Society*.
-4. Jeffreys, H. (1946). “An Invariant Form for the Prior Probability in Estimation Problems.” *Proceedings of the Royal Society A*.
+2. Cramer, H. (1946). *Mathematical Methods of Statistics*. Princeton University Press.
+3. Rao, C. R. (1945). "Information and the Accuracy Attainable in the Estimation of Statistical Parameters." *Bulletin of the Calcutta Mathematical Society*.
+4. Jeffreys, H. (1946). "An Invariant Form for the Prior Probability in Estimation Problems." *Proceedings of the Royal Society A*.
 5. Cover, T. M., and Thomas, J. A. (2006). *Elements of Information Theory* (2nd ed.). Wiley.
 6. Duchi, J. C. *Lecture Notes on Statistics and Information Theory*. [PDF](https://web.stanford.edu/class/stats311/lecture-notes.pdf)
-7. MIT OpenCourseWare. *Statistics for Applications — lecture3.pdf*. [Course resource](https://ocw.mit.edu/courses/18-443-statistics-for-applications-fall-2006/resources/lecture3/)
-8. Ly, A., Marsman, M., Verhagen, J., Grasman, R., and Wagenmakers, E.-J. (2017). “A Tutorial on Fisher Information.” [arXiv](https://arxiv.org/abs/1705.01064)
-9. Amari, S. (1998). “Natural Gradient Works Efficiently in Learning.” *Neural Computation*. [Publisher page](https://direct.mit.edu/neco/article/10/2/251/6143/Natural-Gradient-Works-Efficiently-in-Learning)
-10. Martens, J., and Grosse, R. (2015). “Optimizing Neural Networks with Kronecker-factored Approximate Curvature.” [arXiv](https://arxiv.org/abs/1503.05671)
-11. Kirkpatrick, J., Pascanu, R., Rabinowitz, N., et al. (2017). “Overcoming catastrophic forgetting in neural networks.” [arXiv](https://arxiv.org/abs/1612.00796)
-12. Kunstner, F., Balles, L., and Hennig, P. (2020). “Limitations of the Empirical Fisher Approximation for Natural Gradient Descent.” [arXiv](https://arxiv.org/abs/1905.12558)
-13. Amari, S., Karakida, R., and Oizumi, M. (2019). “Fisher Information and Natural Gradient Learning in Random Deep Networks.” [PMLR](https://proceedings.mlr.press/v89/amari19a.html)
-14. Gupta, V., Koren, T., and Singer, Y. (2018). “Shampoo: Preconditioned Stochastic Tensor Optimization.” Proceedings of ICML.
-15. Hyvärinen, A. (2005). “Estimation of Non-Normalized Statistical Models by Score Matching.” *Journal of Machine Learning Research*.
+7. MIT OpenCourseWare. *Statistics for Applications - lecture3.pdf*. [Course resource](https://ocw.mit.edu/courses/18-443-statistics-for-applications-fall-2006/resources/lecture3/)
+8. Ly, A., Marsman, M., Verhagen, J., Grasman, R., and Wagenmakers, E.-J. (2017). "A Tutorial on Fisher Information." [arXiv](https://arxiv.org/abs/1705.01064)
+9. Amari, S. (1998). "Natural Gradient Works Efficiently in Learning." *Neural Computation*. [Publisher page](https://direct.mit.edu/neco/article/10/2/251/6143/Natural-Gradient-Works-Efficiently-in-Learning)
+10. Martens, J., and Grosse, R. (2015). "Optimizing Neural Networks with Kronecker-factored Approximate Curvature." [arXiv](https://arxiv.org/abs/1503.05671)
+11. Kirkpatrick, J., Pascanu, R., Rabinowitz, N., et al. (2017). "Overcoming catastrophic forgetting in neural networks." [arXiv](https://arxiv.org/abs/1612.00796)
+12. Kunstner, F., Balles, L., and Hennig, P. (2020). "Limitations of the Empirical Fisher Approximation for Natural Gradient Descent." [arXiv](https://arxiv.org/abs/1905.12558)
+13. Amari, S., Karakida, R., and Oizumi, M. (2019). "Fisher Information and Natural Gradient Learning in Random Deep Networks." [PMLR](https://proceedings.mlr.press/v89/amari19a.html)
+14. Gupta, V., Koren, T., and Singer, Y. (2018). "Shampoo: Preconditioned Stochastic Tensor Optimization." Proceedings of ICML.
+15. Hyvarinen, A. (2005). "Estimation of Non-Normalized Statistical Models by Score Matching." *Journal of Machine Learning Research*.

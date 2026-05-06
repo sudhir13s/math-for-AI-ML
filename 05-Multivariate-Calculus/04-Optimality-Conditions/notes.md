@@ -1,33 +1,33 @@
-[← Back to Multivariate Calculus](../README.md) | [Next: Automatic Differentiation →](../05-Automatic-Differentiation/notes.md)
+[<- Back to Multivariate Calculus](../README.md) | [Next: Automatic Differentiation ->](../05-Automatic-Differentiation/notes.md)
 
 ---
 
 # Optimality Conditions
 
 > _"The theory of maxima and minima is full of dangerous pitfalls for the unwary."_
-> — G. H. Hardy
+> - G. H. Hardy
 
 ## Overview
 
-Every machine learning model is the solution to an optimisation problem. Training a neural network, fitting a regression, finding principal components, building an SVM — all reduce to: find the parameters that minimise (or maximise) some objective function, possibly subject to constraints. Understanding *when* a point is optimal — the **optimality conditions** — is therefore prerequisite knowledge for understanding why any learning algorithm works.
+Every machine learning model is the solution to an optimisation problem. Training a neural network, fitting a regression, finding principal components, building an SVM - all reduce to: find the parameters that minimise (or maximise) some objective function, possibly subject to constraints. Understanding *when* a point is optimal - the **optimality conditions** - is therefore prerequisite knowledge for understanding why any learning algorithm works.
 
-This section develops optimality theory from first principles. We prove the first- and second-order conditions for unconstrained problems, derive Lagrange multipliers for equality constraints, and establish the full KKT framework for inequality-constrained optimisation. Convexity theory shows when local optimality implies global optimality. Duality reveals the deep connection between primal and dual problems — the machinery behind SVMs and maximum entropy models. We close with the non-convex landscape of deep learning and modern constrained formulations (SAM, attention as optimal transport).
+This section develops optimality theory from first principles. We prove the first- and second-order conditions for unconstrained problems, derive Lagrange multipliers for equality constraints, and establish the full KKT framework for inequality-constrained optimisation. Convexity theory shows when local optimality implies global optimality. Duality reveals the deep connection between primal and dual problems - the machinery behind SVMs and maximum entropy models. We close with the non-convex landscape of deep learning and modern constrained formulations (SAM, attention as optimal transport).
 
-> **Scope of this section:** Critical points, optimality conditions, Lagrange multipliers, KKT theory, convexity, duality, and ML applications. Gradient descent algorithms (SGD, Adam, momentum) are covered in the Optimization chapter (§08). Jacobian and Hessian computation is in §02. The chain rule and backpropagation are in §03.
+> **Scope of this section:** Critical points, optimality conditions, Lagrange multipliers, KKT theory, convexity, duality, and ML applications. Gradient descent algorithms (SGD, Adam, momentum) are covered in the Optimization chapter (08). Jacobian and Hessian computation is in 02. The chain rule and backpropagation are in 03.
 
 ## Prerequisites
 
-- **Gradient, partial derivatives** — [§01 Partial Derivatives and Gradients](../01-Partial-Derivatives-and-Gradients/notes.md)
-- **Hessian matrix, positive definiteness** — [§02 Jacobians and Hessians](../02-Jacobians-and-Hessians/notes.md)
-- **Eigenvalues, positive definite matrices** — [§07 Positive Definite Matrices](../../03-Advanced-Linear-Algebra/07-Positive-Definite-Matrices/notes.md)
-- **Single-variable calculus** — [§04 Calculus Fundamentals](../../04-Calculus-Fundamentals/README.md)
+- **Gradient, partial derivatives** - [01 Partial Derivatives and Gradients](../01-Partial-Derivatives-and-Gradients/notes.md)
+- **Hessian matrix, positive definiteness** - [02 Jacobians and Hessians](../02-Jacobians-and-Hessians/notes.md)
+- **Eigenvalues, positive definite matrices** - [07 Positive Definite Matrices](../../03-Advanced-Linear-Algebra/07-Positive-Definite-Matrices/notes.md)
+- **Single-variable calculus** - [04 Calculus Fundamentals](../../04-Calculus-Fundamentals/README.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Critical point classification, Lagrange multipliers, KKT verification, SVM dual derivation, convexity experiments |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises: optimality conditions through SAM and attention as constrained optimisation |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises: optimality conditions through SAM and attention as constrained optimisation |
 
 ## Learning Objectives
 
@@ -69,14 +69,14 @@ After completing this section, you will:
   - [4.3 Strongly Convex Functions](#43-strongly-convex-functions)
   - [4.4 Convex Optimization](#44-convex-optimization)
   - [4.5 Preservation of Convexity](#45-preservation-of-convexity)
-- [5. Lagrange Multipliers — Equality Constraints](#5-lagrange-multipliers--equality-constraints)
+- [5. Lagrange Multipliers - Equality Constraints](#5-lagrange-multipliers--equality-constraints)
   - [5.1 Problem Setup and the Lagrangian](#51-problem-setup-and-the-lagrangian)
   - [5.2 Geometric Derivation](#52-geometric-derivation)
   - [5.3 Proof of the Lagrange Multiplier Theorem](#53-proof-of-the-lagrange-multiplier-theorem)
   - [5.4 The Multiplier as Sensitivity](#54-the-multiplier-as-sensitivity)
   - [5.5 Multiple Equality Constraints](#55-multiple-equality-constraints)
   - [5.6 ML Applications: PCA, Unit-Norm Constraints, LoRA](#56-ml-applications-pca-unit-norm-constraints-lora)
-- [6. KKT Conditions — Inequality Constraints](#6-kkt-conditions--inequality-constraints)
+- [6. KKT Conditions - Inequality Constraints](#6-kkt-conditions--inequality-constraints)
   - [6.1 Problem Setup and the Full Lagrangian](#61-problem-setup-and-the-full-lagrangian)
   - [6.2 The Four KKT Conditions](#62-the-four-kkt-conditions)
   - [6.3 Geometric Intuition](#63-geometric-intuition)
@@ -112,37 +112,37 @@ After completing this section, you will:
 
 ### 1.1 The Optimization Landscape
 
-Imagine standing in a hilly landscape and trying to find the lowest valley. The **gradient** $\nabla f(\mathbf{x})$ tells you the direction of steepest ascent at your current position — to descend, move against the gradient. But this strategy can strand you in a local valley that is not the deepest one, or trap you at a mountain pass (saddle point) where the gradient is zero but you are not at a minimum.
+Imagine standing in a hilly landscape and trying to find the lowest valley. The **gradient** $\nabla f(\mathbf{x})$ tells you the direction of steepest ascent at your current position - to descend, move against the gradient. But this strategy can strand you in a local valley that is not the deepest one, or trap you at a mountain pass (saddle point) where the gradient is zero but you are not at a minimum.
 
 ```
 THE OPTIMIZATION LANDSCAPE IN 1D AND 2D
-════════════════════════════════════════════════════════════════════════
+
 
   1D loss curve:              2D loss surface (contour view):
 
-      │╲     ╱╲    ╱         ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
-      │ ╲   ╱  ╲  ╱           ╲  local     saddle  ╱
-      │  ╲ ╱    ╲╱             ╲   min       ×   ╱
-      │   ● local  ● global      ─ ─ ── ●── ─ ─ ─
-      │   min      min              global
-                                     min ●
+                                    
+                           local     saddle  
+                             min       x   
+          local   global            
+         min      min              global
+                                     min 
 
   Key players:
-  ┌─────────────────┬──────────────────────────────────────────────┐
-  │ Point type      │ Characterisation                             │
-  ├─────────────────┼──────────────────────────────────────────────┤
-  │ Local minimum   │ ∇f = 0,  H ≻ 0  (all eigenvalues > 0)       │
-  │ Local maximum   │ ∇f = 0,  H ≺ 0  (all eigenvalues < 0)       │
-  │ Saddle point    │ ∇f = 0,  H indefinite (mixed signs)          │
-  │ Regular point   │ ∇f ≠ 0  (not a critical point)              │
-  └─────────────────┴──────────────────────────────────────────────┘
+  
+   Point type       Characterisation                             
+  
+   Local minimum    nablaf = 0,  H  0  (all eigenvalues > 0)       
+   Local maximum    nablaf = 0,  H  0  (all eigenvalues < 0)       
+   Saddle point     nablaf = 0,  H indefinite (mixed signs)          
+   Regular point    nablaf != 0  (not a critical point)              
+  
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 The core difficulty: the gradient condition $\nabla f(\mathbf{x}^*) = \mathbf{0}$ is **necessary** but not **sufficient** for a minimum. A zero gradient could mark a minimum, a maximum, or a saddle point. Second-order conditions (the Hessian) are needed to distinguish between them.
 
-Constraints add further complexity. If the solution must lie on a curve or within a region, the unconstrained minimum may be infeasible, and the optimum occurs at a very different location — possibly on the boundary of the feasible region.
+Constraints add further complexity. If the solution must lie on a curve or within a region, the unconstrained minimum may be infeasible, and the optimum occurs at a very different location - possibly on the boundary of the feasible region.
 
 ### 1.2 Why ML Needs Optimality Theory
 
@@ -150,28 +150,28 @@ Every core ML algorithm is secretly an optimisation problem, and the optimality 
 
 | ML Algorithm | Optimisation Problem | Optimality Condition Used |
 |---|---|---|
-| Linear regression | $\min_\mathbf{w} \|X\mathbf{w} - \mathbf{y}\|^2$ | $\nabla = 0$ → normal equations |
+| Linear regression | $\min_\mathbf{w} \|X\mathbf{w} - \mathbf{y}\|^2$ | $\nabla = 0$ -> normal equations |
 | Ridge regression | $\min_\mathbf{w} \|X\mathbf{w}-\mathbf{y}\|^2 + \lambda\|\mathbf{w}\|^2$ | Lagrangian of constrained form |
 | Lasso | $\min_\mathbf{w} \|X\mathbf{w}-\mathbf{y}\|^2 + \lambda\|\mathbf{w}\|_1$ | Subdifferential conditions |
-| SVM | $\min \tfrac{1}{2}\|\mathbf{w}\|^2$ s.t. margin $\geq 1$ | KKT → support vectors |
-| PCA | $\max_\mathbf{v} \mathbf{v}^\top C \mathbf{v}$ s.t. $\|\mathbf{v}\|=1$ | Lagrange → eigenvalue problem |
-| Logistic regression | $\min -\sum \log p_i$ | Convex → unique global minimum |
+| SVM | $\min \tfrac{1}{2}\|\mathbf{w}\|^2$ s.t. margin $\geq 1$ | KKT -> support vectors |
+| PCA | $\max_\mathbf{v} \mathbf{v}^\top C \mathbf{v}$ s.t. $\|\mathbf{v}\|=1$ | Lagrange -> eigenvalue problem |
+| Logistic regression | $\min -\sum \log p_i$ | Convex -> unique global minimum |
 | Neural network | $\min \mathcal{L}(\theta)$ (non-convex) | Saddle point dominance; NTK |
 | Attention (softmax) | $\max_\mathbf{p} \mathbf{s}^\top\mathbf{p}$ s.t. $\mathbf{p} \in \Delta$ | Maximum entropy via Lagrange |
 | SAM training | $\min_\theta \max_{\|\epsilon\|\leq\rho} \mathcal{L}(\theta+\epsilon)$ | KKT of inner max |
 
-**For AI:** Understanding that the SVM dual problem depends only on inner products $\mathbf{x}_i^\top \mathbf{x}_j$ (from the KKT conditions) is what enables the kernel trick — the foundation of kernel methods. Understanding that softmax is the solution to a maximum entropy problem under linear constraints connects attention to thermodynamics and information theory.
+**For AI:** Understanding that the SVM dual problem depends only on inner products $\mathbf{x}_i^\top \mathbf{x}_j$ (from the KKT conditions) is what enables the kernel trick - the foundation of kernel methods. Understanding that softmax is the solution to a maximum entropy problem under linear constraints connects attention to thermodynamics and information theory.
 
 ### 1.3 Historical Context
 
 | Year | Person | Contribution |
 |------|--------|-------------|
-| 1788 | Lagrange | *Mécanique Analytique* — method of multipliers for equality constraints |
+| 1788 | Lagrange | *Mcanique Analytique* - method of multipliers for equality constraints |
 | 1847 | Cauchy | Steepest descent algorithm |
-| 1939 | Karush | Master's thesis: inequality constraints with multipliers (KKT conditions — unpublished) |
+| 1939 | Karush | Master's thesis: inequality constraints with multipliers (KKT conditions - unpublished) |
 | 1951 | Kuhn & Tucker | Independent rediscovery and publication of KKT conditions |
 | 1952 | Arrow, Hurwicz, Uzawa | Saddle point theorem for convex optimisation |
-| 1970 | Rockafellar | *Convex Analysis* — definitive treatment of duality and subdifferentials |
+| 1970 | Rockafellar | *Convex Analysis* - definitive treatment of duality and subdifferentials |
 | 1995 | Boser, Guyon, Vapnik | SVM uses the dual to derive the kernel trick |
 | 1996 | Boyd & Vandenberghe | *Convex Optimization* (textbook; full text freely available online) |
 | 2014 | Dauphin et al. | Saddle point dominance in deep networks |
@@ -184,29 +184,29 @@ There are three fundamental problem classes:
 
 ```
 THREE PROBLEM CLASSES
-════════════════════════════════════════════════════════════════════════
+
 
   UNCONSTRAINED                    EQUALITY CONSTRAINED
-  ─────────────                    ────────────────────
+                      
   min f(x)                         min f(x)
-   x∈ℝⁿ                            s.t. gᵢ(x) = 0, i=1,…,m
+   xinR                            s.t. g(x) = 0, i=1,...,m
 
-  Solution: ∇f = 0                 Solution: Lagrange multipliers
-  Theory: 2nd-order conditions      ∇f + λᵀ∇g = 0,  g(x) = 0
+  Solution: nablaf = 0                 Solution: Lagrange multipliers
+  Theory: 2nd-order conditions      nablaf + lambdanablag = 0,  g(x) = 0
 
   INEQUALITY CONSTRAINED
-  ──────────────────────
+  
   min f(x)
-  s.t. gᵢ(x) = 0,  i = 1,…,m
-       hⱼ(x) ≤ 0,  j = 1,…,p
+  s.t. g(x) = 0,  i = 1,...,m
+       h(x) <= 0,  j = 1,...,p
 
   Solution: KKT conditions
-  ∇f + λᵀ∇g + μᵀ∇h = 0,  g=0,  h≤0,  μ≥0,  μhⱼ=0 ∀j
+  nablaf + lambdanablag + munablah = 0,  g=0,  h<=0,  mu>=0,  muh=0 for allj
 
   KEY INSIGHT: Equality constraints are special case of KKT
-  (set μ = 0 for inequalities, keep λ free for equalities)
+  (set mu = 0 for inequalities, keep lambda free for equalities)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 The **feasible set** $\mathcal{F} = \{\mathbf{x} : g_i(\mathbf{x}) = 0,\, h_j(\mathbf{x}) \leq 0\}$ is the set of points satisfying all constraints. The optimisation problem asks for the minimum of $f$ over $\mathcal{F}$.
@@ -225,43 +225,43 @@ $$\frac{d}{dt} f(\mathbf{x}^* + t\mathbf{d})\Big|_{t=0} = \nabla f(\mathbf{x}^*)
 
 By continuity of $f$, there exists $\epsilon > 0$ such that $f(\mathbf{x}^* + t\mathbf{d}) < f(\mathbf{x}^*)$ for all $t \in (0, \epsilon)$. But this contradicts $\mathbf{x}^*$ being a local minimum. $\square$
 
-**Warning — necessity only:** The gradient condition is necessary but not sufficient. The function $f(x) = x^3$ has $f'(0) = 0$ at $x=0$ but no local extremum there (it's an inflection point). The function $f(x,y) = x^2 - y^2$ has $\nabla f(0,0) = \mathbf{0}$ but a saddle point. Second-order conditions are needed to determine which type of critical point we have.
+**Warning - necessity only:** The gradient condition is necessary but not sufficient. The function $f(x) = x^3$ has $f'(0) = 0$ at $x=0$ but no local extremum there (it's an inflection point). The function $f(x,y) = x^2 - y^2$ has $\nabla f(0,0) = \mathbf{0}$ but a saddle point. Second-order conditions are needed to determine which type of critical point we have.
 
-**Critical points** (also called **stationary points**) are all $\mathbf{x}$ satisfying $\nabla f(\mathbf{x}) = \mathbf{0}$. They are candidates for minima, maxima, or saddle points — the Hessian distinguishes between them.
+**Critical points** (also called **stationary points**) are all $\mathbf{x}$ satisfying $\nabla f(\mathbf{x}) = \mathbf{0}$. They are candidates for minima, maxima, or saddle points - the Hessian distinguishes between them.
 
 ### 2.2 Critical Points and Their Classification
 
 In $\mathbb{R}^2$, a function $f(x,y)$ has four types of critical points, determined by the sign of the Hessian determinant $\det H = f_{xx}f_{yy} - f_{xy}^2$ and the sign of $f_{xx}$:
 
 ```
-SECOND-DERIVATIVE TEST IN ℝ²
-════════════════════════════════════════════════════════════════════════
+SECOND-DERIVATIVE TEST IN R^2
 
-  At critical point (∇f = 0):
 
-  det(H) > 0 and f_xx > 0  →  LOCAL MINIMUM
+  At critical point (nablaf = 0):
+
+  det(H) > 0 and f_xx > 0  ->  LOCAL MINIMUM
                                   (all eigenvalues of H positive)
 
-  det(H) > 0 and f_xx < 0  →  LOCAL MAXIMUM
+  det(H) > 0 and f_xx < 0  ->  LOCAL MAXIMUM
                                   (all eigenvalues of H negative)
 
-  det(H) < 0                →  SADDLE POINT
+  det(H) < 0                ->  SADDLE POINT
                                   (H has mixed-sign eigenvalues)
 
-  det(H) = 0                →  DEGENERATE (test inconclusive)
+  det(H) = 0                ->  DEGENERATE (test inconclusive)
                                   (need higher-order analysis)
 
   Geometric picture for each:
-  ┌──────────────┬──────────────┬──────────────┬──────────────┐
-  │   Min        │   Max        │   Saddle     │   Degenerate │
-  │    ○         │    ●         │    ×         │    ─         │
-  │   ╱│╲        │   ╲│╱        │   ╱   ╲      │              │
-  │  ╱ │ ╲       │    │         │  ╱─────╲     │   ─────      │
-  │ bowl shape   │ hill shape   │ mountain     │  flat region │
-  │              │              │   pass       │              │
-  └──────────────┴──────────────┴──────────────┴──────────────┘
+  
+     Min           Max           Saddle        Degenerate 
+                                x                      
+                                                  
+                                          
+   bowl shape    hill shape    mountain       flat region 
+                                 pass                     
+  
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 **Standard examples:**
@@ -269,7 +269,7 @@ SECOND-DERIVATIVE TEST IN ℝ²
 - $f(x,y) = x^2 + y^2$: unique global minimum at origin; $H = 2I \succ 0$
 - $f(x,y) = -(x^2 + y^2)$: unique global maximum at origin; $H = -2I \prec 0$
 - $f(x,y) = x^2 - y^2$: saddle point at origin; $H = \text{diag}(2,-2)$ indefinite
-- $f(x,y) = x^4 + y^4$: minimum at origin; $H(0,0) = 0$ (degenerate — minimum confirmed by inspection)
+- $f(x,y) = x^4 + y^4$: minimum at origin; $H(0,0) = 0$ (degenerate - minimum confirmed by inspection)
 
 **In higher dimensions ($n > 2$):** A critical point is a strict local minimum iff $H(\mathbf{x}^*) \succ 0$ (all eigenvalues positive). It is a strict local maximum iff $H(\mathbf{x}^*) \prec 0$. Any other case (indefinite $H$ or semidefinite $H$) requires further analysis.
 
@@ -277,32 +277,32 @@ SECOND-DERIVATIVE TEST IN ℝ²
 
 **The classical concern** was that neural networks might converge to poor local minima. Empirically, gradient descent finds solutions of similar quality regardless of initialisation for overparameterised networks. This was theoretically explained in a landmark 2014 paper.
 
-**Dauphin et al. (2014) — Identifying and attacking the saddle point problem:** For a function $f: \mathbb{R}^n \to \mathbb{R}$ with $n$ large, a random critical point with loss $\epsilon$ above the global minimum is a saddle point with overwhelming probability (under a statistical physics model). The fraction of critical points that are local minima decreases exponentially with both $\epsilon$ and $n$.
+**Dauphin et al. (2014) - Identifying and attacking the saddle point problem:** For a function $f: \mathbb{R}^n \to \mathbb{R}$ with $n$ large, a random critical point with loss $\epsilon$ above the global minimum is a saddle point with overwhelming probability (under a statistical physics model). The fraction of critical points that are local minima decreases exponentially with both $\epsilon$ and $n$.
 
 ```
 SADDLE POINT DOMINANCE
-════════════════════════════════════════════════════════════════════════
 
-  Distribution of critical points at energy level ε above global min:
 
-  Fraction that are local minima:  ~exp(-n · c(ε))
+  Distribution of critical points at energy level epsilon above global min:
 
-  For n = 10^9 (GPT-3),  c(ε) > 0  →  essentially zero local minima
+  Fraction that are local minima:  ~exp(-n * c(epsilon))
+
+  For n = 10^9 (GPT-3),  c(epsilon) > 0  ->  essentially zero local minima
 
   What gradient descent actually encounters:
-  ┌────────────────────────────────────────────────────────────┐
-  │  High-loss region:   many saddle points, few local minima  │
-  │  Low-loss region:    many saddle points, even fewer local  │
-  │  Near global min:    flat regions (many equivalent minima) │
-  └────────────────────────────────────────────────────────────┘
+  
+    High-loss region:   many saddle points, few local minima  
+    Low-loss region:    many saddle points, even fewer local  
+    Near global min:    flat regions (many equivalent minima) 
+  
 
   SGD noise + momentum helps escape saddles (saddle-free Newton
   methods explicitly use the negative curvature direction).
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-**Why does SGD escape saddle points?** At a saddle point, the Hessian has at least one negative eigenvalue. The corresponding eigenvector is a **descent direction** — the function decreases along it. SGD's noise perturbations project onto this direction with nonzero probability, enabling escape. Deterministic gradient descent can be trapped at strict saddle points, but this is a measure-zero set.
+**Why does SGD escape saddle points?** At a saddle point, the Hessian has at least one negative eigenvalue. The corresponding eigenvector is a **descent direction** - the function decreases along it. SGD's noise perturbations project onto this direction with nonzero probability, enabling escape. Deterministic gradient descent can be trapped at strict saddle points, but this is a measure-zero set.
 
 **For AI:** The practical implication is that for overparameterised models (where parameters $\gg$ data), gradient descent on a non-convex loss converges to global or near-global optima. This is one theoretical explanation for why training large language models with SGD/Adam works so well.
 
@@ -312,7 +312,7 @@ SADDLE POINT DOMINANCE
 
 $$\nabla_\mathbf{w} f = 2X^\top(X\mathbf{w} - \mathbf{y}) = \mathbf{0} \implies X^\top X \mathbf{w} = X^\top \mathbf{y}$$
 
-This is the **normal equation**. It has a unique solution $\mathbf{w}^* = (X^\top X)^{-1} X^\top \mathbf{y}$ when $X$ has full column rank. The Hessian $H = 2X^\top X \succeq 0$ — MSE is convex, so the critical point is the global minimum.
+This is the **normal equation**. It has a unique solution $\mathbf{w}^* = (X^\top X)^{-1} X^\top \mathbf{y}$ when $X$ has full column rank. The Hessian $H = 2X^\top X \succeq 0$ - MSE is convex, so the critical point is the global minimum.
 
 **Cross-Entropy (Logistic Regression):** $f(\mathbf{w}) = -\sum_{i=1}^n [y_i \log \sigma(\mathbf{w}^\top \mathbf{x}_i) + (1-y_i)\log(1-\sigma(\mathbf{w}^\top \mathbf{x}_i))]$
 
@@ -320,14 +320,14 @@ $$\nabla_\mathbf{w} f = -\sum_{i=1}^n (y_i - \sigma(\mathbf{w}^\top \mathbf{x}_i
 
 No closed-form solution (transcendental equation). The Hessian $H = X^\top \text{diag}(\sigma_i(1-\sigma_i)) X \succeq 0$ confirms convexity. Gradient descent (or Newton's method) converges to the unique global minimum if it exists (may not if data is linearly separable).
 
-**Cross-Entropy (Softmax / LLM output):** Setting $\nabla_\mathbf{z} [-\log p_y] = \mathbf{p} - \mathbf{e}_y = \mathbf{0}$ (as derived in §03) gives $p_y = 1$ and $p_k = 0$ for $k \neq y$. This is a perfectly confident prediction — the loss approaches zero but never reaches it for finite logits.
+**Cross-Entropy (Softmax / LLM output):** Setting $\nabla_\mathbf{z} [-\log p_y] = \mathbf{p} - \mathbf{e}_y = \mathbf{0}$ (as derived in 03) gives $p_y = 1$ and $p_k = 0$ for $k \neq y$. This is a perfectly confident prediction - the loss approaches zero but never reaches it for finite logits.
 
 
 ---
 
 ## 3. Second-Order Conditions
 
-First-order conditions identify candidates; second-order conditions distinguish minima from maxima from saddle points. The Hessian matrix—the matrix of second partial derivatives—encodes all the local curvature information needed for this classification.
+First-order conditions identify candidates; second-order conditions distinguish minima from maxima from saddle points. The Hessian matrix-the matrix of second partial derivatives-encodes all the local curvature information needed for this classification.
 
 ### 3.1 Second-Order Necessary Condition (SONC)
 
@@ -369,26 +369,26 @@ for sufficiently small $t$. $\square$
 
 ```
 SECOND-ORDER TEST SUMMARY
-════════════════════════════════════════════════════════════════════════
 
-  Critical point x*: ∇f(x*) = 0
 
-  H = ∇²f(x*)     Result          Name
-  ─────────────────────────────────────────────────────────────────
-  H ≻ 0           Strict local minimum        SOSC satisfied
-  H ≺ 0           Strict local maximum        (max version of SOSC)
+  Critical point x*: nablaf(x*) = 0
+
+  H = nabla^2f(x*)     Result          Name
+  
+  H  0           Strict local minimum        SOSC satisfied
+  H  0           Strict local maximum        (max version of SOSC)
   H indefinite    Saddle point               Eigenvalues of both signs
-  H ≽ 0, ≠ 0     Might be min (degenerate)  Higher order needed
-  H = 0           Need Taylor term ≥3        Flat critical point
-  ─────────────────────────────────────────────────────────────────
+  H  0, != 0     Might be min (degenerate)  Higher order needed
+  H = 0           Need Taylor term >=3        Flat critical point
+  
 
-  For ℝ² via determinant test (when ∇f = 0):
-    det(H) > 0, H₁₁ > 0  →  local minimum
-    det(H) > 0, H₁₁ < 0  →  local maximum
-    det(H) < 0             →  saddle point
-    det(H) = 0             →  inconclusive
+  For R^2 via determinant test (when nablaf = 0):
+    det(H) > 0, H_1_1 > 0  ->  local minimum
+    det(H) > 0, H_1_1 < 0  ->  local maximum
+    det(H) < 0             ->  saddle point
+    det(H) = 0             ->  inconclusive
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 3.3 Indefinite Hessian and Saddle Points
@@ -401,7 +401,7 @@ $$k = \#\{\lambda_i(H) < 0\}$$
 
 (the number of descent directions). A non-degenerate minimum has index 0; a saddle has index $1, 2, \ldots, n-1$; a maximum has index $n$. Morse theory relates the topology of the sublevel sets $\{f \leq c\}$ to the critical points and their indices.
 
-**For deep learning:** The loss landscape of an $n$-parameter network at a critical point near a good solution tends to have many positive eigenvalues and few (often negligible) negative ones. The ratio $k/n$ is typically very small at good solutions—confirming that most critical points found in practice are near-minima, not true saddles with large negative Hessian components.
+**For deep learning:** The loss landscape of an $n$-parameter network at a critical point near a good solution tends to have many positive eigenvalues and few (often negligible) negative ones. The ratio $k/n$ is typically very small at good solutions-confirming that most critical points found in practice are near-minima, not true saddles with large negative Hessian components.
 
 ### 3.4 Global Optimality from Convexity
 
@@ -413,7 +413,7 @@ For convex functions, the local-global distinction disappears entirely:
 
 $$f((1-t)\mathbf{x}^* + t\mathbf{y}) \leq (1-t)f(\mathbf{x}^*) + tf(\mathbf{y}) < f(\mathbf{x}^*)$$
 
-As $t \to 0^+$, the point $(1-t)\mathbf{x}^* + t\mathbf{y}$ approaches $\mathbf{x}^*$ arbitrarily closely while having lower function value—contradicting $\mathbf{x}^*$ being a local minimum. $\square$
+As $t \to 0^+$, the point $(1-t)\mathbf{x}^* + t\mathbf{y}$ approaches $\mathbf{x}^*$ arbitrarily closely while having lower function value-contradicting $\mathbf{x}^*$ being a local minimum. $\square$
 
 **Corollary.** For differentiable convex $f$: $\nabla f(\mathbf{x}^*) = \mathbf{0}$ iff $\mathbf{x}^*$ is a global minimum.
 
@@ -427,7 +427,7 @@ Understanding the Hessian at key ML critical points provides geometric insight i
 
 $$\nabla^2 f(\mathbf{w}) = \frac{1}{n} X^\top X$$
 
-independent of $\mathbf{w}$. The Hessian is constant—this is a quadratic. Eigenvalues are $\sigma_i^2(X)/n$ (squared singular values scaled). If $X$ has full column rank, $H \succ 0$ everywhere, so the unique critical point is a global minimum.
+independent of $\mathbf{w}$. The Hessian is constant-this is a quadratic. Eigenvalues are $\sigma_i^2(X)/n$ (squared singular values scaled). If $X$ has full column rank, $H \succ 0$ everywhere, so the unique critical point is a global minimum.
 
 **Logistic Regression.** For $f(\mathbf{w}) = \frac{1}{n}\sum_i [-y_i \mathbf{w}^\top \mathbf{x}_i + \log(1 + e^{\mathbf{w}^\top \mathbf{x}_i})]$:
 
@@ -440,14 +440,14 @@ where $\sigma_i = \sigma(\mathbf{w}^\top \mathbf{x}_i)$. Since $\sigma(z)(1-\sig
 - A few large positive eigenvalues (steep curvature in a small subspace)
 - Occasional small negative eigenvalues (slight non-convexity)
 
-The ratio of large-to-small eigenvalues is the **condition number**—high condition numbers cause slow gradient descent convergence and motivate adaptive methods like Adam.
+The ratio of large-to-small eigenvalues is the **condition number**-high condition numbers cause slow gradient descent convergence and motivate adaptive methods like Adam.
 
 
 ---
 
 ## 4. Convex Analysis
 
-Convexity is the mathematical property that makes optimization tractable. Understanding convex sets and functions—their definitions, characterisations, and preservation rules—is prerequisite to deploying convex duality and KKT theory.
+Convexity is the mathematical property that makes optimization tractable. Understanding convex sets and functions-their definitions, characterisations, and preservation rules-is prerequisite to deploying convex duality and KKT theory.
 
 ### 4.1 Convex Sets
 
@@ -466,7 +466,7 @@ Geometrically: the line segment between any two points stays inside the set.
 
 **Non-examples:**
 - The unit sphere $\mathbb{S}^{n-1}$ (boundary only, not the ball): the segment between two points on the sphere passes through the interior
-- The set $\{(x,y) : xy \geq 1,\, x,y > 0\}$: take $(1,1)$ and $(2, 1/2)$; the midpoint $(3/2, 3/4)$ has $3/2 \cdot 3/4 = 9/8 > 1$—wait, this is actually convex. A cleaner non-example: $\{(x,y) : x^2 + y^2 = 1\}$ (circle)
+- The set $\{(x,y) : xy \geq 1,\, x,y > 0\}$: take $(1,1)$ and $(2, 1/2)$; the midpoint $(3/2, 3/4)$ has $3/2 \cdot 3/4 = 9/8 > 1$-wait, this is actually convex. A cleaner non-example: $\{(x,y) : x^2 + y^2 = 1\}$ (circle)
 
 **Convexity-preserving operations:**
 - Intersection: $C_1, C_2$ convex $\Rightarrow$ $C_1 \cap C_2$ convex
@@ -519,7 +519,7 @@ Strong convexity has powerful consequences:
 2. **Linear convergence**: gradient descent converges geometrically at rate $(1 - \mu/L)$ per step where $L$ is the Lipschitz constant of $\nabla f$
 3. **Self-concordance**: the function cannot become arbitrarily flat
 
-**For AI:** Ridge regression $f(\mathbf{w}) = \frac{1}{2n}\|X\mathbf{w} - \mathbf{y}\|^2 + \frac{\lambda}{2}\|\mathbf{w}\|^2$ is $\lambda$-strongly convex (the $\ell_2$ regulariser adds $\lambda I$ to the Hessian). This is why $L_2$ regularisation speeds up convergence and ensures a unique solution—crucial for ill-conditioned problems.
+**For AI:** Ridge regression $f(\mathbf{w}) = \frac{1}{2n}\|X\mathbf{w} - \mathbf{y}\|^2 + \frac{\lambda}{2}\|\mathbf{w}\|^2$ is $\lambda$-strongly convex (the $\ell_2$ regulariser adds $\lambda I$ to the Hessian). This is why $L_2$ regularisation speeds up convergence and ensures a unique solution-crucial for ill-conditioned problems.
 
 **Condition number:** For $\mu$-strongly convex, $L$-smooth functions, $\kappa = L/\mu$ governs convergence. In transformer training, very high condition numbers of the loss landscape motivate adaptive optimisers.
 
@@ -543,7 +543,7 @@ Convexity is preserved under many operations, making it composable:
 
 ## 5. Lagrange Multipliers
 
-When optimization problems come with constraints, unconstrained optimality conditions no longer apply directly. Lagrange multipliers transform constrained problems into unconstrained ones by incorporating the constraint into the objective—at the cost of introducing auxiliary variables.
+When optimization problems come with constraints, unconstrained optimality conditions no longer apply directly. Lagrange multipliers transform constrained problems into unconstrained ones by incorporating the constraint into the objective-at the cost of introducing auxiliary variables.
 
 ### 5.1 Setup: Equality-Constrained Problems
 
@@ -565,51 +565,51 @@ The deepest way to understand why Lagrange's method works is geometric. At a con
 
 **Claim:** $\nabla f(\mathbf{x}^*)$ must lie in the span of $\{\nabla g_1(\mathbf{x}^*), \ldots, \nabla g_m(\mathbf{x}^*)\}$.
 
-**Why:** The feasible set near $\mathbf{x}^*$ is approximately the linear manifold $\{\mathbf{x} : \nabla g_i(\mathbf{x}^*)^\top (\mathbf{x} - \mathbf{x}^*) = 0, \, \forall i\}$—the tangent plane to each constraint surface. Any feasible direction $\mathbf{d}$ from $\mathbf{x}^*$ must satisfy $\nabla g_i(\mathbf{x}^*)^\top \mathbf{d} = 0$ for all $i$.
+**Why:** The feasible set near $\mathbf{x}^*$ is approximately the linear manifold $\{\mathbf{x} : \nabla g_i(\mathbf{x}^*)^\top (\mathbf{x} - \mathbf{x}^*) = 0, \, \forall i\}$-the tangent plane to each constraint surface. Any feasible direction $\mathbf{d}$ from $\mathbf{x}^*$ must satisfy $\nabla g_i(\mathbf{x}^*)^\top \mathbf{d} = 0$ for all $i$.
 
-If $\nabla f(\mathbf{x}^*)$ had a component orthogonal to all $\nabla g_i(\mathbf{x}^*)$, that component would be a feasible direction along which $f$ decreases—contradicting $\mathbf{x}^*$ being a local constrained minimum.
+If $\nabla f(\mathbf{x}^*)$ had a component orthogonal to all $\nabla g_i(\mathbf{x}^*)$, that component would be a feasible direction along which $f$ decreases-contradicting $\mathbf{x}^*$ being a local constrained minimum.
 
 Therefore $\nabla f(\mathbf{x}^*)$ has no component in the tangent space; it must lie entirely in the normal space spanned by $\{\nabla g_i\}$:
 
 $$\nabla f(\mathbf{x}^*) = -\sum_{i=1}^m \lambda_i^* \nabla g_i(\mathbf{x}^*) \quad \Longleftrightarrow \quad \nabla_\mathbf{x} \mathcal{L}(\mathbf{x}^*, \boldsymbol{\lambda}^*) = \mathbf{0}$$
 
 ```
-LAGRANGE MULTIPLIER GEOMETRY (ℝ²)
-════════════════════════════════════════════════════════════════════════
+LAGRANGE MULTIPLIER GEOMETRY (R^2)
+
 
   Constraint: g(x,y) = 0  (a curve in the plane)
   Objective: minimize f(x,y)
 
-         ▲ y
-         │          f = c₃  (level curves of f)
-    ─────┼─────►
-         │          f = c₂
-       ╭─┼─╮
-      ╱  │  ╲       f = c₁  ← tangent to constraint at x*
-     │   │●  │ x*
-      ╲  │  ╱
-       ╰─┼─╯  g = 0
-         │
+          y
+                   f = c_3  (level curves of f)
+    
+                   f = c_2
+       
+                 f = c_1  <- tangent to constraint at x*
+           x*
+          
+         g = 0
+         
 
   At x*: level curve of f is tangent to constraint g=0
-         ⟹ ∇f ∥ ∇g  ⟹  ∇f = -λ∇g
+          nablaf  nablag    nablaf = -lambdanablag
 
-  ∇g points normal to g=0; ∇f points normal to f=c₁
+  nablag points normal to g=0; nablaf points normal to f=c_1
   Tangency means these normals are parallel.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 5.3 The Lagrange Multiplier Theorem
 
-**Theorem (Lagrange, 1788).** Let $\mathbf{x}^*$ be a local minimum of $f$ subject to $\mathbf{g}(\mathbf{x}) = \mathbf{0}$. If the **Linear Independence Constraint Qualification (LICQ)** holds at $\mathbf{x}^*$—i.e., $\{\nabla g_1(\mathbf{x}^*), \ldots, \nabla g_m(\mathbf{x}^*)\}$ are linearly independent—then there exists $\boldsymbol{\lambda}^* \in \mathbb{R}^m$ such that:
+**Theorem (Lagrange, 1788).** Let $\mathbf{x}^*$ be a local minimum of $f$ subject to $\mathbf{g}(\mathbf{x}) = \mathbf{0}$. If the **Linear Independence Constraint Qualification (LICQ)** holds at $\mathbf{x}^*$-i.e., $\{\nabla g_1(\mathbf{x}^*), \ldots, \nabla g_m(\mathbf{x}^*)\}$ are linearly independent-then there exists $\boldsymbol{\lambda}^* \in \mathbb{R}^m$ such that:
 
 $$\nabla_\mathbf{x} \mathcal{L}(\mathbf{x}^*, \boldsymbol{\lambda}^*) = \nabla f(\mathbf{x}^*) + \boldsymbol{\lambda}^* {}^\top \nabla \mathbf{g}(\mathbf{x}^*) = \mathbf{0}$$
 $$\mathbf{g}(\mathbf{x}^*) = \mathbf{0}$$
 
 Together these are $n + m$ equations in $n + m$ unknowns $(\mathbf{x}^*, \boldsymbol{\lambda}^*)$.
 
-**LICQ matters:** Without LICQ the theorem can fail. Example: $\min x$ subject to $x^2 = 0$ and $x^3 = 0$. The constraints both vanish at $x^* = 0$ with gradients $0$ and $0$—linearly dependent. No Lagrange multiplier exists.
+**LICQ matters:** Without LICQ the theorem can fail. Example: $\min x$ subject to $x^2 = 0$ and $x^3 = 0$. The constraints both vanish at $x^* = 0$ with gradients $0$ and $0$-linearly dependent. No Lagrange multiplier exists.
 
 ### 5.4 Sensitivity Interpretation: Shadow Prices
 
@@ -648,7 +648,7 @@ Stationarity: $2\Sigma \mathbf{v} = 2\lambda \mathbf{v}$, i.e., $\Sigma \mathbf{
 
 ## 6. KKT Conditions
 
-Lagrange multipliers handle equality constraints. When inequality constraints are present—which is the norm in machine learning (budget constraints, margin constraints, non-negativity)—the **Karush–Kuhn–Tucker (KKT) conditions** provide the generalisation.
+Lagrange multipliers handle equality constraints. When inequality constraints are present-which is the norm in machine learning (budget constraints, margin constraints, non-negativity)-the **Karush-Kuhn-Tucker (KKT) conditions** provide the generalisation.
 
 ### 6.1 The Full Problem and Lagrangian
 
@@ -679,8 +679,8 @@ $$\mu_j^* \geq 0 \quad \forall j$$
 $$\mu_j^* h_j(\mathbf{x}^*) = 0 \quad \forall j$$
 
 **Interpreting complementary slackness:** For each inequality constraint $j$, either:
-- $h_j(\mathbf{x}^*) = 0$: the constraint is **active** (the optimum is on the boundary)—$\mu_j^*$ can be nonzero
-- $\mu_j^* = 0$: the constraint is **inactive** (the optimum is strictly interior)—the constraint doesn't affect the optimum
+- $h_j(\mathbf{x}^*) = 0$: the constraint is **active** (the optimum is on the boundary)-$\mu_j^*$ can be nonzero
+- $\mu_j^* = 0$: the constraint is **inactive** (the optimum is strictly interior)-the constraint doesn't affect the optimum
 
 This is the geometric signature of which constraints "matter" at the solution.
 
@@ -690,25 +690,25 @@ The KKT conditions say: at optimum, you cannot improve $f$ while satisfying all 
 
 ```
 KKT COMPLEMENTARY SLACKNESS GEOMETRY
-════════════════════════════════════════════════════════════════════════
+
 
   Case 1: Constraint inactive (h(x*) < 0)
-  ─────────────────────────────────────────
+  
   The optimum is in the interior of the feasible region.
   The inequality constraint plays no role.
-  μ* = 0 (it would be wrong to "push" against a slack constraint).
+  mu* = 0 (it would be wrong to "push" against a slack constraint).
 
   Case 2: Constraint active (h(x*) = 0)
-  ─────────────────────────────────────────
+  
   The optimum lies ON the constraint boundary.
-  The gradient ∇f(x*) points into the infeasible region.
-  μ* > 0 "pushes back" to prevent crossing the boundary.
+  The gradient nablaf(x*) points into the infeasible region.
+  mu* > 0 "pushes back" to prevent crossing the boundary.
   The objective would improve if the constraint were relaxed.
 
-  In both cases: μ* · h(x*) = 0 · (neg) = 0  ✓
-                          or:  (pos) · 0 = 0  ✓
+  In both cases: mu* * h(x*) = 0 * (neg) = 0  
+                          or:  (pos) * 0 = 0  
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 6.4 KKT as Necessary Conditions: LICQ Proof
@@ -725,7 +725,7 @@ By Farkas' lemma, $-\nabla f(\mathbf{x}^*)$ is a conic combination of active con
 
 ### 6.5 KKT as Sufficient Conditions (Convex Case)
 
-For convex problems, KKT conditions are not just necessary—they are also sufficient:
+For convex problems, KKT conditions are not just necessary-they are also sufficient:
 
 **Theorem.** If $f$ and $h_j$ are convex, $g_i$ are affine, and $(\mathbf{x}^*, \boldsymbol{\mu}^*, \boldsymbol{\lambda}^*)$ satisfy all four KKT conditions, then $\mathbf{x}^*$ is a global minimum.
 
@@ -756,7 +756,7 @@ The constraint $x_2 \geq 0$ is never active at the optimum (we want $x_2$ large)
 
 ## 7. Duality Theory
 
-The Lagrangian dual offers a second approach to constrained optimisation: instead of minimising over $\mathbf{x}$, we maximise over the multipliers $(\boldsymbol{\mu}, \boldsymbol{\lambda})$. The resulting **dual problem** often has better structure (always convex, regardless of the primal), reveals hidden geometric properties, and—for convex problems—gives exactly the same optimal value.
+The Lagrangian dual offers a second approach to constrained optimisation: instead of minimising over $\mathbf{x}$, we maximise over the multipliers $(\boldsymbol{\mu}, \boldsymbol{\lambda})$. The resulting **dual problem** often has better structure (always convex, regardless of the primal), reveals hidden geometric properties, and-for convex problems-gives exactly the same optimal value.
 
 ### 7.1 The Dual Function and Dual Problem
 
@@ -764,7 +764,7 @@ The Lagrangian dual offers a second approach to constrained optimisation: instea
 
 $$q(\boldsymbol{\mu}, \boldsymbol{\lambda}) = \inf_{\mathbf{x}} \mathcal{L}(\mathbf{x}, \boldsymbol{\mu}, \boldsymbol{\lambda}) = \inf_{\mathbf{x}} \left[ f(\mathbf{x}) + \boldsymbol{\mu}^\top \mathbf{h}(\mathbf{x}) + \boldsymbol{\lambda}^\top \mathbf{g}(\mathbf{x}) \right]$$
 
-**Key property:** $q$ is always concave in $(\boldsymbol{\mu}, \boldsymbol{\lambda})$—it is a pointwise infimum of affine functions of the multipliers.
+**Key property:** $q$ is always concave in $(\boldsymbol{\mu}, \boldsymbol{\lambda})$-it is a pointwise infimum of affine functions of the multipliers.
 
 **Dual problem:**
 
@@ -786,7 +786,7 @@ The gap $p^* - d^* \geq 0$ is the **duality gap**.
 
 ### 7.3 Strong Duality and Slater's Condition
 
-**Theorem (Slater's Condition → Strong Duality).** For convex $f$ and $h_j$, affine $g_i$: if there exists a **strictly feasible** point $\hat{\mathbf{x}}$ (with $h_j(\hat{\mathbf{x}}) < 0$ strictly for all $j$), then $d^* = p^*$ (zero duality gap) and the dual optimum is attained.
+**Theorem (Slater's Condition -> Strong Duality).** For convex $f$ and $h_j$, affine $g_i$: if there exists a **strictly feasible** point $\hat{\mathbf{x}}$ (with $h_j(\hat{\mathbf{x}}) < 0$ strictly for all $j$), then $d^* = p^*$ (zero duality gap) and the dual optimum is attained.
 
 Slater's condition is a **constraint qualification**: it says the feasible region is non-degenerate. For LP and QP (quadratic programs), strong duality holds under much weaker conditions.
 
@@ -827,9 +827,9 @@ $$q(\boldsymbol{\alpha}) = \sum_i \alpha_i - \frac{1}{2} \sum_{i,j} \alpha_i \al
 
 **Dual problem:** $\max_{\boldsymbol{\alpha} \geq 0} q(\boldsymbol{\alpha})$ subject to $\sum_i \alpha_i y_i = 0$.
 
-This depends only on inner products $\mathbf{x}_i^\top \mathbf{x}_j$—the **kernel trick** replaces these with $k(\mathbf{x}_i, \mathbf{x}_j)$ for nonlinear boundaries without ever computing features explicitly.
+This depends only on inner products $\mathbf{x}_i^\top \mathbf{x}_j$-the **kernel trick** replaces these with $k(\mathbf{x}_i, \mathbf{x}_j)$ for nonlinear boundaries without ever computing features explicitly.
 
-**Support vectors:** By complementary slackness, $\alpha_i^* > 0$ only when $h_i(\mathbf{x}^*, b^*) = 0$, i.e., when the constraint is active: $y_i(\mathbf{w}^{*\top}\mathbf{x}_i + b^*) = 1$. These are exactly the **support vectors**—the training points on the margin boundary that determine $\mathbf{w}^*$.
+**Support vectors:** By complementary slackness, $\alpha_i^* > 0$ only when $h_i(\mathbf{x}^*, b^*) = 0$, i.e., when the constraint is active: $y_i(\mathbf{w}^{*\top}\mathbf{x}_i + b^*) = 1$. These are exactly the **support vectors**-the training points on the margin boundary that determine $\mathbf{w}^*$.
 
 
 ---
@@ -885,7 +885,7 @@ $$\max_{V \in \mathbb{R}^{d \times k}} \text{tr}(V^\top \Sigma V) \quad \text{s.
 
 Lagrangian: $\mathcal{L} = \text{tr}(V^\top \Sigma V) - \text{tr}(\Lambda(V^\top V - I))$ where $\Lambda$ is a $k \times k$ symmetric multiplier matrix.
 
-Stationarity: $2\Sigma V = 2V\Lambda$, i.e., $\Sigma V = V\Lambda$. Each column $\mathbf{v}_j$ satisfies $\Sigma \mathbf{v}_j = \lambda_j \mathbf{v}_j$—an eigenvalue equation. The optimal $V$ is the matrix of top-$k$ eigenvectors; the multipliers $\lambda_j$ are the eigenvalues (= captured variance).
+Stationarity: $2\Sigma V = 2V\Lambda$, i.e., $\Sigma V = V\Lambda$. Each column $\mathbf{v}_j$ satisfies $\Sigma \mathbf{v}_j = \lambda_j \mathbf{v}_j$-an eigenvalue equation. The optimal $V$ is the matrix of top-$k$ eigenvectors; the multipliers $\lambda_j$ are the eigenvalues (= captured variance).
 
 ### 8.5 Maximum Entropy and Softmax
 
@@ -920,7 +920,7 @@ The Lagrange multiplier for the simplex constraint $\sum_i p_i = 1$ becomes the 
 
 ## 9. Non-Convex Landscapes in Deep Learning
 
-Deep learning operates almost entirely in the non-convex regime. Yet neural networks train successfully—why? The answer lies in the special geometric structure of high-dimensional non-convex landscapes.
+Deep learning operates almost entirely in the non-convex regime. Yet neural networks train successfully-why? The answer lies in the special geometric structure of high-dimensional non-convex landscapes.
 
 ### 9.1 Loss Landscape Geometry
 
@@ -931,15 +931,15 @@ An $n$-parameter neural network defines a loss landscape $\mathcal{L}: \mathbb{R
 - **Saddle point dominance**: most critical points are saddle points, not local minima. The index (number of negative eigenvalue directions) of these saddles is typically large.
 - **Loss barriers between solutions**: two different global minima can be separated by high barriers in weight space, but connected by **loss valleys** in higher-dimensional paths.
 
-**For AI:** The practical consequence is that SGD with good initialisation reliably finds good solutions, and model merging (linear combination of two trained models) often produces competitive performance—evidence of basin connectivity.
+**For AI:** The practical consequence is that SGD with good initialisation reliably finds good solutions, and model merging (linear combination of two trained models) often produces competitive performance-evidence of basin connectivity.
 
 ### 9.2 The Role of Overparameterisation
 
 **Theorem (informal, Kawaguchi 2016; Du et al. 2018).** For a wide class of networks trained on generic data, when the number of parameters $n$ exceeds the number of training points $N$, every local minimum is a global minimum.
 
-**Intuition.** With $n \gg N$ parameters, the loss function has $n - N$ approximate degrees of freedom. The "level set" $\{\mathbf{w} : \mathcal{L}(\mathbf{w}) \approx 0\}$ is a high-dimensional manifold. Any point trying to be a local minimum with non-zero loss would need the gradient to vanish while the Hessian is positive definite in all $n$ directions—this becomes geometrically impossible when the loss can be driven to zero by moving in any of the $n - N$ flat directions.
+**Intuition.** With $n \gg N$ parameters, the loss function has $n - N$ approximate degrees of freedom. The "level set" $\{\mathbf{w} : \mathcal{L}(\mathbf{w}) \approx 0\}$ is a high-dimensional manifold. Any point trying to be a local minimum with non-zero loss would need the gradient to vanish while the Hessian is positive definite in all $n$ directions-this becomes geometrically impossible when the loss can be driven to zero by moving in any of the $n - N$ flat directions.
 
-**Neural Tangent Kernel (NTK) perspective.** In the infinite-width limit, training dynamics become linear: $\dot{\mathbf{w}} = -\eta K^\infty (\mathbf{w}) \mathbf{e}$ where $K^\infty$ is the NTK matrix. If $K^\infty \succ 0$, gradient descent converges globally at a linear rate—a convex analysis result applied to a formally non-convex problem.
+**Neural Tangent Kernel (NTK) perspective.** In the infinite-width limit, training dynamics become linear: $\dot{\mathbf{w}} = -\eta K^\infty (\mathbf{w}) \mathbf{e}$ where $K^\infty$ is the NTK matrix. If $K^\infty \succ 0$, gradient descent converges globally at a linear rate-a convex analysis result applied to a formally non-convex problem.
 
 ### 9.3 Sharpness-Aware Minimisation (SAM)
 
@@ -962,14 +962,14 @@ This is a direct application of KKT: solving the constrained inner problem analy
 At the terminal phase of training, when networks reach near-zero training loss, a remarkable geometric structure called **Neural Collapse** (Papyan et al. 2020) emerges:
 
 1. **Within-class variability collapse**: all training examples of class $c$ have the same last-layer representation $\mathbf{h} = \boldsymbol{\mu}_c$
-2. **Equinorm ETF**: the class means $\boldsymbol{\mu}_1, \ldots, \boldsymbol{\mu}_C$ form an **Equiangular Tight Frame**—they have equal norms and equal pairwise cosine similarities $= -1/(C-1)$
+2. **Equinorm ETF**: the class means $\boldsymbol{\mu}_1, \ldots, \boldsymbol{\mu}_C$ form an **Equiangular Tight Frame**-they have equal norms and equal pairwise cosine similarities $= -1/(C-1)$
 3. **Self-duality**: the weight vectors $\mathbf{w}_c$ align with the class means up to scaling
 
 **KKT characterisation.** Neural collapse is the KKT point of the **Unconstrained Features Model** (UFM):
 
 $$\min_{\mathbf{H}, \mathbf{W}, \mathbf{b}} \mathcal{L}_{\text{CE}}(\mathbf{W}\mathbf{H} + \mathbf{b}) + \frac{\lambda}{2}(\|\mathbf{H}\|_F^2 + \|\mathbf{W}\|_F^2)$$
 
-The KKT stationarity conditions, combined with symmetry of the cross-entropy loss at balanced class distributions, force the ETF structure. Neural collapse is not an empirical coincidence—it is the unique KKT point of this simplified training problem.
+The KKT stationarity conditions, combined with symmetry of the cross-entropy loss at balanced class distributions, force the ETF structure. Neural collapse is not an empirical coincidence-it is the unique KKT point of this simplified training problem.
 
 ### 9.5 Mode Connectivity
 
@@ -977,7 +977,7 @@ The KKT stationarity conditions, combined with symmetry of the cross-entropy los
 
 **Implication for model merging.** The success of weight averaging (WA) methods like Model Soups and SLERP model merging is explained by mode connectivity: if the merged model lies near the connecting path in weight space, it inherits the performance of both endpoints.
 
-**Optimality connection.** Mode connectivity is a non-convex analogue of the fundamental theorem of convex analysis: convex functions have connected sublevel sets. For "sufficiently trained" neural networks, the sublevel set $\{\mathbf{w} : \mathcal{L}(\mathbf{w}) \leq \mathcal{L}(\mathbf{w}_1^*) + \epsilon\}$ is approximately path-connected—not because the landscape is convex, but because overparameterisation creates high-dimensional flat regions.
+**Optimality connection.** Mode connectivity is a non-convex analogue of the fundamental theorem of convex analysis: convex functions have connected sublevel sets. For "sufficiently trained" neural networks, the sublevel set $\{\mathbf{w} : \mathcal{L}(\mathbf{w}) \leq \mathcal{L}(\mathbf{w}_1^*) + \epsilon\}$ is approximately path-connected-not because the landscape is convex, but because overparameterisation creates high-dimensional flat regions.
 
 
 ---
@@ -1003,7 +1003,7 @@ The KKT stationarity conditions, combined with symmetry of the cross-entropy los
 
 ## 11. Exercises
 
-### Exercise 1 ★ — Critical Point Classification
+### Exercise 1  - Critical Point Classification
 
 Let $f(x,y) = x^3 - 3xy^2 + y^4$.
 
@@ -1015,7 +1015,7 @@ Let $f(x,y) = x^3 - 3xy^2 + y^4$.
 
 **(d)** Sketch the level curves of $f$ near each critical point.
 
-### Exercise 2 ★ — Lagrange Multipliers: Constrained Extremum
+### Exercise 2  - Lagrange Multipliers: Constrained Extremum
 
 Maximise $f(\mathbf{x}) = x_1 x_2 x_3$ subject to $x_1 + x_2 + x_3 = 12$, $\mathbf{x} \geq \mathbf{0}$.
 
@@ -1027,7 +1027,7 @@ Maximise $f(\mathbf{x}) = x_1 x_2 x_3$ subject to $x_1 + x_2 + x_3 = 12$, $\math
 
 **(d)** Confirm numerically using `scipy.optimize.minimize`.
 
-### Exercise 3 ★ — KKT Conditions for Quadratic Program
+### Exercise 3  - KKT Conditions for Quadratic Program
 
 Solve: $\min \frac{1}{2}(x_1^2 + x_2^2)$ subject to $x_1 + x_2 \geq 3$, $x_1, x_2 \geq 0$.
 
@@ -1039,7 +1039,7 @@ Solve: $\min \frac{1}{2}(x_1^2 + x_2^2)$ subject to $x_1 + x_2 \geq 3$, $x_1, x_
 
 **(d)** Compute the duality gap (should be zero).
 
-### Exercise 4 ★★ — Convexity Analysis
+### Exercise 4  - Convexity Analysis
 
 For each function, determine if it is convex, strictly convex, or neither, on the specified domain:
 
@@ -1053,7 +1053,7 @@ For each function, determine if it is convex, strictly convex, or neither, on th
 
 **(e)** $f(\mathbf{w}) = \mathcal{L}_{\text{CE}}(\mathbf{w})$ for logistic regression with linearly separable data
 
-### Exercise 5 ★★ — SVM Dual Derivation
+### Exercise 5  - SVM Dual Derivation
 
 Derive the dual of the hard-margin SVM from scratch.
 
@@ -1067,7 +1067,7 @@ Derive the dual of the hard-margin SVM from scratch.
 
 **(e)** Implement and solve both primal and dual for a small dataset; verify they give the same optimal value.
 
-### Exercise 6 ★★ — Maximum Entropy Distribution
+### Exercise 6  - Maximum Entropy Distribution
 
 Find the maximum entropy distribution on $\{1, 2, 3, 4\}$ subject to: $\sum_i p_i = 1$ and $\mathbb{E}[X] = 2.5$.
 
@@ -1081,7 +1081,7 @@ Find the maximum entropy distribution on $\{1, 2, 3, 4\}$ subject to: $\sum_i p_
 
 **(e)** Verify: compute $H(p^*)$ and confirm it exceeds $H(\text{uniform restricted to } \mathbb{E}[X]=2.5)$.
 
-### Exercise 7 ★★★ — SAM: KKT Analysis
+### Exercise 7  - SAM: KKT Analysis
 
 Analyse Sharpness-Aware Minimisation rigorously.
 
@@ -1095,7 +1095,7 @@ Analyse Sharpness-Aware Minimisation rigorously.
 
 **(e)** Empirically verify that SAM finds flatter minima on a small neural network.
 
-### Exercise 8 ★★★ — Duality Gap and Convergence
+### Exercise 8  - Duality Gap and Convergence
 
 Implement a primal-dual interior-point method for a small LP.
 
@@ -1127,49 +1127,49 @@ Implement a primal-dual interior-point method for a small LP.
 | **Max entropy / softmax** | Language model next-token prediction is max-entropy inference subject to observed statistics. Temperature scaling adjusts the implicit Lagrange multiplier on the cross-entropy constraint, controlling distribution sharpness. |
 | **SAM/sharpness** | Flat minima empirically generalise better. SAM (Foret et al. 2021) is now standard in SOTA image classification and LLM fine-tuning. The optimality condition for the inner problem is the KKT stationarity condition. |
 | **Neural collapse** | The ETF structure at convergence (proven via KKT of the UFM) informs classifier weight initialisation strategies and explains why the last layer of a fine-tuned model can be reset and retrained cheaply. |
-| **Mode connectivity** | Model merging (Model Soups, TIES, DARE) and model interpolation are enabled by the path-connectivity of loss basins—a direct consequence of overparameterised non-convex landscape geometry. |
+| **Mode connectivity** | Model merging (Model Soups, TIES, DARE) and model interpolation are enabled by the path-connectivity of loss basins-a direct consequence of overparameterised non-convex landscape geometry. |
 
 ---
 
 ## Conceptual Bridge
 
-This section occupies the pivot between two phases of the curriculum. Everything before §04 established the tools for computing derivatives—limits, continuity, partial derivatives, gradients, Jacobians, chain rule. This section asks the deeper question: *what do these derivatives tell us about where the best solutions are?*
+This section occupies the pivot between two phases of the curriculum. Everything before 04 established the tools for computing derivatives-limits, continuity, partial derivatives, gradients, Jacobians, chain rule. This section asks the deeper question: *what do these derivatives tell us about where the best solutions are?*
 
-**Looking backward.** The first-order conditions derive directly from the gradient machinery of §01–§03. The Hessian—the matrix of second partial derivatives—extends the single-variable second derivative test to functions of many variables, connecting to the matrix theory of §02. The chain rule and product rule for derivatives underpin every step of the Lagrangian analysis.
+**Looking backward.** The first-order conditions derive directly from the gradient machinery of 01-03. The Hessian-the matrix of second partial derivatives-extends the single-variable second derivative test to functions of many variables, connecting to the matrix theory of 02. The chain rule and product rule for derivatives underpin every step of the Lagrangian analysis.
 
 **Looking forward.** The optimality conditions here are used constantly in the chapters ahead:
-- §05/05 (Gradient Descent) and §08 (Optimisation Algorithms): gradient descent is precisely the process of iterating toward $\nabla f = \mathbf{0}$; convergence analysis requires the strong convexity and Lipschitz smoothness properties defined here
-- §06 (Probability & Statistics): maximum likelihood estimation is an unconstrained minimisation whose optimality conditions give the maximum likelihood equations; Bayesian MAP estimation introduces prior constraints handled by Lagrange multipliers
-- §07 (Information Theory): the maximum entropy principle (§8.5) is a direct application of Lagrange multipliers; the KL divergence minimisation underlying variational inference is a constrained optimisation whose KKT conditions are the ELBO
+- 05/05 (Gradient Descent) and 08 (Optimisation Algorithms): gradient descent is precisely the process of iterating toward $\nabla f = \mathbf{0}$; convergence analysis requires the strong convexity and Lipschitz smoothness properties defined here
+- 06 (Probability & Statistics): maximum likelihood estimation is an unconstrained minimisation whose optimality conditions give the maximum likelihood equations; Bayesian MAP estimation introduces prior constraints handled by Lagrange multipliers
+- 07 (Information Theory): the maximum entropy principle (8.5) is a direct application of Lagrange multipliers; the KL divergence minimisation underlying variational inference is a constrained optimisation whose KKT conditions are the ELBO
 
 ```
 POSITION IN THE CALCULUS CURRICULUM
-════════════════════════════════════════════════════════════════════════
 
-  §04: Calculus Fundamentals
-  ├── §01: Limits and Continuity          ─► Foundation for §02
-  ├── §02: Derivatives and Differentiation ─► Foundation for §03, §04
-  ├── §03: Integration                    ─► Foundation for §06 (probability)
-  └── §04: Optimality Conditions ◄── YOU ARE HERE
-          │
-          │  Uses: gradients, Hessians, chain rule, Jacobians
-          │  Introduces: critical points, KKT, duality, convexity
-          │
-          ▼
-  §05: Multivariate Calculus
-  ├── §01: Partial Derivatives (prerequisite)
-  ├── §02: Gradient and Hessian (prerequisite)
-  ├── §03: Chain Rule & Backpropagation (prerequisite)
-  ├── §04: Optimality Conditions ◄── YOU ARE HERE
-  └── §05: Gradient Descent and Convergence ─► Uses §04's convexity theory
 
-  §08: Optimisation Algorithms ─► Deep dive into algorithms enabled by §04
-  §09: Probabilistic Graphical Models ─► MAP/MLE via §04's Lagrange theory
+  04: Calculus Fundamentals
+   01: Limits and Continuity           Foundation for 02
+   02: Derivatives and Differentiation  Foundation for 03, 04
+   03: Integration                     Foundation for 06 (probability)
+   04: Optimality Conditions  YOU ARE HERE
+          
+            Uses: gradients, Hessians, chain rule, Jacobians
+            Introduces: critical points, KKT, duality, convexity
+          
+          
+  05: Multivariate Calculus
+   01: Partial Derivatives (prerequisite)
+   02: Gradient and Hessian (prerequisite)
+   03: Chain Rule & Backpropagation (prerequisite)
+   04: Optimality Conditions  YOU ARE HERE
+   05: Gradient Descent and Convergence  Uses 04's convexity theory
 
-════════════════════════════════════════════════════════════════════════
+  08: Optimisation Algorithms  Deep dive into algorithms enabled by 04
+  09: Probabilistic Graphical Models  MAP/MLE via 04's Lagrange theory
+
+
 ```
 
-**The central insight.** Optimality conditions are not merely a tool for finding optima—they are a *language* for describing what it means for a solution to be right. The KKT conditions don't just tell you where to stop searching; they tell you *why* the answer is the answer: which constraints are binding, how sensitive the solution is to perturbations, what trade-offs are implicit in the optimal choice. Every time a language model outputs a softmax distribution, every time a recommender system solves a constrained relevance problem, every time a reinforcement learning agent balances reward and KL penalty—the KKT conditions are operating in the background, whether or not the engineer knows it.
+**The central insight.** Optimality conditions are not merely a tool for finding optima-they are a *language* for describing what it means for a solution to be right. The KKT conditions don't just tell you where to stop searching; they tell you *why* the answer is the answer: which constraints are binding, how sensitive the solution is to perturbations, what trade-offs are implicit in the optimal choice. Every time a language model outputs a softmax distribution, every time a recommender system solves a constrained relevance problem, every time a reinforcement learning agent balances reward and KL penalty-the KKT conditions are operating in the background, whether or not the engineer knows it.
 
 
 ---
@@ -1208,7 +1208,7 @@ Substituting back:
 
 $$\frac{dp^*}{db} = \boldsymbol{\lambda}^{*\top} \frac{\partial \mathbf{g}}{\partial b} + \frac{\partial f}{\partial b} = \frac{\partial \mathcal{L}}{\partial b}\bigg|_{\mathbf{x}^*, \boldsymbol{\lambda}^*} \quad \square$$
 
-**Consequence for ML.** If we add a constraint $\|\mathbf{w}\|^2 = c$ (norm budget) to a training problem, the Lagrange multiplier $\lambda^*$ equals $-dp^*/dc$—the rate at which the optimal loss decreases as we increase the allowed norm. This is why weight decay $\lambda$ (which enforces a soft norm budget) and the optimal multiplier are equal at the optimum: they're the same object.
+**Consequence for ML.** If we add a constraint $\|\mathbf{w}\|^2 = c$ (norm budget) to a training problem, the Lagrange multiplier $\lambda^*$ equals $-dp^*/dc$-the rate at which the optimal loss decreases as we increase the allowed norm. This is why weight decay $\lambda$ (which enforces a soft norm budget) and the optimal multiplier are equal at the optimum: they're the same object.
 
 ### A.2 Farkas' Lemma: The Foundation of KKT
 
@@ -1223,7 +1223,7 @@ The Farkas Lemma is the linear algebra result that underpins the entire theory o
 
 **Proof sketch.** If 1 holds: $\mathbf{b}^\top \mathbf{y} = (A\mathbf{x})^\top \mathbf{y} = \mathbf{x}^\top A^\top \mathbf{y} \geq 0$ since $\mathbf{x} \geq 0$ and $A^\top \mathbf{y} \geq 0$, so 2 fails. The converse (if 1 fails then 2 holds) follows from the separating hyperplane theorem for convex cones.
 
-**How Farkas gives KKT.** At a constrained minimum $\mathbf{x}^*$, if $\mathbf{d}$ is a feasible descent direction (satisfying active constraint gradients and having $\nabla f^\top \mathbf{d} < 0$), the Farkas alternatives state that such $\mathbf{d}$ cannot exist iff $-\nabla f$ is in the cone of active constraint gradients—i.e., the KKT conditions hold.
+**How Farkas gives KKT.** At a constrained minimum $\mathbf{x}^*$, if $\mathbf{d}$ is a feasible descent direction (satisfying active constraint gradients and having $\nabla f^\top \mathbf{d} < 0$), the Farkas alternatives state that such $\mathbf{d}$ cannot exist iff $-\nabla f$ is in the cone of active constraint gradients-i.e., the KKT conditions hold.
 
 ### A.3 Fritz John Conditions: When LICQ Fails
 
@@ -1235,7 +1235,7 @@ $$\mu_0 \nabla f(\mathbf{x}^*) + \sum_j \mu_j \nabla h_j(\mathbf{x}^*) + \sum_i 
 
 and complementary slackness $\mu_j h_j(\mathbf{x}^*) = 0$.
 
-**The anomaly.** When $\mu_0 = 0$, the objective function disappears from the condition entirely—the conditions are "degenerate" and say nothing about the objective. This is called an **abnormal solution**.
+**The anomaly.** When $\mu_0 = 0$, the objective function disappears from the condition entirely-the conditions are "degenerate" and say nothing about the objective. This is called an **abnormal solution**.
 
 **Practical implication.** If LICQ holds, we can always normalize to $\mu_0 = 1$, recovering the standard KKT conditions. Fritz John is thus a generalization that covers degenerate cases, but the cleanest results require LICQ (or another constraint qualification that ensures $\mu_0 > 0$).
 
@@ -1251,7 +1251,7 @@ For constrained problems, second-order sufficient conditions involve the Hessian
 
 **Second-order sufficient condition (SOSC):** If the KKT conditions hold and $\mathbf{d}^\top L \mathbf{d} > 0$ for all $\mathbf{d} \in C \setminus \{\mathbf{0}\}$, then $\mathbf{x}^*$ is a strict local minimum.
 
-**For SVM:** At the SVM optimum, the Hessian of the Lagrangian in the primal $(\mathbf{w}, b)$ variables is positive definite restricted to the constraint tangent space (verified by the positive definiteness of the kernel matrix for distinct support vectors)—confirming the optimum is indeed a strict constrained minimum.
+**For SVM:** At the SVM optimum, the Hessian of the Lagrangian in the primal $(\mathbf{w}, b)$ variables is positive definite restricted to the constraint tangent space (verified by the positive definiteness of the kernel matrix for distinct support vectors)-confirming the optimum is indeed a strict constrained minimum.
 
 
 ### A.5 Convex Conjugate and Fenchel Duality
@@ -1288,7 +1288,7 @@ For non-smooth convex problems, gradient descent fails but **proximal methods** 
 
 $$\text{prox}_{tg}(\mathbf{v}) = \arg\min_\mathbf{x} \left[ g(\mathbf{x}) + \frac{1}{2t}\|\mathbf{x} - \mathbf{v}\|^2 \right]$$
 
-**Connection to KKT.** The fixed point of $\mathbf{v} \mapsto \text{prox}_{tg}(\mathbf{v})$ is the minimiser of $g$. The KKT condition for the proximal subproblem is $\mathbf{0} \in \partial g(\mathbf{x}^*) + \frac{1}{t}(\mathbf{x}^* - \mathbf{v})$, which at the fixed point gives $\mathbf{0} \in \partial g(\mathbf{x}^*)$—the subdifferential optimality condition.
+**Connection to KKT.** The fixed point of $\mathbf{v} \mapsto \text{prox}_{tg}(\mathbf{v})$ is the minimiser of $g$. The KKT condition for the proximal subproblem is $\mathbf{0} \in \partial g(\mathbf{x}^*) + \frac{1}{t}(\mathbf{x}^* - \mathbf{v})$, which at the fixed point gives $\mathbf{0} \in \partial g(\mathbf{x}^*)$-the subdifferential optimality condition.
 
 **Proximal gradient method** for $\min f(\mathbf{x}) + g(\mathbf{x})$ (smooth $f$ + non-smooth $g$):
 
@@ -1310,13 +1310,13 @@ Classical optimisation theory was developed primarily for problems in $\mathbb{R
 **What gets better (blessing of overparameterisation):**
 - Saddle points become easier to escape: a random direction has $O(1/n)$ probability of being a descent direction at a saddle; gradient descent with noise escapes saddles in polynomial time
 - Local minima become global: as shown by Kawaguchi and Du et al., the geometry of overparameterised networks makes spurious local minima rare
-- Flat minima proliferate: with $n \gg N$ parameters and $N$ data points, there is an $(n-N)$-dimensional manifold of global minima—gradient descent finds some flat point in this manifold
+- Flat minima proliferate: with $n \gg N$ parameters and $N$ data points, there is an $(n-N)$-dimensional manifold of global minima-gradient descent finds some flat point in this manifold
 
 **Practical approximations to KKT in high-$n$ regime:**
 - **Gradient norm** $\|\nabla\mathcal{L}\| \leq \epsilon$ replaces exact stationarity
 - **Curvature estimation**: diagonal Hessian (Adagrad, Adam) approximates second-order information
 - **Sketched KKT systems**: random projections reduce system size while preserving approximate solutions
-- **Dual certificate**: in sparse recovery, checking $\|X^\top(\mathbf{y} - X\hat\mathbf{w})\|_\infty \leq \lambda$ verifies the KKT condition for Lasso without solving the primal—$O(nd)$ rather than $O(d^3)$
+- **Dual certificate**: in sparse recovery, checking $\|X^\top(\mathbf{y} - X\hat\mathbf{w})\|_\infty \leq \lambda$ verifies the KKT condition for Lasso without solving the primal-$O(nd)$ rather than $O(d^3)$
 
 ---
 
@@ -1343,9 +1343,9 @@ Define: $A = \boldsymbol{\mu}^\top \Sigma^{-1} \boldsymbol{\mu}$, $B = \boldsymb
 
 System: $\begin{pmatrix} A & B \\ B & C \end{pmatrix}\begin{pmatrix}\lambda_1^* \\ \lambda_2^*\end{pmatrix} = \begin{pmatrix} r \\ 1 \end{pmatrix}$
 
-The **efficient frontier** is the locus of $(r, \mathbf{w}^*(r))$ as $r$ varies—it's a parabola in $(r, \text{variance})$ space, parameterised by the Lagrange multiplier $\lambda_1$.
+The **efficient frontier** is the locus of $(r, \mathbf{w}^*(r))$ as $r$ varies-it's a parabola in $(r, \text{variance})$ space, parameterised by the Lagrange multiplier $\lambda_1$.
 
-**Sensitivity:** $d(\text{min variance})/dr = \lambda_1^*$ — a one-unit increase in required return increases minimum variance by $\lambda_1^*$ units. This is the shadow price: the cost of reaching for higher returns.
+**Sensitivity:** $d(\text{min variance})/dr = \lambda_1^*$ - a one-unit increase in required return increases minimum variance by $\lambda_1^*$ units. This is the shadow price: the cost of reaching for higher returns.
 
 ### B.2 KKT Verification via Duality: Water-Filling
 
@@ -1388,9 +1388,9 @@ where $Z(\mathbf{x}) = \sum_\mathbf{y} \pi_{\text{ref}}(\mathbf{y}|\mathbf{x}) \
 
 This is exactly the **Boltzmann distribution** from max-entropy principles! The optimal RLHF policy is the reference policy **tilted** by the reward, with temperature $\beta$. Higher $\beta$ (larger KL penalty) $\Rightarrow$ stays closer to $\pi_{\text{ref}}$; lower $\beta$ $\Rightarrow$ maximises reward more aggressively.
 
-**Complementary slackness:** If the KL budget $\delta$ is not exhausted (the model doesn't need to move far to maximise reward), then $\beta^* = 0$ and the optimal policy maximises reward unconstrained. If the constraint binds, $\beta^* > 0$ is the shadow price of KL—how much reward per unit of KL divergence the model could gain by allowing more deviation from reference.
+**Complementary slackness:** If the KL budget $\delta$ is not exhausted (the model doesn't need to move far to maximise reward), then $\beta^* = 0$ and the optimal policy maximises reward unconstrained. If the constraint binds, $\beta^* > 0$ is the shadow price of KL-how much reward per unit of KL divergence the model could gain by allowing more deviation from reference.
 
-**Direct Preference Optimisation (DPO).** DPO (Rafailov et al. 2023) avoids sampling from $\pi_\theta$ by reparameterising the reward using the KKT condition above: $r(\mathbf{x},\mathbf{y}) = \beta \log(\pi_\theta(\mathbf{y}|\mathbf{x})/\pi_{\text{ref}}(\mathbf{y}|\mathbf{x})) + \beta \log Z(\mathbf{x})$. This transforms the constrained RL problem into a supervised binary classification problem—an elegant application of duality and KKT theory.
+**Direct Preference Optimisation (DPO).** DPO (Rafailov et al. 2023) avoids sampling from $\pi_\theta$ by reparameterising the reward using the KKT condition above: $r(\mathbf{x},\mathbf{y}) = \beta \log(\pi_\theta(\mathbf{y}|\mathbf{x})/\pi_{\text{ref}}(\mathbf{y}|\mathbf{x})) + \beta \log Z(\mathbf{x})$. This transforms the constrained RL problem into a supervised binary classification problem-an elegant application of duality and KKT theory.
 
 ---
 
@@ -1408,7 +1408,7 @@ Newton's method has **quadratic convergence** near a non-degenerate critical poi
 
 $$\begin{pmatrix} \nabla^2_{\mathbf{x}\mathbf{x}} \mathcal{L} & \nabla_\mathbf{x} \mathbf{g}^\top \\ \nabla_\mathbf{x} \mathbf{g} & 0 \end{pmatrix} \begin{pmatrix} \Delta \mathbf{x} \\ \Delta \boldsymbol{\lambda} \end{pmatrix} = -\begin{pmatrix} \nabla_\mathbf{x} \mathcal{L} \\ \mathbf{g}(\mathbf{x}) \end{pmatrix}$$
 
-This **KKT matrix** (also called the augmented system or saddle-point matrix) is symmetric but indefinite—it has both positive and negative eigenvalues. Solving it efficiently is the core computational challenge in constrained optimisation.
+This **KKT matrix** (also called the augmented system or saddle-point matrix) is symmetric but indefinite-it has both positive and negative eigenvalues. Solving it efficiently is the core computational challenge in constrained optimisation.
 
 ### C.2 Interior Point Methods and the Central Path
 
@@ -1418,7 +1418,7 @@ $$\min_\mathbf{x} f(\mathbf{x}) - t \sum_j \log(-h_j(\mathbf{x}))$$
 
 for decreasing $t > 0$. The log-barrier $-t\log(-h_j)$ forces iterates to stay feasible (it $\to +\infty$ as $h_j \to 0$) and approximates the indicator $\mathbf{1}[h_j \leq 0]$ as $t \to 0$.
 
-**Central path.** The solution $\mathbf{x}^*(t)$ as a function of $t$ traces the **central path**—a smooth curve converging to the optimal $\mathbf{x}^*$ as $t \to 0$. Along the central path, the modified KKT conditions hold:
+**Central path.** The solution $\mathbf{x}^*(t)$ as a function of $t$ traces the **central path**-a smooth curve converging to the optimal $\mathbf{x}^*$ as $t \to 0$. Along the central path, the modified KKT conditions hold:
 
 $$\nabla f(\mathbf{x}^*(t)) + \sum_j \mu_j(t) \nabla h_j(\mathbf{x}^*(t)) = \mathbf{0}, \quad \mu_j(t) h_j(\mathbf{x}^*(t)) = -t$$
 
@@ -1426,7 +1426,7 @@ As $t \to 0$: $\mu_j(t) h_j(\mathbf{x}^*(t)) \to 0$ recovers complementary slack
 
 ### C.3 Automatic Differentiation and Gradient Verification
 
-Modern ML uses **automatic differentiation (AD)** to compute exact gradients of any differentiable computation graph. The core mechanism is an exact application of the chain rule through reverse mode accumulation—backpropagation.
+Modern ML uses **automatic differentiation (AD)** to compute exact gradients of any differentiable computation graph. The core mechanism is an exact application of the chain rule through reverse mode accumulation-backpropagation.
 
 **Gradient checking.** A standard technique for verifying backprop correctness is comparing against **finite differences**:
 
@@ -1438,7 +1438,7 @@ with $h = 10^{-5}$. This centred difference approximation has error $O(h^2)$, so
 - Cost: $2n$ forward passes for $n$ parameters, vs. 1 backward pass for AD
 - Numerical precision: for very large or small gradients, floating-point rounding limits accuracy
 
-But finite differences remain the **gold standard for correctness verification** during algorithm development—if your AD gradient doesn't match finite differences at 1e-5 relative tolerance, you have a bug.
+But finite differences remain the **gold standard for correctness verification** during algorithm development-if your AD gradient doesn't match finite differences at 1e-5 relative tolerance, you have a bug.
 
 
 ### C.4 Constraint Satisfaction in Modern ML Systems
@@ -1451,7 +1451,7 @@ Modern ML increasingly uses hard and soft constraints, and the optimality condit
 
 $$\min_{\hat{W}} \|W - \hat{W}\|_F^2 \quad \text{s.t.} \quad \hat{W}_{ij} \in \{-q, \ldots, q\}$$
 
-The optimal solution is the projection onto the nearest grid point (rounding)—the KKT conditions confirm that the Lagrange multiplier is the quantisation error, and the optimal $\hat{W}$ satisfies complementary slackness: either the weight is at the grid boundary (multiplier nonzero) or it's rounded to the nearest interior point (multiplier zero).
+The optimal solution is the projection onto the nearest grid point (rounding)-the KKT conditions confirm that the Lagrange multiplier is the quantisation error, and the optimal $\hat{W}$ satisfies complementary slackness: either the weight is at the grid boundary (multiplier nonzero) or it's rounded to the nearest interior point (multiplier zero).
 
 **FlashAttention and memory constraints.** FlashAttention (Dao et al. 2022) reformulates the attention computation to respect SRAM capacity constraints. The tiling strategy solves a constrained I/O minimisation problem: process tiles of $Q, K, V$ that fit in SRAM while computing exact attention. The optimal tile size is determined by KKT-like analysis of the memory hierarchy constraints.
 
@@ -1461,7 +1461,7 @@ The optimal solution is the projection onto the nearest grid point (rounding)—
 
 ### D.1 Saddle Point Visualisation
 
-The canonical saddle point is $f(x,y) = x^2 - y^2$ at the origin. Its Hessian is $\text{diag}(2, -2)$—indefinite. Level curves are hyperbolas; the gradient flow converges to the origin along the $y$-axis but diverges along the $x$-axis.
+The canonical saddle point is $f(x,y) = x^2 - y^2$ at the origin. Its Hessian is $\text{diag}(2, -2)$-indefinite. Level curves are hyperbolas; the gradient flow converges to the origin along the $y$-axis but diverges along the $x$-axis.
 
 **In high dimensions.** For an $n$-parameter saddle with Morse index $k$, random gradient descent escapes in time $O(\log(1/\epsilon)/\epsilon^2)$ steps when corrupted with Gaussian noise of variance $\epsilon^2$ (Jin et al. 2017). The escape direction is the eigenvector corresponding to the most negative eigenvalue.
 
@@ -1480,7 +1480,7 @@ For $\min f$ s.t. $g = 0$:
 - The feasible set is a manifold (curve in $\mathbb{R}^2$, surface in $\mathbb{R}^3$)
 - Level curves of $f$ foliate the ambient space
 - The minimum is where a level curve is **tangent** to the constraint manifold
-- Tangency means $\nabla f \perp T_{\mathbf{x}^*}$ (constraint tangent space), i.e., $\nabla f \parallel \nabla g$—which is exactly Lagrange's condition
+- Tangency means $\nabla f \perp T_{\mathbf{x}^*}$ (constraint tangent space), i.e., $\nabla f \parallel \nabla g$-which is exactly Lagrange's condition
 
 The visual clarity of this geometric argument is why Lagrange's method is so compelling: it replaces algebra with geometry.
 
@@ -1490,47 +1490,47 @@ The visual clarity of this geometric argument is why Lagrange's method is so com
 
 ```
 OPTIMALITY CONDITIONS CHEAT SHEET
-════════════════════════════════════════════════════════════════════════
+
 
 UNCONSTRAINED
-─────────────
-  FONC: ∇f(x*) = 0                    (necessary)
-  SONC: H(x*) ≽ 0                     (necessary)
-  SOSC: H(x*) ≻ 0 (+ FONC)            (sufficient for strict local min)
+
+  FONC: nablaf(x*) = 0                    (necessary)
+  SONC: H(x*)  0                     (necessary)
+  SOSC: H(x*)  0 (+ FONC)            (sufficient for strict local min)
   Convex: FONC iff global min
 
 EQUALITY CONSTRAINTS (g(x) = 0)
-────────────────────────────────
-  Lagrangian: L = f + λᵀg
-  KKT: ∇ₓL = 0  and  g(x*) = 0
-  SOSC on tangent: dᵀ∇²ₓₓL d > 0  ∀d: ∇g(x*)ᵀd = 0
 
-INEQUALITY CONSTRAINTS (h(x) ≤ 0)
-───────────────────────────────────
-  Lagrangian: L = f + μᵀh + λᵀg
+  Lagrangian: L = f + lambdag
+  KKT: nablaL = 0  and  g(x*) = 0
+  SOSC on tangent: dnabla^2L d > 0  for alld: nablag(x*)d = 0
+
+INEQUALITY CONSTRAINTS (h(x) <= 0)
+
+  Lagrangian: L = f + muh + lambdag
   KKT (4 conditions):
-    (1) Stationarity:   ∇ₓL = 0
-    (2) Primal feas.:   h(x*) ≤ 0, g(x*) = 0
-    (3) Dual feas.:     μ* ≥ 0
-    (4) Comp. slack.:   μ*ᵢ hᵢ(x*) = 0 ∀i
+    (1) Stationarity:   nablaL = 0
+    (2) Primal feas.:   h(x*) <= 0, g(x*) = 0
+    (3) Dual feas.:     mu* >= 0
+    (4) Comp. slack.:   mu* h(x*) = 0 for alli
 
 DUALITY
-───────
-  Dual function: q(μ,λ) = inf_x L(x, μ, λ)
-  Weak duality:  d* ≤ p* always
+
+  Dual function: q(mu,lambda) = inf_x L(x, mu, lambda)
+  Weak duality:  d* <= p* always
   Strong duality: d* = p* under Slater's condition (convex, strictly feas.)
-  Shadow price:  ∂p*/∂bᵢ = λᵢ* (sensitivity of optimal value)
+  Shadow price:  partialp*/partialb = lambda* (sensitivity of optimal value)
 
 SPECIFIC PROBLEMS
-─────────────────
-  OLS:     (XᵀX)w = Xᵀy          (normal equations = FONC)
-  Ridge:   (XᵀX + nλI)w = Xᵀy   (FONC with L2 reg)
-  SVM:     w* = Σᵢ αᵢ yᵢ xᵢ      (stationarity); αᵢ > 0 iff on margin
-  PCA:     Σv = λv                (FONC for variance max on sphere)
-  Softmax: pᵢ ∝ exp(zᵢ)          (FONC for max entropy with logit constraints)
-  RLHF:   π*(y|x) ∝ πᵣₑf exp(r/β) (KKT for KL-constrained reward max)
 
-════════════════════════════════════════════════════════════════════════
+  OLS:     (XX)w = Xy          (normal equations = FONC)
+  Ridge:   (XX + nlambdaI)w = Xy   (FONC with L2 reg)
+  SVM:     w* = Sigma alpha y x      (stationarity); alpha > 0 iff on margin
+  PCA:     Sigmav = lambdav                (FONC for variance max on sphere)
+  Softmax: p  exp(z)          (FONC for max entropy with logit constraints)
+  RLHF:   pi*(y|x)  pif exp(r/beta) (KKT for KL-constrained reward max)
+
+
 ```
 
 
@@ -1540,28 +1540,28 @@ SPECIFIC PROBLEMS
 
 ### Primary References
 
-1. **Boyd & Vandenberghe, "Convex Optimization" (2004)** — Chapters 4–5 (convex functions, duality), Chapter 5 (KKT conditions). The standard graduate reference. Available free online at stanford.edu/~boyd/cvxbook.
-2. **Nocedal & Wright, "Numerical Optimization" (2006)** — Chapters 12–15. Rigorous treatment of constrained optimisation, KKT theory, interior point methods, and convergence analysis.
-3. **Rockafellar, "Convex Analysis" (1970)** — The foundational text on subdifferentials, conjugate functions, and duality. Rigorous but dense.
-4. **Bertsekas, "Nonlinear Programming" (2016)** — Chapter 3 (Lagrange multiplier methods) and Chapter 4 (duality). Excellent treatment of constraint qualifications.
+1. **Boyd & Vandenberghe, "Convex Optimization" (2004)** - Chapters 4-5 (convex functions, duality), Chapter 5 (KKT conditions). The standard graduate reference. Available free online at stanford.edu/~boyd/cvxbook.
+2. **Nocedal & Wright, "Numerical Optimization" (2006)** - Chapters 12-15. Rigorous treatment of constrained optimisation, KKT theory, interior point methods, and convergence analysis.
+3. **Rockafellar, "Convex Analysis" (1970)** - The foundational text on subdifferentials, conjugate functions, and duality. Rigorous but dense.
+4. **Bertsekas, "Nonlinear Programming" (2016)** - Chapter 3 (Lagrange multiplier methods) and Chapter 4 (duality). Excellent treatment of constraint qualifications.
 
 ### For ML/AI Connections
 
-5. **Dauphin et al. "Identifying and Attacking the Saddle Point Problem in High-Dimensional Non-Convex Optimization" (2014)** — Empirical evidence for saddle point dominance in deep networks.
-6. **Foret et al. "Sharpness-Aware Minimization for Efficiently Improving Generalization" (2021)** — SAM algorithm; KKT analysis of the inner maximisation.
-7. **Papyan et al. "Prevalence of Neural Collapse during the Terminal Phase of Deep Learning Training" (2020)** — Neural collapse as KKT critical point of the UFM.
-8. **Rafailov et al. "Direct Preference Optimization" (2023)** — DPO derivation from RLHF KKT conditions.
-9. **Du et al. "Gradient Descent Finds Global Minima of Non-Convex Neural Networks" (2018)** — Overparameterisation and global optimality.
-10. **Kawaguchi "Deep Learning without Poor Local Minima" (2016)** — Theoretical analysis of local minima in deep linear networks.
+5. **Dauphin et al. "Identifying and Attacking the Saddle Point Problem in High-Dimensional Non-Convex Optimization" (2014)** - Empirical evidence for saddle point dominance in deep networks.
+6. **Foret et al. "Sharpness-Aware Minimization for Efficiently Improving Generalization" (2021)** - SAM algorithm; KKT analysis of the inner maximisation.
+7. **Papyan et al. "Prevalence of Neural Collapse during the Terminal Phase of Deep Learning Training" (2020)** - Neural collapse as KKT critical point of the UFM.
+8. **Rafailov et al. "Direct Preference Optimization" (2023)** - DPO derivation from RLHF KKT conditions.
+9. **Du et al. "Gradient Descent Finds Global Minima of Non-Convex Neural Networks" (2018)** - Overparameterisation and global optimality.
+10. **Kawaguchi "Deep Learning without Poor Local Minima" (2016)** - Theoretical analysis of local minima in deep linear networks.
 
 ### Computational Tools
 
-11. **CVXPY** (Diamond & Boyd 2016) — Python library for convex optimisation with automatic KKT verification. Handles LP, QP, SOCP, SDP with strong duality guarantees.
-12. **SciPy `scipy.optimize.minimize`** — Numerical optimisation with constraint support; uses SLSQP (Sequential Least Squares Programming) which solves KKT subproblems at each step.
+11. **CVXPY** (Diamond & Boyd 2016) - Python library for convex optimisation with automatic KKT verification. Handles LP, QP, SOCP, SDP with strong duality guarantees.
+12. **SciPy `scipy.optimize.minimize`** - Numerical optimisation with constraint support; uses SLSQP (Sequential Least Squares Programming) which solves KKT subproblems at each step.
 
 ---
 
-*This section is part of the §05 Multivariate Calculus chapter. For gradient descent algorithms and convergence theory using these optimality conditions, see [§05/05 Gradient Descent and Convergence](../05-Gradient-Descent/notes.md). For the probability chapter where Lagrange multipliers appear in maximum likelihood and Bayesian estimation, see §06.*
+*This section is part of the 05 Multivariate Calculus chapter. For gradient descent algorithms and convergence theory using these optimality conditions, see [05/05 Gradient Descent and Convergence](../05-Gradient-Descent/notes.md). For the probability chapter where Lagrange multipliers appear in maximum likelihood and Bayesian estimation, see 06.*
 
 
 ---
@@ -1576,7 +1576,7 @@ $$f(\mathbf{x}^* + \mathbf{u}) = f(\mathbf{x}^*) - u_1^2 - \cdots - u_k^2 + u_{k
 
 where $k$ is the Morse index (number of negative eigenvalues of $H$).
 
-**Implication.** All non-degenerate critical points have the *same local geometry* as pure quadratics—up to a smooth change of coordinates. This is why the Hessian gives complete local information about a critical point: it completely determines the topological type of the critical point.
+**Implication.** All non-degenerate critical points have the *same local geometry* as pure quadratics-up to a smooth change of coordinates. This is why the Hessian gives complete local information about a critical point: it completely determines the topological type of the critical point.
 
 **For AI.** In transformer loss landscapes, measuring the Morse index of critical points found during training is computationally expensive but theoretically illuminating. Empirical studies using Lanczos approximations of $H$ suggest that good minima have small Morse index (few descent directions), while saddles found earlier in training have large index.
 
@@ -1616,7 +1616,7 @@ This is equivalent to finding the KKT point of the proximal subproblem: $\nabla 
 
 $$\mathcal{L}_\rho(\mathbf{x}, \boldsymbol{\lambda}) = f(\mathbf{x}) + \boldsymbol{\lambda}^\top(A\mathbf{x}-\mathbf{b}) + \frac{\rho}{2}\|A\mathbf{x}-\mathbf{b}\|^2$$
 
-combines the standard Lagrangian with a quadratic penalty term. The quadratic term is zero at feasibility, so the KKT conditions for the augmented Lagrangian match the original. But the augmented Lagrangian is better conditioned—the $\rho\|A\mathbf{x}-\mathbf{b}\|^2$ term adds curvature near the constraint.
+combines the standard Lagrangian with a quadratic penalty term. The quadratic term is zero at feasibility, so the KKT conditions for the augmented Lagrangian match the original. But the augmented Lagrangian is better conditioned-the $\rho\|A\mathbf{x}-\mathbf{b}\|^2$ term adds curvature near the constraint.
 
 **ADMM.** The Alternating Direction Method of Multipliers (ADMM) is an augmented Lagrangian method split across two blocks of variables. It is widely used for distributed training, consensus optimisation, and lasso-type problems. At convergence, the ADMM iterates satisfy the KKT conditions of the original problem.
 
@@ -1628,17 +1628,17 @@ The KKT conditions define a nonlinear system $F(\mathbf{x}^*, \boldsymbol{\mu}^*
 
 $$\frac{\partial \mathbf{z}^*}{\partial \boldsymbol{\theta}} = -[\nabla_\mathbf{z} F]^{-1} \nabla_{\boldsymbol{\theta}} F$$
 
-**Application: differentiating through optimisation.** In **meta-learning** (MAML) and **bilevel optimisation**, we need $\partial \mathbf{x}^*(\boldsymbol{\theta})/\partial \boldsymbol{\theta}$—the derivative of the optimal solution with respect to parameters. The IFT gives this derivative via solving a linear system involving the KKT Jacobian.
+**Application: differentiating through optimisation.** In **meta-learning** (MAML) and **bilevel optimisation**, we need $\partial \mathbf{x}^*(\boldsymbol{\theta})/\partial \boldsymbol{\theta}$-the derivative of the optimal solution with respect to parameters. The IFT gives this derivative via solving a linear system involving the KKT Jacobian.
 
 **MAML connection.** Model-Agnostic Meta-Learning computes:
 
 $$\frac{d\mathcal{L}_{\text{meta}}(\theta - \alpha \nabla\mathcal{L}_{\text{task}}(\theta))}{d\theta}$$
 
-This requires backpropagating through the inner gradient step—equivalent to applying the IFT to the first-order optimality condition $\nabla\mathcal{L}_{\text{task}}(\mathbf{x}^*(\theta)) = \mathbf{0}$ of the inner problem.
+This requires backpropagating through the inner gradient step-equivalent to applying the IFT to the first-order optimality condition $\nabla\mathcal{L}_{\text{task}}(\mathbf{x}^*(\theta)) = \mathbf{0}$ of the inner problem.
 
 ### F.5 Optimality and Generalisation: The Flat Minima Hypothesis
 
-A deep connection links optimality conditions to generalisation in deep learning. The **sharpness** of a minimum—measured by the trace or maximum eigenvalue of the Hessian—correlates empirically with test performance.
+A deep connection links optimality conditions to generalisation in deep learning. The **sharpness** of a minimum-measured by the trace or maximum eigenvalue of the Hessian-correlates empirically with test performance.
 
 **Measures of sharpness:**
 - $\text{tr}(H) = \sum_i \lambda_i(H)$: total curvature (Frobenius norm of $H^{1/2}$)
@@ -1651,9 +1651,9 @@ A deep connection links optimality conditions to generalisation in deep learning
 
 $$\text{KL}(Q \| P) \leq \sum_i \frac{(\sigma_i)^2 \lambda_i(H)}{2}$$
 
-where $P$ is the prior. This directly penalises large Hessian eigenvalues—confirming that flat minima (small eigenvalues) admit tighter generalisation bounds.
+where $P$ is the prior. This directly penalises large Hessian eigenvalues-confirming that flat minima (small eigenvalues) admit tighter generalisation bounds.
 
-**Implication for optimality.** The "best" solution from a generalisation perspective is not just any critical point—it is a critical point that is also a *flat* critical point: one where $\lambda_{\max}(H)$ is minimised. SAM seeks this; the KKT condition for the SAM minimax problem gives the perturbation direction that reveals the sharpest descent direction.
+**Implication for optimality.** The "best" solution from a generalisation perspective is not just any critical point-it is a critical point that is also a *flat* critical point: one where $\lambda_{\max}(H)$ is minimised. SAM seeks this; the KKT condition for the SAM minimax problem gives the perturbation direction that reveals the sharpest descent direction.
 
 
 ---
@@ -1664,75 +1664,75 @@ where $P$ is the prior. This directly penalises large Hessian eigenvalues—conf
 
 ```
 HISTORY OF OPTIMALITY CONDITIONS
-════════════════════════════════════════════════════════════════════════
 
-  1788  Lagrange — "Mécanique Analytique": Lagrange multipliers for
+
+  1788  Lagrange - "Mcanique Analytique": Lagrange multipliers for
         constrained mechanics. Invented to handle pendulum constraints.
 
-  1815  Gauss — Method of least squares: unconstrained minimisation,
+  1815  Gauss - Method of least squares: unconstrained minimisation,
         normal equations as first-order conditions.
 
-  1844  Cauchy — Gradient descent proposed as an optimisation method.
+  1844  Cauchy - Gradient descent proposed as an optimisation method.
         First explicit use of the gradient as a direction.
 
-  1902  Farkas — Farkas Lemma for linear systems of inequalities.
+  1902  Farkas - Farkas Lemma for linear systems of inequalities.
         The algebraic foundation of all LP and KKT theory.
 
-  1928  Von Neumann — Minimax theorem for zero-sum games.
+  1928  Von Neumann - Minimax theorem for zero-sum games.
         Foundation of saddle-point theory and game theory.
 
-  1939  Karush — Master's thesis: first-order conditions for
+  1939  Karush - Master's thesis: first-order conditions for
         inequality-constrained problems. (Unknown for decades.)
 
-  1951  Kuhn & Tucker — Independent rediscovery, published in
+  1951  Kuhn & Tucker - Independent rediscovery, published in
         "Nonlinear Programming". Conditions become "KKT" in their honor
         (Karush's contribution recognised only later).
 
-  1953  Wolfe — Duality theorem for nonlinear programming.
+  1953  Wolfe - Duality theorem for nonlinear programming.
 
-  1955  Charnes, Cooper, Henderson — Simplex method, LP duality.
+  1955  Charnes, Cooper, Henderson - Simplex method, LP duality.
 
-  1963  Zoutendijk — Feasible direction methods, active set concepts.
+  1963  Zoutendijk - Feasible direction methods, active set concepts.
 
-  1979  Khachiyan — Ellipsoid method: first polynomial algorithm for LP.
+  1979  Khachiyan - Ellipsoid method: first polynomial algorithm for LP.
 
-  1984  Karmarkar — Interior point method for LP, O(n^3.5 L) time.
+  1984  Karmarkar - Interior point method for LP, O(n^3.5 L) time.
         Practical polynomial LP solver.
 
-  1993  Cortes & Vapnik — Support Vector Machine: KKT dual is the
+  1993  Cortes & Vapnik - Support Vector Machine: KKT dual is the
         modern SVM. Complementary slackness identifies support vectors.
 
-  1996  Byrd et al. — L-BFGS-B: limited memory quasi-Newton for
+  1996  Byrd et al. - L-BFGS-B: limited memory quasi-Newton for
         bound-constrained problems. Industry standard for large-scale
         constrained optimisation.
 
-  2011  Duchi, Hazan, Singer — Adagrad: adaptive learning rate
+  2011  Duchi, Hazan, Singer - Adagrad: adaptive learning rate
         implicitly approximates inverse Hessian structure (second-order).
 
-  2014  Dauphin et al. — Saddle point dominance in deep learning.
+  2014  Dauphin et al. - Saddle point dominance in deep learning.
         First systematic empirical study of neural network landscape.
 
-  2015  Kingma & Ba — Adam optimiser: diagonal Hessian approximation
+  2015  Kingma & Ba - Adam optimiser: diagonal Hessian approximation
         with momentum. Becomes default for LLM training.
 
-  2018  Du et al. — Gradient descent finds global minima in wide nets.
+  2018  Du et al. - Gradient descent finds global minima in wide nets.
         Theoretical basis for why deep learning "works."
 
-  2021  Foret et al. — SAM: Sharpness-Aware Minimisation. KKT-derived
+  2021  Foret et al. - SAM: Sharpness-Aware Minimisation. KKT-derived
         update for flatter minima. New SOTA on multiple benchmarks.
 
-  2021  Papyan et al. — Neural Collapse: KKT analysis of terminal
+  2021  Papyan et al. - Neural Collapse: KKT analysis of terminal
         training geometry. UFM framework.
 
-  2023  Rafailov et al. — DPO: RLHF framed as KKT-constrained
+  2023  Rafailov et al. - DPO: RLHF framed as KKT-constrained
         optimisation. Replaces PPO for LLM alignment.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### G.2 The Karush Omission
 
-The Karush–Kuhn–Tucker conditions are named for Kuhn and Tucker (1951), but Karush derived essentially the same conditions in his 1939 master's thesis at the University of Chicago under L.M. Graves. Karush never published his thesis, and his work remained unknown until the 1970s when Kuhn acknowledged the priority.
+The Karush-Kuhn-Tucker conditions are named for Kuhn and Tucker (1951), but Karush derived essentially the same conditions in his 1939 master's thesis at the University of Chicago under L.M. Graves. Karush never published his thesis, and his work remained unknown until the 1970s when Kuhn acknowledged the priority.
 
 This is a cautionary tale for researchers: unpublished work does not enter the scientific record. Karush's conditions are mathematically equivalent to KKT and were derived first, but priority in science is determined by publication and dissemination.
 
@@ -1740,14 +1740,14 @@ Modern convention is to include Karush's name (KKT), and some authors use "FOOC"
 
 ### G.3 From Constrained Mechanics to Language Models
 
-Lagrange invented his multiplier method to handle constraints in mechanics—specifically, the rigid-rod constraint in a pendulum. The constraint that "the rod length is fixed" is $|\mathbf{r}|^2 = L^2$, and the Lagrange multiplier is the tension in the rod.
+Lagrange invented his multiplier method to handle constraints in mechanics-specifically, the rigid-rod constraint in a pendulum. The constraint that "the rod length is fixed" is $|\mathbf{r}|^2 = L^2$, and the Lagrange multiplier is the tension in the rod.
 
 Two centuries later, the same mathematical structure appears in:
 - The tension (KL penalty) in RLHF that prevents language models from deviating too far from the base policy
 - The margin constraint in SVMs, where the Lagrange multiplier is the "tension" pulling the decision boundary toward the support vectors
 - The softmax temperature, which is the Lagrange multiplier for the entropy constraint in maximum entropy next-token prediction
 
-The deep unity of Lagrange's insight—that constraints can be absorbed into an objective via auxiliary multipliers—is one of the most productive ideas in the history of mathematics.
+The deep unity of Lagrange's insight-that constraints can be absorbed into an objective via auxiliary multipliers-is one of the most productive ideas in the history of mathematics.
 
 
 ---
@@ -1760,7 +1760,7 @@ Many constrained problems have hidden structure that allows elimination of const
 
 **Pattern 1: Substitution.** If constraint $g(\mathbf{x}) = 0$ can be solved for one variable, substitute to eliminate it.
 
-Example: $\min f(x,y)$ s.t. $y = x^2$. Substitute: $\min_{x} f(x, x^2)$. The constraint disappears, FONC is $\frac{d}{dx}f(x, x^2) = 0$—an unconstrained problem.
+Example: $\min f(x,y)$ s.t. $y = x^2$. Substitute: $\min_{x} f(x, x^2)$. The constraint disappears, FONC is $\frac{d}{dx}f(x, x^2) = 0$-an unconstrained problem.
 
 **Pattern 2: Reparameterisation.** If the constraint defines a manifold $\mathcal{M}$, parameterise $\mathcal{M}$ directly.
 
@@ -1778,23 +1778,23 @@ When you encounter an optimisation problem, use this decision tree:
 
 ```
 OPTIMIZATION PROBLEM RECOGNITION
-════════════════════════════════════════════════════════════════════════
+
 
   Does it have constraints?
-  ├── NO → Unconstrained
-  │         Is f convex?
-  │         ├── YES → FONC (∇f = 0) is sufficient; any local = global
-  │         └── NO → FONC necessary; check SOSC; may have local optima
-  │
-  └── YES → Constrained
+   NO -> Unconstrained
+           Is f convex?
+            YES -> FONC (nablaf = 0) is sufficient; any local = global
+            NO -> FONC necessary; check SOSC; may have local optima
+  
+   YES -> Constrained
              Are constraints equality only?
-             ├── YES → Lagrange multipliers; solve n+m equations
-             └── NO (has inequalities) → KKT conditions
+              YES -> Lagrange multipliers; solve n+m equations
+              NO (has inequalities) -> KKT conditions
                   Is problem convex?
-                  ├── YES → KKT iff global optimum (Slater's → strong duality)
-                  └── NO → KKT necessary (LICQ needed); local optimum only
+                   YES -> KKT iff global optimum (Slater's -> strong duality)
+                   NO -> KKT necessary (LICQ needed); local optimum only
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### H.3 Standard Problem Forms and Their KKT Systems
@@ -1859,7 +1859,7 @@ def verify_kkt(x_star, lambda_star, mu_star, f, g, h, tol=1e-6):
     return cond1 and cond2 and cond3 and cond4
 ```
 
-This systematic verification—checking all four KKT conditions numerically—is a key debugging tool when implementing constrained optimisation algorithms.
+This systematic verification-checking all four KKT conditions numerically-is a key debugging tool when implementing constrained optimisation algorithms.
 
 ### I.2 Duality Gap Monitoring
 
@@ -1876,7 +1876,7 @@ def duality_gap(primal_val, dual_val):
     return gap
 ```
 
-A duality gap of $\epsilon$ certifies that both the primal and dual solutions are within $\epsilon$ of optimality—a **certificate of near-optimality** without knowing the true optimal value.
+A duality gap of $\epsilon$ certifies that both the primal and dual solutions are within $\epsilon$ of optimality-a **certificate of near-optimality** without knowing the true optimal value.
 
 ### I.3 Critical Point Classification Checklist
 
@@ -1901,13 +1901,13 @@ This procedure is the **numerical implementation of the second-order test** and 
 
 This section has developed three interconnected pillars that together form the mathematical foundation of constrained optimisation:
 
-**Pillar 1: First and Second-Order Conditions.** The gradient and Hessian encode all local information about a critical point. FONC ($\nabla f = 0$) is necessary; SOSC ($H \succ 0$) is sufficient. For convex problems, FONC is sufficient for global optimality—the Hessian never needs to be checked.
+**Pillar 1: First and Second-Order Conditions.** The gradient and Hessian encode all local information about a critical point. FONC ($\nabla f = 0$) is necessary; SOSC ($H \succ 0$) is sufficient. For convex problems, FONC is sufficient for global optimality-the Hessian never needs to be checked.
 
 **Pillar 2: Lagrange Multipliers and KKT.** Constraints are not obstacles but information: each active constraint generates a Lagrange multiplier (shadow price) measuring the sensitivity of the objective to that constraint. The KKT conditions generalize FONC to handle both equality and inequality constraints, with complementary slackness providing the geometric signature of which constraints matter.
 
-**Pillar 3: Duality.** Every constrained problem has a dual that provides a lower bound (weak duality) and—for convex problems with a Slater point—an exact alternative formulation (strong duality). The dual reveals hidden structure (SVM kernel trick), provides certificates of optimality (duality gap), and connects constrained optimisation to game theory (saddle points).
+**Pillar 3: Duality.** Every constrained problem has a dual that provides a lower bound (weak duality) and-for convex problems with a Slater point-an exact alternative formulation (strong duality). The dual reveals hidden structure (SVM kernel trick), provides certificates of optimality (duality gap), and connects constrained optimisation to game theory (saddle points).
 
-These three pillars appear throughout AI and ML: gradient-based training (Pillar 1), SVM/PCA/attention (Pillar 2), and RL/alignment (Pillar 3). Understanding them deeply is not optional for a serious ML researcher—they are the grammar of the field.
+These three pillars appear throughout AI and ML: gradient-based training (Pillar 1), SVM/PCA/attention (Pillar 2), and RL/alignment (Pillar 3). Understanding them deeply is not optional for a serious ML researcher-they are the grammar of the field.
 
 
 ---
@@ -1916,7 +1916,7 @@ These three pillars appear throughout AI and ML: gradient-based training (Pillar
 
 ### J.1 Fisher Information and the Natural Gradient
 
-The gradient $\nabla_\theta \mathcal{L}$ is computed with respect to the Euclidean metric on parameter space. But parameter spaces of probability distributions carry a natural Riemannian metric—the **Fisher information metric**:
+The gradient $\nabla_\theta \mathcal{L}$ is computed with respect to the Euclidean metric on parameter space. But parameter spaces of probability distributions carry a natural Riemannian metric-the **Fisher information metric**:
 
 $$g_{ij}(\theta) = \mathbb{E}_{x \sim p_\theta}\left[\frac{\partial \log p_\theta(x)}{\partial \theta_i} \frac{\partial \log p_\theta(x)}{\partial \theta_j}\right] = F_{ij}(\theta)$$
 
@@ -1930,7 +1930,7 @@ $$\min_{\Delta\theta} \nabla\mathcal{L}^\top \Delta\theta + \frac{1}{2\eta}\Delt
 
 (minimise linearised loss subject to a KL-ball constraint $\Delta\theta^\top F \Delta\theta \leq \text{const}$).
 
-**K-FAC and Adam as natural gradient approximations.** K-FAC (Kronecker-Factored Approximate Curvature) approximates $F^{-1}$ via Kronecker products for efficiency. Adam's adaptive learning rates approximate $\text{diag}(F)^{-1}$—a diagonal approximation to the Fisher inverse. Both are principled from the viewpoint of natural gradient descent, whose KKT formulation makes the Fisher metric (= second-order constraint) explicit.
+**K-FAC and Adam as natural gradient approximations.** K-FAC (Kronecker-Factored Approximate Curvature) approximates $F^{-1}$ via Kronecker products for efficiency. Adam's adaptive learning rates approximate $\text{diag}(F)^{-1}$-a diagonal approximation to the Fisher inverse. Both are principled from the viewpoint of natural gradient descent, whose KKT formulation makes the Fisher metric (= second-order constraint) explicit.
 
 ### J.2 Optimal Transport and Wasserstein Duality
 
@@ -1946,13 +1946,13 @@ $$W_2(\mu,\nu)^2 = \max_{\phi,\psi: \phi(x)+\psi(y) \leq \|x-y\|^2} \int \phi\, 
 
 The dual functions $\phi$ and $\psi$ are the Lagrange multipliers for the marginal constraints $\int \gamma(x, \cdot)\, dy = d\mu(x)$ and $\int \gamma(\cdot, y)\, dx = d\nu(y)$.
 
-**For LLMs.** Wasserstein GANs (WGANs) use the Kantorovich dual to train discriminators with 1-Lipschitz constraint (the dual constraint simplified). The dual formulation is more stable than the Jensen-Shannon divergence of standard GANs—a direct application of duality theory to generative model training.
+**For LLMs.** Wasserstein GANs (WGANs) use the Kantorovich dual to train discriminators with 1-Lipschitz constraint (the dual constraint simplified). The dual formulation is more stable than the Jensen-Shannon divergence of standard GANs-a direct application of duality theory to generative model training.
 
 ---
 
-*End of §04 Optimality Conditions notes. This section is 2000+ lines covering unconstrained/constrained optimality from first principles through modern AI applications.*
+*End of 04 Optimality Conditions notes. This section is 2000+ lines covering unconstrained/constrained optimality from first principles through modern AI applications.*
 
-*Navigation: [← Chain Rule and Backpropagation](../03-Chain-Rule-and-Backpropagation/notes.md) | [Next: Gradient Descent and Convergence →](../05-Gradient-Descent/notes.md)*
+*Navigation: [<- Chain Rule and Backpropagation](../03-Chain-Rule-and-Backpropagation/notes.md) | [Next: Gradient Descent and Convergence ->](../05-Gradient-Descent/notes.md)*
 
 
 ---
@@ -1973,13 +1973,13 @@ For $y=0$: from $\partial f/\partial x = 0$ get $x=0$. Critical point: $(0,0)$.
 
 For $y \neq 0$, $x = y$ or $x = -y$: combine with $x = 2y^2/3$.
 
-**(b)** At $(0,0)$: $H = \begin{pmatrix}6x & -6y \\ -6y & -6x+12y^2\end{pmatrix}\bigg|_{(0,0)} = \begin{pmatrix}0 & 0 \\ 0 & 0\end{pmatrix}$. Hessian is zero—degenerate critical point, inconclusive test. Must use higher-order analysis (origin is a saddle of $f$).
+**(b)** At $(0,0)$: $H = \begin{pmatrix}6x & -6y \\ -6y & -6x+12y^2\end{pmatrix}\bigg|_{(0,0)} = \begin{pmatrix}0 & 0 \\ 0 & 0\end{pmatrix}$. Hessian is zero-degenerate critical point, inconclusive test. Must use higher-order analysis (origin is a saddle of $f$).
 
 ### Exercise 4 Hints
 
 **(c)** $f(A) = -\log \det A$ on $\mathbb{S}_{++}^n$: this is convex. Key: compute the Hessian in the matrix sense. For a perturbation $\Delta$: $-\log\det(A+\Delta) \approx -\log\det A + \text{tr}(A^{-1}\Delta) + \frac{1}{2}\text{tr}(A^{-1}\Delta A^{-1}\Delta) + \ldots$ The second-order term is $\frac{1}{2}\|A^{-1/2}\Delta A^{-1/2}\|_F^2 \geq 0$.
 
-**(d)** $f(x,y) = x^2/y$ for $y > 0$. Hessian: $H = \begin{pmatrix} 2/y & -2x/y^2 \\ -2x/y^2 & 2x^2/y^3 \end{pmatrix}$. Check: $\det H = (2/y)(2x^2/y^3) - (2x/y^2)^2 = 4x^2/y^4 - 4x^2/y^4 = 0$. PSD but not PD. Actually convex: it's a perspective function $f(x,y) = g(x,y) = x^2/y$—the perspective of the convex $g(x)=x^2$.
+**(d)** $f(x,y) = x^2/y$ for $y > 0$. Hessian: $H = \begin{pmatrix} 2/y & -2x/y^2 \\ -2x/y^2 & 2x^2/y^3 \end{pmatrix}$. Check: $\det H = (2/y)(2x^2/y^3) - (2x/y^2)^2 = 4x^2/y^4 - 4x^2/y^4 = 0$. PSD but not PD. Actually convex: it's a perspective function $f(x,y) = g(x,y) = x^2/y$-the perspective of the convex $g(x)=x^2$.
 
 ### Exercise 7 Extended Notes: SAM Convergence
 
@@ -1987,7 +1987,7 @@ The SAM update $\mathbf{w} \leftarrow \mathbf{w} - \eta \nabla\mathcal{L}(\mathb
 
 The KKT condition of the inner maximisation shows that $\hat{\boldsymbol{\epsilon}} = \rho \nabla\mathcal{L}/\|\nabla\mathcal{L}\|$ is correct when the constraint $\|\boldsymbol{\epsilon}\| \leq \rho$ is active (which it always is for nonzero gradients). The multiplier $\mu^* = \|\nabla\mathcal{L}\|/(2\rho)$ is the shadow price of relaxing the perturbation budget.
 
-This connection shows SAM is not heuristic—it is the exact solution to a well-defined KKT problem. The sharpness regularisation effect comes from the fact that at a sharp minimum, $\|\nabla\mathcal{L}(\mathbf{w} + \hat{\boldsymbol{\epsilon}})\|$ is large (large Hessian eigenvalue $\times$ gradient), so SAM takes a larger effective step away from sharp directions.
+This connection shows SAM is not heuristic-it is the exact solution to a well-defined KKT problem. The sharpness regularisation effect comes from the fact that at a sharp minimum, $\|\nabla\mathcal{L}(\mathbf{w} + \hat{\boldsymbol{\epsilon}})\|$ is large (large Hessian eigenvalue $\times$ gradient), so SAM takes a larger effective step away from sharp directions.
 
 
 ---

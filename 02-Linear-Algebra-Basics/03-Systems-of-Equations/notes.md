@@ -478,7 +478,7 @@ In practice:
 
 ### 2.3 Existence and Uniqueness - The Fundamental Criterion
 
-The basic theorem is the Rouché-Capelli criterion:
+The basic theorem is the Rouch-Capelli criterion:
 
 - the system is **consistent** iff
 
@@ -983,10 +983,10 @@ This count is one of the simplest and most useful geometric heuristics in all of
 
 The four fundamental subspaces of $A \in \mathbb{R}^{m \times n}$ give the cleanest picture of when $Ax = b$ is solvable:
 
-- $\mathrm{col}(A) \subseteq \mathbb{R}^m$ — the set of achievable right-hand sides
-- $\mathrm{null}(A) \subseteq \mathbb{R}^n$ — the set of solutions to $Ax = 0$
-- $\mathrm{row}(A) \subseteq \mathbb{R}^n$ — the input directions that are not annihilated
-- $\mathrm{null}(A^\top) \subseteq \mathbb{R}^m$ — the left null space; directions $b$ cannot lie in for solvability
+- $\mathrm{col}(A) \subseteq \mathbb{R}^m$ - the set of achievable right-hand sides
+- $\mathrm{null}(A) \subseteq \mathbb{R}^n$ - the set of solutions to $Ax = 0$
+- $\mathrm{row}(A) \subseteq \mathbb{R}^n$ - the input directions that are not annihilated
+- $\mathrm{null}(A^\top) \subseteq \mathbb{R}^m$ - the left null space; directions $b$ cannot lie in for solvability
 
 **Reading solvability from these subspaces:**
 
@@ -994,11 +994,11 @@ The four fundamental subspaces of $A \in \mathbb{R}^{m \times n}$ give the clean
 - if $x_p$ is any particular solution, every solution is $x_p + v$ for some $v \in \mathrm{null}(A)$
 - $b$ has a component in $\mathrm{null}(A^\top)$ $\iff$ the system is inconsistent
 
-The direct-sum decomposition $\mathbb{R}^m = \mathrm{col}(A) \oplus \mathrm{null}(A^\top)$ is what makes the least-squares projection of §6 well-defined: we project $b$ onto $\mathrm{col}(A)$ and discard the $\mathrm{null}(A^\top)$ component.
+The direct-sum decomposition $\mathbb{R}^m = \mathrm{col}(A) \oplus \mathrm{null}(A^\top)$ is what makes the least-squares projection of 6 well-defined: we project $b$ onto $\mathrm{col}(A)$ and discard the $\mathrm{null}(A^\top)$ component.
 
 > **Scope note:** This section uses the four fundamental subspaces as a practical tool for understanding $Ax = b$. Their rigorous definitions, orthogonality relationships, and dimensional identities are the canonical subject of a later section.
 >
-> → _Full treatment: [Vector Spaces and Subspaces §7](../06-Vector-Spaces-Subspaces/notes.md#7-the-four-fundamental-subspaces)_
+> -> _Full treatment: [Vector Spaces and Subspaces 7](../06-Vector-Spaces-Subspaces/notes.md#7-the-four-fundamental-subspaces)_
 
 ### 4.4 The Fredholm Alternative
 

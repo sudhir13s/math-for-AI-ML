@@ -1,26 +1,26 @@
-[← Back to Graph Theory](../README.md) | [Previous: Graph Algorithms ←](../03-Graph-Algorithms/notes.md) | [Next: Graph Neural Networks →](../05-Graph-Neural-Networks/notes.md)
+[<- Back to Graph Theory](../README.md) | [Previous: Graph Algorithms <-](../03-Graph-Algorithms/notes.md) | [Next: Graph Neural Networks ->](../05-Graph-Neural-Networks/notes.md)
 
 ---
 
 # Spectral Graph Theory
 
-> _"To understand a graph, listen to its spectrum. The eigenvalues of the Laplacian are the resonant frequencies of the graph — they reveal clusters, bottlenecks, expansion, and the rate at which information diffuses across every edge."_
+> _"To understand a graph, listen to its spectrum. The eigenvalues of the Laplacian are the resonant frequencies of the graph - they reveal clusters, bottlenecks, expansion, and the rate at which information diffuses across every edge."_
 
 ## Overview
 
-Spectral graph theory is the study of graphs through the eigenvalues and eigenvectors of matrices naturally associated with them — principally the adjacency matrix $A$, the degree matrix $D$, and the graph Laplacian $L = D - A$. The central insight is that algebraic properties of these matrices correspond precisely to combinatorial and geometric properties of the graph: the number of connected components equals the multiplicity of eigenvalue zero; the second-smallest eigenvalue $\lambda_2$ quantifies how "hard" the graph is to disconnect; the eigenvectors of $L$ form a natural Fourier basis for signals defined on the graph.
+Spectral graph theory is the study of graphs through the eigenvalues and eigenvectors of matrices naturally associated with them - principally the adjacency matrix $A$, the degree matrix $D$, and the graph Laplacian $L = D - A$. The central insight is that algebraic properties of these matrices correspond precisely to combinatorial and geometric properties of the graph: the number of connected components equals the multiplicity of eigenvalue zero; the second-smallest eigenvalue $\lambda_2$ quantifies how "hard" the graph is to disconnect; the eigenvectors of $L$ form a natural Fourier basis for signals defined on the graph.
 
-This connection between spectral algebra and graph topology has made spectral graph theory one of the most productive areas of modern discrete mathematics — and, increasingly, one of the most important mathematical foundations for machine learning. Spectral clustering (Shi & Malik, 2000; Ng, Jordan & Weiss, 2002) remains a gold-standard unsupervised learning method for non-convex clusters. Graph Convolutional Networks (Kipf & Welling, 2017) are derived from first principles as first-order Chebyshev approximations to spectral filters. Laplacian positional encodings power modern graph Transformers (Dwivedi et al., 2022; GPS, 2022). Even language model attention matrices can be analyzed as weighted graphs whose spectral properties reveal information flow.
+This connection between spectral algebra and graph topology has made spectral graph theory one of the most productive areas of modern discrete mathematics - and, increasingly, one of the most important mathematical foundations for machine learning. Spectral clustering (Shi & Malik, 2000; Ng, Jordan & Weiss, 2002) remains a gold-standard unsupervised learning method for non-convex clusters. Graph Convolutional Networks (Kipf & Welling, 2017) are derived from first principles as first-order Chebyshev approximations to spectral filters. Laplacian positional encodings power modern graph Transformers (Dwivedi et al., 2022; GPS, 2022). Even language model attention matrices can be analyzed as weighted graphs whose spectral properties reveal information flow.
 
-This section develops the full theory from scratch. We begin with the three fundamental graph matrices and their spectral properties, build up to the Cheeger inequality and expander graphs, construct the graph Fourier transform, derive spectral clustering rigorously, and connect everything to modern AI applications. Students who complete this section will have the mathematical fluency to read GNN papers, design graph-based ML systems, and understand why spectral methods work when they work — and why they fail when they do.
+This section develops the full theory from scratch. We begin with the three fundamental graph matrices and their spectral properties, build up to the Cheeger inequality and expander graphs, construct the graph Fourier transform, derive spectral clustering rigorously, and connect everything to modern AI applications. Students who complete this section will have the mathematical fluency to read GNN papers, design graph-based ML systems, and understand why spectral methods work when they work - and why they fail when they do.
 
 ## Prerequisites
 
-- Graph definitions: $G = (V, E)$, adjacency, degree, paths, connectivity, bipartiteness — [§11-01 Graph Basics](../01-Graph-Basics/notes.md)
-- Adjacency matrix, degree matrix, Laplacian as data structures — [§11-02 Graph Representations](../02-Graph-Representations/notes.md)
-- Eigenvalues, eigenvectors, spectral theorem for symmetric matrices — [§03-01 Eigenvalues and Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md)
-- Positive semidefinite matrices and quadratic forms — [§03-Advanced-Linear-Algebra](../../03-Advanced-Linear-Algebra/README.md)
-- Graph algorithms (BFS, max-flow — for Cheeger intuition) — [§11-03 Graph Algorithms](../03-Graph-Algorithms/notes.md)
+- Graph definitions: $G = (V, E)$, adjacency, degree, paths, connectivity, bipartiteness - [11-01 Graph Basics](../01-Graph-Basics/notes.md)
+- Adjacency matrix, degree matrix, Laplacian as data structures - [11-02 Graph Representations](../02-Graph-Representations/notes.md)
+- Eigenvalues, eigenvectors, spectral theorem for symmetric matrices - [03-01 Eigenvalues and Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md)
+- Positive semidefinite matrices and quadratic forms - [03-Advanced-Linear-Algebra](../../03-Advanced-Linear-Algebra/README.md)
+- Graph algorithms (BFS, max-flow - for Cheeger intuition) - [11-03 Graph Algorithms](../03-Graph-Algorithms/notes.md)
 
 ## Companion Notebooks
 
@@ -57,20 +57,20 @@ After completing this section, you will:
 - [2. Graph Matrices and Their Spectra](#2-graph-matrices-and-their-spectra)
   - [2.1 Adjacency Matrix: Spectral View](#21-adjacency-matrix-spectral-view)
   - [2.2 Degree Matrix and Volume](#22-degree-matrix-and-volume)
-  - [2.3 Unnormalized Laplacian L = D − A](#23-unnormalized-laplacian-l--d--a)
+  - [2.3 Unnormalized Laplacian L = D - A](#23-unnormalized-laplacian-l--d--a)
   - [2.4 Normalized Laplacians](#24-normalized-laplacians)
   - [2.5 Spectra of Special Graphs](#25-spectra-of-special-graphs)
   - [2.6 Characteristic Polynomial and Cospectral Graphs](#26-characteristic-polynomial-and-cospectral-graphs)
 - [3. The Fundamental Quadratic Form and PSD Structure](#3-the-fundamental-quadratic-form-and-psd-structure)
   - [3.1 Dirichlet Energy](#31-dirichlet-energy)
-  - [3.2 Proof That L ≽ 0](#32-proof-that-l--0)
+  - [3.2 Proof That L \succeq 0](#32-proof-that-l--0)
   - [3.3 Connected Components via the Null Space](#33-connected-components-via-the-null-space)
   - [3.4 Eigenvalue Bounds and Interlacing](#34-eigenvalue-bounds-and-interlacing)
   - [3.5 Courant-Fischer Minimax Theorem](#35-courant-fischer-minimax-theorem)
 - [4. Algebraic Connectivity and the Fiedler Vector](#4-algebraic-connectivity-and-the-fiedler-vector)
-  - [4.1 Algebraic Connectivity λ₂](#41-algebraic-connectivity-λ₂)
+  - [4.1 Algebraic Connectivity \lambda_2](#41-algebraic-connectivity-\lambda_2)
   - [4.2 The Fiedler Vector](#42-the-fiedler-vector)
-  - [4.3 Bounding Graph Properties via λ₂](#43-bounding-graph-properties-via-λ₂)
+  - [4.3 Bounding Graph Properties via \lambda_2](#43-bounding-graph-properties-via-\lambda_2)
   - [4.4 Computing the Fiedler Vector in Practice](#44-computing-the-fiedler-vector-in-practice)
   - [4.5 AI Application: Community Detection](#45-ai-application-community-detection)
 - [5. Cheeger's Inequality and Graph Expansion](#5-cheegers-inequality-and-graph-expansion)
@@ -131,17 +131,17 @@ After completing this section, you will:
 
 ### 1.1 Hearing the Shape of a Graph
 
-In 1966, mathematician Mark Kac posed the question: "Can you hear the shape of a drum?" — meaning, can you reconstruct the geometry of a vibrating membrane from the frequencies it produces? The question turned out to have a negative answer in general, but it crystallized one of the deepest ideas in mathematics: **the spectrum of a differential operator encodes geometric information**.
+In 1966, mathematician Mark Kac posed the question: "Can you hear the shape of a drum?" - meaning, can you reconstruct the geometry of a vibrating membrane from the frequencies it produces? The question turned out to have a negative answer in general, but it crystallized one of the deepest ideas in mathematics: **the spectrum of a differential operator encodes geometric information**.
 
-Spectral graph theory asks the same question for discrete structures. A graph $G = (V, E)$ has an associated matrix — the Laplacian $L$ — whose eigenvalues form the **graph spectrum**. These numbers are not arbitrary: they encode whether the graph is connected, how tightly its communities are glued together, how quickly a random walk mixes across its edges, how hard it is to cut the graph in two.
+Spectral graph theory asks the same question for discrete structures. A graph $G = (V, E)$ has an associated matrix - the Laplacian $L$ - whose eigenvalues form the **graph spectrum**. These numbers are not arbitrary: they encode whether the graph is connected, how tightly its communities are glued together, how quickly a random walk mixes across its edges, how hard it is to cut the graph in two.
 
-Think of a social network. Each person is a node; each friendship is an edge. The graph has "natural frequencies": a society with two isolated groups (a disconnected graph) has a different spectrum from one that is fully interconnected. The small eigenvalues of $L$ correspond to smooth, slowly-varying signals — the overall community membership function. The large eigenvalues correspond to rapidly-oscillating signals — the microscopic variation from person to person. This is the graph analogue of low and high frequencies in audio.
+Think of a social network. Each person is a node; each friendship is an edge. The graph has "natural frequencies": a society with two isolated groups (a disconnected graph) has a different spectrum from one that is fully interconnected. The small eigenvalues of $L$ correspond to smooth, slowly-varying signals - the overall community membership function. The large eigenvalues correspond to rapidly-oscillating signals - the microscopic variation from person to person. This is the graph analogue of low and high frequencies in audio.
 
 **Three statements, each surprising when first encountered, that spectral graph theory makes precise:**
 
 1. The number of connected components of $G$ equals the number of times $0$ appears as an eigenvalue of $L$.
-2. The second-smallest eigenvalue $\lambda_2(L)$ — the "Fiedler value" — tells you how hard it is to disconnect the graph. A graph is harder to cut when $\lambda_2$ is larger.
-3. The eigenvector corresponding to $\lambda_2$ — the "Fiedler vector" — assigns a real number to each vertex, and the sign of this number tells you which side of the best bisection each vertex belongs to.
+2. The second-smallest eigenvalue $\lambda_2(L)$ - the "Fiedler value" - tells you how hard it is to disconnect the graph. A graph is harder to cut when $\lambda_2$ is larger.
+3. The eigenvector corresponding to $\lambda_2$ - the "Fiedler vector" - assigns a real number to each vertex, and the sign of this number tells you which side of the best bisection each vertex belongs to.
 
 These are not vague analogies. They are theorems with proofs, and they form the backbone of a theory that has become indispensable in machine learning.
 
@@ -165,55 +165,55 @@ The Laplacian is named after Pierre-Simon Laplace because it is the discrete ana
 
 $$(Lf)_i = \sum_{j: (i,j) \in E} (f(i) - f(j)) = d_i f(i) - \sum_{j: (i,j) \in E} f(j)$$
 
-This is the "discrete second derivative" — it measures how much the value at vertex $i$ differs from the average value among its neighbors.
+This is the "discrete second derivative" - it measures how much the value at vertex $i$ differs from the average value among its neighbors.
 
 **For AI:** In a Graph Neural Network, the operation $\tilde{A} \mathbf{H}$ (multiplying node features by the adjacency matrix with self-loops) is equivalent to computing $(\tilde{D} - \tilde{L})\mathbf{H}$. The Laplacian is implicitly present in every GNN layer.
 
 ### 1.3 Why Eigenvalues Reveal Structure
 
-The Laplacian $L$ is a real symmetric positive semidefinite matrix. By the spectral theorem (§03-Advanced-Linear-Algebra), it has a complete orthonormal basis of eigenvectors $\mathbf{u}_1, \mathbf{u}_2, \ldots, \mathbf{u}_n$ with real non-negative eigenvalues:
+The Laplacian $L$ is a real symmetric positive semidefinite matrix. By the spectral theorem (03-Advanced-Linear-Algebra), it has a complete orthonormal basis of eigenvectors $\mathbf{u}_1, \mathbf{u}_2, \ldots, \mathbf{u}_n$ with real non-negative eigenvalues:
 
 $$0 = \lambda_1 \leq \lambda_2 \leq \cdots \leq \lambda_n$$
 
-Why is $\lambda_1 = 0$ always? Because $L \mathbf{1} = \mathbf{0}$ — the all-ones vector is always in the null space of $L$ (every row of $L$ sums to zero). The constant function "assign the same value to every vertex" has zero variation across every edge, so it has zero energy.
+Why is $\lambda_1 = 0$ always? Because $L \mathbf{1} = \mathbf{0}$ - the all-ones vector is always in the null space of $L$ (every row of $L$ sums to zero). The constant function "assign the same value to every vertex" has zero variation across every edge, so it has zero energy.
 
 The deeper result: **$\lambda_1 = \lambda_2 = \cdots = \lambda_k = 0$ if and only if the graph has exactly $k$ connected components.** On a disconnected graph with $k$ components, the eigenvectors for eigenvalue $0$ are the indicator vectors of each component.
 
-The first nonzero eigenvalue $\lambda_2$ — if it exists — is called the **algebraic connectivity** or **Fiedler value** (after Miroslav Fiedler, who proved its key properties in 1973). A larger $\lambda_2$ means the graph is harder to disconnect; a $\lambda_2$ close to zero means there is almost a disconnection — a bottleneck.
+The first nonzero eigenvalue $\lambda_2$ - if it exists - is called the **algebraic connectivity** or **Fiedler value** (after Miroslav Fiedler, who proved its key properties in 1973). A larger $\lambda_2$ means the graph is harder to disconnect; a $\lambda_2$ close to zero means there is almost a disconnection - a bottleneck.
 
 The largest eigenvalue $\lambda_n$ gives the spectral radius of the Laplacian and satisfies $\lambda_n \leq 2 d_{\max}$.
 
 ### 1.4 Historical Timeline
 
 ```
-SPECTRAL GRAPH THEORY — HISTORICAL TIMELINE
-════════════════════════════════════════════════════════════════════════
+SPECTRAL GRAPH THEORY - HISTORICAL TIMELINE
+========================================================================
 
-  1847  Kirchhoff     — Matrix-Tree theorem; Laplacian for electrical circuits
-  1931  Whitney       — Graph isomorphism; chromatic polynomials
-  1954  Collatz &     — Systematic study of graph spectra begins
+  1847  Kirchhoff     - Matrix-Tree theorem; Laplacian for electrical circuits
+  1931  Whitney       - Graph isomorphism; chromatic polynomials
+  1954  Collatz &     - Systematic study of graph spectra begins
         Sinogowitz
-  1973  Fiedler       — Algebraic connectivity; Fiedler vector; graph bisection
-  1981  Cheeger       — Cheeger inequality (originally for manifolds)
-  1988  Alon & Milman — Discrete Cheeger inequality for graphs
-  1996  Belkin &      — Laplacian eigenmaps for manifold learning (pub. 2001)
+  1973  Fiedler       - Algebraic connectivity; Fiedler vector; graph bisection
+  1981  Cheeger       - Cheeger inequality (originally for manifolds)
+  1988  Alon & Milman - Discrete Cheeger inequality for graphs
+  1996  Belkin &      - Laplacian eigenmaps for manifold learning (pub. 2001)
         Niyogi
-  2000  Shi & Malik   — Normalized Cuts and image segmentation
-  2002  Ng, Jordan,   — Spectral clustering algorithm (the standard version)
+  2000  Shi & Malik   - Normalized Cuts and image segmentation
+  2002  Ng, Jordan,   - Spectral clustering algorithm (the standard version)
         Weiss
-  2004  Spielman &    — Spectral sparsification; fast Laplacian solvers
+  2004  Spielman &    - Spectral sparsification; fast Laplacian solvers
         Teng
-  2011  Hammond et al — Wavelets on graphs
-  2014  Bruna et al   — Spectral graph CNNs (first spectral GNN)
-  2016  Defferrard    — ChebNet: Chebyshev polynomial filters on graphs
+  2011  Hammond et al - Wavelets on graphs
+  2014  Bruna et al   - Spectral graph CNNs (first spectral GNN)
+  2016  Defferrard    - ChebNet: Chebyshev polynomial filters on graphs
         et al
-  2017  Kipf &        — GCN: first-order Chebyshev → simple spatial rule
+  2017  Kipf &        - GCN: first-order Chebyshev -> simple spatial rule
         Welling
-  2022  Dwivedi et al — Laplacian positional encodings for graph Transformers
-  2022  Rampasek et   — GPS: General, Powerful, Scalable graph Transformer
+  2022  Dwivedi et al - Laplacian positional encodings for graph Transformers
+  2022  Rampasek et   - GPS: General, Powerful, Scalable graph Transformer
         al                with spectral PE
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.5 Roadmap of the Section
@@ -222,31 +222,31 @@ This section follows a deliberate progression from foundational algebra to moder
 
 ```
 SECTION ROADMAP
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §2 Graph Matrices          Build the algebraic objects
-         ↓
-  §3 Quadratic Form / PSD    Prove fundamental spectral properties
-         ↓
-  §4 Fiedler Vector          Connect λ₂ to graph connectivity
-         ↓
-  §5 Cheeger Inequality      Connect λ₂ to cut structure and mixing
-         ↓
-  §6 Graph Fourier Transform  Signal processing on graphs
-         ↓
-  §7 Spectral Filtering      From Fourier to polynomial approximations
-         ↓
-  §8 Spectral Clustering     Partition graphs via eigenvectors
-         ↓
-  §9 Laplacian Eigenmaps     Embed graphs; PE for transformers
-         ↓
-  §10 Directed Graphs        PageRank; complex eigenvalues
-         ↓
-  §11 Advanced Topics        Sparsification; wavelets; random matrices
-         ↓
-  §12 ML Applications        KGs, molecules, LLM attention analysis
+  2 Graph Matrices          Build the algebraic objects
+         down
+  3 Quadratic Form / PSD    Prove fundamental spectral properties
+         down
+  4 Fiedler Vector          Connect \lambda_2 to graph connectivity
+         down
+  5 Cheeger Inequality      Connect \lambda_2 to cut structure and mixing
+         down
+  6 Graph Fourier Transform  Signal processing on graphs
+         down
+  7 Spectral Filtering      From Fourier to polynomial approximations
+         down
+  8 Spectral Clustering     Partition graphs via eigenvectors
+         down
+  9 Laplacian Eigenmaps     Embed graphs; PE for transformers
+         down
+  10 Directed Graphs        PageRank; complex eigenvalues
+         down
+  11 Advanced Topics        Sparsification; wavelets; random matrices
+         down
+  12 ML Applications        KGs, molecules, LLM attention analysis
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -268,7 +268,7 @@ SECTION ROADMAP
 - Bipartite graphs have symmetric spectra: $\mu_i = -\mu_{n+1-i}$.
 - The number of distinct eigenvalues is at least $\text{diam}(G) + 1$ (where $\text{diam}$ is graph diameter).
 
-**Non-examples of symmetry:** For a directed graph, $A$ is not symmetric and eigenvalues may be complex. This is why directed spectral theory (§10) requires separate treatment.
+**Non-examples of symmetry:** For a directed graph, $A$ is not symmetric and eigenvalues may be complex. This is why directed spectral theory (10) requires separate treatment.
 
 ### 2.2 Degree Matrix and Volume
 
@@ -278,9 +278,9 @@ The **degree matrix** $D = \operatorname{diag}(d_1, d_2, \ldots, d_n)$ is diagon
 
 For a $d$-regular graph, $D = d \cdot I_n$ and $\operatorname{vol}(S) = d |S|$, making the theory particularly clean. Most derivations proceed with general $D$ but reduce to simpler formulas in the regular case.
 
-**Random walk transition matrix.** The matrix $P = D^{-1} A$ is a row-stochastic matrix: $\sum_j P_{ij} = 1$ for all $i$. It defines a random walk on the graph: from vertex $i$, move to neighbor $j$ with probability $A_{ij}/d_i$. The stationary distribution of this walk is $\boldsymbol{\pi}$ with $\pi_i = d_i / \operatorname{vol}(V)$ — proportional to degree. This connection between $D$, $A$, and random walks is central to the normalized Laplacian theory.
+**Random walk transition matrix.** The matrix $P = D^{-1} A$ is a row-stochastic matrix: $\sum_j P_{ij} = 1$ for all $i$. It defines a random walk on the graph: from vertex $i$, move to neighbor $j$ with probability $A_{ij}/d_i$. The stationary distribution of this walk is $\boldsymbol{\pi}$ with $\pi_i = d_i / \operatorname{vol}(V)$ - proportional to degree. This connection between $D$, $A$, and random walks is central to the normalized Laplacian theory.
 
-### 2.3 Unnormalized Laplacian L = D − A
+### 2.3 Unnormalized Laplacian L = D - A
 
 **Definition.** $L = D - A$. Entry-by-entry:
 
@@ -300,9 +300,9 @@ $$= \sum_{(i,j)\in E} w_{ij}(x_i^2 + x_j^2) - 2\sum_{(i,j)\in E} w_{ij} x_i x_j 
 
 Since $w_{ij} > 0$, this is always non-negative: $L \succeq 0$.
 
-**Geometric meaning:** $\mathbf{x}^\top L \mathbf{x}$ measures the total variation of the signal $\mathbf{x}: V \to \mathbb{R}$ across all edges. It is zero if and only if $x_i = x_j$ for all edges $(i,j)$ — i.e., $\mathbf{x}$ is constant on each connected component.
+**Geometric meaning:** $\mathbf{x}^\top L \mathbf{x}$ measures the total variation of the signal $\mathbf{x}: V \to \mathbb{R}$ across all edges. It is zero if and only if $x_i = x_j$ for all edges $(i,j)$ - i.e., $\mathbf{x}$ is constant on each connected component.
 
-**For AI:** Graph regularization in semi-supervised learning minimizes $\mathbf{f}^\top L \mathbf{f}$ subject to labeling constraints. This penalizes label functions that change rapidly across edges — a smoothness prior that says "connected nodes likely have the same label."
+**For AI:** Graph regularization in semi-supervised learning minimizes $\mathbf{f}^\top L \mathbf{f}$ subject to labeling constraints. This penalizes label functions that change rapidly across edges - a smoothness prior that says "connected nodes likely have the same label."
 
 ### 2.4 Normalized Laplacians
 
@@ -329,10 +329,10 @@ with $P = D^{-1}A$ the random walk transition matrix. Properties: Not symmetric,
 | Laplacian | Use case | Why |
 |-----------|----------|-----|
 | $L = D - A$ | Graphs with uniform degree; theoretical proofs | Simplest form |
-| $L_{\text{sym}}$ | Spectral clustering (Ng et al.); GCN normalization | Symmetric → orthogonal eigenvectors |
+| $L_{\text{sym}}$ | Spectral clustering (Ng et al.); GCN normalization | Symmetric -> orthogonal eigenvectors |
 | $L_{\text{rw}}$ | Random walk analysis; Shi-Malik NCut | Direct connection to $P$ |
 
-**For AI (GCN connection):** The GCN propagation rule $\hat{A} = \tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}$ uses the symmetric normalized adjacency of the graph with self-loops — equivalently, $I - L_{\text{sym}}$ of the augmented graph.
+**For AI (GCN connection):** The GCN propagation rule $\hat{A} = \tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}$ uses the symmetric normalized adjacency of the graph with self-loops - equivalently, $I - L_{\text{sym}}$ of the augmented graph.
 
 ### 2.5 Spectra of Special Graphs
 
@@ -344,7 +344,7 @@ Closed-form eigenvalues for key graph families provide calibration and test case
 
 $$\lambda_k = 2 - 2\cos\!\left(\frac{(k-1)\pi}{n}\right), \quad k = 1, 2, \ldots, n$$
 
-So $\lambda_1 = 0$, $\lambda_2 = 2 - 2\cos(\pi/n) \approx \pi^2/n^2$ for large $n$ — very small. This reflects the intuition that a long path is easy to cut (just remove the middle edge).
+So $\lambda_1 = 0$, $\lambda_2 = 2 - 2\cos(\pi/n) \approx \pi^2/n^2$ for large $n$ - very small. This reflects the intuition that a long path is easy to cut (just remove the middle edge).
 
 **Cycle graph $C_n$:** Eigenvalues of $L$:
 
@@ -352,7 +352,7 @@ $$\lambda_k = 2 - 2\cos\!\left(\frac{2\pi(k-1)}{n}\right), \quad k = 1, 2, \ldot
 
 The spectrum is symmetric around $\lambda = 2$. $\lambda_2 = 2 - 2\cos(2\pi/n) \approx 4\pi^2/n^2$ for large $n$.
 
-**Star graph $S_n$:** One hub connected to $n-1$ leaves. Eigenvalues of $L$: $0$ (once), $1$ ($n-2$ times), $n$ (once). $\lambda_2 = 1$ regardless of how many leaves there are — the star is easy to disconnect (remove the hub).
+**Star graph $S_n$:** One hub connected to $n-1$ leaves. Eigenvalues of $L$: $0$ (once), $1$ ($n-2$ times), $n$ (once). $\lambda_2 = 1$ regardless of how many leaves there are - the star is easy to disconnect (remove the hub).
 
 **$d$-regular bipartite graph $K_{n/2, n/2}$:** Eigenvalues of $L$: $0, d, d, \ldots, d, 2d$ with the pattern dictated by the bipartite structure; eigenvalue $2d$ indicates bipartiteness.
 
@@ -360,9 +360,9 @@ The spectrum is symmetric around $\lambda = 2$. $\lambda_2 = 2 - 2\cos(2\pi/n) \
 
 The **characteristic polynomial** of a graph $G$ is $p_G(\lambda) = \det(\lambda I - A)$. The roots are the eigenvalues of $A$. The coefficients of $p_G$ are spectral invariants: the sum of eigenvalues equals $\operatorname{tr}(A) = 0$ (no self-loops); the sum of squares of eigenvalues equals $\operatorname{tr}(A^2) = 2m$.
 
-**Cospectral (isospectral) graphs** are graphs with identical characteristic polynomials but non-isomorphic structures. The simplest pair: two graphs on 6 vertices found by Schwenk (1973). Cospectrality shows that the spectrum does not uniquely determine a graph — a fundamental limitation of spectral methods. For graph isomorphism testing, the Weisfeiler-Lehman test (§05) captures structure that the spectrum misses.
+**Cospectral (isospectral) graphs** are graphs with identical characteristic polynomials but non-isomorphic structures. The simplest pair: two graphs on 6 vertices found by Schwenk (1973). Cospectrality shows that the spectrum does not uniquely determine a graph - a fundamental limitation of spectral methods. For graph isomorphism testing, the Weisfeiler-Lehman test (05) captures structure that the spectrum misses.
 
-**For AI:** The WL-expressiveness hierarchy of GNNs (Xu et al., 2019) parallels this cospectrality result. GNNs based on spectral convolution can distinguish everything the Laplacian spectrum distinguishes — but no more. This is one motivation for higher-order GNNs and attention-based methods.
+**For AI:** The WL-expressiveness hierarchy of GNNs (Xu et al., 2019) parallels this cospectrality result. GNNs based on spectral convolution can distinguish everything the Laplacian spectrum distinguishes - but no more. This is one motivation for higher-order GNNs and attention-based methods.
 
 ---
 
@@ -381,12 +381,12 @@ This name comes from the continuous analogue: for a function $f: \Omega \to \mat
 | Social network | Total disagreement when $x_i \in \{-1, +1\}$ labels communities |
 | Signal on graph | Total variation (roughness) of the signal across edges |
 | Temperature field | Total heat flux across edges at steady state |
-| Node embeddings | "Embedding strain" — how much nearby nodes differ |
+| Node embeddings | "Embedding strain" - how much nearby nodes differ |
 | Semi-supervised labels | Penalty for assigning different labels to connected nodes |
 
 **Critical point of Dirichlet energy.** The Rayleigh quotient $R(\mathbf{x}) = \mathbf{x}^\top L \mathbf{x} / \lVert \mathbf{x} \rVert^2$ is minimized by the eigenvector with smallest eigenvalue. Constrained to $\mathbf{x} \perp \mathbf{1}$ (orthogonal to the trivial null vector), the minimum is achieved by $\mathbf{u}_2$, the Fiedler vector.
 
-### 3.2 Proof That L ≽ 0
+### 3.2 Proof That L \succeq 0
 
 **Theorem.** For any undirected weighted graph with non-negative edge weights, $L \succeq 0$.
 
@@ -434,7 +434,7 @@ $$\lambda_n(L) \leq 2 d_{\max}$$
 
 where $d_{\max}$ is the maximum degree. For $d$-regular graphs: $\lambda_n(L) = 2d$ iff the graph is bipartite.
 
-**Lower bound on $\lambda_2$.** From the Cheeger inequality (full treatment in §5):
+**Lower bound on $\lambda_2$.** From the Cheeger inequality (full treatment in 5):
 
 $$\lambda_2 \geq \frac{h(G)^2}{2}$$
 
@@ -458,19 +458,19 @@ $$\lambda_2 = \min_{\mathbf{x} \perp \mathbf{1},\, \mathbf{x} \neq \mathbf{0}} \
 
 **Proof sketch.** Write $\mathbf{x} = \sum_k c_k \mathbf{u}_k$ in the eigenbasis. Then $\mathbf{x}^\top L \mathbf{x} = \sum_k \lambda_k c_k^2$ and $\lVert \mathbf{x} \rVert^2 = \sum_k c_k^2$. The Rayleigh quotient is $\sum_k \lambda_k c_k^2 / \sum_k c_k^2$, a convex combination of eigenvalues. Minimizing over $\mathbf{x} \perp \mathbf{u}_1 = \mathbf{1}/\sqrt{n}$ forces $c_1 = 0$, making the minimum $\lambda_2$ (achieved when $c_2 = 1$, all others $0$).
 
-**Practical use.** Courant-Fischer justifies using $\mathbf{u}_2$ as the optimal graph bisection vector: it solves the continuous relaxation of the minimum bisection problem, as we prove in §4 and §8.
+**Practical use.** Courant-Fischer justifies using $\mathbf{u}_2$ as the optimal graph bisection vector: it solves the continuous relaxation of the minimum bisection problem, as we prove in 4 and 8.
 
 ---
 
 ## 4. Algebraic Connectivity and the Fiedler Vector
 
-### 4.1 Algebraic Connectivity λ₂
+### 4.1 Algebraic Connectivity \lambda_2
 
 **Definition.** The **algebraic connectivity** of a graph $G$ is $a(G) = \lambda_2(L)$, the second-smallest eigenvalue of the graph Laplacian. It is also called the **Fiedler value**.
 
 **Theorem (Fiedler, 1973).** $\lambda_2(L) > 0$ if and only if $G$ is connected.
 
-This follows directly from §3.3: $\lambda_2 = 0$ iff there are at least 2 connected components.
+This follows directly from 3.3: $\lambda_2 = 0$ iff there are at least 2 connected components.
 
 **Why "algebraic" connectivity?** The classical combinatorial connectivity $\kappa(G)$ (minimum number of vertices whose removal disconnects $G$) is NP-hard to compute in general. The algebraic connectivity $\lambda_2$ provides a computable lower bound:
 
@@ -478,7 +478,7 @@ $$\lambda_2 \leq \kappa(G) \leq \delta(G)$$
 
 where $\delta(G)$ is the minimum degree. This inequality chain says: algebraic connectivity $\leq$ vertex connectivity $\leq$ minimum degree.
 
-**Sensitivity.** When a single edge $(u,v)$ is added to a graph, $\lambda_2$ can increase by at most $2$. When an edge is removed, $\lambda_2$ can decrease by at most $2$. This quantifies how much the connectivity changes with each graph edit — useful in robust network design.
+**Sensitivity.** When a single edge $(u,v)$ is added to a graph, $\lambda_2$ can increase by at most $2$. When an edge is removed, $\lambda_2$ can decrease by at most $2$. This quantifies how much the connectivity changes with each graph edit - useful in robust network design.
 
 **Regular graphs.** For a $d$-regular graph on $n$ vertices:
 
@@ -497,7 +497,7 @@ The Fiedler vector assigns a real number $(\mathbf{u}_2)_i$ to each vertex $i$. 
 2. Partition $V = S \cup \bar{S}$ by the sign of $(\mathbf{u}_2)_i$: let $S = \{i : (\mathbf{u}_2)_i \geq 0\}$.
 3. The edges $(S, \bar{S})$ form the "spectral cut."
 
-**Why does this work?** The Courant-Fischer theorem says $\mathbf{u}_2$ minimizes the Dirichlet energy $\sum_{(i,j)\in E}(x_i - x_j)^2$ subject to $\mathbf{x} \perp \mathbf{1}$ and $\lVert \mathbf{x} \rVert = 1$. If we further constrain $x_i \in \{-c, +c\}$ (a discrete two-way partition), we get the NP-hard graph bisection problem. The Fiedler vector is the continuous relaxation of this discrete problem — the best we can do efficiently.
+**Why does this work?** The Courant-Fischer theorem says $\mathbf{u}_2$ minimizes the Dirichlet energy $\sum_{(i,j)\in E}(x_i - x_j)^2$ subject to $\mathbf{x} \perp \mathbf{1}$ and $\lVert \mathbf{x} \rVert = 1$. If we further constrain $x_i \in \{-c, +c\}$ (a discrete two-way partition), we get the NP-hard graph bisection problem. The Fiedler vector is the continuous relaxation of this discrete problem - the best we can do efficiently.
 
 **The ordering property.** Sorting vertices by their Fiedler vector value $(\mathbf{u}_2)_i$ reveals the community structure of the graph. Vertices in the same community tend to have similar $(\mathbf{u}_2)_i$ values; the transition from negative to positive marks the community boundary.
 
@@ -506,7 +506,7 @@ The Fiedler vector assigns a real number $(\mathbf{u}_2)_i$ to each vertex $i$. 
 - **Domain decomposition** (PDE solvers): partition a mesh graph for parallel computation
 - **Community detection in knowledge graphs**: find the two most separated communities in a KG
 
-### 4.3 Bounding Graph Properties via λ₂
+### 4.3 Bounding Graph Properties via \lambda_2
 
 **Diameter bound (Mohar, 1991):**
 
@@ -520,7 +520,7 @@ $$\lambda_2(L) \leq \kappa(G)$$
 
 where $\kappa(G)$ is the vertex connectivity (minimum number of vertices to remove to disconnect). A large $\lambda_2$ means the graph is robustly connected.
 
-**Conductance.** The conductance $\Phi(G) = \min_{S: \operatorname{vol}(S) \leq \operatorname{vol}(V)/2} \frac{|E(S, \bar{S})|}{\operatorname{vol}(S)}$ measures the minimum normalized cut. The Cheeger inequality (§5) gives:
+**Conductance.** The conductance $\Phi(G) = \min_{S: \operatorname{vol}(S) \leq \operatorname{vol}(V)/2} \frac{|E(S, \bar{S})|}{\operatorname{vol}(S)}$ measures the minimum normalized cut. The Cheeger inequality (5) gives:
 
 $$\frac{\lambda_2(L_{\text{sym}})}{2} \leq \Phi(G) \leq \sqrt{2\lambda_2(L_{\text{sym}})}$$
 
@@ -536,11 +536,11 @@ For large sparse graphs, use iterative methods:
 
 **Inverse power iteration with deflation:** Since $\lambda_1 = 0$ is known, we can deflate it out. Initialize with a random $\mathbf{x} \perp \mathbf{1}$, repeatedly apply $L$ (via sparse matrix-vector product), normalize, and orthogonalize against $\mathbf{1}$. Convergence rate is $(\lambda_2/\lambda_3)^k$ per iteration.
 
-**Randomized Nyström approximation:** For graphs with $n > 10^6$, approximate the low-rank spectral structure using randomized sampling of the Laplacian (Spielman & Srivastava, 2011).
+**Randomized Nystrom approximation:** For graphs with $n > 10^6$, approximate the low-rank spectral structure using randomized sampling of the Laplacian (Spielman & Srivastava, 2011).
 
 ### 4.5 AI Application: Community Detection
 
-Community detection — finding groups of densely interconnected nodes — is one of the most practically important graph problems. Spectral methods are the gold standard for quality guarantees.
+Community detection - finding groups of densely interconnected nodes - is one of the most practically important graph problems. Spectral methods are the gold standard for quality guarantees.
 
 **Planted partition model.** Generate a graph with $k$ communities of size $n/k$ each, intra-community edge probability $p_{\text{in}}$, inter-community probability $p_{\text{out}} \ll p_{\text{in}}$. Spectral bisection recovers the communities exactly when:
 
@@ -568,14 +568,14 @@ The **Cheeger constant** (or isoperimetric number) of $G$ is:
 
 $$h(G) = \min_{S \subset V,\, S \neq \emptyset,\, V} h(S)$$
 
-This is the minimum conductance cut: the partition that minimizes the fraction of edges leaving the smaller side relative to its volume. A small $h(G)$ means the graph has a bottleneck — a small number of edges separating a large fraction of the volume.
+This is the minimum conductance cut: the partition that minimizes the fraction of edges leaving the smaller side relative to its volume. A small $h(G)$ means the graph has a bottleneck - a small number of edges separating a large fraction of the volume.
 
 **Computing $h(G)$ is NP-hard.** This is a major motivation for the Cheeger inequality, which gives a polynomial-time algorithm (via $\lambda_2$) to find a cut within a factor of $\sqrt{2}$ of optimal.
 
 **Examples:**
 - **Path $P_n$:** Remove the middle edge; $h(P_n) \approx 2/n$. Very small: the path is a severe bottleneck.
 - **Complete graph $K_n$:** Every cut $(S, \bar{S})$ has $|\partial S| = |S| \cdot |\bar{S}|/(n-1) \approx |S|/2$; $h(K_n) = n/(2(n-1)) \approx 1/2$.
-- **Expander graph (§5.3):** $h(G) = \Omega(1)$ — bounded below by a constant, independent of $n$.
+- **Expander graph (5.3):** $h(G) = \Omega(1)$ - bounded below by a constant, independent of $n$.
 
 ### 5.2 Cheeger's Inequality
 
@@ -603,7 +603,7 @@ $$\min_t h(S_t) \leq \frac{\sum_t h(S_t) \cdot \Delta\operatorname{vol}(S_t)}{\s
 
 The last step uses the Cauchy-Schwarz inequality together with the fact that $\lambda_2 = R(\mathbf{u}_2)$ is the Rayleigh quotient of the Fiedler vector. $\square$
 
-**Tightness.** The left bound is tight for expanders (§5.3). The right bound is tight for paths and other bottleneck graphs where $\lambda_2 \approx h^2/2$.
+**Tightness.** The left bound is tight for expanders (5.3). The right bound is tight for paths and other bottleneck graphs where $\lambda_2 \approx h^2/2$.
 
 **Practical implication.** Given $\lambda_2$, we know $h(G) \in [\lambda_2/2, \sqrt{2\lambda_2}]$. More importantly, the **proof of the right inequality is constructive**: the sweep over Fiedler vector thresholds finds a cut with conductance $\leq \sqrt{2\lambda_2}$.
 
@@ -619,10 +619,10 @@ Equivalently (by Cheeger): $h(G_n) = \Omega(1)$, i.e., the Cheeger constant is b
 **Why expanders matter:**
 1. **Communication networks:** In a $d$-regular expander on $n$ nodes, any message can be routed between any two nodes in $O(\log n)$ hops, using only $d$ connections per node. This is optimal for constant-degree networks.
 2. **Error-correcting codes:** Expander codes (Sipser & Spielman, 1996) achieve linear-time encoding/decoding of codes close to the Shannon capacity.
-3. **Derandomization:** Expanders provide pseudorandom number generators — random walks on expanders mix in $O(\log n)$ steps, so short random walks serve as good randomness sources.
+3. **Derandomization:** Expanders provide pseudorandom number generators - random walks on expanders mix in $O(\log n)$ steps, so short random walks serve as good randomness sources.
 4. **GNN depth:** A GNN on an expander graph propagates information across the entire graph in $O(\log n)$ layers. This is why expanders are ideal benchmarks for deep GNNs.
 
-**Ramanujan graphs.** The optimal spectral gap for a $d$-regular graph is bounded: $\lambda \geq 2\sqrt{d-1}$ (Alon-Boppana theorem). Graphs achieving $\lambda = 2\sqrt{d-1}$ are called **Ramanujan graphs** — they are the optimal expanders. Explicit Ramanujan graph constructions (Lubotzky, Phillips, Sarnak, 1988; Margulis, 1988) use deep number theory.
+**Ramanujan graphs.** The optimal spectral gap for a $d$-regular graph is bounded: $\lambda \geq 2\sqrt{d-1}$ (Alon-Boppana theorem). Graphs achieving $\lambda = 2\sqrt{d-1}$ are called **Ramanujan graphs** - they are the optimal expanders. Explicit Ramanujan graph constructions (Lubotzky, Phillips, Sarnak, 1988; Margulis, 1988) use deep number theory.
 
 ### 5.4 Random Walk Mixing Time
 
@@ -634,7 +634,7 @@ $$t_{\text{mix}}(\epsilon) = \min\left\{t : \max_i \lVert (P^t)_{i,:} - \boldsym
 
 $$t_{\text{mix}}(\epsilon) \leq \frac{\ln(n/\epsilon)}{\lambda_2(L_{\text{rw}})} = \frac{\ln(n/\epsilon)}{1 - \alpha}$$
 
-**Interpretation:** The spectral gap $\lambda_2 = 1 - \alpha$ governs the mixing time. Large spectral gap → fast mixing. For expanders with constant spectral gap: $t_{\text{mix}} = O(\log n)$. For paths: $\lambda_2 = O(1/n^2)$, so $t_{\text{mix}} = O(n^2 \log n)$.
+**Interpretation:** The spectral gap $\lambda_2 = 1 - \alpha$ governs the mixing time. Large spectral gap -> fast mixing. For expanders with constant spectral gap: $t_{\text{mix}} = O(\log n)$. For paths: $\lambda_2 = O(1/n^2)$, so $t_{\text{mix}} = O(n^2 \log n)$.
 
 **Proof sketch.** Write the initial distribution as $\boldsymbol{\delta}_i = \boldsymbol{\pi} + \sum_k c_k \boldsymbol{\phi}_k$ where $\boldsymbol{\phi}_k$ are eigenvectors of $P$ (eigenvalues $1 = \mu_1 > \mu_2 \geq \cdots \geq \mu_n \geq -1$). After $t$ steps: $(P^t \boldsymbol{\delta}_i)_j = \pi_j + \sum_{k \geq 2} c_k \mu_k^t (\boldsymbol{\phi}_k)_j$. The deviation decays as $\alpha^t$, giving $t_{\text{mix}} \leq \ln(1/\epsilon\pi_{\min})/\ln(1/\alpha)$.
 
@@ -648,17 +648,17 @@ A $k$-layer GCN computes (roughly) $\hat{A}^k X W$ where $\hat{A} = \tilde{D}^{-
 
 $$(\hat{A}^k)_{ij} = \sum_\ell \hat{\mu}_\ell^k (U)_{i\ell}(U)_{j\ell} \xrightarrow{k \to \infty} \hat{\mu}_1^k (U)_{i1}(U)_{j1} = \frac{\sqrt{d_i d_j}}{\operatorname{vol}(V)}$$
 
-All node features converge to a value proportional to $\sqrt{d_i}$, determined only by degree — all structural information is lost.
+All node features converge to a value proportional to $\sqrt{d_i}$, determined only by degree - all structural information is lost.
 
 **Rate of collapse.** The convergence rate is governed by the spectral gap: $\hat{\mu}_2 = 1 - \lambda_2(L_{\text{sym}}) < 1$. Faster collapse on expanders (large $\lambda_2$), slower on bottleneck graphs. This is counterintuitive: the "most connected" graphs (expanders) over-smooth fastest.
 
 **Mitigation strategies:**
-- **Residual connections** (GCNII, Chen et al., 2020): $H^{(k+1)} = \sigma\!\left((1-\alpha)\hat{A}H^{(k)}W^{(k)} + \alpha H^{(0)}\right)$ — preserve initial features
+- **Residual connections** (GCNII, Chen et al., 2020): $H^{(k+1)} = \sigma\!\left((1-\alpha)\hat{A}H^{(k)}W^{(k)} + \alpha H^{(0)}\right)$ - preserve initial features
 - **DropEdge** (Rong et al., 2020): randomly remove edges during training, reducing effective $k$
 - **PairNorm** (Zhao & Akoglu, 2020): explicitly normalize pairwise distances to prevent collapse
 - **Jumping knowledge** (Xu et al., 2018): aggregate representations from all layers
 
-> **Forward reference:** The full architecture-level treatment of over-smoothing, including the WL expressiveness hierarchy and architectural mitigations, is in [§11-05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
+> **Forward reference:** The full architecture-level treatment of over-smoothing, including the WL expressiveness hierarchy and architectural mitigations, is in [11-05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
 
 ---
 
@@ -678,19 +678,19 @@ On a graph, the Laplacian $L$ plays the role of $-\Delta$, and its eigenvectors 
 
 ```
 FOURIER TRANSFORM ANALOGY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Classical Fourier                   Graph Fourier
-  ─────────────────────────────────   ─────────────────────────────────
-  Domain          ℝⁿ                  Vertex set V (finite)
-  Operator        -Δ (Laplacian)      L = D - A (graph Laplacian)
-  Eigenfunctions  exp(iω·x)           Eigenvectors u₁, u₂, ..., uₙ
-  Frequencies     ‖ω‖² ∈ [0, ∞)      Eigenvalues λ₁ ≤ λ₂ ≤ ... ≤ λₙ
-  Low freq.       ‖ω‖ small → smooth  λₖ small → smooth on graph
-  High freq.      ‖ω‖ large → rapid   λₖ large → rapid variation
-  Transform       Continuous integral  Finite matrix multiply (U⊤x)
+  ---------------------------------   ---------------------------------
+  Domain          \mathbb{R}^n                  Vertex set V (finite)
+  Operator        -\Delta (Laplacian)      L = D - A (graph Laplacian)
+  Eigenfunctions  exp(i\omega*x)           Eigenvectors u_1, u_2, ..., u_n
+  Frequencies     ||\omega||^2 \in [0, \infty)      Eigenvalues \lambda_1 \leq \lambda_2 \leq ... \leq \lambda_n
+  Low freq.       ||\omega|| small -> smooth  \lambda_k small -> smooth on graph
+  High freq.      ||\omega|| large -> rapid   \lambda_k large -> rapid variation
+  Transform       Continuous integral  Finite matrix multiply (U^Tx)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 This analogy is the conceptual foundation for defining convolution, filtering, and signal processing on irregular graph domains.
@@ -718,7 +718,7 @@ $$\mathbf{x} \star_G \mathbf{y} = U (\hat{\mathbf{x}} \odot \hat{\mathbf{y}}) = 
 
 where $\odot$ is element-wise multiplication. This is the analogue of the convolution theorem: convolution in the vertex domain equals pointwise multiplication in the spectral domain.
 
-**Limitation of full GFT:** Computing $U$ requires $O(n^3)$ time (eigendecomposition). For large graphs ($n > 10^4$), this is infeasible, motivating polynomial approximations (§7).
+**Limitation of full GFT:** Computing $U$ requires $O(n^3)$ time (eigendecomposition). For large graphs ($n > 10^4$), this is infeasible, motivating polynomial approximations (7).
 
 ### 6.3 Frequency Interpretation
 
@@ -728,11 +728,11 @@ The $k$-th frequency component $\hat{x}_k = \langle \mathbf{u}_k, \mathbf{x} \ra
 
 **High-frequency signals** correspond to large $\lambda_k$: the eigenvectors for large eigenvalues oscillate rapidly, with $(\mathbf{u}_k)_i$ and $(\mathbf{u}_k)_j$ having opposite signs for many edges $(i,j)$. A pure high-frequency signal looks like a checkerboard on the graph.
 
-**Example on a path graph.** For $P_n$, the eigenvectors are $u_{k,i} = \sqrt{2/n} \cos((k-1)\pi(2i-1)/(2n))$ — the discrete cosine transform (DCT). The eigenvalues $\lambda_k = 2 - 2\cos((k-1)\pi/n)$ are just the squared DCT frequencies. The GFT on a path is the DCT.
+**Example on a path graph.** For $P_n$, the eigenvectors are $u_{k,i} = \sqrt{2/n} \cos((k-1)\pi(2i-1)/(2n))$ - the discrete cosine transform (DCT). The eigenvalues $\lambda_k = 2 - 2\cos((k-1)\pi/n)$ are just the squared DCT frequencies. The GFT on a path is the DCT.
 
 **Example on a community graph.** A graph with two tightly connected communities has:
 - $\mathbf{u}_1 = \mathbf{1}/\sqrt{n}$: constant (DC component)
-- $\mathbf{u}_2$: Fiedler vector, positive on community 1, negative on community 2 — the community membership function is a low-frequency signal
+- $\mathbf{u}_2$: Fiedler vector, positive on community 1, negative on community 2 - the community membership function is a low-frequency signal
 - $\mathbf{u}_n$: highest frequency, alternates sign on bipartite-like structure
 
 ### 6.4 Dirichlet Energy Revisited
@@ -768,7 +768,7 @@ where $\Delta_G$ measures how localized $\mathbf{x}$ is in the vertex domain (co
 **Implications for graph signal processing:**
 - A signal perfectly localized on a single vertex ($\Delta_G = 0$) is spread across all frequencies ($\Delta_S = $ maximum)
 - Smooth signals (concentrated on low frequencies, small $\Delta_S$) are necessarily spread across many vertices ($\Delta_G$ large)
-- This tradeoff motivates **graph wavelets** (§11.3): basis functions that are approximately localized in both vertex and spectral domains
+- This tradeoff motivates **graph wavelets** (11.3): basis functions that are approximately localized in both vertex and spectral domains
 
 ### 6.6 AI Application: Node Feature Smoothing
 
@@ -807,7 +807,7 @@ where $g: \mathbb{R} \to \mathbb{R}$ is a scalar function applied pointwise to t
 | Identity | $1$ | No change | Trivial |
 | GCN | $1 - \lambda/2$ | Linear attenuation | First-order spectral convolution |
 
-**Implementation cost:** Directly computing $U g(\Lambda) U^\top \mathbf{x}$ requires the full eigendecomposition — $O(n^3)$ preprocessing and $O(n^2)$ per signal. This is intractable for large graphs. Polynomial approximation (§7.2) reduces cost to $O(K|E|)$ per signal.
+**Implementation cost:** Directly computing $U g(\Lambda) U^\top \mathbf{x}$ requires the full eigendecomposition - $O(n^3)$ preprocessing and $O(n^2)$ per signal. This is intractable for large graphs. Polynomial approximation (7.2) reduces cost to $O(K|E|)$ per signal.
 
 ### 7.2 Polynomial Filters and Localization
 
@@ -827,7 +827,7 @@ $$g(L) = \sum_{k=0}^K \theta_k L^k$$
 
 ### 7.3 Chebyshev Polynomial Approximation
 
-**Why Chebyshev?** Among all polynomials of degree $\leq K$, the $K$-th Chebyshev polynomial $T_K$ has the smallest maximum deviation from zero on $[-1, 1]$ — it is the optimal polynomial approximation basis.
+**Why Chebyshev?** Among all polynomials of degree $\leq K$, the $K$-th Chebyshev polynomial $T_K$ has the smallest maximum deviation from zero on $[-1, 1]$ - it is the optimal polynomial approximation basis.
 
 **Definition.** The Chebyshev polynomials $T_k: [-1, 1] \to [-1, 1]$ satisfy:
 $$T_0(x) = 1, \quad T_1(x) = x, \quad T_k(x) = 2x T_{k-1}(x) - T_{k-2}(x)$$
@@ -857,7 +857,7 @@ The **graph heat equation** generalizes diffusion to graphs:
 
 $$\frac{\partial \mathbf{x}(t)}{\partial t} = -L\mathbf{x}(t), \quad \mathbf{x}(0) = \mathbf{x}_0$$
 
-Solution: $\mathbf{x}(t) = e^{-tL}\mathbf{x}_0$. In the spectral domain: $\hat{x}_k(t) = e^{-t\lambda_k}\hat{x}_{k,0}$ — each frequency decays at rate $\lambda_k$.
+Solution: $\mathbf{x}(t) = e^{-tL}\mathbf{x}_0$. In the spectral domain: $\hat{x}_k(t) = e^{-t\lambda_k}\hat{x}_{k,0}$ - each frequency decays at rate $\lambda_k$.
 
 The **heat kernel** $H_t = e^{-tL}$ is a positive semidefinite matrix representing the diffusion of heat on the graph over time $t$. Entries $(H_t)_{ij}$ give the heat at vertex $j$ after time $t$ when a unit heat source is placed at vertex $i$.
 
@@ -898,7 +898,7 @@ $$H^{(l+1)} = \sigma\!\left(\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2} H^{(l)} W^
 
 **Spectral interpretation.** The GCN filter $g(\lambda) \approx 1 - \lambda/2$ is a low-pass filter: it passes low frequencies ($\lambda \approx 0$, smooth signals) and attenuates high frequencies ($\lambda \approx 2$, rapidly varying signals). GCN is fundamentally a **graph smoother**.
 
-> **Full GNN treatment:** For GraphSAGE, GAT, MPNN framework, over-smoothing fixes, and expressiveness theory, see [§11-05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
+> **Full GNN treatment:** For GraphSAGE, GAT, MPNN framework, over-smoothing fixes, and expressiveness theory, see [11-05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
 
 ---
 
@@ -912,19 +912,19 @@ $$\text{Cut}(A_1, \ldots, A_k) = \frac{1}{2}\sum_{\ell=1}^k |E(A_\ell, \bar{A}_\
 
 where $E(S, \bar{S})$ is the set of edges between $S$ and its complement.
 
-**Problem with minimum cut.** Minimum cut tends to cut off isolated vertices or very small sets — the trivial solution $A_1 = \{v\}$ for a low-degree vertex $v$ has very few edges to cut. We need objectives that balance cluster sizes.
+**Problem with minimum cut.** Minimum cut tends to cut off isolated vertices or very small sets - the trivial solution $A_1 = \{v\}$ for a low-degree vertex $v$ has very few edges to cut. We need objectives that balance cluster sizes.
 
 **RatioCut** (Hagen & Kahng, 1992):
 
 $$\text{RatioCut}(A_1, \ldots, A_k) = \sum_{\ell=1}^k \frac{|E(A_\ell, \bar{A}_\ell)|}{|A_\ell|}$$
 
-Normalizes by the number of vertices in each partition — prevents very small cuts.
+Normalizes by the number of vertices in each partition - prevents very small cuts.
 
 **Normalized Cut (NCut)** (Shi & Malik, 2000):
 
 $$\text{NCut}(A_1, \ldots, A_k) = \sum_{\ell=1}^k \frac{|E(A_\ell, \bar{A}_\ell)|}{\operatorname{vol}(A_\ell)}$$
 
-Normalizes by the volume (total degree) — weighted version of RatioCut.
+Normalizes by the volume (total degree) - weighted version of RatioCut.
 
 Both problems are NP-hard in general. Spectral clustering relaxes them to tractable eigenvalue problems.
 
@@ -988,7 +988,7 @@ where $\tilde{\mathbf{u}}_2$ is the Fiedler vector of $L_{\text{sym}}$.
 4. **Normalize rows:** let $Y_{i,:} = U_{k,i,:} / \lVert U_{k,i,:} \rVert_2$ (row normalization)
 5. Apply k-means to the rows of $Y$
 
-**Why row normalization?** The perturbation theory of §8.5 shows that in a perfect $k$-cluster graph, the rows of $U_k$ lie exactly on $k$ orthogonal vectors. Row normalization maps these to the same point on the unit sphere regardless of degree, making k-means converge cleanly.
+**Why row normalization?** The perturbation theory of 8.5 shows that in a perfect $k$-cluster graph, the rows of $U_k$ lie exactly on $k$ orthogonal vectors. Row normalization maps these to the same point on the unit sphere regardless of degree, making k-means converge cleanly.
 
 **Perturbation theory justification.** Consider a "block graph" $G_0$ consisting of $k$ disconnected cliques. The $k$ smallest eigenvalues of $L_{\text{sym}}$ are all $0$, with eigenvectors being the normalized indicators of each clique. Any real graph with $k$ communities can be seen as a perturbed block graph; if the perturbation (inter-community edges) is small, the eigenvectors are close to the block indicators. Weyl's perturbation theorem quantifies how much $\lambda_2$ changes.
 
@@ -996,30 +996,30 @@ where $\tilde{\mathbf{u}}_2$ is the Fiedler vector of $L_{\text{sym}}$.
 
 ```
 SPECTRAL CLUSTERING ALGORITHM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Input:  Adjacency matrix A ∈ ℝⁿˣⁿ, number of clusters k
-  Output: Cluster assignments c ∈ {1,...,k}ⁿ
+  Input:  Adjacency matrix A \in \mathbb{R}^n^x^n, number of clusters k
+  Output: Cluster assignments c \in {1,...,k}^n
 
-  1. Compute degree matrix D = diag(A·1)
+  1. Compute degree matrix D = diag(A*1)
   2. Compute normalized Laplacian L_sym = D^(-1/2) (D - A) D^(-1/2)
      (or use L_rw = I - D^(-1) A, but use L_sym for symmetric version)
 
   3. Compute k smallest eigenvalues and eigenvectors of L_sym
-     → eigenvectors form columns of U_k ∈ ℝⁿˣᵏ
+     -> eigenvectors form columns of U_k \in \mathbb{R}^n^x^k
 
   4. Normalize rows: Y_i = U_k[i,:] / ||U_k[i,:]||_2
      (skip for RatioCut; required for NCut)
 
   5. Apply k-means clustering to rows of Y
-     → cluster centers μ₁,...,μₖ; assignments c[i] ∈ {1,...,k}
+     -> cluster centers \mu_1,...,\mu_k; assignments c[i] \in {1,...,k}
 
   6. Return c
 
-  Complexity: O(n³) for full eigendecomposition;
-              O(k·n·|E|) with Lanczos + k-means (large graphs)
+  Complexity: O(n^3) for full eigendecomposition;
+              O(k*n*|E|) with Lanczos + k-means (large graphs)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Practical notes:**
@@ -1030,10 +1030,10 @@ SPECTRAL CLUSTERING ALGORITHM
 
 ### 8.6 When Spectral Clustering Beats k-Means
 
-K-means minimizes within-cluster variance assuming **convex, isotropic, similarly-sized** clusters. It fails on non-convex cluster shapes. Spectral clustering has no shape assumption — it works on any cluster structure that is well-separated in the graph.
+K-means minimizes within-cluster variance assuming **convex, isotropic, similarly-sized** clusters. It fails on non-convex cluster shapes. Spectral clustering has no shape assumption - it works on any cluster structure that is well-separated in the graph.
 
 **When spectral clustering excels:**
-- Concentric rings, spirals, moons — any shape detectable by graph connectivity
+- Concentric rings, spirals, moons - any shape detectable by graph connectivity
 - Clusters at multiple scales (nested communities)
 - Data with non-Euclidean structure (molecules, social networks)
 
@@ -1108,7 +1108,7 @@ The Euclidean distance in the diffusion map equals the diffusion distance: $\lVe
 
 ### 9.4 Relationship to PCA and Kernel PCA
 
-**Kernel PCA** (Schölkopf et al., 1998) computes the principal components of data in a feature space defined by a kernel $k(\mathbf{x}, \mathbf{y})$. For a kernel matrix $K \in \mathbb{R}^{n \times n}$ with $K_{ij} = k(\mathbf{x}^{(i)}, \mathbf{x}^{(j)})$, kernel PCA computes the eigenvectors of the centered kernel matrix.
+**Kernel PCA** (Scholkopf et al., 1998) computes the principal components of data in a feature space defined by a kernel $k(\mathbf{x}, \mathbf{y})$. For a kernel matrix $K \in \mathbb{R}^{n \times n}$ with $K_{ij} = k(\mathbf{x}^{(i)}, \mathbf{x}^{(j)})$, kernel PCA computes the eigenvectors of the centered kernel matrix.
 
 **Commute-time embedding.** The commute time $C(i,j)$ between vertices $i$ and $j$ is the expected number of steps for a random walk starting at $i$ to reach $j$ and return. It equals:
 
@@ -1118,7 +1118,7 @@ This is kernel PCA with the commute-time kernel $k(i,j) = (C(i,i) + C(j,j) - C(i
 
 ### 9.5 Spectral Positional Encodings for Transformers
 
-Standard Transformers process tokens with positional encodings to handle sequence order. Graph Transformers need analogous **positional encodings** for graph nodes — but graphs have no canonical ordering.
+Standard Transformers process tokens with positional encodings to handle sequence order. Graph Transformers need analogous **positional encodings** for graph nodes - but graphs have no canonical ordering.
 
 **Laplacian Positional Encoding (LapPE).** Use the eigenvectors of the graph Laplacian as node positional encodings:
 
@@ -1137,9 +1137,9 @@ where $\mathbf{u}_j(v)$ is the $v$-th entry of the $j$-th Laplacian eigenvector.
 
 $$\text{RWPE}(v)_j = (P^j)_{vv} = \text{probability of returning to } v \text{ after } j \text{ steps}$$
 
-where $P = D^{-1}A$. This avoids the sign ambiguity issue and is invariant to graph automorphisms. Used in GPS (Rampasek et al., 2022) — one of the best-performing graph Transformers.
+where $P = D^{-1}A$. This avoids the sign ambiguity issue and is invariant to graph automorphisms. Used in GPS (Rampasek et al., 2022) - one of the best-performing graph Transformers.
 
-**Why LapPE/RWPE matter.** Without positional encodings, graph Transformers cannot distinguish graph structure — all nodes with the same degree distribution look identical. Spectral PE gives each node a unique "spectral fingerprint" derived from its position in the graph's Fourier basis.
+**Why LapPE/RWPE matter.** Without positional encodings, graph Transformers cannot distinguish graph structure - all nodes with the same degree distribution look identical. Spectral PE gives each node a unique "spectral fingerprint" derived from its position in the graph's Fourier basis.
 
 ---
 
@@ -1175,14 +1175,14 @@ where $\lambda_2, \ldots, \lambda_n$ are the non-zero eigenvalues of $L$.
 
 **Examples:**
 - $K_n$: $\lambda_2 = \cdots = \lambda_n = n$ (all equal), so $\tau(K_n) = n^{n-2}$ (Cayley's formula).
-- $P_n$ (path): $\tau(P_n) = 1$ (only one spanning tree — the path itself).
+- $P_n$ (path): $\tau(P_n) = 1$ (only one spanning tree - the path itself).
 - $C_n$ (cycle): $\tau(C_n) = n$.
 
 **For AI:** The number of spanning trees measures "graph robustness." Networks with many spanning trees (like expanders) remain connected even after many edge failures. This metric appears in network reliability analysis for distributed training clusters.
 
 ### 10.3 PageRank as a Spectral Problem
 
-PageRank (Page, Brin, Motwani, Winograd, 1998) — the algorithm behind Google Search — is fundamentally a spectral computation on a directed graph.
+PageRank (Page, Brin, Motwani, Winograd, 1998) - the algorithm behind Google Search - is fundamentally a spectral computation on a directed graph.
 
 **Setup.** Model the Web as a directed graph: pages are vertices, hyperlinks are directed edges. Define the **Google matrix:**
 
@@ -1202,14 +1202,14 @@ Equivalently, $\boldsymbol{\pi}$ is the dominant left eigenvector of $G$ (eigenv
 
 $$\boldsymbol{\pi}^{(t+1)} = \boldsymbol{\pi}^{(t)} G = \alpha \boldsymbol{\pi}^{(t)} P + (1-\alpha)\frac{\mathbf{1}}{n}$$
 
-Convergence rate: geometric with ratio $\alpha$ — the second eigenvalue of $G$ is at most $\alpha$. Each iteration is a sparse matrix-vector multiply $O(|E|)$.
+Convergence rate: geometric with ratio $\alpha$ - the second eigenvalue of $G$ is at most $\alpha$. Each iteration is a sparse matrix-vector multiply $O(|E|)$.
 
 **For AI (RLHF and LLM preference graphs):** In reinforcement learning from human feedback (RLHF), preference data can be modeled as a directed graph over responses, with edge $(r_i, r_j)$ meaning "response $r_i$ is preferred over $r_j$." PageRank on this preference graph gives a global ranking consistent with pairwise preferences. This is closely related to Bradley-Terry models used in reward model training (Ouyang et al., 2022).
 
 ### 10.4 Directed Graph Spectra in AI
 
 **Attention as a directed graph.** In a Transformer, the attention weights $A_{ij}$ define a directed weighted graph over tokens. The spectral properties of this attention graph have interpretability implications:
-- The dominant eigenvector of the attention matrix identifies "hub" tokens — tokens that receive most attention
+- The dominant eigenvector of the attention matrix identifies "hub" tokens - tokens that receive most attention
 - Spectral analysis of attention graphs has been used in mechanistic interpretability to identify "induction heads" and "name mover heads" (Olsson et al., 2022)
 - The spectral gap of the attention graph determines how quickly information mixes across token positions
 
@@ -1245,7 +1245,7 @@ where $L^\dagger$ is the pseudoinverse of $L$.
 
 The spectrum of a random graph has universal limiting behavior described by **random matrix theory**.
 
-**Erdős-Rényi model $G(n, p)$.** For a random graph where each edge appears independently with probability $p$, the empirical spectral distribution of $A/\sqrt{np(1-p)}$ converges to the **semicircle law** (Wigner, 1955):
+**Erdos-Renyi model $G(n, p)$.** For a random graph where each edge appears independently with probability $p$, the empirical spectral distribution of $A/\sqrt{np(1-p)}$ converges to the **semicircle law** (Wigner, 1955):
 
 $$\rho(\lambda) = \frac{1}{2\pi}\sqrt{4 - \lambda^2} \quad \text{for } \lambda \in [-2, 2]$$
 
@@ -1258,7 +1258,7 @@ The leading eigenvalue separates from the bulk at $\mu_1 \approx np$ when $p \gg
 
 ### 11.3 Graph Wavelets
 
-**Motivation.** Laplacian eigenvectors are global: $\mathbf{u}_k$ is supported on all $n$ vertices. For signals with local structure (e.g., a signal that varies in one part of the graph but is constant elsewhere), global eigenvectors are inefficient. We need a **local, multiscale** basis — a graph wavelet transform.
+**Motivation.** Laplacian eigenvectors are global: $\mathbf{u}_k$ is supported on all $n$ vertices. For signals with local structure (e.g., a signal that varies in one part of the graph but is constant elsewhere), global eigenvectors are inefficient. We need a **local, multiscale** basis - a graph wavelet transform.
 
 **Hammond, Vandergheynst & Gribonval (2011).** For a vertex $t$ and scale $s$, define the **graph wavelet** centered at $t$ at scale $s$:
 
@@ -1307,7 +1307,7 @@ The objective:
 
 $$\min_{\mathbf{f}} \sum_{i \in \mathcal{L}} \lVert \mathbf{f}_i - \mathbf{y}_i \rVert^2 + \gamma \sum_{(i,j) \in E} w_{ij} \lVert \mathbf{f}_i - \mathbf{f}_j \rVert^2 = \min_\mathbf{f} \lVert \mathbf{f}_\mathcal{L} - \mathbf{y} \rVert^2 + \gamma \operatorname{tr}(\mathbf{f}^\top L \mathbf{f})$$
 
-The closed-form solution involves $(I + \gamma L)^{-1}$ — a smoothing operator. In the spectral domain:
+The closed-form solution involves $(I + \gamma L)^{-1}$ - a smoothing operator. In the spectral domain:
 
 $$\hat{f}_k = \frac{\hat{y}_k}{1 + \gamma\lambda_k}$$
 
@@ -1334,7 +1334,7 @@ A **knowledge graph (KG)** represents world knowledge as a graph: entities (node
 
 $$\mathcal{L}_{\text{smooth}} = \sum_r \text{tr}(E_r^\top L_r E_r)$$
 
-encourages entity embeddings to be smooth with respect to each relation type $r$'s graph — entities connected by relation $r$ should have similar embeddings. This improves link prediction accuracy, especially for rare relations.
+encourages entity embeddings to be smooth with respect to each relation type $r$'s graph - entities connected by relation $r$ should have similar embeddings. This improves link prediction accuracy, especially for rare relations.
 
 ### 12.3 Molecular Property Prediction
 
@@ -1348,7 +1348,7 @@ $$d_{\text{spec}}(G_1, G_2) = \lVert \boldsymbol{\lambda}(G_1) - \boldsymbol{\la
 
 (where eigenvalues are sorted and zero-padded to the same length) approximates graph edit distance and correlates with molecular similarity.
 
-**Equivariance and invariance.** Spectral fingerprints are invariant to atom permutation (graph isomorphism), which is the correct invariance for molecular property prediction. However, they are blind to chirality (mirror image molecules) — a known limitation requiring higher-order structural features.
+**Equivariance and invariance.** Spectral fingerprints are invariant to atom permutation (graph isomorphism), which is the correct invariance for molecular property prediction. However, they are blind to chirality (mirror image molecules) - a known limitation requiring higher-order structural features.
 
 ### 12.4 Attention Pattern Analysis in LLMs
 
@@ -1357,7 +1357,7 @@ A $d$-head attention layer in a Transformer computes $h$ attention weight matric
 **Spectral analysis of attention.** The eigenvalues of $A^{(k)}$ reveal the attention pattern structure:
 - If $A^{(k)} \approx \mathbf{1}\mathbf{1}^\top/T$ (uniform attention): $\mu_1 = 1$, all others $\approx 0$
 - If $A^{(k)} \approx I$ (attend only to self): $\mu_1 = \cdots = \mu_T = 1$
-- Induction heads (Olsson et al., 2022) have $A^{(k)}$ with large spectral gap between $\mu_1$ and $\mu_2$ — they attend sharply to a few positions
+- Induction heads (Olsson et al., 2022) have $A^{(k)}$ with large spectral gap between $\mu_1$ and $\mu_2$ - they attend sharply to a few positions
 
 **Attention graph Laplacian.** Define the symmetrized attention Laplacian $L^{(k)} = D^{(k)} - (A^{(k)} + A^{(k)^\top})/2$. The Fiedler vector $\mathbf{u}_2^{(k)}$ of $L^{(k)}$ identifies the two groups of tokens most separated by head $k$'s attention.
 
@@ -1376,20 +1376,20 @@ A $d$-head attention layer in a Transformer computes $h$ attention weight matric
 | 2 | Using unnormalized $L$ for spectral clustering on graphs with varying degrees | RatioCut (unnormalized) penalizes unequally-sized partitions; for real data, NCut (normalized) gives much better clusters | Use $L_{\text{sym}}$ or $L_{\text{rw}}$ for spectral clustering; unnormalized $L$ only for regular graphs |
 | 3 | Taking the Fiedler vector $\mathbf{u}_1$ (index 1) instead of $\mathbf{u}_2$ | $\mathbf{u}_1$ is the constant vector $\mathbf{1}/\sqrt{n}$ (trivial null vector); it has no discriminative information | In NumPy: eigenvectors are sorted ascending; take column index 1 (0-indexed), not index 0 |
 | 4 | Ignoring sign ambiguity of eigenvectors | For each eigenvector $\mathbf{u}_k$, both $\mathbf{u}_k$ and $-\mathbf{u}_k$ are valid; different runs give different signs | Use absolute value $\lvert (\mathbf{u}_k)_i \rvert$ for visualizations; or use RWPE instead of LapPE to avoid sign issues |
-| 5 | Confusing the Cheeger inequality direction: $\lambda_2 \leq 2h$ vs $h \geq \lambda_2/2$ | These are the same inequality; the confusing part is that "large $\lambda_2$" implies "large $h$" (good expander), not "small $h$" | Remember: small $\lambda_2$ ↔ bottleneck ↔ small $h$ ↔ easy to cut. Large $\lambda_2$ ↔ expander ↔ large $h$ ↔ hard to cut |
+| 5 | Confusing the Cheeger inequality direction: $\lambda_2 \leq 2h$ vs $h \geq \lambda_2/2$ | These are the same inequality; the confusing part is that "large $\lambda_2$" implies "large $h$" (good expander), not "small $h$" | Remember: small $\lambda_2$ <-> bottleneck <-> small $h$ <-> easy to cut. Large $\lambda_2$ <-> expander <-> large $h$ <-> hard to cut |
 | 6 | Computing the graph Laplacian for disconnected graphs and expecting $\lambda_2 > 0$ | For a disconnected graph, $\lambda_2 = 0$ always. The null space has dimension equal to the number of components. | Check connectivity before spectral clustering. If graph is disconnected, handle each component separately or add a small connectivity term |
 | 7 | Treating spectral clustering as scale-free (the same regardless of $k$) | The cluster structure at scale $k$ uses eigenvectors $\mathbf{u}_2, \ldots, \mathbf{u}_{k+1}$. The $k$-th eigenvector captures increasingly fine-grained structure | Choose $k$ using the eigengap heuristic: $k^* = \arg\max_k (\lambda_{k+1} - \lambda_k)$ |
 | 8 | Applying GCN (a low-pass filter) to heterophilic graphs | GCN smooths features toward neighborhood averages. For heterophilic graphs (connected nodes have different labels), this destroys discriminative information | Use high-pass or band-pass graph filters (e.g., GPRGNN, FAGCN, BernNet) for heterophilic settings |
 | 9 | Confusing $L_{\text{sym}}$ and $L_{\text{rw}}$: using $L_{\text{rw}}$ for Ng-Jordan-Weiss | NJW requires $L_{\text{sym}}$ (symmetric, orthogonal eigenvectors) for row normalization to work. $L_{\text{rw}}$ is not symmetric, so its eigenvectors are not orthogonal | Use `scipy.linalg.eigh(L_sym)` for symmetric eigendecomposition; eigenvectors form orthonormal columns |
 | 10 | Over-interpreting spectral methods on cospectral graphs | Two different graphs can have identical Laplacian spectra. Spectral features cannot distinguish them | Augment spectral features with structural features (degree, triangle count, etc.) or use WL-based methods |
 | 11 | Forgetting the self-loop normalization in GCN derivation | Without self-loops, the $K=1$ Chebyshev filter has eigenvalues in $[-1, 1]$; adding $\tilde{A} = A+I$ shifts them to $[0,2]$ | Always include self-loops $\tilde{A} = A + I$ and renormalize with $\tilde{D}$ in the GCN propagation rule |
-| 12 | Using the full GFT ($O(n^3)$) on graphs with $n > 1000$ | Full eigendecomposition is $O(n^3)$; for $n = 10^6$, this is $10^{18}$ operations — completely intractable | Use polynomial filters (Chebyshev, $K$ sparse matrix-vector products), Lanczos for top-$k$ eigenvectors, or RWPE |
+| 12 | Using the full GFT ($O(n^3)$) on graphs with $n > 1000$ | Full eigendecomposition is $O(n^3)$; for $n = 10^6$, this is $10^{18}$ operations - completely intractable | Use polynomial filters (Chebyshev, $K$ sparse matrix-vector products), Lanczos for top-$k$ eigenvectors, or RWPE |
 
 ---
 
 ## 14. Exercises
 
-**Exercise 1** ★ — Laplacian Construction and Properties
+**Exercise 1** * - Laplacian Construction and Properties
 
 For the following graph $G$: vertices $\{1, 2, 3, 4\}$, edges $\{(1,2), (2,3), (3,4), (4,1), (1,3)\}$ (an unweighted undirected graph):
 
@@ -1401,7 +1401,7 @@ For the following graph $G$: vertices $\{1, 2, 3, 4\}$, edges $\{(1,2), (2,3), (
 
 ---
 
-**Exercise 2** ★ — Spectrum of Special Graphs
+**Exercise 2** * - Spectrum of Special Graphs
 
 (a) Derive the eigenvalues of $L$ for the cycle graph $C_5$ (5 vertices in a cycle). Show all work.
 (b) Compute $\lambda_2(C_5)$. Is the cycle more or less connected (in the algebraic sense) than the path $P_5$? Use the formula for $\lambda_2(P_n)$.
@@ -1410,7 +1410,7 @@ For the following graph $G$: vertices $\{1, 2, 3, 4\}$, edges $\{(1,2), (2,3), (
 
 ---
 
-**Exercise 3** ★ — Fiedler Vector and Graph Bisection
+**Exercise 3** * - Fiedler Vector and Graph Bisection
 
 Given a barbell graph: two cliques $K_5$ connected by a single bridge edge $(u, v)$:
 
@@ -1421,7 +1421,7 @@ Given a barbell graph: two cliques $K_5$ connected by a single bridge edge $(u, 
 
 ---
 
-**Exercise 4** ★★ — Cheeger Inequality Verification
+**Exercise 4** ** - Cheeger Inequality Verification
 
 For the path graph $P_{10}$ (10 vertices in a line):
 
@@ -1433,7 +1433,7 @@ For the path graph $P_{10}$ (10 vertices in a line):
 
 ---
 
-**Exercise 5** ★★ — Graph Fourier Transform
+**Exercise 5** ** - Graph Fourier Transform
 
 Define a "community signal" $\mathbf{x}$ on the karate club graph (Zachary 1977, available in NetworkX) where $x_i = +1$ if node $i$ is in community 1 and $x_i = -1$ otherwise.
 
@@ -1445,7 +1445,7 @@ Define a "community signal" $\mathbf{x}$ on the karate club graph (Zachary 1977,
 
 ---
 
-**Exercise 6** ★★ — Spectral Clustering
+**Exercise 6** ** - Spectral Clustering
 
 Generate a synthetic graph with 3 communities using the Stochastic Block Model:
 - 3 blocks of 50 nodes each
@@ -1459,7 +1459,7 @@ Generate a synthetic graph with 3 communities using the Stochastic Block Model:
 
 ---
 
-**Exercise 7** ★★★ — Laplacian Positional Encodings
+**Exercise 7** *** - Laplacian Positional Encodings
 
 Implement Laplacian Positional Encodings (LapPE) and test them on a simple graph classification task:
 
@@ -1471,7 +1471,7 @@ Implement Laplacian Positional Encodings (LapPE) and test them on a simple graph
 
 ---
 
-**Exercise 8** ★★★ — PageRank and Spectral Analysis
+**Exercise 8** *** - PageRank and Spectral Analysis
 
 Construct a small directed graph representing a citation network (10 papers, edges from citing paper to cited paper):
 
@@ -1491,7 +1491,7 @@ Construct a small directed graph representing a citation network (10 papers, edg
 | **Fiedler vector / spectral bisection** | Graph partitioning for distributed training (model parallel + pipeline parallel); partition the computation graph of a large model across devices |
 | **Cheeger inequality** | Quantifies over-smoothing rate in deep GNNs; expanders over-smooth fastest; guides choice of GNN depth and skip-connection design |
 | **Spectral clustering** | Gold-standard for community detection in social networks, knowledge graphs, citation networks; used in data curation for LLM pretraining |
-| **Graph Fourier Transform** | Spectral convolution → polynomial approximation → spatial GNN: the entire GNN derivation hierarchy is a spectral story; ChebNet (Defferrard et al., 2016) |
+| **Graph Fourier Transform** | Spectral convolution -> polynomial approximation -> spatial GNN: the entire GNN derivation hierarchy is a spectral story; ChebNet (Defferrard et al., 2016) |
 | **Laplacian Positional Encodings** | LapPE in GPS (Rampasek et al., 2022); RWPE in graph Transformers; enables graph Transformers to be position-aware without hardcoded sequence order |
 | **Random walk mixing** | RWPE computation; node2vec walks; GraphSAGE neighborhood sampling; mixing time determines required walk length for meaningful embeddings |
 | **Heat kernel / diffusion** | Graph diffusion networks (Klicpera et al., 2019); APPNP; diffusion-based denoising on knowledge graphs; personalized PageRank for neighborhood aggregation |
@@ -1505,9 +1505,9 @@ Construct a small directed graph representing a citation network (10 papers, edg
 ## 16. Conceptual Bridge
 
 **Where we came from.** This section builds directly on three pillars:
-- **§11-01 Graph Basics** provided the combinatorial vocabulary: vertices, edges, paths, connectivity, bipartiteness. These definitions are the domain of spectral graph theory.
-- **§11-02 Graph Representations** introduced the adjacency matrix and Laplacian as data structures. We now treat them as linear operators with rich algebraic structure.
-- **§03 Advanced Linear Algebra** (eigenvalues, spectral theorem, PSD matrices) gave us the mathematical machinery. Spectral graph theory is linear algebra applied to graphs.
+- **11-01 Graph Basics** provided the combinatorial vocabulary: vertices, edges, paths, connectivity, bipartiteness. These definitions are the domain of spectral graph theory.
+- **11-02 Graph Representations** introduced the adjacency matrix and Laplacian as data structures. We now treat them as linear operators with rich algebraic structure.
+- **03 Advanced Linear Algebra** (eigenvalues, spectral theorem, PSD matrices) gave us the mathematical machinery. Spectral graph theory is linear algebra applied to graphs.
 
 **What this section proved.** Starting from the simple definition $L = D - A$, we established:
 1. $L \succeq 0$ (proved via the quadratic form $\mathbf{x}^\top L \mathbf{x} = \sum_{(i,j)}(x_i - x_j)^2$)
@@ -1520,44 +1520,44 @@ Construct a small directed graph representing a citation network (10 papers, edg
 
 **Where we are going.** Two sections lie ahead:
 
-**§11-05 Graph Neural Networks** (immediate next): The spectral foundation developed here — GCN derivation, over-smoothing as diffusion, spectral filters — motivates the full GNN architecture zoo. The MPNN framework, GAT attention, GraphSAGE induction, and over-smoothing mitigations are all seen more clearly through the spectral lens.
+**11-05 Graph Neural Networks** (immediate next): The spectral foundation developed here - GCN derivation, over-smoothing as diffusion, spectral filters - motivates the full GNN architecture zoo. The MPNN framework, GAT attention, GraphSAGE induction, and over-smoothing mitigations are all seen more clearly through the spectral lens.
 
-**§12 Functional Analysis** (next chapter): The spectral theory of the discrete graph Laplacian is a special case of the spectral theory of self-adjoint operators on Hilbert spaces. The Laplace-Beltrami operator on Riemannian manifolds is the continuous limit of the graph Laplacian. Kernel methods, Mercer's theorem, and Reproducing Kernel Hilbert Spaces (RKHS) generalize what we built here to infinite-dimensional settings.
+**12 Functional Analysis** (next chapter): The spectral theory of the discrete graph Laplacian is a special case of the spectral theory of self-adjoint operators on Hilbert spaces. The Laplace-Beltrami operator on Riemannian manifolds is the continuous limit of the graph Laplacian. Kernel methods, Mercer's theorem, and Reproducing Kernel Hilbert Spaces (RKHS) generalize what we built here to infinite-dimensional settings.
 
 ```
 SPECTRAL GRAPH THEORY IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════════
+============================================================================
 
   Chapter 02-03           Chapter 11                Chapter 12
   Linear Algebra          Graph Theory              Functional Analysis
-  ─────────────           ────────────              ────────────────────
-  Eigenvalues     ──────► §04 Spectral       ──────► Laplace-Beltrami
+  -------------           ------------              --------------------
+  Eigenvalues     ------> 04 Spectral       ------> Laplace-Beltrami
   PSD matrices            Graph Theory               operator
-  Spectral                     │                    Spectral measure
-  theorem                      │                    RKHS
-                               │
-                    ┌──────────┴──────────┐
-                    ▼                     ▼
-               §11-05 GNNs          §22 Causal
+  Spectral                     |                    Spectral measure
+  theorem                      |                    RKHS
+                               |
+                    +----------+----------+
+                    v                     v
+               11-05 GNNs          22 Causal
                GCN, GAT             Inference
                GraphSAGE            Causal DAGs
                MPNN                 d-separation
 
-  KEY RESULTS IN §04:
-  ─────────────────────────────────────────────────────────────────────
-  L = D - A ≽ 0          (proved via quadratic form)
+  KEY RESULTS IN 04:
+  ---------------------------------------------------------------------
+  L = D - A \succeq 0          (proved via quadratic form)
   ker(L) = span of        (connected components theorem)
   component indicators
-  Cheeger: λ₂/2 ≤ h ≤ √(2λ₂)  (connectivity ↔ eigenvalue)
-  GFT: x̂ = U⊤x          (graph Fourier transform)
-  GCN = 1st-order         (from ChebNet K=1, λ_max≈2)
+  Cheeger: \lambda_2/2 \leq h \leq \sqrt(2\lambda_2)  (connectivity <-> eigenvalue)
+  GFT: x = U^Tx          (graph Fourier transform)
+  GCN = 1st-order         (from ChebNet K=1, \lambda_max\approx2)
   Chebyshev filter
 
-════════════════════════════════════════════════════════════════════════════
+============================================================================
 ```
 
-**The unifying theme.** Spectral graph theory teaches a single lesson: **linear algebraic structure encodes combinatorial structure**. The eigenvalues of a matrix you can compute in $O(n^3)$ reveal properties of the graph that are NP-hard to compute directly. This is the power of the spectral approach, and it is why spectral methods remain foundational even as spatial GNNs dominate in practice — the theory explains why the practice works.
+**The unifying theme.** Spectral graph theory teaches a single lesson: **linear algebraic structure encodes combinatorial structure**. The eigenvalues of a matrix you can compute in $O(n^3)$ reveal properties of the graph that are NP-hard to compute directly. This is the power of the spectral approach, and it is why spectral methods remain foundational even as spatial GNNs dominate in practice - the theory explains why the practice works.
 
 ---
 
-[← Back to Graph Theory](../README.md) | [Previous: Graph Algorithms ←](../03-Graph-Algorithms/notes.md) | [Next: Graph Neural Networks →](../05-Graph-Neural-Networks/notes.md)
+[<- Back to Graph Theory](../README.md) | [Previous: Graph Algorithms <-](../03-Graph-Algorithms/notes.md) | [Next: Graph Neural Networks ->](../05-Graph-Neural-Networks/notes.md)

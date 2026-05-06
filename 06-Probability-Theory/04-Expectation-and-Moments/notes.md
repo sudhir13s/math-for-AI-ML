@@ -1,25 +1,25 @@
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Concentration Inequalities →](../05-Concentration-Inequalities/notes.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Concentration Inequalities ->](../05-Concentration-Inequalities/notes.md)
 
 ---
 
 # Expectation and Moments
 
-> _"The expectation of the product of two independent random variables equals the product of their expectations — a theorem so simple it conceals its own depth."_
-> — Mark Kac
+> _"The expectation of the product of two independent random variables equals the product of their expectations - a theorem so simple it conceals its own depth."_
+> - Mark Kac
 
 ## Overview
 
-**Expectation** is the single most important operation in probability theory. It compresses an entire distribution into a number — the weighted average of all possible values, where weights are probabilities. Every loss function in machine learning is an expectation. Every gradient update in stochastic training is an estimated expectation. Every generative model is ultimately defined by the distributions whose expectations it learns to match.
+**Expectation** is the single most important operation in probability theory. It compresses an entire distribution into a number - the weighted average of all possible values, where weights are probabilities. Every loss function in machine learning is an expectation. Every gradient update in stochastic training is an estimated expectation. Every generative model is ultimately defined by the distributions whose expectations it learns to match.
 
 This section builds the theory of the expectation operator from first principles: the formal definition via the law of the unconscious statistician (LOTUS), linearity (which holds without independence), the tower property (iterated conditioning), moment generating functions (which encode the entire distribution in an analytic function), and Jensen's inequality (which underlies the derivation of the ELBO, the KL divergence bound, and every variational argument in modern deep learning).
 
-The central thread connecting all these tools is **moments** — the sequence $\mathbb{E}[X], \mathbb{E}[X^2], \mathbb{E}[X^3], \ldots$ that describes the shape of a distribution. The first moment locates the center. The second moment (variance) measures spread. The third captures asymmetry. The fourth captures tail heaviness. In modern ML, the Adam optimizer literally tracks first and second moments of gradients at every parameter, every step. Understanding moments is understanding adaptive optimisation.
+The central thread connecting all these tools is **moments** - the sequence $\mathbb{E}[X], \mathbb{E}[X^2], \mathbb{E}[X^3], \ldots$ that describes the shape of a distribution. The first moment locates the center. The second moment (variance) measures spread. The third captures asymmetry. The fourth captures tail heaviness. In modern ML, the Adam optimizer literally tracks first and second moments of gradients at every parameter, every step. Understanding moments is understanding adaptive optimisation.
 
 ## Prerequisites
 
-- [§01 Introduction and Random Variables](../01-Introduction-and-Random-Variables/notes.md) — random variables, CDF, PDF, PMF
-- [§02 Common Distributions](../02-Common-Distributions/notes.md) — Gaussian, Exponential, Binomial; their stated means and variances
-- [§03 Joint Distributions](../03-Joint-Distributions/notes.md) — joint PDF, conditional distributions, marginalisation, covariance matrix
+- [Section01 Introduction and Random Variables](../01-Introduction-and-Random-Variables/notes.md) - random variables, CDF, PDF, PMF
+- [Section02 Common Distributions](../02-Common-Distributions/notes.md) - Gaussian, Exponential, Binomial; their stated means and variances
+- [Section03 Joint Distributions](../03-Joint-Distributions/notes.md) - joint PDF, conditional distributions, marginalisation, covariance matrix
 - Single-variable integration, convergence of improper integrals, power series
 
 ## Companion Notebooks
@@ -27,7 +27,7 @@ The central thread connecting all these tools is **moments** — the sequence $\
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Interactive derivations: LOTUS, Jensen, MGFs, bias-variance, Adam moment tracking |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from LOTUS computation to policy gradient estimation |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from LOTUS computation to policy gradient estimation |
 
 ## Learning Objectives
 
@@ -41,9 +41,9 @@ After completing this section, you will be able to:
 6. Derive moment generating functions and extract moments via differentiation
 7. Apply Jensen's inequality to prove KL divergence non-negativity and derive the ELBO
 8. Prove and apply the Cauchy-Schwarz inequality for the $|\rho| \leq 1$ bound
-9. Decompose expected squared error into bias², variance, and irreducible noise
+9. Decompose expected squared error into bias^2, variance, and irreducible noise
 10. Connect Adam optimizer to first and second moment estimation with bias correction
-11. Preview Markov's and Chebyshev's inequalities as moment-based tail bounds (→ §05)
+11. Preview Markov's and Chebyshev's inequalities as moment-based tail bounds (-> Section05)
 
 ---
 
@@ -57,7 +57,7 @@ After completing this section, you will be able to:
   - [2.1 Expectation for Discrete, Continuous, and Mixed Distributions](#21-expectation-for-discrete-continuous-and-mixed-distributions)
   - [2.2 Existence and Integrability](#22-existence-and-integrability)
   - [2.3 Linearity of Expectation](#23-linearity-of-expectation)
-  - [2.4 LOTUS — Law of the Unconscious Statistician](#24-lotus--law-of-the-unconscious-statistician)
+  - [2.4 LOTUS - Law of the Unconscious Statistician](#24-lotus--law-of-the-unconscious-statistician)
 - [3. Variance, Standard Deviation, and Higher Moments](#3-variance-standard-deviation-and-higher-moments)
   - [3.1 Variance](#31-variance)
   - [3.2 Standard Deviation and Coefficient of Variation](#32-standard-deviation-and-coefficient-of-variation)
@@ -109,33 +109,33 @@ After completing this section, you will be able to:
 
 The word "moment" comes from classical mechanics. In physics, the first moment of a mass distribution is the center of mass; the second moment is the moment of inertia. Probability theory borrows this language directly: the $k$-th **moment** of a random variable $X$ is $\mathbb{E}[X^k]$, the expected value of $X$ raised to the $k$-th power.
 
-Imagine balancing a plank on which weights are placed at positions $x_1, x_2, \ldots, x_n$ with weights $p_1, p_2, \ldots, p_n$ (probabilities). The balance point is $\sum_i x_i p_i = \mathbb{E}[X]$ — the center of mass. The spread around that center is captured by $\sum_i (x_i - \mu)^2 p_i = \text{Var}(X)$, the second central moment. Higher moments capture the shape: whether the distribution leans left or right (skewness), whether it has heavy tails (kurtosis).
+Imagine balancing a plank on which weights are placed at positions $x_1, x_2, \ldots, x_n$ with weights $p_1, p_2, \ldots, p_n$ (probabilities). The balance point is $\sum_i x_i p_i = \mathbb{E}[X]$ - the center of mass. The spread around that center is captured by $\sum_i (x_i - \mu)^2 p_i = \text{Var}(X)$, the second central moment. Higher moments capture the shape: whether the distribution leans left or right (skewness), whether it has heavy tails (kurtosis).
 
 ```
 MOMENTS AS SHAPE DESCRIPTORS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  First moment (mean μ):        Location of center
-  Second central moment (σ²):   Spread about center
-  Third central moment (γ₁σ³):  Asymmetry (skewness)
-  Fourth central moment (γ₂σ⁴): Tail weight (kurtosis)
+  First moment (mean \\mu):        Location of center
+  Second central moment (\\sigma^2):   Spread about center
+  Third central moment (\\gamma_1\\sigma^3):  Asymmetry (skewness)
+  Fourth central moment (\\gamma_2\\sigma^4): Tail weight (kurtosis)
 
-  Standard normal N(0,1):  μ=0, σ²=1, γ₁=0, γ₂=0 (baseline)
+  Standard normal N(0,1):  \\mu=0, \\sigma^2=1, \\gamma_1=0, \\gamma_2=0 (baseline)
 
-  Right-skewed (γ₁ > 0):         Heavy right tail: income, LLM token probs
-        ▓
-       ▓▓▓
-      ▓▓▓▓▓▒▒▒▒▒░░░░░░░░
-  ────┴────────────────────
+  Right-skewed (\\gamma_1 > 0):         Heavy right tail: income, LLM token probs
+        #
+       ###
+      #####=====........
+  ----+--------------------
 
-  Heavy-tailed (γ₂ > 0):         Leptokurtic: gradient norms, loss landscapes
-        ▓
-        ▓
-       ▓▓▓
-      ▓▓▓▓▓░░░░░░░░░░░░░
-  ────┴────────────────────
+  Heavy-tailed (\\gamma_2 > 0):         Leptokurtic: gradient norms, loss landscapes
+        #
+        #
+       ###
+      #####.............
+  ----+--------------------
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 Every major operation in statistics reduces to computing moments. The mean is the first moment. The variance is the second central moment. The sample statistics we compute to estimate distributions are moment estimates. The method of moments estimation technique literally sets sample moments equal to theoretical moments and solves for parameters.
@@ -160,32 +160,32 @@ Moments appear in nearly every component of modern deep learning:
 
 **Reparameterisation.** The reparameterisation trick in VAEs ($z = \mu_\phi + \sigma_\phi \odot \varepsilon$) enables computing gradients of expectations. The gradient $\nabla_\phi \mathbb{E}_{q_\phi}[f(z)]$ is intractable to compute directly, but after reparameterisation it becomes $\mathbb{E}_{\varepsilon}[\nabla_\phi f(\mu_\phi + \sigma_\phi \odot \varepsilon)]$, estimable via sampling.
 
-**Score functions.** The score function $\nabla_\theta \log p_\theta(x)$ satisfies $\mathbb{E}_p[\nabla_\theta \log p_\theta(X)] = \mathbf{0}$ — its expectation is zero. This identity (proved by differentiating the normalisation condition $\int p_\theta = 1$) underlies Fisher information, the REINFORCE policy gradient estimator, and Stein's identity used in score-based diffusion models.
+**Score functions.** The score function $\nabla_\theta \log p_\theta(x)$ satisfies $\mathbb{E}_p[\nabla_\theta \log p_\theta(X)] = \mathbf{0}$ - its expectation is zero. This identity (proved by differentiating the normalisation condition $\int p_\theta = 1$) underlies Fisher information, the REINFORCE policy gradient estimator, and Stein's identity used in score-based diffusion models.
 
 ### 1.3 Historical Timeline
 
 ```
 HISTORY OF MOMENTS AND EXPECTATION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1654  Pascal–Fermat correspondence: first rigorous treatment of
+  1654  Pascal-Fermat correspondence: first rigorous treatment of
         expected value ("valeur" of a game) in probability
 
-  1657  Huygens: De Ratiociniis in Ludo Aleae — published the first
+  1657  Huygens: De Ratiociniis in Ludo Aleae - published the first
         probability textbook with formal expectation calculations
 
-  1713  Bernoulli (Jakob): Ars Conjectandi — law of large numbers
-        (published posthumously); shows sample mean → E[X]
+  1713  Bernoulli (Jakob): Ars Conjectandi - law of large numbers
+        (published posthumously); shows sample mean -> E[X]
 
   1730  De Moivre: normal approximation to binomial via moments
 
-  1814  Laplace: Théorie Analytique des Probabilités — systematic
+  1814  Laplace: Theorie Analytique des Probabilites - systematic
         use of characteristic functions (Fourier transforms of densities)
 
   1853  Chebyshev: first inequality bounding tails via variance;
         rigorous proof of LLN; laid groundwork for moment inequalities
 
-  1867  Chebyshev: full variance-based inequality (P(|X-μ| ≥ kσ) ≤ 1/k²)
+  1867  Chebyshev: full variance-based inequality (P(|X-\\mu| \\geq k\\sigma) \\leq 1/k^2)
 
   1894  Pearson: coined "moment" in statistics; introduced skewness
         and kurtosis; method of moments estimation
@@ -193,22 +193,22 @@ HISTORY OF MOMENTS AND EXPECTATION
   1922  Fisher: likelihood, sufficient statistics, and moment
         generating functions as tools of parametric inference
 
-  1945  Cramér: large deviation theory; MGF-based tail bounds
+  1945  Cramer: large deviation theory; MGF-based tail bounds
         (foundations of Hoeffding and Chernoff later work)
 
   1972  Williams: REINFORCE algorithm (score function gradient
         estimator = gradient of log-expectation)
 
-  2014  Kingma & Ba: Adam optimizer — formal moment-tracking
+  2014  Kingma & Ba: Adam optimizer - formal moment-tracking
         adaptive gradient method
 
-  2014  Kingma & Welling: VAE — reparameterisation trick;
+  2014  Kingma & Welling: VAE - reparameterisation trick;
         expectations with differentiable sampling
 
-  2020  Song et al.: score-based diffusion models — reverse SDE
-        guidance via score function = ∇ log p(x)
+  2020  Song et al.: score-based diffusion models - reverse SDE
+        guidance via score function = \\nabla log p(x)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -244,7 +244,7 @@ where $p_0 = P(X = x_0)$ is the point mass probability.
 
 **Notation.** We write $\mathbb{E}[X]$, $\mathbb{E}_X[X]$, $\mu_X$, or $\langle X \rangle$ (physics notation) interchangeably. When the distribution is parameterised by $\theta$: $\mathbb{E}_\theta[X]$ or $\mathbb{E}_{X \sim p_\theta}[X]$.
 
-**For AI:** The empirical mean $\bar{X}_N = \frac{1}{N}\sum_{i=1}^N X_i$ is the canonical estimator of $\mathbb{E}[X]$. Every forward pass computes a function of the inputs; averaging that function over a batch estimates its expectation. The loss function IS an expectation — we just estimate it from data.
+**For AI:** The empirical mean $\bar{X}_N = \frac{1}{N}\sum_{i=1}^N X_i$ is the canonical estimator of $\mathbb{E}[X]$. Every forward pass computes a function of the inputs; averaging that function over a batch estimates its expectation. The loss function IS an expectation - we just estimate it from data.
 
 ### 2.2 Existence and Integrability
 
@@ -276,7 +276,7 @@ $$\mathbb{E}[aX+bY] = \int\!\!\int (ax+by) f_{X,Y}(x,y)\, dx\, dy$$
 $$= a\int\!\!\int x\, f_{X,Y}(x,y)\, dx\, dy + b\int\!\!\int y\, f_{X,Y}(x,y)\, dx\, dy$$
 $$= a\int x\, f_X(x)\, dx + b\int y\, f_Y(y)\, dy = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
 
-where we used $\int f_{X,Y}(x,y)\, dy = f_X(x)$ (marginalisation from §03). The discrete case is analogous. $\square$
+where we used $\int f_{X,Y}(x,y)\, dy = f_X(x)$ (marginalisation from Section03). The discrete case is analogous. $\square$
 
 **Extension.** By induction: for any constants $a_1, \ldots, a_n$ and random variables $X_1, \ldots, X_n$ (not necessarily independent):
 $$\mathbb{E}\!\left[\sum_{i=1}^n a_i X_i\right] = \sum_{i=1}^n a_i \mathbb{E}[X_i]$$
@@ -291,13 +291,13 @@ $$\mathbb{E}\!\left[\sum_{i=1}^n a_i X_i\right] = \sum_{i=1}^n a_i \mathbb{E}[X_
 
 *Expected number of fixed points.* A random permutation $\sigma$ of $\{1,\ldots,n\}$ has expected number of fixed points ($\sigma(i) = i$) equal to 1, for any $n$. Proof: $\mathbb{E}[\#\text{fixed points}] = \sum_{i=1}^n P(\sigma(i)=i) = n \cdot (1/n) = 1$.
 
-**For AI:** Linearity of expectation is the reason we can decompose complex expected losses into sums of simpler expected losses. The expected cross-entropy over a vocabulary of size $V$ is $\sum_{v=1}^V \mathbb{E}[y_v \log \hat{p}_v]$ — a sum of $V$ simpler expectations. The expected gradient of a sum is the sum of the expected gradients, justifying minibatch averaging as a gradient estimator.
+**For AI:** Linearity of expectation is the reason we can decompose complex expected losses into sums of simpler expected losses. The expected cross-entropy over a vocabulary of size $V$ is $\sum_{v=1}^V \mathbb{E}[y_v \log \hat{p}_v]$ - a sum of $V$ simpler expectations. The expected gradient of a sum is the sum of the expected gradients, justifying minibatch averaging as a gradient estimator.
 
-### 2.4 LOTUS — Law of the Unconscious Statistician
+### 2.4 LOTUS - Law of the Unconscious Statistician
 
 A common need: compute $\mathbb{E}[g(X)]$ for some function $g$ when we know the distribution of $X$ but not necessarily of $g(X)$ directly. LOTUS provides the answer.
 
-**Theorem (LOTUS — Law of the Unconscious Statistician).** Let $X$ be a random variable and $g : \mathbb{R} \to \mathbb{R}$ a measurable function.
+**Theorem (LOTUS - Law of the Unconscious Statistician).** Let $X$ be a random variable and $g : \mathbb{R} \to \mathbb{R}$ a measurable function.
 
 *Discrete:*
 $$\mathbb{E}[g(X)] = \sum_{x} g(x) \cdot p_X(x)$$
@@ -305,7 +305,7 @@ $$\mathbb{E}[g(X)] = \sum_{x} g(x) \cdot p_X(x)$$
 *Continuous:*
 $$\mathbb{E}[g(X)] = \int_{-\infty}^{\infty} g(x) \cdot f_X(x) \, dx$$
 
-**Key insight:** We do NOT need the distribution of $g(X)$. We use the distribution of $X$ directly. This is why it's called the "unconscious" statistician — you can compute $\mathbb{E}[g(X)]$ without consciously finding the PDF of $g(X)$.
+**Key insight:** We do NOT need the distribution of $g(X)$. We use the distribution of $X$ directly. This is why it's called the "unconscious" statistician - you can compute $\mathbb{E}[g(X)]$ without consciously finding the PDF of $g(X)$.
 
 **Proof sketch (discrete case).** Let $Y = g(X)$. Grouping terms:
 $$\mathbb{E}[Y] = \sum_y y \cdot P(Y=y) = \sum_y y \sum_{x: g(x)=y} P(X=x) = \sum_x g(x) P(X=x)$$
@@ -320,12 +320,12 @@ $$\text{Var}(X) = \int (x-\mu)^2 f_X(x) \, dx$$
 *Second moment of Exponential.* For $X \sim \text{Exp}(\lambda)$, using $g(x) = x^2$:
 $$\mathbb{E}[X^2] = \int_0^\infty x^2 \lambda e^{-\lambda x} dx = \frac{2}{\lambda^2}$$
 
-*Jensen's inequality (preview).* For convex $f$, LOTUS combined with the supporting hyperplane property gives $f(\mathbb{E}[X]) \leq \mathbb{E}[f(X)]$. (Full treatment in §7.)
+*Jensen's inequality (preview).* For convex $f$, LOTUS combined with the supporting hyperplane property gives $f(\mathbb{E}[X]) \leq \mathbb{E}[f(X)]$. (Full treatment in Section7.)
 
 **LOTUS for functions of multiple variables.** For jointly distributed $(X,Y)$ with joint density $f_{X,Y}$:
 $$\mathbb{E}[g(X,Y)] = \int\!\!\int g(x,y) f_{X,Y}(x,y) \, dx \, dy$$
 
-**For AI:** LOTUS is the theorem behind every expectation computation in variational inference. The ELBO contains $\mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)]$ — an expectation of $\log p_\theta(x|z)$ under $q_\phi$. LOTUS says: integrate $\log p_\theta(x|z)$ weighted by $q_\phi(z|x)$, no need to find the distribution of $\log p_\theta(x|z)$ directly.
+**For AI:** LOTUS is the theorem behind every expectation computation in variational inference. The ELBO contains $\mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)]$ - an expectation of $\log p_\theta(x|z)$ under $q_\phi$. LOTUS says: integrate $\log p_\theta(x|z)$ weighted by $q_\phi(z|x)$, no need to find the distribution of $\log p_\theta(x|z)$ directly.
 
 ---
 
@@ -340,13 +340,13 @@ $$\text{Var}(X) = \mathbb{E}[(X - \mathbb{E}[X])^2]$$
 **Computational formula.** Expanding the square:
 $$\text{Var}(X) = \mathbb{E}[X^2 - 2\mu X + \mu^2] = \mathbb{E}[X^2] - 2\mu\mathbb{E}[X] + \mu^2 = \mathbb{E}[X^2] - \mu^2$$
 
-This is the **König-Huygens formula**: $\text{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$.
+This is the **Konig-Huygens formula**: $\text{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$.
 
 **Properties of variance:**
 
 1. $\text{Var}(X) \geq 0$, with equality iff $X$ is almost surely constant.
 2. $\text{Var}(aX + b) = a^2 \text{Var}(X)$ for any constants $a, b$.
-3. $\text{Var}(X + Y) = \text{Var}(X) + 2\text{Cov}(X,Y) + \text{Var}(Y)$ (see §4.4).
+3. $\text{Var}(X + Y) = \text{Var}(X) + 2\text{Cov}(X,Y) + \text{Var}(Y)$ (see Section4.4).
 4. If $X \perp Y$: $\text{Var}(X + Y) = \text{Var}(X) + \text{Var}(Y)$.
 
 **Proof of property 2.**
@@ -362,7 +362,7 @@ Note: the constant $b$ does not affect variance (shifts don't change spread).
 - $X \sim \text{Exp}(\lambda)$: $\mathbb{E}[X] = 1/\lambda$, $\mathbb{E}[X^2] = 2/\lambda^2$, $\text{Var}(X) = 1/\lambda^2$.
 - $X \sim \text{Poisson}(\lambda)$: $\mathbb{E}[X] = \text{Var}(X) = \lambda$ (special property).
 
-**For AI:** Variance quantifies uncertainty. The variance of a model's predictions measures how much predictions vary with the training set — high variance = overfitting. The variance of gradient estimates in SGD determines how noisy the update steps are — high variance slows convergence. Reducing gradient variance is the goal of techniques like control variates, variance reduction in REINFORCE, and importance-weighted estimators.
+**For AI:** Variance quantifies uncertainty. The variance of a model's predictions measures how much predictions vary with the training set - high variance = overfitting. The variance of gradient estimates in SGD determines how noisy the update steps are - high variance slows convergence. Reducing gradient variance is the goal of techniques like control variates, variance reduction in REINFORCE, and importance-weighted estimators.
 
 ### 3.2 Standard Deviation and Coefficient of Variation
 
@@ -377,7 +377,7 @@ CV is dimensionless and measures relative spread. A CV of 0.1 means the standard
 $$Z = \frac{X - \mu}{\sigma}$$
 which has $\mathbb{E}[Z] = 0$ and $\text{Var}(Z) = 1$.
 
-**For AI:** Batch Normalisation (Ioffe & Szegedy, 2015) standardises layer activations during training: for each feature, subtract the batch mean and divide by the batch standard deviation. This forces $\mathbb{E}[Z] = 0$ and $\text{Var}(Z) = 1$, then rescales with learnable $\gamma, \beta$. Layer Norm and RMS Norm are variations that normalise over the feature dimension rather than the batch dimension — critical for transformers where batch sizes can be 1.
+**For AI:** Batch Normalisation (Ioffe & Szegedy, 2015) standardises layer activations during training: for each feature, subtract the batch mean and divide by the batch standard deviation. This forces $\mathbb{E}[Z] = 0$ and $\text{Var}(Z) = 1$, then rescales with learnable $\gamma, \beta$. Layer Norm and RMS Norm are variations that normalise over the feature dimension rather than the batch dimension - critical for transformers where batch sizes can be 1.
 
 ### 3.3 Raw vs Central Moments
 
@@ -391,7 +391,7 @@ $$\mu_k = \mathbb{E}[(X - \mu)^k]$$
 $$\mu_k = \sum_{j=0}^k \binom{k}{j} \mu'_j (-\mu)^{k-j}$$
 
 For the first four:
-- $\mu_1 = 0$ (always — the mean is the center)
+- $\mu_1 = 0$ (always - the mean is the center)
 - $\mu_2 = \mu'_2 - (\mu'_1)^2 = \mathbb{E}[X^2] - \mu^2 = \text{Var}(X)$
 - $\mu_3 = \mu'_3 - 3\mu'_2\mu'_1 + 2(\mu'_1)^3$
 - $\mu_4 = \mu'_4 - 4\mu'_3\mu'_1 + 6\mu'_2(\mu'_1)^2 - 3(\mu'_1)^4$
@@ -412,22 +412,22 @@ $$\text{Skew}(X) = \gamma_1 = \frac{\mu_3}{\sigma^3} = \frac{\mathbb{E}[(X-\mu)^
 
 ```
 SKEWNESS INTUITION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Right-skewed (γ₁ > 0):           Left-skewed (γ₁ < 0):
+  Right-skewed (\\gamma_1 > 0):           Left-skewed (\\gamma_1 < 0):
 
-     ██                                          ██
-    ████                                        ████
-   ██████░░░                           ░░░██████████
-  ──┴──┴──┴──────                 ──────┴──┴──┴──┴──
+     ##                                          ##
+    ####                                        ####
+   ######...                           ...##########
+  --+--+--+------                 ------+--+--+--+--
 
   Mode < Median < Mean            Mean < Median < Mode
   Tail pulls mean right           Tail pulls mean left
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** Gradient distributions in deep networks are often right-skewed — most gradients are small, but occasional large gradients occur. This is why gradient clipping is standard practice: the long right tail causes instability if unconstrained. Token probability distributions from language models are also right-skewed: most tokens have very low probability, while a handful of likely tokens dominate.
+**For AI:** Gradient distributions in deep networks are often right-skewed - most gradients are small, but occasional large gradients occur. This is why gradient clipping is standard practice: the long right tail causes instability if unconstrained. Token probability distributions from language models are also right-skewed: most tokens have very low probability, while a handful of likely tokens dominate.
 
 **Skewness of common distributions:**
 - $\mathcal{N}(\mu,\sigma^2)$: $\gamma_1 = 0$ (symmetric by construction)
@@ -449,26 +449,26 @@ $$\gamma_2 = \frac{\mu_4}{\sigma^4} - 3$$
 
 ```
 KURTOSIS AND TAIL WEIGHT
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Leptokurtic (γ₂>0):     Mesokurtic (γ₂=0):     Platykurtic (γ₂<0):
+  Leptokurtic (\\gamma_2>0):     Mesokurtic (\\gamma_2=0):     Platykurtic (\\gamma_2<0):
 
-      ▓                        ▓                      ▓▓▓
-     ▓▓▓                      ▓▓▓                    ▓▓▓▓▓
-    ▓▓▓▓▓                    ▓▓▓▓▓                  ▓▓▓▓▓▓▓
-   ░░░░░░░░░                ░░░░░░░                 ░░░░░░░
+      #                        #                      ###
+     ###                      ###                    #####
+    #####                    #####                  #######
+   .........                .......                 .......
 
-  Heavy tails — outliers    Normal tails            Thin tails
+  Heavy tails - outliers    Normal tails            Thin tails
   common. Student-t, loss   Gaussian                Uniform
   gradients, finance
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** Gradient norm distributions during training are leptokurtic — occasional large-gradient events are far more common than a Gaussian would predict. This motivates both gradient clipping (cap the maximum norm) and heavy-tailed noise models for understanding why SGD generalises. The Student-$t$ distribution ($\gamma_2 = 6/(df-4)$ for $df > 4$) is often used to model heavy-tailed distributions in robust statistics.
+**For AI:** Gradient norm distributions during training are leptokurtic - occasional large-gradient events are far more common than a Gaussian would predict. This motivates both gradient clipping (cap the maximum norm) and heavy-tailed noise models for understanding why SGD generalises. The Student-$t$ distribution ($\gamma_2 = 6/(df-4)$ for $df > 4$) is often used to model heavy-tailed distributions in robust statistics.
 
 **Kurtosis of common distributions:**
-- $\mathcal{N}(\mu,\sigma^2)$: $\gamma_2 = 0$ (by definition — the reference)
+- $\mathcal{N}(\mu,\sigma^2)$: $\gamma_2 = 0$ (by definition - the reference)
 - $\text{Uniform}[a,b]$: $\gamma_2 = -6/5$
 - $\text{Exp}(\lambda)$: $\gamma_2 = 6$
 - $\text{Laplace}(\mu,b)$: $\gamma_2 = 3$
@@ -495,15 +495,15 @@ $$\text{Cov}(X,Y) = \mathbb{E}[XY] - \mathbb{E}[X]\mathbb{E}[Y]$$
 2. $\text{Cov}(X,Y) = \text{Cov}(Y,X)$ (symmetric)
 3. $\text{Cov}(aX+b, cY+d) = ac\,\text{Cov}(X,Y)$ (bilinear, constants drop out)
 4. $\text{Cov}(X+Z, Y) = \text{Cov}(X,Y) + \text{Cov}(Z,Y)$ (linear in first argument)
-5. $|\text{Cov}(X,Y)| \leq \sqrt{\text{Var}(X)\text{Var}(Y)}$ (Cauchy-Schwarz, proved in §7.3)
+5. $|\text{Cov}(X,Y)| \leq \sqrt{\text{Var}(X)\text{Var}(Y)}$ (Cauchy-Schwarz, proved in Section7.3)
 
 **Sign interpretation:**
 - $\text{Cov}(X,Y) > 0$: $X$ and $Y$ tend to be above their means simultaneously.
 - $\text{Cov}(X,Y) < 0$: when $X$ is above its mean, $Y$ tends to be below its mean.
 - $\text{Cov}(X,Y) = 0$: no linear relationship (but may still be nonlinearly dependent).
 
-> **Recall from §03:** The full covariance matrix $\Sigma$ of a random vector collects all pairwise covariances: $\Sigma_{ij} = \text{Cov}(X_i, X_j)$. The multivariate Gaussian is parameterised by $(\boldsymbol{\mu}, \Sigma)$.
-> → _Full treatment: [Joint Distributions §03](../03-Joint-Distributions/notes.md)_
+> **Recall from Section03:** The full covariance matrix $\Sigma$ of a random vector collects all pairwise covariances: $\Sigma_{ij} = \text{Cov}(X_i, X_j)$. The multivariate Gaussian is parameterised by $(\boldsymbol{\mu}, \Sigma)$.
+> -> _Full treatment: [Joint Distributions Section03](../03-Joint-Distributions/notes.md)_
 
 ### 4.2 Pearson Correlation Coefficient
 
@@ -513,7 +513,7 @@ $$\rho_{XY} = \text{Corr}(X,Y) = \frac{\text{Cov}(X,Y)}{\sqrt{\text{Var}(X)\text
 
 **Theorem:** $-1 \leq \rho_{XY} \leq 1$.
 
-**Proof via Cauchy-Schwarz.** By the Cauchy-Schwarz inequality (proved in §7.3):
+**Proof via Cauchy-Schwarz.** By the Cauchy-Schwarz inequality (proved in Section7.3):
 $$(\text{Cov}(X,Y))^2 = (\mathbb{E}[(X-\mu_X)(Y-\mu_Y)])^2 \leq \mathbb{E}[(X-\mu_X)^2]\mathbb{E}[(Y-\mu_Y)^2] = \sigma_X^2 \sigma_Y^2$$
 
 Dividing both sides by $\sigma_X^2 \sigma_Y^2$: $\rho^2 \leq 1$, so $|\rho| \leq 1$. $\square$
@@ -521,7 +521,7 @@ Dividing both sides by $\sigma_X^2 \sigma_Y^2$: $\rho^2 \leq 1$, so $|\rho| \leq
 **Boundary cases:**
 - $\rho = +1$: $Y = aX + b$ for some $a > 0$ (perfect positive linear relationship).
 - $\rho = -1$: $Y = aX + b$ for some $a < 0$ (perfect negative linear relationship).
-- $\rho = 0$: **uncorrelated** (no linear relationship — but not necessarily independent).
+- $\rho = 0$: **uncorrelated** (no linear relationship - but not necessarily independent).
 
 **For AI:** The correlation coefficient appears in weight matrix analysis. The effective rank of a weight matrix is related to the correlations between its columns. In attention, high correlation between key-query pairs produces high attention weights. In representational similarity analysis (RSA), neural network layers are compared by computing correlation matrices of their activations.
 
@@ -538,11 +538,11 @@ Dividing both sides by $\sigma_X^2 \sigma_Y^2$: $\rho^2 \leq 1$, so $|\rho| \leq
 - $\mathbb{E}[XY] = \mathbb{E}[X \cdot X^2] = \mathbb{E}[X^3] = 0$ (odd function, symmetric distribution)
 - $\text{Cov}(X,Y) = 0$
 
-But $Y$ is completely determined by $X$ — knowing $X$ tells you $Y = X^2$ exactly. They are maximally dependent!
+But $Y$ is completely determined by $X$ - knowing $X$ tells you $Y = X^2$ exactly. They are maximally dependent!
 
-**For jointly Gaussian variables only:** Zero covariance DOES imply independence. This is a special property of the Gaussian distribution — it is the unique distribution for which uncorrelated implies independent (for the joint distribution; marginal Gaussians with zero covariance need not be jointly Gaussian).
+**For jointly Gaussian variables only:** Zero covariance DOES imply independence. This is a special property of the Gaussian distribution - it is the unique distribution for which uncorrelated implies independent (for the joint distribution; marginal Gaussians with zero covariance need not be jointly Gaussian).
 
-**For AI:** Feature selection based on correlation can miss highly informative features that have nonlinear (but zero-covariance) relationships with the target. Mutual information is a better measure of dependence. In contrastive learning (e.g., SimCLR), redundancy reduction methods explicitly decorrelate representations — but decorrelation (zero covariance) and statistical independence are different objectives.
+**For AI:** Feature selection based on correlation can miss highly informative features that have nonlinear (but zero-covariance) relationships with the target. Mutual information is a better measure of dependence. In contrastive learning (e.g., SimCLR), redundancy reduction methods explicitly decorrelate representations - but decorrelation (zero covariance) and statistical independence are different objectives.
 
 ### 4.4 Variance of Sums
 
@@ -565,7 +565,7 @@ If all $X_i$ are independent: $\text{Var}(\sum_i X_i) = \sum_i \text{Var}(X_i)$.
 **Scaling.** For iid $X_1,\ldots,X_n$ with variance $\sigma^2$:
 $$\text{Var}\!\left(\frac{1}{n}\sum_{i=1}^n X_i\right) = \frac{1}{n^2} \cdot n\sigma^2 = \frac{\sigma^2}{n}$$
 
-The variance of the sample mean decreases as $1/n$ — the statistical basis for why larger datasets reduce estimation uncertainty.
+The variance of the sample mean decreases as $1/n$ - the statistical basis for why larger datasets reduce estimation uncertainty.
 
 **For AI:** Weight initialisation strategies (Xavier/Glorot, He) are derived from variance propagation. If $\mathbf{h}^{[l]} = W^{[l]}\mathbf{h}^{[l-1]}$, then the variance of each output neuron is $n_{\text{in}} \cdot \text{Var}(w_{ij}) \cdot \text{Var}(h^{[l-1]}_j)$. To keep variance constant across layers (preventing vanishing/exploding activations): $\text{Var}(w_{ij}) = 1/n_{\text{in}}$ (Xavier) or $2/n_{\text{in}}$ (He for ReLU). This is the variance-of-sums formula applied to layer activations.
 
@@ -591,13 +591,13 @@ $$\mathbb{E}[Y \mid X = x] = \int_{-\infty}^\infty y \cdot f_{Y|X}(y|x) \, dy = 
 1. $\mathbb{E}[aY + bZ \mid X] = a\mathbb{E}[Y \mid X] + b\mathbb{E}[Z \mid X]$ (linearity)
 2. $\mathbb{E}[g(X) \cdot Y \mid X] = g(X) \cdot \mathbb{E}[Y \mid X]$ (taking out known factors)
 3. If $X \perp Y$: $\mathbb{E}[Y \mid X] = \mathbb{E}[Y]$ (conditioning on independent variable doesn't help)
-4. $\mathbb{E}[\mathbb{E}[Y \mid X]] = \mathbb{E}[Y]$ (tower property — see §5.2)
+4. $\mathbb{E}[\mathbb{E}[Y \mid X]] = \mathbb{E}[Y]$ (tower property - see Section5.2)
 
 **Example.** Let $(X,Y)$ be jointly uniform on the triangle $\{(x,y): 0 \leq y \leq x \leq 1\}$.
-From §03 (Appendix V.1), the conditional density is $f_{Y|X}(y|x) = 1/x$ on $[0,x]$. Therefore:
+From Section03 (Appendix V.1), the conditional density is $f_{Y|X}(y|x) = 1/x$ on $[0,x]$. Therefore:
 $$\mathbb{E}[Y \mid X = x] = \int_0^x y \cdot \frac{1}{x} \, dy = \frac{1}{x} \cdot \frac{x^2}{2} = \frac{x}{2}$$
 
-The conditional mean of $Y$ given $X = x$ is $x/2$ — exactly half of $x$, which makes sense since $Y$ is uniform on $[0,x]$.
+The conditional mean of $Y$ given $X = x$ is $x/2$ - exactly half of $x$, which makes sense since $Y$ is uniform on $[0,x]$.
 
 ### 5.2 Tower Property (Iterated Expectation)
 
@@ -618,7 +618,7 @@ $$= \int\!\!\int y \cdot f_{X,Y}(x,y) \, dy \, dx = \mathbb{E}[Y] \quad \square$
 
 **Example: Expected test score.** A class has 40% students from Group A (mean score 75) and 60% from Group B (mean score 85). Overall expected score: $0.4 \times 75 + 0.6 \times 85 = 81$. This is exactly the tower property: $\mathbb{E}[Y] = \mathbb{E}[\mathbb{E}[Y|G]]$ where $G$ is group membership.
 
-**For AI:** The tower property underlies the EM algorithm. The E-step computes $Q(\theta|\theta^{(t)}) = \mathbb{E}_{Z|X,\theta^{(t)}}[\log p(X,Z|\theta)]$ — the expected complete-data log-likelihood, where the expectation is over the latent variable $Z$ given the observed $X$. The tower property guarantees that maximising $Q$ increases $\log p(X|\theta)$, the marginal likelihood. In policy gradient methods, $\mathbb{E}_\tau[R] = \mathbb{E}_{s_0}[\mathbb{E}_\tau[R | s_0]]$ — decomposing trajectory returns by initial state.
+**For AI:** The tower property underlies the EM algorithm. The E-step computes $Q(\theta|\theta^{(t)}) = \mathbb{E}_{Z|X,\theta^{(t)}}[\log p(X,Z|\theta)]$ - the expected complete-data log-likelihood, where the expectation is over the latent variable $Z$ given the observed $X$. The tower property guarantees that maximising $Q$ increases $\log p(X|\theta)$, the marginal likelihood. In policy gradient methods, $\mathbb{E}_\tau[R] = \mathbb{E}_{s_0}[\mathbb{E}_\tau[R | s_0]]$ - decomposing trajectory returns by initial state.
 
 ### 5.3 Conditional Variance and Law of Total Variance
 
@@ -629,8 +629,8 @@ $$\text{Var}(Y \mid X = x) = \mathbb{E}[(Y - \mathbb{E}[Y \mid X=x])^2 \mid X = 
 $$\text{Var}(Y) = \mathbb{E}[\text{Var}(Y \mid X)] + \text{Var}(\mathbb{E}[Y \mid X])$$
 
 This decomposes total variance into:
-- **Within-group variance:** $\mathbb{E}[\text{Var}(Y \mid X)]$ — average variability within each value of $X$.
-- **Between-group variance:** $\text{Var}(\mathbb{E}[Y \mid X])$ — variability of the group means.
+- **Within-group variance:** $\mathbb{E}[\text{Var}(Y \mid X)]$ - average variability within each value of $X$.
+- **Between-group variance:** $\text{Var}(\mathbb{E}[Y \mid X])$ - variability of the group means.
 
 **Proof:**
 $$\text{Var}(Y) = \mathbb{E}[Y^2] - (\mathbb{E}[Y])^2$$
@@ -641,7 +641,7 @@ $$\mathbb{E}[Y^2] = \mathbb{E}[\mathbb{E}[Y^2 \mid X]] = \mathbb{E}[\text{Var}(Y
 And $(\mathbb{E}[Y])^2 = (\mathbb{E}[\mu(X)])^2$. Therefore:
 $$\text{Var}(Y) = \mathbb{E}[\text{Var}(Y|X)] + (\mathbb{E}[\mu(X)^2] - (\mathbb{E}[\mu(X)])^2) = \mathbb{E}[\text{Var}(Y|X)] + \text{Var}(\mu(X)) \quad \square$$
 
-**For AI:** The law of total variance is the mathematical foundation of the bias-variance decomposition (§8). For a model trained on dataset $\mathcal{D}$: total error = expected within-dataset error + between-dataset variance. It also explains why mixture models (GMMs) combine within-component variance and between-component variance.
+**For AI:** The law of total variance is the mathematical foundation of the bias-variance decomposition (Section8). For a model trained on dataset $\mathcal{D}$: total error = expected within-dataset error + between-dataset variance. It also explains why mixture models (GMMs) combine within-component variance and between-component variance.
 
 ### 5.4 AI Applications of Conditional Expectation
 
@@ -683,34 +683,34 @@ Differentiating $k$ times: $M_X^{(k)}(0) = \mathbb{E}[X^k]$. $\square$
 
 **Uniqueness theorem.** If $M_X(t) = M_Y(t)$ for $t$ in an open neighbourhood of 0, then $X$ and $Y$ have the same distribution. The MGF uniquely determines the distribution (when it exists).
 
-**Existence.** The MGF exists when $\mathbb{E}[e^{tX}] < \infty$ for $|t| < t_0$ for some $t_0 > 0$. Heavy-tailed distributions (Cauchy, Pareto with small $\alpha$, log-normal) do NOT have finite MGFs. The characteristic function (§6.4) always exists and is the preferred tool for such distributions.
+**Existence.** The MGF exists when $\mathbb{E}[e^{tX}] < \infty$ for $|t| < t_0$ for some $t_0 > 0$. Heavy-tailed distributions (Cauchy, Pareto with small $\alpha$, log-normal) do NOT have finite MGFs. The characteristic function (Section6.4) always exists and is the preferred tool for such distributions.
 
 ### 6.2 MGF of Common Distributions
 
 **Bernoulli($p$):**
 $$M(t) = (1-p) + p e^t = 1 + p(e^t - 1)$$
-Check: $M'(t) = pe^t$, $M'(0) = p = \mathbb{E}[X]$. ✓
+Check: $M'(t) = pe^t$, $M'(0) = p = \mathbb{E}[X]$. [ok]
 
 **Binomial($n,p$):** (sum of $n$ iid Bernoulli)
 $$M(t) = (1-p+pe^t)^n$$
-First moment: $M'(0) = np$. ✓
+First moment: $M'(0) = np$. [ok]
 
 **Poisson($\lambda$):**
 $$M(t) = e^{\lambda(e^t - 1)}$$
 Derivation: $M(t) = \sum_{k=0}^\infty e^{tk} \frac{\lambda^k e^{-\lambda}}{k!} = e^{-\lambda}\sum_k \frac{(\lambda e^t)^k}{k!} = e^{-\lambda} e^{\lambda e^t} = e^{\lambda(e^t-1)}$.
-$M'(0) = \lambda$, $M''(0) = \lambda^2 + \lambda$, so $\text{Var}(X) = \lambda^2+\lambda - \lambda^2 = \lambda$. ✓
+$M'(0) = \lambda$, $M''(0) = \lambda^2 + \lambda$, so $\text{Var}(X) = \lambda^2+\lambda - \lambda^2 = \lambda$. [ok]
 
 **Normal($\mu, \sigma^2$):**
 $$M(t) = e^{\mu t + \sigma^2 t^2/2}$$
 Derivation: Complete the square in the exponent of $\int e^{tx} \cdot \frac{1}{\sqrt{2\pi}\sigma} e^{-(x-\mu)^2/(2\sigma^2)} dx$.
-$M'(0) = \mu$, $M''(0) = \sigma^2 + \mu^2$, $\text{Var}(X) = \sigma^2$. ✓
+$M'(0) = \mu$, $M''(0) = \sigma^2 + \mu^2$, $\text{Var}(X) = \sigma^2$. [ok]
 
 **Exponential($\lambda$):**
 $$M(t) = \frac{\lambda}{\lambda - t} \quad \text{for } t < \lambda$$
 Derivation: $\int_0^\infty e^{tx} \lambda e^{-\lambda x} dx = \lambda \int_0^\infty e^{-({\lambda-t})x} dx = \frac{\lambda}{\lambda-t}$ (converges iff $t < \lambda$).
-$M'(0) = 1/\lambda$, $M''(0) = 2/\lambda^2$, $\text{Var}(X) = 1/\lambda^2$. ✓
+$M'(0) = 1/\lambda$, $M''(0) = 2/\lambda^2$, $\text{Var}(X) = 1/\lambda^2$. [ok]
 
-**For AI:** MGFs appear in the proof of the Chernoff bound (§05), which gives exponentially sharp tail bounds. The exponential form $\mathbb{E}[e^{tX}]$ is closely related to the log-partition function in the exponential family: $A(\eta) = \log Z(\eta)$. The moments of the sufficient statistic can be computed by differentiating $A(\eta)$ — the MGF and the log-partition function are connected by a change of variables.
+**For AI:** MGFs appear in the proof of the Chernoff bound (Section05), which gives exponentially sharp tail bounds. The exponential form $\mathbb{E}[e^{tX}]$ is closely related to the log-partition function in the exponential family: $A(\eta) = \log Z(\eta)$. The moments of the sufficient statistic can be computed by differentiating $A(\eta)$ - the MGF and the log-partition function are connected by a change of variables.
 
 ### 6.3 MGF of Sums and the Reproductive Property
 
@@ -748,7 +748,7 @@ $$\mathbb{E}[X^k] = \frac{1}{i^k} \varphi_X^{(k)}(0)$$
 **Inversion formula.** The distribution is uniquely determined by its characteristic function:
 $$f_X(x) = \frac{1}{2\pi} \int_{-\infty}^\infty e^{-itx} \varphi_X(t) \, dt$$
 
-(when $f_X$ is continuous). This is the Fourier inversion formula — the characteristic function IS the Fourier transform of the PDF.
+(when $f_X$ is continuous). This is the Fourier inversion formula - the characteristic function IS the Fourier transform of the PDF.
 
 **For AI:** Characteristic functions appear in the analysis of convergence of distributions (Central Limit Theorem proofs use characteristic functions because they always exist). The score-based diffusion model framework uses the score function $\nabla_x \log p(x)$, which is related to the characteristic function via Fourier analysis. Random Fourier Features (Rahimi & Recht, 2007) approximate kernel functions via random sampling from the characteristic function of the kernel.
 
@@ -771,9 +771,9 @@ so $\kappa_k = K_X^{(k)}(0)$.
 **Key property.** For independent $X \perp Y$:
 $$K_{X+Y}(t) = K_X(t) + K_Y(t) \implies \kappa_k(X+Y) = \kappa_k(X) + \kappa_k(Y)$$
 
-Cumulants of a sum of independent variables add — this is the additivity property that makes cumulants more natural than moments for sums.
+Cumulants of a sum of independent variables add - this is the additivity property that makes cumulants more natural than moments for sums.
 
-**Normal distribution:** $K_X(t) = \mu t + \sigma^2 t^2/2$. All cumulants $\kappa_k = 0$ for $k \geq 3$. This characterises the normal distribution — it is the unique distribution with all cumulants beyond the second equal to zero.
+**Normal distribution:** $K_X(t) = \mu t + \sigma^2 t^2/2$. All cumulants $\kappa_k = 0$ for $k \geq 3$. This characterises the normal distribution - it is the unique distribution with all cumulants beyond the second equal to zero.
 
 
 ---
@@ -854,7 +854,7 @@ $$(\text{Cov}(X,Y))^2 = (\mathbb{E}[(X-\mu_X)(Y-\mu_Y)])^2 \leq \mathbb{E}[(X-\m
 
 Dividing: $\rho^2 \leq 1$.
 
-**For AI:** Cauchy-Schwarz appears in attention — the dot product $q^\top k$ is bounded by $\|q\| \|k\|$, motivating the $\sqrt{d_k}$ scaling in scaled dot-product attention ($\text{softmax}(QK^\top/\sqrt{d_k})V$). Without this scaling, the dot products can become large in magnitude for high-dimensional keys/queries, causing the softmax to saturate and gradients to vanish.
+**For AI:** Cauchy-Schwarz appears in attention - the dot product $q^\top k$ is bounded by $\|q\| \|k\|$, motivating the $\sqrt{d_k}$ scaling in scaled dot-product attention ($\text{softmax}(QK^\top/\sqrt{d_k})V$). Without this scaling, the dot products can become large in magnitude for high-dimensional keys/queries, causing the softmax to saturate and gradients to vanish.
 
 ### 7.4 Lyapunov Inequality
 
@@ -874,7 +874,7 @@ Taking $(1/s)$ powers of both sides: $(\mathbb{E}[|X|^r])^{1/r} \leq (\mathbb{E}
 
 ### 7.5 Preview: Tail Bounds from Moments
 
-The most direct application of moments to probability is bounding how far a random variable can stray from its mean. These are covered fully in §05, but we preview the key results here.
+The most direct application of moments to probability is bounding how far a random variable can stray from its mean. These are covered fully in Section05, but we preview the key results here.
 
 > **Preview: Markov's Inequality**
 >
@@ -884,7 +884,7 @@ The most direct application of moments to probability is bounding how far a rand
 > Proof: $\mathbb{E}[X] = \int_0^\infty xf(x)\,dx \geq \int_t^\infty xf(x)\,dx \geq t\int_t^\infty f(x)\,dx = t\,P(X\geq t)$.
 > The mean bounds the probability of large values.
 >
-> → _Full treatment and applications: [§05 Concentration Inequalities](../05-Concentration-Inequalities/notes.md)_
+> -> _Full treatment and applications: [Section05 Concentration Inequalities](../05-Concentration-Inequalities/notes.md)_
 
 > **Preview: Chebyshev's Inequality**
 >
@@ -894,7 +894,7 @@ The most direct application of moments to probability is bounding how far a rand
 > Proof: Apply Markov's inequality to $(X-\mu)^2 \geq k^2\sigma^2$: $P((X-\mu)^2 \geq k^2\sigma^2) \leq \mathbb{E}[(X-\mu)^2]/(k^2\sigma^2) = 1/k^2$.
 > The variance bounds how often $X$ deviates from its mean by $k$ standard deviations.
 >
-> → _Full treatment and sharper bounds: [§05 Concentration Inequalities](../05-Concentration-Inequalities/notes.md)_
+> -> _Full treatment and sharper bounds: [Section05 Concentration Inequalities](../05-Concentration-Inequalities/notes.md)_
 
 ---
 
@@ -912,7 +912,7 @@ $$f^*(X) = \mathbb{E}[Y \mid X]$$
 and the minimum risk equals the irreducible noise:
 $$\mathcal{R}(f^*) = \mathbb{E}[\text{Var}(Y \mid X)]$$
 
-**Proof:** From §5.4, for any $f$:
+**Proof:** From Section5.4, for any $f$:
 $$\mathcal{R}(f) = \mathbb{E}[(Y - f^*(X))^2] + \mathbb{E}[(f^*(X) - f(X))^2] \geq \mathcal{R}(f^*)$$
 
 And $\mathcal{R}(f^*) = \mathbb{E}[(Y - \mathbb{E}[Y|X])^2] = \mathbb{E}[\text{Var}(Y|X)]$ by definition. $\square$
@@ -925,7 +925,7 @@ The **Bayes risk** (irreducible error) $\varepsilon^* = \mathbb{E}[\text{Var}(Y|
 
 ### 8.2 Bias-Variance-Noise Decomposition
 
-In practice, we learn a model $\hat{f}$ from a finite dataset $\mathcal{D}$ of $N$ samples. The model $\hat{f}$ is a random function — it depends on the random training data. We can decompose the expected prediction error at a new test point $x_0$:
+In practice, we learn a model $\hat{f}$ from a finite dataset $\mathcal{D}$ of $N$ samples. The model $\hat{f}$ is a random function - it depends on the random training data. We can decompose the expected prediction error at a new test point $x_0$:
 
 $$\mathbb{E}_{\mathcal{D}}[(Y - \hat{f}(x_0))^2] = \underbrace{(f^*(x_0) - \mathbb{E}_{\mathcal{D}}[\hat{f}(x_0)])^2}_{\text{Bias}^2} + \underbrace{\text{Var}_{\mathcal{D}}(\hat{f}(x_0))}_{\text{Variance}} + \underbrace{\sigma^2}_{\text{Noise}}$$
 
@@ -936,32 +936,32 @@ $$= \mathbb{E}[(y_0 - \bar{f})^2] + 2\mathbb{E}[(y_0-\bar{f})(\bar{f}-\hat{f})] 
 The cross term is $2\mathbb{E}[(f^*+\varepsilon-\bar{f})(\bar{f}-\hat{f})] = 2(f^*-\bar{f})\mathbb{E}[\bar{f}-\hat{f}] + 2\mathbb{E}[\varepsilon]\mathbb{E}[\bar{f}-\hat{f}] = 0$ (since $\mathbb{E}[\hat{f}] = \bar{f}$ and $\mathbb{E}[\varepsilon]=0$). Then:
 $$\mathbb{E}[(y_0-\bar{f})^2] = \mathbb{E}[(f^*-\bar{f}+\varepsilon)^2] = (f^*-\bar{f})^2 + \sigma^2 = \text{Bias}^2 + \sigma^2$$
 
-And $\mathbb{E}[(\bar{f}-\hat{f})^2] = \text{Var}(\hat{f}(x_0))$. Combining: Bias² + Variance + Noise. $\square$
+And $\mathbb{E}[(\bar{f}-\hat{f})^2] = \text{Var}(\hat{f}(x_0))$. Combining: Bias^2 + Variance + Noise. $\square$
 
 ```
 BIAS-VARIANCE TRADEOFF
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Error                        Total Error
-   ↑                           /
-   │              Variance    /
-   │         _______________/
-   │        /
-   │       /       Bias²
-   │      /  _______________
-   │_____/__/________________
-   │         Noise
-   └──────────────────────────────── Model Complexity →
+   ^                           /
+   |              Variance    /
+   |         _______________/
+   |        /
+   |       /       Bias^2
+   |      /  _______________
+   |_____/__/________________
+   |         Noise
+   +-------------------------------- Model Complexity ->
 
   Classical view: sweet spot minimises total error
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Interpretations:**
 
 - **High bias:** The model is too simple to capture $f^*$ (underfitting). Consistent but wrong. Example: linear model for a quadratic $f^*$.
-- **High variance:** The model is too complex — it fits training noise (overfitting). Right on average but variable. Example: high-degree polynomial on limited data.
+- **High variance:** The model is too complex - it fits training noise (overfitting). Right on average but variable. Example: high-degree polynomial on limited data.
 - **Noise:** Irreducible. The best we can do.
 
 ### 8.3 Double Descent and Modern Deep Learning
@@ -970,33 +970,33 @@ The classical bias-variance picture predicts a unique optimal complexity. Modern
 
 ```
 DOUBLE DESCENT
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Test Error
-   ↑
-   │        Classical regime        Modern regime
-   │              │                      │
-   │    ╭────╮    │                      │
-   │   ╭╯    ╰╮   │                      │
-   │  ╭╯      ╰╮  │                 ╭────╯
-   │ ╭╯        ╰──┼─────────────────╯
-   │               │ Interpolation threshold
-   └──────────────────────────────────────── Model Size →
-           ↑                   ↑
+   ^
+   |        Classical regime        Modern regime
+   |              |                      |
+   |    +----+    |                      |
+   |   ++    ++   |                      |
+   |  ++      ++  |                 +----+
+   | ++        +--+-----------------+
+   |               | Interpolation threshold
+   +---------------------------------------- Model Size ->
+           ^                   ^
     Underfitting         Overparameterised
     regime               regime (good!)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Why does this happen?** In overparameterised models:
 - Many solutions interpolate the training data.
 - Gradient descent (especially with weight decay or implicit regularisation from SGD noise) selects the **minimum-norm** solution among all interpolating solutions.
-- The minimum-norm interpolant has low variance among interpolants — it is the "flattest" fit.
+- The minimum-norm interpolant has low variance among interpolants - it is the "flattest" fit.
 
-The bias-variance decomposition still holds in double descent, but the variance first rises (at the interpolation threshold, the model just barely interpolates — highly sensitive to training data) and then falls again (overparameterised models have many interpolating solutions, most with low variance).
+The bias-variance decomposition still holds in double descent, but the variance first rises (at the interpolation threshold, the model just barely interpolates - highly sensitive to training data) and then falls again (overparameterised models have many interpolating solutions, most with low variance).
 
-**For AI (2026 context):** Large language models like GPT-4, Claude, and Gemini are massively overparameterised. They interpolate (or nearly interpolate) their training data and yet generalise remarkably well — this is the double descent regime. Understanding why overparameterisation helps generalisation remains one of the central open questions in deep learning theory.
+**For AI (2026 context):** Large language models like GPT-4, Claude, and Gemini are massively overparameterised. They interpolate (or nearly interpolate) their training data and yet generalise remarkably well - this is the double descent regime. Understanding why overparameterisation helps generalisation remains one of the central open questions in deep learning theory.
 
 ### 8.4 Regularisation as Bias Injection
 
@@ -1007,7 +1007,7 @@ For linear regression with design matrix $X$ (overloading notation): $\hat{\thet
 
 **Bias-variance analysis of Ridge:**
 - **Bias:** $\hat{\theta}_\lambda$ is a biased estimator of $\theta^*$. Specifically, $\mathbb{E}[\hat{\theta}_\lambda] = (I + \lambda(X^\top X)^{-1})^{-1}\theta^* \neq \theta^*$. Ridge shrinks estimates toward 0, introducing bias.
-- **Variance:** $\text{Var}(\hat{\theta}_\lambda) \leq \text{Var}(\hat{\theta}_{\text{OLS}})$ for any $\lambda > 0$. The regularised estimator has smaller variance — it is more stable with respect to perturbations in the training data.
+- **Variance:** $\text{Var}(\hat{\theta}_\lambda) \leq \text{Var}(\hat{\theta}_{\text{OLS}})$ for any $\lambda > 0$. The regularised estimator has smaller variance - it is more stable with respect to perturbations in the training data.
 - **Trade-off:** As $\lambda$ increases, bias increases and variance decreases. The optimal $\lambda$ minimises total risk.
 
 **For AI:** Weight decay in neural network training (the most common form of regularisation) adds $\lambda \|\theta\|^2$ to the loss, equivalent to L2 regularisation. AdamW implements weight decay correctly by decoupling it from the adaptive learning rate. Understanding the bias-variance trade-off tells us why weight decay helps: it reduces model variance (overfitting) at the cost of some bias.
@@ -1031,12 +1031,12 @@ This equals the **cross-entropy** $H(p, q_\theta) = -\sum_k p_k \log q_k$ betwee
 **Connection to KL divergence.** For each input $x$:
 $$H(p(\cdot|x), q_\theta(\cdot|x)) = H(p(\cdot|x)) + \text{KL}(p(\cdot|x) \| q_\theta(\cdot|x))$$
 
-where $H(p) = -\mathbb{E}_p[\log p]$ is the entropy of the true conditional. Since $H(p(\cdot|x))$ doesn't depend on $\theta$, minimising cross-entropy is equivalent to minimising KL divergence — i.e., making the model distribution as close as possible to the true distribution, in the KL sense.
+where $H(p) = -\mathbb{E}_p[\log p]$ is the entropy of the true conditional. Since $H(p(\cdot|x))$ doesn't depend on $\theta$, minimising cross-entropy is equivalent to minimising KL divergence - i.e., making the model distribution as close as possible to the true distribution, in the KL sense.
 
 **For language models.** The cross-entropy loss on a token sequence $(w_1,\ldots,w_T)$ is:
 $$\mathcal{L} = -\frac{1}{T}\sum_{t=1}^T \log P_\theta(w_t \mid w_1,\ldots,w_{t-1})$$
 
-This is the expected negative log-probability per token — an expectation under the empirical distribution of the training corpus. Minimising this drives the model distribution toward the empirical distribution of human text. The perplexity is $\exp(\mathcal{L})$: a model with perplexity 50 is "equally surprised" by text as a uniform distribution over 50 tokens.
+This is the expected negative log-probability per token - an expectation under the empirical distribution of the training corpus. Minimising this drives the model distribution toward the empirical distribution of human text. The perplexity is $\exp(\mathcal{L})$: a model with perplexity 50 is "equally surprised" by text as a uniform distribution over 50 tokens.
 
 ### 9.2 ELBO as an Expected Value
 
@@ -1044,13 +1044,13 @@ The Variational Autoencoder (VAE) introduces an approximate posterior $q_\phi(z|
 
 $$\mathcal{L}(\phi,\theta;x) = \mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)] - \text{KL}(q_\phi(z|x) \| p(z))$$
 
-**Reconstruction term:** $\mathbb{E}_{q_\phi}[\log p_\theta(x|z)]$ — the expected log-likelihood of the observed data given a latent code, averaged over the approximate posterior. This rewards the decoder for reconstructing $x$ well from samples of $z \sim q_\phi(z|x)$.
+**Reconstruction term:** $\mathbb{E}_{q_\phi}[\log p_\theta(x|z)]$ - the expected log-likelihood of the observed data given a latent code, averaged over the approximate posterior. This rewards the decoder for reconstructing $x$ well from samples of $z \sim q_\phi(z|x)$.
 
-**KL regularisation term:** $\text{KL}(q_\phi \| p(z))$ — penalises the approximate posterior for straying from the prior $p(z) = \mathcal{N}(0,I)$. For Gaussian encoder $q_\phi = \mathcal{N}(\mu_\phi(x), \text{diag}(\sigma_\phi^2(x)))$:
+**KL regularisation term:** $\text{KL}(q_\phi \| p(z))$ - penalises the approximate posterior for straying from the prior $p(z) = \mathcal{N}(0,I)$. For Gaussian encoder $q_\phi = \mathcal{N}(\mu_\phi(x), \text{diag}(\sigma_\phi^2(x)))$:
 
 $$\text{KL}(q_\phi \| \mathcal{N}(0,I)) = \frac{1}{2}\sum_{j=1}^d \left(\mu_{\phi,j}^2 + \sigma_{\phi,j}^2 - \log\sigma_{\phi,j}^2 - 1\right)$$
 
-**Gradient computation.** The reconstruction term $\mathbb{E}_{q_\phi}[\log p_\theta(x|z)]$ cannot be differentiated through the sampling operation $z \sim q_\phi$ directly. The **reparameterisation trick** (§03) writes $z = \mu_\phi + \sigma_\phi \odot \varepsilon$ with $\varepsilon \sim \mathcal{N}(0,I)$, enabling:
+**Gradient computation.** The reconstruction term $\mathbb{E}_{q_\phi}[\log p_\theta(x|z)]$ cannot be differentiated through the sampling operation $z \sim q_\phi$ directly. The **reparameterisation trick** (Section03) writes $z = \mu_\phi + \sigma_\phi \odot \varepsilon$ with $\varepsilon \sim \mathcal{N}(0,I)$, enabling:
 $$\nabla_\phi \mathbb{E}_{q_\phi}[\log p_\theta(x|z)] = \mathbb{E}_{\varepsilon \sim \mathcal{N}(0,I)}[\nabla_\phi \log p_\theta(x|\mu_\phi + \sigma_\phi \odot \varepsilon)]$$
 
 This gradient is computable by backpropagation through the deterministic function $z = \mu_\phi + \sigma_\phi \odot \varepsilon$.
@@ -1094,14 +1094,14 @@ $$\hat{m}_t = \frac{m_t}{1 - \beta_1^t}, \qquad \hat{v}_t = \frac{v_t}{1 - \beta
 **Parameter update:**
 $$\theta_{t+1} = \theta_t - \frac{\alpha}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t$$
 
-The update is the first moment (direction of average gradient) scaled by $1/\sqrt{\text{second moment}}$ — normalising by the root mean square of the gradient. This is **adaptive learning rate**: parameters with large gradient variance get smaller updates (conservative), parameters with small variance get larger updates (aggressive).
+The update is the first moment (direction of average gradient) scaled by $1/\sqrt{\text{second moment}}$ - normalising by the root mean square of the gradient. This is **adaptive learning rate**: parameters with large gradient variance get smaller updates (conservative), parameters with small variance get larger updates (aggressive).
 
 **Connection to Fisher Information.** The diagonal of the Fisher information matrix $\mathcal{I}(\theta)$ is $\text{Var}(g_t) \approx \mathbb{E}[g_t^2]$ (when gradients are zero-mean). Adam's $\hat{v}_t$ approximates the diagonal Fisher, making Adam an approximate natural gradient method.
 
 **AdamW.** Standard Adam conflates weight decay and L2 regularisation (they are equivalent for SGD but not for adaptive methods). AdamW decouples them:
 $$\theta_{t+1} = \theta_t - \frac{\alpha}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t - \alpha\lambda\theta_t$$
 
-The last term is direct weight decay — not affected by the adaptive scaling. This is the current default for training large language models.
+The last term is direct weight decay - not affected by the adaptive scaling. This is the current default for training large language models.
 
 ---
 
@@ -1112,11 +1112,11 @@ The last term is direct weight decay — not affected by the adaptive scaling. T
 | 1 | $\mathbb{E}[g(X)] = g(\mathbb{E}[X])$ (always) | Only true when $g$ is linear. For convex $g$: $g(\mathbb{E}[X]) \leq \mathbb{E}[g(X)]$ (Jensen). For $g(x)=x^2$: $(\mathbb{E}[X])^2 \leq \mathbb{E}[X^2]$. | Apply LOTUS directly to compute $\mathbb{E}[g(X)]$. |
 | 2 | Assuming $\mathbb{E}[XY] = \mathbb{E}[X]\mathbb{E}[Y]$ without checking independence | True only for independent (or uncorrelated for linear functions). Dependent variables violate this. | Check $\text{Cov}(X,Y) = 0$ (uncorrelated) before using this; for full product rule you need $X \perp Y$. |
 | 3 | Confusing variance and standard deviation units | Variance has squared units; std dev has same units as $X$. Mixing them gives nonsense. | Always track units: $\text{Var}(X) = \sigma^2$ (squared), $\sigma_X = \sqrt{\text{Var}(X)}$ (same as $X$). |
-| 4 | $\text{Var}(aX + b) = a^2\text{Var}(X) + b^2$ (wrong) | The constant $b$ shifts location, not spread. Variance is invariant to translation. | $\text{Var}(aX+b) = a^2\text{Var}(X)$ — the $b$ vanishes. |
+| 4 | $\text{Var}(aX + b) = a^2\text{Var}(X) + b^2$ (wrong) | The constant $b$ shifts location, not spread. Variance is invariant to translation. | $\text{Var}(aX+b) = a^2\text{Var}(X)$ - the $b$ vanishes. |
 | 5 | $\text{Var}(X+Y) = \text{Var}(X) + \text{Var}(Y)$ without independence | This only holds when $\text{Cov}(X,Y) = 0$. For positively correlated $X,Y$: variance is larger. | $\text{Var}(X+Y) = \text{Var}(X) + 2\text{Cov}(X,Y) + \text{Var}(Y)$. |
 | 6 | Zero covariance implies independence | False in general. The unit disk example: $Y=\sqrt{1-X^2}$ has $\text{Cov}(X,Y)=0$ but $Y$ is determined by $X$. | Use mutual information $I(X;Y)$ to test full independence. Covariance only measures linear dependence. |
 | 7 | Confusing $\mathbb{E}[Y\|X=x]$ (a number) with $\mathbb{E}[Y\|X]$ (a random variable) | $\mathbb{E}[Y\|X=x]$ is fixed once $x$ is fixed. $\mathbb{E}[Y\|X]$ is random because $X$ is random. | Be explicit: $h(x) = \mathbb{E}[Y\|X=x]$; then $\mathbb{E}[Y\|X] = h(X)$ is the random variable. |
-| 8 | Applying Jensen in the wrong direction for concave $f$ | Jensen: convex $f \Rightarrow f(\mathbb{E}[X]) \leq \mathbb{E}[f(X)]$. For $\log$ (concave): $\log\mathbb{E}[X] \geq \mathbb{E}[\log X]$. | Check second derivative: $f'' > 0$ = convex (Jensen ≤); $f'' < 0$ = concave (Jensen ≥). |
+| 8 | Applying Jensen in the wrong direction for concave $f$ | Jensen: convex $f \Rightarrow f(\mathbb{E}[X]) \leq \mathbb{E}[f(X)]$. For $\log$ (concave): $\log\mathbb{E}[X] \geq \mathbb{E}[\log X]$. | Check second derivative: $f'' > 0$ = convex (Jensen \\leq); $f'' < 0$ = concave (Jensen \\geq). |
 | 9 | Assuming MGF exists for all distributions | Cauchy, Pareto (small $\alpha$), log-normal: MGFs are infinite. Using MGF-based results for these fails. | Use characteristic function (always exists). Check integrability: $\mathbb{E}[e^{tX}] < \infty$ for $|t| < t_0$. |
 | 10 | Confusing raw moments and central moments | $\mu'_k = \mathbb{E}[X^k]$ and $\mu_k = \mathbb{E}[(X-\mu)^k]$ differ unless $\mu=0$. Kurtosis is $\mu_4/\sigma^4$, not $\mu'_4/\sigma^4$. | Explicitly write which you mean. For Gaussian: $\mu'_2 = \sigma^2 + \mu^2$ but $\mu_2 = \sigma^2$. |
 
@@ -1124,7 +1124,7 @@ The last term is direct weight decay — not affected by the adaptive scaling. T
 
 ## 11. Exercises
 
-### Exercise 1 ★ — LOTUS: Expected Value of a Transformation
+### Exercise 1 * - LOTUS: Expected Value of a Transformation
 
 Let $X \sim \text{Exponential}(\lambda=2)$ with PDF $f(x) = 2e^{-2x}$ for $x \geq 0$.
 
@@ -1138,7 +1138,7 @@ Let $X \sim \text{Exponential}(\lambda=2)$ with PDF $f(x) = 2e^{-2x}$ for $x \ge
 
 ---
 
-### Exercise 2 ★ — Linearity Without Independence
+### Exercise 2 * - Linearity Without Independence
 
 Let $X \sim \text{Uniform}(-1, 1)$ and $Y = X^2$.
 
@@ -1152,7 +1152,7 @@ Let $X \sim \text{Uniform}(-1, 1)$ and $Y = X^2$.
 
 ---
 
-### Exercise 3 ★ — Moments of the Gaussian
+### Exercise 3 * - Moments of the Gaussian
 
 For $X \sim \mathcal{N}(0, 1)$ (standard normal):
 
@@ -1166,7 +1166,7 @@ For $X \sim \mathcal{N}(0, 1)$ (standard normal):
 
 ---
 
-### Exercise 4 ★★ — Tower Property in Action
+### Exercise 4 ** - Tower Property in Action
 
 A fair coin is flipped. If heads (prob 1/2), $X \sim \text{Poisson}(3)$. If tails (prob 1/2), $X \sim \text{Poisson}(7)$.
 
@@ -1180,7 +1180,7 @@ A fair coin is flipped. If heads (prob 1/2), $X \sim \text{Poisson}(3)$. If tail
 
 ---
 
-### Exercise 5 ★★ — MGF and Moment Extraction
+### Exercise 5 ** - MGF and Moment Extraction
 
 Let $X \sim \text{Gamma}(\alpha, \beta)$ with PDF $f(x) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{\alpha-1} e^{-\beta x}$ for $x > 0$.
 
@@ -1194,7 +1194,7 @@ Let $X \sim \text{Gamma}(\alpha, \beta)$ with PDF $f(x) = \frac{\beta^\alpha}{\G
 
 ---
 
-### Exercise 6 ★★ — Jensen and KL Divergence
+### Exercise 6 ** - Jensen and KL Divergence
 
 **(a)** Prove that for any probability distribution $p$ over $\{1,\ldots,K\}$:
 $$H(p) = -\sum_k p_k \log p_k \leq \log K$$
@@ -1209,7 +1209,7 @@ with equality iff $p$ is uniform. (Hint: Apply Jensen to $f(x) = -\log x$ or use
 
 ---
 
-### Exercise 7 ★★★ — Bias-Variance Decomposition
+### Exercise 7 *** - Bias-Variance Decomposition
 
 Consider estimating $\theta^* = 2$ from $N=10$ iid samples $X_1,\ldots,X_N \sim \mathcal{N}(\theta^*, 1)$.
 
@@ -1217,13 +1217,13 @@ Consider estimating $\theta^* = 2$ from $N=10$ iid samples $X_1,\ldots,X_N \sim 
 
 **(b)** Consider a regularised estimator $\hat{\theta}_\lambda = \frac{N}{N+\lambda}\bar{X}_N$. Compute its bias and variance as functions of $\lambda > 0$.
 
-**(c)** The MSE of $\hat{\theta}_\lambda$ is Bias² + Variance. Find the $\lambda$ that minimises MSE. (Hint: it depends on $\theta^*$.)
+**(c)** The MSE of $\hat{\theta}_\lambda$ is Bias^2 + Variance. Find the $\lambda$ that minimises MSE. (Hint: it depends on $\theta^*$.)
 
-**(d)** Simulate this: draw 10000 datasets of $N=10$ samples, compute $\hat{\theta}_\lambda$ for $\lambda \in \{0, 0.1, 0.5, 1, 2, 5\}$, plot bias², variance, and MSE vs $\lambda$.
+**(d)** Simulate this: draw 10000 datasets of $N=10$ samples, compute $\hat{\theta}_\lambda$ for $\lambda \in \{0, 0.1, 0.5, 1, 2, 5\}$, plot bias^2, variance, and MSE vs $\lambda$.
 
 ---
 
-### Exercise 8 ★★★ — Adam as Moment Estimation
+### Exercise 8 *** - Adam as Moment Estimation
 
 **(a)** Show that the Adam first-moment estimate satisfies $\mathbb{E}[m_t] = (1-\beta_1^t)\mathbb{E}[g]$ when gradients are iid with mean $\mathbb{E}[g]$ (stationary gradient assumption). Therefore $\hat{m}_t = m_t/(1-\beta_1^t)$ is unbiased.
 
@@ -1239,11 +1239,11 @@ Consider estimating $\theta^* = 2$ from $N=10$ iid samples $X_1,\ldots,X_N \sim 
 
 | Concept | AI/LLM Application | 2026 Context |
 |---------|-------------------|--------------|
-| $\mathbb{E}[\ell(\theta)]$ — expected loss | Every training objective; cross-entropy, MSE, RLHF reward | All SOTA LLMs (GPT-4, Claude, Gemini) optimise expected log-likelihood; RLHF maximises expected reward from human preference model |
-| Linearity of expectation | Gradient of a sum = sum of gradients; minibatch averaging | Distributed training computes gradients on data shards and averages them — justified by linearity |
+| $\mathbb{E}[\ell(\theta)]$ - expected loss | Every training objective; cross-entropy, MSE, RLHF reward | All SOTA LLMs (GPT-4, Claude, Gemini) optimise expected log-likelihood; RLHF maximises expected reward from human preference model |
+| Linearity of expectation | Gradient of a sum = sum of gradients; minibatch averaging | Distributed training computes gradients on data shards and averages them - justified by linearity |
 | Tower property | EM algorithm E-step; policy gradient decomposition | Mixture-of-experts routing in GPT-4, Mixtral uses tower property to compute expected output over router distribution |
-| $\text{Var}(X)$ — variance | Uncertainty quantification, BatchNorm/LayerNorm, gradient clipping | LayerNorm is standard in every transformer (BERT, GPT, LLaMA); normalises by mean and variance per token |
-| Bias-variance decomposition | Model selection, regularisation, double descent | Understanding why GPT-4-scale models (massively overparameterised) still generalise — double descent regime |
+| $\text{Var}(X)$ - variance | Uncertainty quantification, BatchNorm/LayerNorm, gradient clipping | LayerNorm is standard in every transformer (BERT, GPT, LLaMA); normalises by mean and variance per token |
+| Bias-variance decomposition | Model selection, regularisation, double descent | Understanding why GPT-4-scale models (massively overparameterised) still generalise - double descent regime |
 | Jensen's inequality | KL divergence $\geq 0$; ELBO derivation; softmax bounds | VAE encoder (DALL-E 2, Stable Diffusion) optimises ELBO; Jensen is the mathematical foundation |
 | MGF / Cumulants | Proof of CLT, Chernoff bounds, tail analysis | Hoeffding/Chernoff bounds used to prove PAC-learning generalisation bounds for language models |
 | Adam / moment tracking | Default optimiser for all large-scale training | AdamW trains GPT-4, LLaMA, Claude, Gemini; Adam moment tracking is a direct application of $\mathbb{E}[g]$ and $\mathbb{E}[g^2]$ |
@@ -1258,72 +1258,72 @@ Consider estimating $\theta^* = 2$ from $N=10$ iid samples $X_1,\ldots,X_N \sim 
 
 ### Where We Came From
 
-This section builds directly on the foundations laid in §01–§03. The probability spaces and random variable formalism of §01 provides the objects — PDFs, PMFs, CDFs — over which we compute expectations. The named distributions of §02 supply the examples whose moments we derive in §6.2: the mean $1/\lambda$ and variance $1/\lambda^2$ of the exponential, the mean $np$ and variance $np(1-p)$ of the binomial, the mean $\mu$ and variance $\sigma^2$ that define the Gaussian. The joint distribution machinery of §03 provides the tools for conditional expectation (§5) and the covariance matrix (§4): the tower property is essentially iterated marginalisation, and the conditional variance formula is the law of total variance derived via joint distributions.
+This section builds directly on the foundations laid in Section01-Section03. The probability spaces and random variable formalism of Section01 provides the objects - PDFs, PMFs, CDFs - over which we compute expectations. The named distributions of Section02 supply the examples whose moments we derive in Section6.2: the mean $1/\lambda$ and variance $1/\lambda^2$ of the exponential, the mean $np$ and variance $np(1-p)$ of the binomial, the mean $\mu$ and variance $\sigma^2$ that define the Gaussian. The joint distribution machinery of Section03 provides the tools for conditional expectation (Section5) and the covariance matrix (Section4): the tower property is essentially iterated marginalisation, and the conditional variance formula is the law of total variance derived via joint distributions.
 
 ### Where We Are Going
 
-Section §05 (Concentration Inequalities) takes the moment-bound preview from §7.5 much further. Markov's inequality (from the mean) and Chebyshev's inequality (from the variance) are the first two results, but §05 develops exponentially sharper bounds: Hoeffding's inequality (bounded variables), Chernoff bounds (via MGFs), and McDiarmid's inequality (functions of independent variables). These bounds are the mathematical machinery of PAC-learning generalisation theory — they quantify how many training examples are needed to guarantee that the empirical risk is close to the true risk.
+Section Section05 (Concentration Inequalities) takes the moment-bound preview from Section7.5 much further. Markov's inequality (from the mean) and Chebyshev's inequality (from the variance) are the first two results, but Section05 develops exponentially sharper bounds: Hoeffding's inequality (bounded variables), Chernoff bounds (via MGFs), and McDiarmid's inequality (functions of independent variables). These bounds are the mathematical machinery of PAC-learning generalisation theory - they quantify how many training examples are needed to guarantee that the empirical risk is close to the true risk.
 
-Section §06 (Stochastic Processes) extends expectation to sequences of random variables indexed by time. The Law of Large Numbers proves rigorously that $\bar{X}_N \to \mathbb{E}[X]$ — the sample mean converges to the expectation. The Central Limit Theorem proves that the standardised sample mean converges in distribution to $\mathcal{N}(0,1)$ — the Gaussian emerges as the universal limit of sums, with proof via MGF or characteristic function techniques introduced here.
+Section Section06 (Stochastic Processes) extends expectation to sequences of random variables indexed by time. The Law of Large Numbers proves rigorously that $\bar{X}_N \to \mathbb{E}[X]$ - the sample mean converges to the expectation. The Central Limit Theorem proves that the standardised sample mean converges in distribution to $\mathcal{N}(0,1)$ - the Gaussian emerges as the universal limit of sums, with proof via MGF or characteristic function techniques introduced here.
 
 ```
 POSITION IN CHAPTER 6 CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §01 Probability Spaces          §02 Distributions
-  ┌──────────────────┐            ┌──────────────────┐
-  │ Kolmogorov axioms│            │ Named PDFs/PMFs  │
-  │ Events, σ-algebra│            │ Parameters       │
-  │ CDF, PDF, PMF    │            │ Relationships    │
-  └────────┬─────────┘            └────────┬─────────┘
-           │                               │
-           └──────────────┬────────────────┘
-                          ↓
-              §03 Joint Distributions
-              ┌──────────────────────┐
-              │ Marginals            │
-              │ Conditionals f(y|x) │
-              │ MVN, Bayes, Chain   │
-              └──────────┬──────────┘
-                         │
-                         ↓
-          ╔══════════════════════════════╗
-          ║  §04 Expectation & Moments  ║  ← YOU ARE HERE
-          ║  E[X], Var, Cov, MGF       ║
-          ║  Jensen, C-S, LOTUS        ║
-          ║  Bias-Variance, Adam       ║
-          ╚══════════════╤═════════════╝
-                         │
-              ┌──────────┴──────────┐
-              ↓                     ↓
-    §05 Concentration         §06 Stochastic
+  Section01 Probability Spaces          Section02 Distributions
+  +------------------+            +------------------+
+  | Kolmogorov axioms|            | Named PDFs/PMFs  |
+  | Events, \\sigma-algebra|            | Parameters       |
+  | CDF, PDF, PMF    |            | Relationships    |
+  +--------+---------+            +--------+---------+
+           |                               |
+           +--------------+----------------+
+                          v
+              Section03 Joint Distributions
+              +----------------------+
+              | Marginals            |
+              | Conditionals f(y|x) |
+              | MVN, Bayes, Chain   |
+              +----------+----------+
+                         |
+                         v
+          +==============================+
+          |  Section04 Expectation & Moments  |  <- YOU ARE HERE
+          |  E[X], Var, Cov, MGF       |
+          |  Jensen, C-S, LOTUS        |
+          |  Bias-Variance, Adam       |
+          +==============+=============+
+                         |
+              +----------+----------+
+              v                     v
+    Section05 Concentration         Section06 Stochastic
     Inequalities              Processes
-    ┌─────────────┐           ┌─────────────┐
-    │ Markov      │           │ LLN: X̄→E[X]│
-    │ Chebyshev   │           │ CLT: →N(0,1)│
-    │ Hoeffding   │           │ Gaussian    │
-    │ PAC bounds  │           │ processes   │
-    └─────────────┘           └─────────────┘
-              │                     │
-              └──────────┬──────────┘
-                         ↓
-              §07 Markov Chains
-              ┌──────────────────────┐
-              │ Transition matrices  │
-              │ Steady state         │
-              │ MCMC (Bayes sampling)│
-              └──────────────────────┘
+    +-------------+           +-------------+
+    | Markov      |           | LLN: Xbar->E[X]|
+    | Chebyshev   |           | CLT: ->N(0,1)|
+    | Hoeffding   |           | Gaussian    |
+    | PAC bounds  |           | processes   |
+    +-------------+           +-------------+
+              |                     |
+              +----------+----------+
+                         v
+              Section07 Markov Chains
+              +----------------------+
+              | Transition matrices  |
+              | Steady state         |
+              | MCMC (Bayes sampling)|
+              +----------------------+
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The conceptual arc through §04 is: we began with probability as a framework for describing uncertainty (§01), learned the vocabulary of named distributions (§02), understood how to reason about multiple random variables jointly (§03), and now in §04 we have the tools to **summarise** distributions with numbers — expectations, variances, covariances, moments — and to **bound** the gap between reality and our estimates. Every subsequent section will use the expectation operator as a core tool: §05 to prove tail bounds, §06 to formalise convergence, §07 to analyse Markov chain stationary distributions via matrix expectations.
+The conceptual arc through Section04 is: we began with probability as a framework for describing uncertainty (Section01), learned the vocabulary of named distributions (Section02), understood how to reason about multiple random variables jointly (Section03), and now in Section04 we have the tools to **summarise** distributions with numbers - expectations, variances, covariances, moments - and to **bound** the gap between reality and our estimates. Every subsequent section will use the expectation operator as a core tool: Section05 to prove tail bounds, Section06 to formalise convergence, Section07 to analyse Markov chain stationary distributions via matrix expectations.
 
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Concentration Inequalities →](../05-Concentration-Inequalities/notes.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Concentration Inequalities ->](../05-Concentration-Inequalities/notes.md)
 
 ---
 
-## Appendix A — Worked Examples: Expectation and Moments
+## Appendix A - Worked Examples: Expectation and Moments
 
 ### A.1 Expected Value of the Geometric Distribution
 
@@ -1373,19 +1373,19 @@ The expected value is infinite! Yet no rational person would pay more than a few
 **Resolution:** Rational agents maximise expected **utility**, not expected monetary value. For a logarithmic utility function $u(w) = \log(w)$, the expected utility is finite:
 $$\mathbb{E}[\log(\text{Winnings})] = \sum_{k=1}^\infty \log(2^k) \cdot \frac{1}{2^k} = \sum_{k=1}^\infty \frac{k \log 2}{2^k} = 2\log 2 < \infty$$
 
-This is Bernoulli's resolution (1738): diminishing marginal utility. The paradox reveals that infinite expected value is not sufficient for rational choice — the existence of all moments (or at least bounded utility) is needed.
+This is Bernoulli's resolution (1738): diminishing marginal utility. The paradox reveals that infinite expected value is not sufficient for rational choice - the existence of all moments (or at least bounded utility) is needed.
 
 **For AI:** Reinforcement learning reward design must account for this. An agent with unbounded reward function may take extremely risky actions that have infinite expected reward but almost surely fail. This motivates bounded reward functions and regularisation in RLHF: keeping reward signals within a bounded range prevents policy collapse toward infinite-expectation strategies.
 
 ---
 
-## Appendix B — Proofs of Key Identities
+## Appendix B - Proofs of Key Identities
 
 ### B.1 Cauchy-Schwarz via Inner Product
 
 The expectation $\mathbb{E}[XY]$ can be viewed as an inner product $\langle X, Y \rangle = \mathbb{E}[XY]$ in the $L^2$ space of square-integrable random variables. The Cauchy-Schwarz inequality for inner products states $|\langle X, Y \rangle|^2 \leq \langle X, X \rangle \langle Y, Y \rangle$, which gives $(\mathbb{E}[XY])^2 \leq \mathbb{E}[X^2]\mathbb{E}[Y^2]$ directly.
 
-This inner product interpretation gives $L^2$ convergence its name: $X_n \to X$ in $L^2$ means $\mathbb{E}[(X_n - X)^2] \to 0$ — convergence in the $L^2$ inner product sense.
+This inner product interpretation gives $L^2$ convergence its name: $X_n \to X$ in $L^2$ means $\mathbb{E}[(X_n - X)^2] \to 0$ - convergence in the $L^2$ inner product sense.
 
 ### B.2 Variance as Second Cumulant
 
@@ -1410,7 +1410,7 @@ $$\int p_\theta(x) dx = 1 \implies \nabla_\theta \int p_\theta(x) dx = 0 \implie
 Therefore the Fisher information is the variance (covariance matrix) of the score function $\nabla_\theta \log p_\theta(X)$.
 
 **For AI:** Fisher information appears in:
-- **Cramér-Rao bound:** $\text{Var}(\hat{\theta}) \geq 1/\mathcal{I}(\theta)$ — the variance of any unbiased estimator is at least the reciprocal Fisher information.
+- **Cramer-Rao bound:** $\text{Var}(\hat{\theta}) \geq 1/\mathcal{I}(\theta)$ - the variance of any unbiased estimator is at least the reciprocal Fisher information.
 - **Natural gradient:** The natural gradient descent update $\mathcal{I}(\theta)^{-1}\nabla\mathcal{L}$ moves in the direction of steepest descent in the space of distributions (KL-divergence geometry), rather than parameter space. Adam approximates this with a diagonal Fisher.
 - **Elastic Weight Consolidation (EWC):** Used in continual learning to prevent catastrophic forgetting. The Fisher information diagonal identifies which parameters are important for previous tasks.
 
@@ -1426,14 +1426,14 @@ Note $(x-\mu)e^{-(x-\mu)^2/(2\sigma^2)} = -\sigma^2 \frac{d}{dx}e^{-(x-\mu)^2/(2
 $$= \sigma^2 \int g'(x) \frac{1}{\sqrt{2\pi}\sigma}e^{-(x-\mu)^2/(2\sigma^2)} dx = \sigma^2 \mathbb{E}[g'(X)] \quad \square$$
 
 **Special cases:**
-- $g(x) = x$: $\mathbb{E}[X(X-\mu)] = \sigma^2 \implies \mathbb{E}[X^2] = \mu^2 + \sigma^2$ ✓
-- $g(x) = x^2$: $\mathbb{E}[X^2(X-\mu)] = 2\sigma^2 \mathbb{E}[X] = 2\sigma^2\mu \implies \mathbb{E}[X^3] = \mu^3 + 3\mu\sigma^2$ ✓
+- $g(x) = x$: $\mathbb{E}[X(X-\mu)] = \sigma^2 \implies \mathbb{E}[X^2] = \mu^2 + \sigma^2$ [ok]
+- $g(x) = x^2$: $\mathbb{E}[X^2(X-\mu)] = 2\sigma^2 \mathbb{E}[X] = 2\sigma^2\mu \implies \mathbb{E}[X^3] = \mu^3 + 3\mu\sigma^2$ [ok]
 
 **For AI:** Stein's lemma is the foundation of **Stein's identity** used in score matching and denoising diffusion models. The score function $\nabla_x \log p(x)$ satisfies $\mathbb{E}_p[g(X) + \nabla_x \cdot g(X)] = 0$ (Stein's operator), enabling training by minimising a quadratic loss without computing the intractable normalisation constant of $p$.
 
 ---
 
-## Appendix C — Moment Computations for Common Distributions
+## Appendix C - Moment Computations for Common Distributions
 
 This table gives raw moments, central moments, MGF, skewness, and excess kurtosis for the distributions used throughout the course.
 
@@ -1453,11 +1453,11 @@ This table gives raw moments, central moments, MGF, skewness, and excess kurtosi
 **Notes:**
 - Student-$t$ has no MGF (heavy tails cause $\mathbb{E}[e^{tX}] = \infty$ for all $t \neq 0$).
 - Beta distribution skewness is zero iff $\alpha = \beta$ (symmetric); negative when $\alpha > \beta$, positive when $\alpha < \beta$.
-- Poisson has equal mean and variance — a property used to test whether count data follows Poisson (overdispersion: $\text{Var} > \mathbb{E}$ means extra variability, e.g., negative binomial is better).
+- Poisson has equal mean and variance - a property used to test whether count data follows Poisson (overdispersion: $\text{Var} > \mathbb{E}$ means extra variability, e.g., negative binomial is better).
 
 ---
 
-## Appendix D — The Exponential Family and Moments
+## Appendix D - The Exponential Family and Moments
 
 Many common distributions belong to the **exponential family**, which has a elegant connection between natural parameters and moments.
 
@@ -1490,37 +1490,37 @@ Therefore $\mathbb{E}[T(X)] = \nabla A(\eta)$. Differentiating again gives the c
 | Gaussian($\mu,\sigma^2$) | $(\mu/\sigma^2, -1/(2\sigma^2))$ | $(x, x^2)$ | $-\eta_1^2/(4\eta_2) - \frac{1}{2}\log(-2\eta_2)$ | $(\mu, \sigma^2+\mu^2)$ |
 | Poisson($\lambda$) | $\log\lambda$ | $x$ | $e^\eta = \lambda$ | $e^\eta = \lambda$ |
 
-**For AI:** The log-partition function $A(\eta)$ is the **free energy** of the exponential family. Its gradient gives the expected sufficient statistics (moments), its Hessian gives the Fisher information matrix. In variational inference, the ELBO is optimised over the natural parameters $\eta$ of the approximate posterior; the optimal $\eta$ satisfies $\nabla A(\eta) = \mathbb{E}_{p}[T(X)]$ (moment matching). This is the connection between maximum entropy, sufficient statistics, and the moments derived in §6.
+**For AI:** The log-partition function $A(\eta)$ is the **free energy** of the exponential family. Its gradient gives the expected sufficient statistics (moments), its Hessian gives the Fisher information matrix. In variational inference, the ELBO is optimised over the natural parameters $\eta$ of the approximate posterior; the optimal $\eta$ satisfies $\nabla A(\eta) = \mathbb{E}_{p}[T(X)]$ (moment matching). This is the connection between maximum entropy, sufficient statistics, and the moments derived in Section6.
 
 ---
 
-## Appendix E — Convergence in Probability and L² Convergence
+## Appendix E - Convergence in Probability and L^2 Convergence
 
 The sample mean $\bar{X}_N = \frac{1}{N}\sum_{i=1}^N X_i$ estimates $\mathbb{E}[X]$. In what sense does this estimate converge?
 
-### E.1 L² Convergence (Mean Square Convergence)
+### E.1 L^2 Convergence (Mean Square Convergence)
 
 $\bar{X}_N$ converges to $\mathbb{E}[X]$ in **mean square** ($L^2$) sense:
 $$\mathbb{E}[(\bar{X}_N - \mathbb{E}[X])^2] = \text{Var}(\bar{X}_N) = \frac{\text{Var}(X)}{N} \to 0$$
 
-This is an immediate consequence of the variance formula for means (§4.4). The sample mean's MSE decreases at rate $1/N$.
+This is an immediate consequence of the variance formula for means (Section4.4). The sample mean's MSE decreases at rate $1/N$.
 
 ### E.2 Weak Law of Large Numbers (Preview)
 
-The Weak LLN (proved in §06 using characteristic functions or Chebyshev's inequality) states that for iid $X_i$ with finite mean $\mu$:
+The Weak LLN (proved in Section06 using characteristic functions or Chebyshev's inequality) states that for iid $X_i$ with finite mean $\mu$:
 $$\bar{X}_N \xrightarrow{P} \mu \quad \text{as } N \to \infty$$
 
 i.e., $P(|\bar{X}_N - \mu| > \varepsilon) \to 0$ for any $\varepsilon > 0$.
 
 **Proof via Chebyshev (when $\text{Var}(X) < \infty$):** $P(|\bar{X}_N - \mu| > \varepsilon) \leq \frac{\text{Var}(\bar{X}_N)}{\varepsilon^2} = \frac{\text{Var}(X)}{N\varepsilon^2} \to 0$.
 
-This is a direct application of Chebyshev's inequality (from §7.5 preview) to the sample mean. The LLN justifies: if we run a neural network many times on iid batches and average the loss estimates, the average converges to the true expected loss.
+This is a direct application of Chebyshev's inequality (from Section7.5 preview) to the sample mean. The LLN justifies: if we run a neural network many times on iid batches and average the loss estimates, the average converges to the true expected loss.
 
-> → _Full treatment of LLN and CLT: [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md)_
+> -> _Full treatment of LLN and CLT: [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md)_
 
 ---
 
-## Appendix F — Conditional Expectation as Projection
+## Appendix F - Conditional Expectation as Projection
 
 The conditional expectation $\mathbb{E}[Y|X]$ can be understood geometrically as an **orthogonal projection** in the Hilbert space $L^2(\Omega, P)$ of square-integrable random variables.
 
@@ -1538,7 +1538,7 @@ $$\mathbb{E}[(Y - \mathbb{E}[Y|X]) \cdot g(X)] = 0 \quad \text{for all measurabl
 
 ---
 
-## Appendix G — Worked Problems: Moments and Inequalities
+## Appendix G - Worked Problems: Moments and Inequalities
 
 ### G.1 Computing the Moments of the Beta Distribution
 
@@ -1557,7 +1557,7 @@ $$= \frac{(\alpha+k-1)(\alpha+k-2)\cdots\alpha}{(\alpha+\beta+k-1)(\alpha+\beta+
 $$\text{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2 = \frac{\alpha(\alpha+1)}{(\alpha+\beta)(\alpha+\beta+1)} - \frac{\alpha^2}{(\alpha+\beta)^2}$$
 $$= \frac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)}$$
 
-**AI connection:** The Beta distribution is the conjugate prior for the Bernoulli/Binomial likelihood. After observing $s$ successes and $f$ failures, the posterior is Beta($\alpha+s$, $\beta+f$). The posterior mean is $\frac{\alpha+s}{\alpha+\beta+s+f}$ — a weighted average of the prior mean $\frac{\alpha}{\alpha+\beta}$ and the sample mean $\frac{s}{s+f}$. As $s+f \to \infty$, the posterior converges to the sample mean (data dominates prior).
+**AI connection:** The Beta distribution is the conjugate prior for the Bernoulli/Binomial likelihood. After observing $s$ successes and $f$ failures, the posterior is Beta($\alpha+s$, $\beta+f$). The posterior mean is $\frac{\alpha+s}{\alpha+\beta+s+f}$ - a weighted average of the prior mean $\frac{\alpha}{\alpha+\beta}$ and the sample mean $\frac{s}{s+f}$. As $s+f \to \infty$, the posterior converges to the sample mean (data dominates prior).
 
 ### G.2 Proving $H(p) \leq \log K$ by Jensen
 
@@ -1590,13 +1590,13 @@ The bias is $\mathbb{E}[m_t] - \mu_g = -\beta_1^t \mu_g$, which decays to zero g
 
 Similarly for $v_t$, and the debiased $\hat{v}_t = v_t/(1-\beta_2^t)$ estimates $\mathbb{E}[g_t^2]$ unbiasedly.
 
-**In early training** ($t$ small), $1-\beta_1^t \approx (1-\beta_1)t$ is small, so $\hat{m}_t = m_t/((1-\beta_1)t)$ greatly amplifies $m_t$. Without bias correction, Adam would take tiny steps at the start because $m_t \approx (1-\beta_1)g_1$ after one step. With bias correction: $\hat{m}_1 = g_1$ — the first step uses the actual gradient.
+**In early training** ($t$ small), $1-\beta_1^t \approx (1-\beta_1)t$ is small, so $\hat{m}_t = m_t/((1-\beta_1)t)$ greatly amplifies $m_t$. Without bias correction, Adam would take tiny steps at the start because $m_t \approx (1-\beta_1)g_1$ after one step. With bias correction: $\hat{m}_1 = g_1$ - the first step uses the actual gradient.
 
 ### G.4 Conditional Expectation: Gaussian Case
 
 Let $(X,Y) \sim \mathcal{N}(\boldsymbol{\mu}, \Sigma)$ with $\boldsymbol{\mu} = (\mu_X, \mu_Y)$ and $\Sigma = \begin{pmatrix}\sigma_X^2 & \rho\sigma_X\sigma_Y \\ \rho\sigma_X\sigma_Y & \sigma_Y^2\end{pmatrix}$.
 
-**Conditional distribution** (from §03 Schur complement formula):
+**Conditional distribution** (from Section03 Schur complement formula):
 $$Y | X=x \sim \mathcal{N}\!\left(\mu_Y + \rho\frac{\sigma_Y}{\sigma_X}(x-\mu_X),\; \sigma_Y^2(1-\rho^2)\right)$$
 
 Therefore:
@@ -1613,34 +1613,34 @@ The variance of the conditional mean contributes $\rho^2\sigma_Y^2$ (explained v
 
 ---
 
-## Appendix H — Notation Summary
+## Appendix H - Notation Summary
 
 | Symbol | Meaning | First defined |
 |--------|---------|---------------|
-| $\mathbb{E}[X]$ | Expected value of $X$ | §2.1 |
-| $\mu_X$ or $\mu$ | Mean (expected value) | §2.1 |
-| $\text{Var}(X)$ or $\sigma_X^2$ | Variance of $X$ | §3.1 |
-| $\sigma_X$ | Standard deviation of $X$ | §3.2 |
-| $\mu'_k = \mathbb{E}[X^k]$ | $k$-th raw moment | §3.3 |
-| $\mu_k = \mathbb{E}[(X-\mu)^k]$ | $k$-th central moment | §3.3 |
-| $\gamma_1 = \mu_3/\sigma^3$ | Skewness | §3.4 |
-| $\gamma_2 = \mu_4/\sigma^4 - 3$ | Excess kurtosis | §3.5 |
-| $\text{Cov}(X,Y)$ | Covariance | §4.1 |
-| $\rho_{XY}$ | Pearson correlation | §4.2 |
-| $\mathbb{E}[Y \mid X=x]$ | Conditional expectation (function of $x$) | §5.1 |
-| $\mathbb{E}[Y \mid X]$ | Conditional expectation (random variable) | §5.1 |
-| $\text{Var}(Y \mid X)$ | Conditional variance | §5.3 |
-| $M_X(t) = \mathbb{E}[e^{tX}]$ | Moment generating function | §6.1 |
-| $\varphi_X(t) = \mathbb{E}[e^{itX}]$ | Characteristic function | §6.4 |
-| $K_X(t) = \log M_X(t)$ | Cumulant generating function | §6.5 |
-| $\kappa_k$ | $k$-th cumulant | §6.5 |
-| $\mathcal{L}(\phi,\theta;x)$ | ELBO (evidence lower bound) | §9.2 |
-| $\text{KL}(p\|q)$ | KL divergence | §7.2 |
-| $H(p)$ | Shannon entropy | §9.1 |
+| $\mathbb{E}[X]$ | Expected value of $X$ | Section2.1 |
+| $\mu_X$ or $\mu$ | Mean (expected value) | Section2.1 |
+| $\text{Var}(X)$ or $\sigma_X^2$ | Variance of $X$ | Section3.1 |
+| $\sigma_X$ | Standard deviation of $X$ | Section3.2 |
+| $\mu'_k = \mathbb{E}[X^k]$ | $k$-th raw moment | Section3.3 |
+| $\mu_k = \mathbb{E}[(X-\mu)^k]$ | $k$-th central moment | Section3.3 |
+| $\gamma_1 = \mu_3/\sigma^3$ | Skewness | Section3.4 |
+| $\gamma_2 = \mu_4/\sigma^4 - 3$ | Excess kurtosis | Section3.5 |
+| $\text{Cov}(X,Y)$ | Covariance | Section4.1 |
+| $\rho_{XY}$ | Pearson correlation | Section4.2 |
+| $\mathbb{E}[Y \mid X=x]$ | Conditional expectation (function of $x$) | Section5.1 |
+| $\mathbb{E}[Y \mid X]$ | Conditional expectation (random variable) | Section5.1 |
+| $\text{Var}(Y \mid X)$ | Conditional variance | Section5.3 |
+| $M_X(t) = \mathbb{E}[e^{tX}]$ | Moment generating function | Section6.1 |
+| $\varphi_X(t) = \mathbb{E}[e^{itX}]$ | Characteristic function | Section6.4 |
+| $K_X(t) = \log M_X(t)$ | Cumulant generating function | Section6.5 |
+| $\kappa_k$ | $k$-th cumulant | Section6.5 |
+| $\mathcal{L}(\phi,\theta;x)$ | ELBO (evidence lower bound) | Section9.2 |
+| $\text{KL}(p\|q)$ | KL divergence | Section7.2 |
+| $H(p)$ | Shannon entropy | Section9.1 |
 
 ---
 
-## Appendix I — Quick Reference: Key Formulas
+## Appendix I - Quick Reference: Key Formulas
 
 **Expectation:**
 $$\mathbb{E}[aX+bY] = a\mathbb{E}[X] + b\mathbb{E}[Y] \quad (\text{always})$$
@@ -1675,7 +1675,7 @@ $$v_t = \beta_2 v_{t-1} + (1-\beta_2)g_t^2, \quad \hat{v}_t = v_t/(1-\beta_2^t) 
 
 ---
 
-## Appendix J — Common Mistakes: Extended Examples
+## Appendix J - Common Mistakes: Extended Examples
 
 ### J.1 Jensen's Direction: A Costly Error
 
@@ -1683,15 +1683,15 @@ One of the most frequent mistakes when applying Jensen's inequality is applying 
 
 **Common confusion: $\sqrt{\cdot}$ vs. $(\cdot)^2$.**
 
-- $f(x) = x^2$ is **convex** ($f''=2>0$). Jensen: $(\mathbb{E}[X])^2 \leq \mathbb{E}[X^2]$. Equivalently, $\text{Var}(X) = \mathbb{E}[X^2]-(\mathbb{E}[X])^2 \geq 0$. ✓
+- $f(x) = x^2$ is **convex** ($f''=2>0$). Jensen: $(\mathbb{E}[X])^2 \leq \mathbb{E}[X^2]$. Equivalently, $\text{Var}(X) = \mathbb{E}[X^2]-(\mathbb{E}[X])^2 \geq 0$. [ok]
 - $f(x) = \sqrt{x}$ is **concave** ($f''=-\frac{1}{4}x^{-3/2}<0$). Jensen: $\sqrt{\mathbb{E}[X]} \geq \mathbb{E}[\sqrt{X}]$ for $X \geq 0$.
 
 A model that minimises $\mathbb{E}[\sqrt{\text{loss}}]$ is NOT the same as minimising $\sqrt{\mathbb{E}[\text{loss}]}$. The former cares about average square-root loss, the latter about the square root of average loss. In practice this distinction matters for robust loss functions.
 
 **Common confusion: $\log$ vs. $\exp$.**
 
-- $f(x) = \log x$ is **concave** → $\log\mathbb{E}[X] \geq \mathbb{E}[\log X]$. This is the key inequality behind the ELBO derivation.
-- $f(x) = e^x$ is **convex** → $e^{\mathbb{E}[X]} \leq \mathbb{E}[e^X]$. This is the key inequality for bounding the MGF.
+- $f(x) = \log x$ is **concave** -> $\log\mathbb{E}[X] \geq \mathbb{E}[\log X]$. This is the key inequality behind the ELBO derivation.
+- $f(x) = e^x$ is **convex** -> $e^{\mathbb{E}[X]} \leq \mathbb{E}[e^X]$. This is the key inequality for bounding the MGF.
 
 The ELBO derivation applies Jensen with $\log$ (concave): $\log \mathbb{E}[Z] \geq \mathbb{E}[\log Z]$ where $Z = p_\theta(x,z)/q_\phi(z|x)$. Students often try to apply it in the wrong direction, getting an **upper** bound instead of a lower bound.
 
@@ -1705,14 +1705,14 @@ Conditioning on less information from already conditioned: you keep the coarser 
 **Example:** Let $Z$ be a sufficient statistic for $\theta$ given data $X_1,\ldots,X_n$. Then:
 $$\mathbb{E}[\hat{\theta}|\theta] = \mathbb{E}[\mathbb{E}[\hat{\theta}|Z]|\theta] = \mathbb{E}[\tilde{\theta}|\theta]$$
 
-where $\tilde{\theta} = \mathbb{E}[\hat{\theta}|Z]$ is the Rao-Blackwellised estimator. The outer expectation equals the original (tower property), but the Rao-Blackwellised estimator has smaller variance. This is NOT circular — it is the statement that smoothing $\hat{\theta}$ via conditioning on $Z$ doesn't change its mean.
+where $\tilde{\theta} = \mathbb{E}[\hat{\theta}|Z]$ is the Rao-Blackwellised estimator. The outer expectation equals the original (tower property), but the Rao-Blackwellised estimator has smaller variance. This is NOT circular - it is the statement that smoothing $\hat{\theta}$ via conditioning on $Z$ doesn't change its mean.
 
-### J.3 Correlation Does Not Imply Causation — A Statistical View
+### J.3 Correlation Does Not Imply Causation - A Statistical View
 
-Zero correlation means $\mathbb{E}[XY] = \mathbb{E}[X]\mathbb{E}[Y]$ — no **linear** relationship. But:
+Zero correlation means $\mathbb{E}[XY] = \mathbb{E}[X]\mathbb{E}[Y]$ - no **linear** relationship. But:
 
-1. There may be nonlinear dependence (§4.3 example: $Y = X^2$).
-2. Even positive correlation may arise from a common cause (confounding): if $Z \to X$ and $Z \to Y$ (fork structure from §03), then $X$ and $Y$ are correlated even if neither causes the other.
+1. There may be nonlinear dependence (Section4.3 example: $Y = X^2$).
+2. Even positive correlation may arise from a common cause (confounding): if $Z \to X$ and $Z \to Y$ (fork structure from Section03), then $X$ and $Y$ are correlated even if neither causes the other.
 
 In ML: the correlation between model predictions and labels on the test set measures linear predictive ability, not causal understanding. A model can achieve high correlation while exploiting spurious features (shortcuts). For example, language models correlate "hospital" with "disease" not through causal understanding but through co-occurrence patterns.
 
@@ -1720,7 +1720,7 @@ In ML: the correlation between model predictions and labels on the test set meas
 
 ---
 
-## Appendix K — Information-Theoretic View of Moments
+## Appendix K - Information-Theoretic View of Moments
 
 ### K.1 Entropy as Negative Expected Log-Probability
 
@@ -1755,12 +1755,12 @@ $$I(X;Y) = H(Y) - H(Y|X) = H(X) - H(X|Y)$$
 
 where $H(Y|X) = \mathbb{E}_X[H(Y|X=x)]$ is the conditional entropy (tower property applied to entropy).
 
-**For AI:** Mutual information is the gold standard for measuring statistical dependence. It captures all forms of dependence (linear and nonlinear), unlike correlation. Contrastive learning methods (SimCLR, CLIP) can be viewed as maximising a lower bound on $I(\text{view}_1; \text{view}_2)$ — encouraging representations to capture information shared between different views/modalities. Information bottleneck methods (used for analysing neural networks) study the trade-off between compressing $X$ (low $I(Z;X)$) and preserving information about $Y$ (high $I(Z;Y)$).
+**For AI:** Mutual information is the gold standard for measuring statistical dependence. It captures all forms of dependence (linear and nonlinear), unlike correlation. Contrastive learning methods (SimCLR, CLIP) can be viewed as maximising a lower bound on $I(\text{view}_1; \text{view}_2)$ - encouraging representations to capture information shared between different views/modalities. Information bottleneck methods (used for analysing neural networks) study the trade-off between compressing $X$ (low $I(Z;X)$) and preserving information about $Y$ (high $I(Z;Y)$).
 
 
 ---
 
-## Appendix L — The Reparameterisation Trick: Full Mathematical Treatment
+## Appendix L - The Reparameterisation Trick: Full Mathematical Treatment
 
 The reparameterisation trick is a technique for computing gradients of expectations when the distribution depends on the parameters we differentiate with respect to.
 
@@ -1769,7 +1769,7 @@ The reparameterisation trick is a technique for computing gradients of expectati
 We want $\nabla_\phi \mathbb{E}_{z \sim q_\phi}[f(z)]$ where $q_\phi$ is a distribution parameterised by $\phi$. Naively:
 $$\nabla_\phi \mathbb{E}_{q_\phi}[f(z)] = \nabla_\phi \int f(z) q_\phi(z) dz = \int f(z) \nabla_\phi q_\phi(z) dz$$
 
-This requires computing $\nabla_\phi q_\phi(z)$ for each $z$, and the expectation is now over the fixed distribution of $z$ values — but the integration measure $q_\phi(z)dz$ changes with $\phi$, making Monte Carlo estimation require evaluating $\nabla_\phi q_\phi$.
+This requires computing $\nabla_\phi q_\phi(z)$ for each $z$, and the expectation is now over the fixed distribution of $z$ values - but the integration measure $q_\phi(z)dz$ changes with $\phi$, making Monte Carlo estimation require evaluating $\nabla_\phi q_\phi$.
 
 ### L.2 REINFORCE (Score Function Estimator)
 
@@ -1811,7 +1811,7 @@ In general, reparameterisation produces gradients of $O(1)$ magnitude when $f$ i
 
 ---
 
-## Appendix M — Moments in the Context of Score Matching and Diffusion
+## Appendix M - Moments in the Context of Score Matching and Diffusion
 
 ### M.1 Denoising Score Matching
 
@@ -1827,7 +1827,7 @@ $$\nabla_{x_t}\log p_t(x_t|x_0) = -\frac{\varepsilon}{\sqrt{1-\bar{\alpha}_t}}$$
 This is an expectation over the noise schedule. The loss simplifies to:
 $$\mathcal{L}_\theta = \mathbb{E}_{t,\varepsilon}\left[\|\varepsilon_\theta(x_t,t) - \varepsilon\|^2\right]$$
 
-which is an **MSE loss** — an empirical estimate of $\mathbb{E}[(Y-f(X))^2]$ where $Y$ is the added noise $\varepsilon$ and $f = \varepsilon_\theta$.
+which is an **MSE loss** - an empirical estimate of $\mathbb{E}[(Y-f(X))^2]$ where $Y$ is the added noise $\varepsilon$ and $f = \varepsilon_\theta$.
 
 ### M.2 First Moment of the Reverse Process
 
@@ -1843,7 +1843,7 @@ This is LOTUS applied to the reparameterised relationship: the expected clean im
 
 ---
 
-## Appendix N — Worked Problems: Bias-Variance and Regularisation
+## Appendix N - Worked Problems: Bias-Variance and Regularisation
 
 ### N.1 Ridge Regression Bias-Variance Tradeoff
 
@@ -1867,7 +1867,7 @@ As $\lambda \to 0$: recovers OLS variance $\sigma^2(X^\top X)^{-1}$.
 
 **Total MSE:** $\text{MSE} = \|\text{Bias}\|^2 + \text{tr}(\text{Var}) = \lambda^2 \theta^{*\top}(X^\top X+\lambda I)^{-2}\theta^* + \sigma^2\text{tr}((X^\top X+\lambda I)^{-1}X^\top X(X^\top X+\lambda I)^{-1})$.
 
-The optimal $\lambda$ minimises this sum — bias grows, variance shrinks, and there is a sweet spot.
+The optimal $\lambda$ minimises this sum - bias grows, variance shrinks, and there is a sweet spot.
 
 ### N.2 Neural Network Initialisation via Variance Propagation
 
@@ -1889,9 +1889,9 @@ For variance to stay constant across layers: $v_l = v_{l-1}$ requires $\sigma_W^
 
 ---
 
-## Appendix O — Self-Assessment Checklist
+## Appendix O - Self-Assessment Checklist
 
-Use this checklist after studying the section to identify gaps before proceeding to §05.
+Use this checklist after studying the section to identify gaps before proceeding to Section05.
 
 ### Core Mechanics (Should be fluent)
 
@@ -1924,19 +1924,19 @@ Use this checklist after studying the section to identify gaps before proceeding
 
 ---
 
-## Appendix P — Further Reading and References
+## Appendix P - Further Reading and References
 
 ### Textbooks
 
-1. **Probability and Statistics for Engineering and the Sciences** — Jay Devore (2015). Accessible introduction to moments, MGFs, and expectation with engineering examples.
+1. **Probability and Statistics for Engineering and the Sciences** - Jay Devore (2015). Accessible introduction to moments, MGFs, and expectation with engineering examples.
 
-2. **Probability Theory: The Logic of Science** — E.T. Jaynes (2003). Philosophical and technical treatment; excellent on entropy and maximum entropy principle.
+2. **Probability Theory: The Logic of Science** - E.T. Jaynes (2003). Philosophical and technical treatment; excellent on entropy and maximum entropy principle.
 
-3. **Pattern Recognition and Machine Learning** — Christopher Bishop (2006), Ch. 1-2. The ML-focused treatment of expectations, KL divergence, ELBO, and variational inference.
+3. **Pattern Recognition and Machine Learning** - Christopher Bishop (2006), Ch. 1-2. The ML-focused treatment of expectations, KL divergence, ELBO, and variational inference.
 
-4. **Deep Learning** — Goodfellow, Bengio, Courville (2016), Ch. 3. Standard reference for probability in ML context including bias-variance tradeoff.
+4. **Deep Learning** - Goodfellow, Bengio, Courville (2016), Ch. 3. Standard reference for probability in ML context including bias-variance tradeoff.
 
-5. **Probabilistic Machine Learning: An Introduction** — Kevin Murphy (2022), Ch. 2-4. Modern treatment with extensive ML applications including Adam, VAEs, and diffusion models.
+5. **Probabilistic Machine Learning: An Introduction** - Kevin Murphy (2022), Ch. 2-4. Modern treatment with extensive ML applications including Adam, VAEs, and diffusion models.
 
 ### Papers
 
@@ -1961,31 +1961,31 @@ This section established the expectation operator as the central tool in probabi
 
 The moment hierarchy captures distribution shape: the first moment (mean) locates it; the second (variance) measures spread; the third (skewness) captures asymmetry; the fourth (kurtosis) captures tail weight. Moment generating functions encode all moments in a single analytic function and enable elegant proofs of the reproductive property (sum of independent Gaussians is Gaussian) and cumulant additivity.
 
-Jensen's inequality — the most important inequality in this section — gives the KL divergence its non-negativity, the ELBO its existence as a lower bound, and the bias-variance decomposition its clean structure. Cauchy-Schwarz gives $|\rho| \leq 1$ and motivates the attention scaling factor $1/\sqrt{d_k}$.
+Jensen's inequality - the most important inequality in this section - gives the KL divergence its non-negativity, the ELBO its existence as a lower bound, and the bias-variance decomposition its clean structure. Cauchy-Schwarz gives $|\rho| \leq 1$ and motivates the attention scaling factor $1/\sqrt{d_k}$.
 
-Every major ML method reviewed in §9 is an application of these results: cross-entropy is expected log-loss, the ELBO is Jensen applied to the marginal likelihood, policy gradient is the score function trick, and Adam is first-and-second-moment tracking with debiasing.
+Every major ML method reviewed in Section9 is an application of these results: cross-entropy is expected log-loss, the ELBO is Jensen applied to the marginal likelihood, policy gradient is the score function trick, and Adam is first-and-second-moment tracking with debiasing.
 
-The concepts forward-referenced here — Markov's and Chebyshev's inequalities, the Law of Large Numbers, the Central Limit Theorem — will be fully developed in §05 and §06, completing the probabilistic toolkit required for modern ML.
+The concepts forward-referenced here - Markov's and Chebyshev's inequalities, the Law of Large Numbers, the Central Limit Theorem - will be fully developed in Section05 and Section06, completing the probabilistic toolkit required for modern ML.
 
 
-The conceptual unification: expectation is a **linear functional** on the space of random variables. It maps random variables to real numbers while preserving linear structure. Every computation in this section — variance as $\mathbb{E}[(X-\mu)^2]$, covariance as $\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]$, the MGF as $\mathbb{E}[e^{tX}]$, the characteristic function as $\mathbb{E}[e^{itX}]$, the KL divergence as $\mathbb{E}_p[\log p/q]$, Adam's first moment as $\mathbb{E}[g_t]$ — is an application of this single linear functional applied to different functions of the random variable.
+The conceptual unification: expectation is a **linear functional** on the space of random variables. It maps random variables to real numbers while preserving linear structure. Every computation in this section - variance as $\mathbb{E}[(X-\mu)^2]$, covariance as $\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]$, the MGF as $\mathbb{E}[e^{tX}]$, the characteristic function as $\mathbb{E}[e^{itX}]$, the KL divergence as $\mathbb{E}_p[\log p/q]$, Adam's first moment as $\mathbb{E}[g_t]$ - is an application of this single linear functional applied to different functions of the random variable.
 
 Understanding this unity transforms the apparent complexity of ML training into a coherent framework: we are always estimating expectations from samples, bounding how far sample estimates stray from true expectations, and choosing parameterisations that make those expectations tractable to compute and differentiate.
 
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Concentration Inequalities →](../05-Concentration-Inequalities/notes.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Concentration Inequalities ->](../05-Concentration-Inequalities/notes.md)
 
 ---
 
-_End of §06/04 — Expectation and Moments_
+_End of Section06/04 - Expectation and Moments_
 
 | File | Lines / Cells | Status |
 |------|--------------|--------|
-| notes.md | 2000+ | ✓ Complete |
-| theory.ipynb | 38 cells | ✓ Complete |
-| exercises.ipynb | 27 cells | ✓ Complete |
+| notes.md | 2000+ | [ok] Complete |
+| theory.ipynb | 38 cells | [ok] Complete |
+| exercises.ipynb | 27 cells | [ok] Complete |
 
 <!-- padding -->
-<!-- Section §06/04: Expectation and Moments covers the expectation operator, LOTUS, linearity, conditional expectation, tower property, total variance, variance/covariance, skewness, kurtosis, moment generating functions, characteristic functions, cumulants, Jensen's inequality, Cauchy-Schwarz, Lyapunov, bias-variance decomposition, double descent, Adam moment tracking, cross-entropy as expectation, ELBO derivation, policy gradient, and information-theoretic connections. All proofs use rigorous measure-theoretic probability grounded in the formalism established in §01-§03. -->
+<!-- Section Section06/04: Expectation and Moments covers the expectation operator, LOTUS, linearity, conditional expectation, tower property, total variance, variance/covariance, skewness, kurtosis, moment generating functions, characteristic functions, cumulants, Jensen's inequality, Cauchy-Schwarz, Lyapunov, bias-variance decomposition, double descent, Adam moment tracking, cross-entropy as expectation, ELBO derivation, policy gradient, and information-theoretic connections. All proofs use rigorous measure-theoretic probability grounded in the formalism established in Section01-Section03. -->
 
 
 

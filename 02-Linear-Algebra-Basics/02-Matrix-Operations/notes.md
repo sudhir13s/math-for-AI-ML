@@ -95,7 +95,7 @@ After completing this chapter, you should be able to:
     - [7.3 Moore-Penrose Conditions](#73-moore-penrose-conditions)
     - [7.4 Least Squares Solution](#74-least-squares-solution)
     - [7.5 Pseudo-Inverse Properties](#75-pseudo-inverse-properties)
-  - [8. Matrix Decompositions — Preview](#8-matrix-decompositions--preview)
+  - [8. Matrix Decompositions - Preview](#8-matrix-decompositions--preview)
     - [8.1 Determinant](#81-determinant)
     - [8.2 LU Decomposition](#82-lu-decomposition)
     - [8.3 QR Decomposition](#83-qr-decomposition)
@@ -1478,9 +1478,9 @@ The pseudo-inverse behaves like inverse in some ways, but not all.
 
 ---
 
-## 8. Matrix Decompositions — Preview
+## 8. Matrix Decompositions - Preview
 
-Matrix decompositions factor $A$ into structured products that expose different kinds of mathematical structure. Each decomposition in this section has a dedicated home elsewhere in the curriculum where it is treated in full — with proofs, algorithms, and worked examples. What follows is a navigational preview: enough context to understand which decomposition applies and why, plus explicit forward links to the full treatment.
+Matrix decompositions factor $A$ into structured products that expose different kinds of mathematical structure. Each decomposition in this section has a dedicated home elsewhere in the curriculum where it is treated in full - with proofs, algorithms, and worked examples. What follows is a navigational preview: enough context to understand which decomposition applies and why, plus explicit forward links to the full treatment.
 
 > **Decomposition decision table**
 >
@@ -1496,13 +1496,13 @@ Matrix decompositions factor $A$ into structured products that expose different 
 
 ### 8.1 Determinant
 
-The determinant $\det(A)$ of a square matrix $A \in \mathbb{R}^{n \times n}$ is a scalar measuring the signed volume-scaling factor of the linear map. When $|\det(A)| > 1$ the map expands volume; when $|\det(A)| < 1$ it compresses; when $\det(A) = 0$ the map is singular — it collapses the full space onto a lower-dimensional subspace, meaning $Ax = b$ has no unique solution.
+The determinant $\det(A)$ of a square matrix $A \in \mathbb{R}^{n \times n}$ is a scalar measuring the signed volume-scaling factor of the linear map. When $|\det(A)| > 1$ the map expands volume; when $|\det(A)| < 1$ it compresses; when $\det(A) = 0$ the map is singular - it collapses the full space onto a lower-dimensional subspace, meaning $Ax = b$ has no unique solution.
 
-The determinant is also the product of all eigenvalues and the reciprocal of the product of the eigenvalues of $A^{-1}$. In practice, explicit determinant computation is rarely done by direct expansion (which costs $O(n!)$) — instead it is read off from an LU or Cholesky factorization as a product of diagonal entries.
+The determinant is also the product of all eigenvalues and the reciprocal of the product of the eigenvalues of $A^{-1}$. In practice, explicit determinant computation is rarely done by direct expansion (which costs $O(n!)$) - instead it is read off from an LU or Cholesky factorization as a product of diagonal entries.
 
 **For AI:** Log-determinants appear in Gaussian log-likelihoods $\log p(x) \propto -\tfrac{1}{2}\log\det\Sigma - \tfrac{1}{2}(x-\mu)^\top\Sigma^{-1}(x-\mu)$, in the ELBO of variational inference, and in normalizing flow log-likelihood as the log absolute Jacobian determinant.
 
-> → _Full treatment: [Determinants](../04-Determinants/notes.md)_
+> -> _Full treatment: [Determinants](../04-Determinants/notes.md)_
 
 ---
 
@@ -1512,17 +1512,17 @@ LU factorization writes $PA = LU$, where $P$ is a permutation (row-reordering) m
 
 **For AI:** LU appears in second-order optimizers (K-FAC, Shampoo), Kalman filter updates, and continuous normalizing flows that require solving stiff ODEs. It is also how `numpy.linalg.solve` and `scipy.linalg.solve` are implemented internally.
 
-> → _Full treatment: [Matrix Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md)_
+> -> _Full treatment: [Matrix Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md)_
 
 ---
 
 ### 8.3 QR Decomposition
 
-QR factorization writes $A = QR$ where $Q \in \mathbb{R}^{m \times m}$ is orthogonal ($Q^\top Q = I$) and $R \in \mathbb{R}^{m \times n}$ is upper triangular. It is numerically more stable than LU for least-squares problems because $Q$ preserves norms. The main algorithms are Gram–Schmidt orthogonalization (conceptually clear), Householder reflectors (numerically stable, standard in practice), and Givens rotations (good for sparse matrices).
+QR factorization writes $A = QR$ where $Q \in \mathbb{R}^{m \times m}$ is orthogonal ($Q^\top Q = I$) and $R \in \mathbb{R}^{m \times n}$ is upper triangular. It is numerically more stable than LU for least-squares problems because $Q$ preserves norms. The main algorithms are Gram-Schmidt orthogonalization (conceptually clear), Householder reflectors (numerically stable, standard in practice), and Givens rotations (good for sparse matrices).
 
 **For AI:** Orthogonal weight initialization (Saxe et al. 2013) uses QR. The QR algorithm is the standard method for computing all eigenvalues of a dense matrix. Weight orthogonalization regularizers (Brock et al.) apply QR repeatedly during training.
 
-> → _Full treatment: [Matrix Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md)_
+> -> _Full treatment: [Matrix Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md)_
 
 ---
 
@@ -1534,7 +1534,7 @@ Not every square matrix is diagonalizable. Defective matrices (with repeated eig
 
 **For AI:** Eigenspectrum analysis of the Hessian explains sharpness and flat minima. Adam's diagonal preconditioning approximates the Fisher information matrix eigenspectrum. Vanishing and exploding gradients in RNNs are a direct consequence of the dominant eigenvalue of the recurrence matrix exceeding or falling below 1.
 
-> → _Full treatment: [Eigenvalues and Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md)_
+> -> _Full treatment: [Eigenvalues and Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md)_
 
 ---
 
@@ -1544,13 +1544,13 @@ The SVD is the universal matrix factorization: for any $A \in \mathbb{R}^{m \tim
 
 $$A = U \Sigma V^\top$$
 
-where $U \in \mathbb{R}^{m \times m}$ and $V \in \mathbb{R}^{n \times n}$ are orthogonal, and $\Sigma \in \mathbb{R}^{m \times n}$ is diagonal with non-negative singular values $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{\min(m,n)} \geq 0$. Unlike eigendecomposition, SVD exists for every matrix — rectangular, rank-deficient, or otherwise.
+where $U \in \mathbb{R}^{m \times m}$ and $V \in \mathbb{R}^{n \times n}$ are orthogonal, and $\Sigma \in \mathbb{R}^{m \times n}$ is diagonal with non-negative singular values $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{\min(m,n)} \geq 0$. Unlike eigendecomposition, SVD exists for every matrix - rectangular, rank-deficient, or otherwise.
 
-Key consequences: the best rank-$k$ approximation is $A_k = U_k \Sigma_k V_k^\top$ (Eckart–Young theorem); the pseudo-inverse is $A^+ = V \Sigma^+ U^\top$; the condition number is $\sigma_1 / \sigma_{\min}$; and the four fundamental subspaces (column space, null space, row space, left null space) are read directly from $U$ and $V$.
+Key consequences: the best rank-$k$ approximation is $A_k = U_k \Sigma_k V_k^\top$ (Eckart-Young theorem); the pseudo-inverse is $A^+ = V \Sigma^+ U^\top$; the condition number is $\sigma_1 / \sigma_{\min}$; and the four fundamental subspaces (column space, null space, row space, left null space) are read directly from $U$ and $V$.
 
-**For AI:** LoRA decomposes parameter updates as $\Delta W = BA$ with $B \in \mathbb{R}^{m \times r}$, $A \in \mathbb{R}^{r \times n}$, $r \ll \min(m,n)$ — a direct consequence of the SVD low-rank viewpoint. Mechanistic interpretability uses SVD to decompose attention OV circuits into rank-1 components. Randomised SVD (Halko et al. 2011) makes low-rank approximation tractable for billion-parameter weight matrices.
+**For AI:** LoRA decomposes parameter updates as $\Delta W = BA$ with $B \in \mathbb{R}^{m \times r}$, $A \in \mathbb{R}^{r \times n}$, $r \ll \min(m,n)$ - a direct consequence of the SVD low-rank viewpoint. Mechanistic interpretability uses SVD to decompose attention OV circuits into rank-1 components. Randomised SVD (Halko et al. 2011) makes low-rank approximation tractable for billion-parameter weight matrices.
 
-> → _Full treatment: [Singular Value Decomposition](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md)_
+> -> _Full treatment: [Singular Value Decomposition](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md)_
 
 ---
 
@@ -1558,9 +1558,9 @@ Key consequences: the best rank-$k$ approximation is $A_k = U_k \Sigma_k V_k^\to
 
 For a symmetric positive definite (SPD) matrix $A$, Cholesky gives $A = LL^\top$ where $L$ is lower triangular with positive diagonal. It is approximately twice as fast as LU for SPD systems (exploiting symmetry), requires no pivoting, and serves as a numerical test of positive definiteness: Cholesky fails if and only if $A$ is not SPD.
 
-**For AI:** Gaussian process inference, Bayesian neural network covariance updates, Kalman filter covariance propagation, and second-order optimizer preconditioning (natural gradient methods) all require efficient SPD linear solves — Cholesky is the standard tool. It also appears in sampling from multivariate Gaussians: to draw $x \sim \mathcal{N}(\mu, \Sigma)$, compute $L = \mathrm{chol}(\Sigma)$ then return $\mu + Lz$ where $z \sim \mathcal{N}(0, I)$.
+**For AI:** Gaussian process inference, Bayesian neural network covariance updates, Kalman filter covariance propagation, and second-order optimizer preconditioning (natural gradient methods) all require efficient SPD linear solves - Cholesky is the standard tool. It also appears in sampling from multivariate Gaussians: to draw $x \sim \mathcal{N}(\mu, \Sigma)$, compute $L = \mathrm{chol}(\Sigma)$ then return $\mu + Lz$ where $z \sim \mathcal{N}(0, I)$.
 
-> → _Full treatment: [Matrix Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md)_
+> -> _Full treatment: [Matrix Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md)_
 
 ## 9. Common Mistakes
 
@@ -1612,7 +1612,7 @@ These exercises are designed to force both algebraic fluency and computational i
    - $(a)$ which of $AB$, $BA$, $AC$, $CA$, $BC$, $CB$ are defined? State each resulting shape.
    - $(b)$ compute the shape of $(AB)^\top$ and verify it equals $B^\top A^\top$
    - $(c)$ is $A^\top v$ defined? What about $Au$?
-   - $(d)$ compute $Au$ — what kind of object is the result?
+   - $(d)$ compute $Au$ - what kind of object is the result?
    - $(e)$ write $AB$ as a sum of $4$ rank-1 outer products (column-of-$A$ times row-of-$B$)
 
 3. **Trace and inner-product identities**
@@ -1668,7 +1668,7 @@ These exercises are designed to force both algebraic fluency and computational i
    Let $A = \begin{pmatrix}1 & 1 \\ 1 & 1+\epsilon\end{pmatrix}$ for small $\epsilon > 0$.
    - $(a)$ compute $\det(A)$ symbolically as a function of $\epsilon$
    - $(b)$ compute $A^{-1}$ explicitly using the $2 \times 2$ inverse formula
-   - $(c)$ compute the condition number $\kappa(A) = \|A\|\|A^{-1}\|$ using the spectral norm (largest singular value) — describe what happens as $\epsilon \to 0$
+   - $(c)$ compute the condition number $\kappa(A) = \|A\|\|A^{-1}\|$ using the spectral norm (largest singular value) - describe what happens as $\epsilon \to 0$
    - $(d)$ explain why a large condition number means that a small perturbation $\delta b$ in $b$ causes a large perturbation in the solution $x$ of $Ax = b$
    - $(e)$ for $\epsilon = 10^{-8}$, estimate the number of digits of precision lost in the solution relative to 64-bit floating-point (which has $\approx 16$ significant digits)
 

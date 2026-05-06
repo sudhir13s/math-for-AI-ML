@@ -1,957 +1,1126 @@
+[<- Efficient Attention and Inference](../09-Efficient-Attention-and-Inference/notes.md) | [Home](../../README.md) | [Quantization and Distillation ->](../11-Quantization-and-Distillation/notes.md)
+
+---
+
 # Mixture of Experts and Routing
 
-[← Efficient Attention and Inference](../09-Efficient-Attention-and-Inference/notes.md) | [Home](../../README.md) | [Quantization and Distillation →](../11-Quantization-and-Distillation/notes.md)
+Mixture-of-experts models separate total capacity from active per-token computation. A router chooses a small number of expert networks for each token, giving the model many parameters without using all of them on every token.
+
+## Overview
+
+A dense transformer FFN applies the same network to every token. An MoE FFN replaces that one network with many experts:
+
+$$
+y_t=\sum_{i\in S_t} g_{t,i}E_i(x_t),
+$$
+
+where $S_t$ is the selected expert set for token $t$, $g_{t,i}$ is the router weight, and $E_i$ is expert $i$. The central math is not only the weighted sum. It is the accounting around it: active parameters, total parameters, router probabilities, expert capacity, load balancing, all-to-all dispatch, drop rate, and latency.
+
+## Prerequisites
+
+- Transformer FFN shapes
+- Softmax and top-k selection
+- Training-at-scale memory and parallelism
+- Efficient inference and serving latency vocabulary
+
+## Companion Notebooks
+
+| Notebook | Purpose |
+| --- | --- |
+| [theory.ipynb](theory.ipynb) | Demonstrates router softmax, top-k dispatch, capacity overflow, auxiliary balance loss, expert histograms, all-to-all traffic, active parameter counts, and router-collapse diagnostics. |
+| [exercises.ipynb](exercises.ipynb) | Ten practice problems for routing probabilities, capacity, drop rate, load balancing, expert counts, and MoE debugging. |
+
+## Learning Objectives
+
+After this section, you should be able to:
+
+- Explain total parameters versus active parameters.
+- Compute router probabilities and top-k selected experts.
+- Count MoE expert parameters and active expert compute.
+- Compute expert capacity and token overflow.
+- Define importance, load, auxiliary load-balancing loss, entropy, and z-loss.
+- Explain why MoE training often needs all-to-all communication.
+- Diagnose expert collapse with histograms, drop rate, entropy, and gradient norms.
+- Explain the inference tradeoff: lower active compute but higher memory and routing complexity.
+
+## Table of Contents
+
+1. [Dense versus Sparse Computation](#1-dense-versus-sparse-computation)
+   - 1.1 [Dense FFN](#11-dense-ffn)
+   - 1.2 [Expert bank](#12-expert-bank)
+   - 1.3 [Sparse activation](#13-sparse-activation)
+   - 1.4 [Total versus active parameters](#14-total-versus-active-parameters)
+   - 1.5 [Memory caveat](#15-memory-caveat)
+2. [Router Mathematics](#2-router-mathematics)
+   - 2.1 [Router logits](#21-router-logits)
+   - 2.2 [Routing probabilities](#22-routing-probabilities)
+   - 2.3 [Top-k selection](#23-topk-selection)
+   - 2.4 [Gated combination](#24-gated-combination)
+   - 2.5 [Top-1 Switch routing](#25-top1-switch-routing)
+3. [Parameter and FLOP Accounting](#3-parameter-and-flop-accounting)
+   - 3.1 [FFN parameter count](#31-ffn-parameter-count)
+   - 3.2 [MoE total parameters](#32-moe-total-parameters)
+   - 3.3 [MoE active parameters](#33-moe-active-parameters)
+   - 3.4 [Router overhead](#34-router-overhead)
+   - 3.5 [Compute ratio](#35-compute-ratio)
+4. [Capacity and Token Dropping](#4-capacity-and-token-dropping)
+   - 4.1 [Expected tokens per expert](#41-expected-tokens-per-expert)
+   - 4.2 [Capacity factor](#42-capacity-factor)
+   - 4.3 [Overflow](#43-overflow)
+   - 4.4 [Batch sensitivity](#44-batch-sensitivity)
+   - 4.5 [Expert collapse](#45-expert-collapse)
+5. [Load Balancing Losses](#5-load-balancing-losses)
+   - 5.1 [Importance](#51-importance)
+   - 5.2 [Load](#52-load)
+   - 5.3 [Auxiliary loss](#53-auxiliary-loss)
+   - 5.4 [Entropy encouragement](#54-entropy-encouragement)
+   - 5.5 [Z-loss](#55-zloss)
+6. [Expert Parallelism](#6-expert-parallelism)
+   - 6.1 [Expert placement](#61-expert-placement)
+   - 6.2 [All-to-all dispatch](#62-alltoall-dispatch)
+   - 6.3 [Combine step](#63-combine-step)
+   - 6.4 [Communication bottleneck](#64-communication-bottleneck)
+   - 6.5 [Locality](#65-locality)
+7. [Training Dynamics](#7-training-dynamics)
+   - 7.1 [Specialization](#71-specialization)
+   - 7.2 [Cold experts](#72-cold-experts)
+   - 7.3 [Router noise](#73-router-noise)
+   - 7.4 [Top-2 gradients](#74-top2-gradients)
+   - 7.5 [Stability tradeoff](#75-stability-tradeoff)
+8. [Inference Behavior](#8-inference-behavior)
+   - 8.1 [Active compute](#81-active-compute)
+   - 8.2 [Weight memory](#82-weight-memory)
+   - 8.3 [Batch routing variance](#83-batch-routing-variance)
+   - 8.4 [Cache interaction](#84-cache-interaction)
+   - 8.5 [Latency tails](#85-latency-tails)
+9. [MoE Design Variants](#9-moe-design-variants)
+   - 9.1 [Sparsely gated MoE](#91-sparsely-gated-moe)
+   - 9.2 [GShard](#92-gshard)
+   - 9.3 [Switch Transformer](#93-switch-transformer)
+   - 9.4 [Top-2 MoE](#94-top2-moe)
+   - 9.5 [Shared experts](#95-shared-experts)
+10. [Diagnostics](#10-diagnostics)
+   - 10.1 [Expert histogram](#101-expert-histogram)
+   - 10.2 [Drop rate](#102-drop-rate)
+   - 10.3 [Router entropy](#103-router-entropy)
+   - 10.4 [Per-expert gradients](#104-perexpert-gradients)
+   - 10.5 [Ablations](#105-ablations)
 
 ---
 
-## 1. Intuition
+## One-Layer MoE Shape Flow
 
-### 1.1 What Is Mixture of Experts?
-
-A neural network architecture where different subnetworks ("experts") specialise on
-different inputs. Instead of every parameter being active for every token, only a
-small subset is activated per token.
-
-Core idea: divide the model's capacity into specialised modules; route each input to
-the most relevant ones. MoE decouples two quantities that are coupled in dense models:
-**total parameters** vs **compute per token**.
-
-A 100B MoE model can have the quality of a 100B dense model at the compute cost of a
-10B dense model. Every token only "sees" a fraction of the network; different tokens
-see different fractions.
-
-### 1.2 The Specialisation Hypothesis
-
-Different tokens require different types of knowledge and computation:
-
-- Syntactic tokens ("the", "of") → different processing than semantic tokens ("quantum", "photosynthesis")
-- Code tokens require different transformations than natural language tokens
-- MoE allows the model to develop specialised processing pathways without explicit supervision
-- Emerges naturally from routing training: experts differentiate through gradient descent
-
-### 1.3 The Core Tradeoff
-
-| Property                      | Dense Model      | MoE Model                                    |
-| ----------------------------- | ---------------- | -------------------------------------------- |
-| **Parameters active**         | All N every step | Only k/N per token                           |
-| **Compute per token**         | High             | Low (proportional to k)                      |
-| **Training complexity**       | Standard         | Complex (load balancing, instability)        |
-| **Capacity at fixed compute** | N params         | N × (N_experts/k) params                     |
-| **Memory**                    | N params         | All N_total params (even though only k used) |
-
-The gain: at fixed compute budget, MoE can have N/k times more parameters.
-The cost: load balancing, communication overhead, training instability, expert collapse.
-
-**Key insight:** parameters are "free" in terms of inference compute but NOT memory.
-
-### 1.4 Historical Timeline
-
-| Year    | Work            | Key Contribution                                                           |
-| ------- | --------------- | -------------------------------------------------------------------------- |
-| 1991    | Jacobs et al.   | Original MoE; soft gating for regression                                   |
-| 1994    | Jordan & Jacobs | Hierarchical MoE; EM training algorithm                                    |
-| 2014    | Eigen et al.    | First neural MoE with backpropagation                                      |
-| 2017    | Shazeer et al.  | "Outrageously Large NNs"; sparsely-gated MoE for NLP; top-k + noise        |
-| 2020    | Lepikhin et al. | GShard; MoE at 600B for multilingual translation                           |
-| 2021    | Fedus et al.    | Switch Transformer; top-1 routing; 1.6T parameters                         |
-| 2022    | Zoph et al.     | ST-MoE; stability improvements; Z-loss; auxiliary loss design              |
-| 2022    | Mustafa et al.  | V-MoE; MoE for vision                                                      |
-| 2023    | Mistral AI      | Mixtral 8×7B; first widely-deployed open MoE LLM                           |
-| 2024    | DeepSeek        | DeepSeekMoE; fine-grained experts; shared expert concept                   |
-| 2024    | DeepSeek-V2/V3  | MLA + MoE; 671B total / 37B active; auxiliary-loss-free balancing          |
-| 2024    | xAI             | Grok-1; 314B MoE; open-sourced                                             |
-| 2025–26 | Industry-wide   | MoE standard for frontier models; nearly all leading models use sparse MoE |
-
-### 1.5 Pipeline Position
-
-```
-Token Embedding → [Attention] → Residual → [MoE FFN Layer] → Residual → … → LM Head
-                                             ^^^^^^^^^^^^^^^^
-                                              THIS section
-       Standard FFN replaced by:
-       Router → [Expert 1]  ↘
-               [Expert 2]  → Weighted Sum → Output
-               [Expert k]  ↗
-               (top-k selected from N total)
-```
-
----
-
-## 2. Formal Definitions
-
-### 2.1 Expert Network
-
-An expert $E_i$ is a feed-forward network:
-
-$$E_i(x) = W_{2,i} \cdot \sigma(W_{1,i}\, x + b_{1,i}) + b_{2,i}$$
-
-- Each expert has independent parameters $W_{1,i}, W_{2,i}$
-- In transformers: experts are typically the FFN sublayer; attention is shared (dense)
-- Expert hidden dimension: $d_{ff}$ (same as standard FFN, e.g. $4d$)
-- $N$ experts total; typically $N \in \{8, 16, 64, 128, 256\}$
-
-### 2.2 Router / Gating Function
-
-The router computes a distribution over experts given input token $x \in \mathbb{R}^d$:
-
-$$G(x) = \text{softmax}(W_g\, x) \in \mathbb{R}^N$$
-
-- $W_g \in \mathbb{R}^{N \times d}$: learned gating weight matrix
-- $G(x)_i \in [0,1]$: probability (or weight) assigned to expert $i$
-- Full soft MoE: use all experts weighted by $G(x)$ — computationally expensive
-
-### 2.3 Sparse Top-k Routing
-
-Select only the $k$ experts with highest gate values:
-
-$$\text{TopK}(G(x), k) = \text{indices of } k \text{ largest values in } G(x)$$
-
-Sparse gate:
-
-$$\tilde{G}(x)_i = \begin{cases} G(x)_i & \text{if } i \in \text{TopK}(G(x), k) \\ 0 & \text{otherwise} \end{cases}$$
-
-Renormalise selected gates:
-
-$$\hat{G}(x)_i = \frac{\tilde{G}(x)_i}{\sum_{j \in \text{TopK}} \tilde{G}(x)_j}$$
-
-MoE output:
-
-$$y = \sum_{i \in \text{TopK}(G(x), k)} \hat{G}(x)_i \cdot E_i(x)$$
-
-### 2.4 Sparsity Ratio
-
-Active parameters per token: $k \times$ (expert params) out of $N \times$ (expert params).
-
-$$\rho = \frac{k}{N}$$
-
-| Configuration | k   | N   | ρ     |
-| ------------- | --- | --- | ----- |
-| Mixtral 8×7B  | 2   | 8   | 0.25  |
-| DeepSeekMoE   | 6   | 64  | 0.094 |
-| DeepSeek-V3   | 8   | 256 | 0.031 |
-
-Compute per token scales with $k$, not $N$. Memory scales with $N$: must load all
-$N$ expert weights regardless of which $k$ are used.
-
-### 2.5 MoE Layer vs Dense Layer
-
-| Property          | Dense FFN                  | MoE FFN                             |
-| ----------------- | -------------------------- | ----------------------------------- |
-| **Output**        | $y = \text{FFN}(x)$        | $y = \sum_i \hat{G}(x)_i E_i(x)$    |
-| **Active params** | All                        | Only $k$ experts                    |
-| **FLOPs**         | $2 \times d \times d_{ff}$ | $2 \times k \times d \times d_{ff}$ |
-| **Total params**  | $2 \times d \times d_{ff}$ | $N \times 2 \times d \times d_{ff}$ |
-
-Same FLOPs if $d_{ff}^{(\text{MoE})} = d_{ff}^{(\text{dense})}$: MoE has $N\times$ more
-capacity at same compute.
-
----
-
-## 3. Routing Algorithms — Complete Taxonomy
-
-### 3.1 Token Choice Routing (Standard)
-
-Each token independently selects its top-k experts:
-
-```
-x → W_g x → softmax → argsort → take top-k → renormalise → dispatch
+```text
+tokens x_t
+   |
+router logits r_t = W_r x_t
+   |
+top-k experts S_t
+   |
+dispatch tokens to experts
+   |
+expert FFNs E_i(x_t)
+   |
+weighted combine and restore token order
 ```
 
-Problem: tokens may choose the same experts → **load imbalance**. Some experts overflow
-(too many tokens); some underflow.
+## 1. Dense versus Sparse Computation
 
-Overflow handling: drop excess tokens OR use expert capacity buffers.
+This part studies dense versus sparse computation in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
 
-### 3.2 Expert Capacity
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Dense FFN](#1-dense-ffn) | every token uses the same feed-forward network | $y=\mathrm{FFN}(x)$ |
+| [Expert bank](#1-expert-bank) | replace one FFN with many candidate FFNs | $E_1,\ldots,E_M$ |
+| [Sparse activation](#1-sparse-activation) | each token uses only k experts | $k\ll M$ |
+| [Total versus active parameters](#1-total-versus-active-parameters) | MoE increases capacity without proportional per-token compute | $P_\mathrm{active}\ll P_\mathrm{total}$ |
+| [Memory caveat](#1-memory-caveat) | inactive experts still occupy memory | $M_\mathrm{weights}\propto P_\mathrm{total}$ |
 
-Capacity $C$: maximum tokens each expert can process per batch.
+### 1.1 Dense FFN
 
-$$\text{Capacity Factor } CF = \frac{C \times N}{T \times k}$$
+**Main idea.** Every token uses the same feed-forward network.
 
-| CF   | Meaning                                                                     |
-| ---- | --------------------------------------------------------------------------- |
-| 1.0  | Perfectly uniform load → each expert handles exactly $T \cdot k / N$ tokens |
-| 1.25 | 25% slack to absorb imbalance without dropping tokens                       |
-| 1.5  | 50% slack; wasteful but safe                                                |
+Core relation:
 
-**Token dropping:** tokens exceeding expert capacity are skipped — either passed through
-via identity mapping or zero-padded. Critical failure mode if too many tokens dropped.
+$$y=\mathrm{FFN}(x)$$
 
-### 3.3 Expert Choice Routing (Zhou et al. 2022)
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
-Reverse the selection: each expert selects its top-$C$ tokens.
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
 
-$$\text{Selected by expert } i = \text{TopC}\!\left(\{G(x_t)_i : t \in \text{batch}\}, C\right)$$
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
 
-Guarantees:
+**AI connection.** This is a practical MoE control variable.
 
-- **Perfect load balance by construction** — no dropped tokens; no auxiliary loss needed
-- Problem: some tokens may not be processed by any expert (underselected)
-- Some tokens processed by multiple experts; some by zero
-- Not suitable for autoregressive generation (cannot guarantee every token processed)
-- Strong for encoder models and offline batch processing
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 1.2 Expert bank
 
-### 3.4 Global vs Local Routing
+**Main idea.** Replace one ffn with many candidate ffns.
 
-| Type       | Description                                  | Use Case                         |
-| ---------- | -------------------------------------------- | -------------------------------- |
-| **Local**  | Routing decisions made per-batch             | Most common in practice          |
-| **Global** | Aggregate routing statistics across batches  | Research; adjust router globally |
-| **Online** | Routing changes dynamically during inference | Adaptive serving                 |
-| **Static** | Fixed routing after training; deterministic  | Fast inference; no routing cost  |
+Core relation:
 
-### 3.5 Soft Routing (Soft MoE — Puigcerver et al. 2023)
+$$E_1,\ldots,E_M$$
 
-Dispatch weighted combinations of tokens to each expert:
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
-$$\tilde{x}_i = \sum_t D(x_t)_i \cdot x_t \quad\text{(dispatch)}$$
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
 
-$$y_t = \sum_i C(x_t)_i \cdot E_i(\tilde{x}_i) \quad\text{(combine)}$$
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
 
-- $D$: dispatch weight matrix; $C$: combine weight matrix
-- No token dropping; fully differentiable; no discrete routing decisions
-- Disadvantage: all experts active for all tokens (soft) → compute = dense model
-- Used in Soft MoE ViT (Google 2023); research setting
+**AI connection.** This is a practical MoE control variable.
 
-### 3.6 Hash-Based Routing
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 1.3 Sparse activation
 
-Deterministic routing: assign token to expert based on $\text{hash}(\text{token\_id}) \bmod N$.
+**Main idea.** Each token uses only k experts.
 
-- No learned router; no load balancing issues; perfect uniformity by construction
-- Disadvantage: no specialisation learning; token content doesn't influence routing
-- Surprisingly competitive with learned routing on some benchmarks (Roller et al. 2021)
-- Use case: when training stability is more important than maximal specialisation
+Core relation:
 
-### 3.7 Random Routing
+$$k\ll M$$
 
-Assign tokens to random experts at each step. Used in ablation studies to disentangle
-"routing quality" from "expert capacity."
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
-Near-competitive with learned routing in some settings → questions whether routing matters
-at all. Provides lower bound on routing quality.
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
 
-### 3.8 Learned Routing with Discrete Optimisation
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
 
-Standard softmax routing: gradients flow through selected experts only. Discrete
-selection (argmax) is not differentiable.
+**AI connection.** This is a practical MoE control variable.
 
-**Gumbel-softmax:** add Gumbel noise; temperature annealing; differentiable approximation:
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 1.4 Total versus active parameters
 
-$$G(x) = \text{softmax}\!\left(\frac{W_g\, x + \text{Gumbel}(0,1)}{\tau}\right)$$
+**Main idea.** Moe increases capacity without proportional per-token compute.
 
-- $\tau \to 0$: approaches one-hot (argmax)
-- $\tau = 1$: standard softmax
-- **Straight-through estimator:** use argmax in forward; softmax gradient in backward
+Core relation:
+
+$$P_\mathrm{active}\ll P_\mathrm{total}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This distinction is the reason MoE models can have large total capacity with smaller per-token compute.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 1.5 Memory caveat
+
+**Main idea.** Inactive experts still occupy memory.
+
+Core relation:
+
+$$M_\mathrm{weights}\propto P_\mathrm{total}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 2. Router Mathematics
+
+This part studies router mathematics in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Router logits](#2-router-logits) | a small projection scores experts for each token | $r=W_rx$ |
+| [Routing probabilities](#2-routing-probabilities) | softmax turns router logits into expert probabilities | $p_i=\exp(r_i)/\sum_j\exp(r_j)$ |
+| [Top-k selection](#2-topk-selection) | only the highest scoring experts receive the token | $S=\mathrm{TopK}(p,k)$ |
+| [Gated combination](#2-gated-combination) | selected expert outputs are weighted by router probabilities | $y=\sum_{i\in S} \tilde p_i E_i(x)$ |
+| [Top-1 Switch routing](#2-top1-switch-routing) | route each token to one expert for simplicity | $y=E_{\arg\max_i p_i}(x)$ |
+
+### 2.1 Router logits
+
+**Main idea.** A small projection scores experts for each token.
+
+Core relation:
+
+$$r=W_rx$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 2.2 Routing probabilities
+
+**Main idea.** Softmax turns router logits into expert probabilities.
+
+Core relation:
+
+$$p_i=\exp(r_i)/\sum_j\exp(r_j)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 2.3 Top-k selection
+
+**Main idea.** Only the highest scoring experts receive the token.
+
+Core relation:
+
+$$S=\mathrm{TopK}(p,k)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 2.4 Gated combination
+
+**Main idea.** Selected expert outputs are weighted by router probabilities.
+
+Core relation:
+
+$$y=\sum_{i\in S} \tilde p_i E_i(x)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 2.5 Top-1 Switch routing
+
+**Main idea.** Route each token to one expert for simplicity.
+
+Core relation:
+
+$$y=E_{\arg\max_i p_i}(x)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 3. Parameter and FLOP Accounting
+
+This part studies parameter and flop accounting in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [FFN parameter count](#3-ffn-parameter-count) | a transformer FFN has two large projections | $P_\mathrm{ffn}\approx 2dd_\mathrm{ff}$ |
+| [MoE total parameters](#3-moe-total-parameters) | experts multiply the FFN parameter count | $P_\mathrm{experts}\approx M\cdot 2dd_\mathrm{ff}$ |
+| [MoE active parameters](#3-moe-active-parameters) | only selected experts are used per token | $P_\mathrm{active}\approx k\cdot 2dd_\mathrm{ff}$ |
+| [Router overhead](#3-router-overhead) | router cost is usually small compared with expert FFNs | $P_\mathrm{router}=dM$ |
+| [Compute ratio](#3-compute-ratio) | sparse compute scales with k, not M | $\mathrm{FLOPs}_\mathrm{MoE}/\mathrm{FLOPs}_\mathrm{dense}\approx k$ if expert size matches dense FFN |
+
+### 3.1 FFN parameter count
+
+**Main idea.** A transformer ffn has two large projections.
+
+Core relation:
+
+$$P_\mathrm{ffn}\approx 2dd_\mathrm{ff}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 3.2 MoE total parameters
+
+**Main idea.** Experts multiply the ffn parameter count.
+
+Core relation:
+
+$$P_\mathrm{experts}\approx M\cdot 2dd_\mathrm{ff}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 3.3 MoE active parameters
+
+**Main idea.** Only selected experts are used per token.
+
+Core relation:
+
+$$P_\mathrm{active}\approx k\cdot 2dd_\mathrm{ff}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 3.4 Router overhead
+
+**Main idea.** Router cost is usually small compared with expert ffns.
+
+Core relation:
+
+$$P_\mathrm{router}=dM$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 3.5 Compute ratio
+
+**Main idea.** Sparse compute scales with k, not m.
+
+Core relation:
+
+$$\mathrm{FLOPs}_\mathrm{MoE}/\mathrm{FLOPs}_\mathrm{dense}\approx k$ if expert size matches dense FFN$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 4. Capacity and Token Dropping
+
+This part studies capacity and token dropping in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Expected tokens per expert](#4-expected-tokens-per-expert) | balanced routing sends roughly T/M tokens to each expert | $E[n_i]=T/M$ |
+| [Capacity factor](#4-capacity-factor) | reserve extra slots beyond the expected load | $C_i=\lceil \mathrm{capacity\ factor}\cdot T/M\rceil$ |
+| [Overflow](#4-overflow) | tokens above capacity are dropped or rerouted | $\max(0,n_i-C_i)$ |
+| [Batch sensitivity](#4-batch-sensitivity) | small batches have noisier expert loads | $\mathrm{Var}(n_i)=Tp_i(1-p_i)$ |
+| [Expert collapse](#4-expert-collapse) | if the router favors a few experts, capacity and learning both suffer | $p_i\approx 0$ for many experts |
+
+### 4.1 Expected tokens per expert
+
+**Main idea.** Balanced routing sends roughly t/m tokens to each expert.
+
+Core relation:
+
+$$E[n_i]=T/M$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 4.2 Capacity factor
+
+**Main idea.** Reserve extra slots beyond the expected load.
+
+Core relation:
+
+$$C_i=\lceil \mathrm{capacity\ factor}\cdot T/M\rceil$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** Capacity is the serving and training contract between the router and the expert bank.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 4.3 Overflow
+
+**Main idea.** Tokens above capacity are dropped or rerouted.
+
+Core relation:
+
+$$\max(0,n_i-C_i)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 4.4 Batch sensitivity
+
+**Main idea.** Small batches have noisier expert loads.
+
+Core relation:
+
+$$\mathrm{Var}(n_i)=Tp_i(1-p_i)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 4.5 Expert collapse
+
+**Main idea.** If the router favors a few experts, capacity and learning both suffer.
+
+Core relation:
+
+$$p_i\approx 0$ for many experts$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 5. Load Balancing Losses
+
+This part studies load balancing losses in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Importance](#5-importance) | sum of router probabilities assigned to each expert | $I_i=\sum_t p_{t,i}$ |
+| [Load](#5-load) | number of tokens actually routed to each expert | $L_i=\sum_t \mathbf{1}\{i\in S_t\}$ |
+| [Auxiliary loss](#5-auxiliary-loss) | penalize uneven routing | $L_\mathrm{aux}\propto M\sum_i f_iP_i$ |
+| [Entropy encouragement](#5-entropy-encouragement) | router entropy can discourage overconfident early routing | $H(p_t)=-\sum_i p_{t,i}\log p_{t,i}$ |
+| [Z-loss](#5-zloss) | penalize large router logits for stability | $L_z=(\log\sum_i e^{r_i})^2$ |
+
+### 5.1 Importance
+
+**Main idea.** Sum of router probabilities assigned to each expert.
+
+Core relation:
+
+$$I_i=\sum_t p_{t,i}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 5.2 Load
+
+**Main idea.** Number of tokens actually routed to each expert.
+
+Core relation:
+
+$$L_i=\sum_t \mathbf{1}\{i\in S_t\}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 5.3 Auxiliary loss
+
+**Main idea.** Penalize uneven routing.
+
+Core relation:
+
+$$L_\mathrm{aux}\propto M\sum_i f_iP_i$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** Without balancing, a router can discover a few experts and ignore the rest.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 5.4 Entropy encouragement
+
+**Main idea.** Router entropy can discourage overconfident early routing.
+
+Core relation:
+
+$$H(p_t)=-\sum_i p_{t,i}\log p_{t,i}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 5.5 Z-loss
+
+**Main idea.** Penalize large router logits for stability.
+
+Core relation:
+
+$$L_z=(\log\sum_i e^{r_i})^2$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 6. Expert Parallelism
+
+This part studies expert parallelism in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Expert placement](#6-expert-placement) | different devices own different experts | $E_i\rightarrow \mathrm{rank}(i)$ |
+| [All-to-all dispatch](#6-alltoall-dispatch) | tokens move to the devices that own their experts | $\mathrm{tokens}\rightarrow\mathrm{experts}$ |
+| [Combine step](#6-combine-step) | expert outputs return to original token order | $y_t=\sum_i g_{t,i}E_i(x_t)$ |
+| [Communication bottleneck](#6-communication-bottleneck) | MoE speed depends on token traffic, not only FLOPs | $T_\mathrm{step}\approx\max(T_\mathrm{expert},T_\mathrm{alltoall})$ |
+| [Locality](#6-locality) | routing and placement choices can reduce cross-device movement | $\mathrm{traffic}\downarrow$ |
+
+### 6.1 Expert placement
+
+**Main idea.** Different devices own different experts.
+
+Core relation:
+
+$$E_i\rightarrow \mathrm{rank}(i)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 6.2 All-to-all dispatch
+
+**Main idea.** Tokens move to the devices that own their experts.
+
+Core relation:
+
+$$\mathrm{tokens}\rightarrow\mathrm{experts}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** MoE turns part of the model into a distributed routing problem.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 6.3 Combine step
+
+**Main idea.** Expert outputs return to original token order.
+
+Core relation:
+
+$$y_t=\sum_i g_{t,i}E_i(x_t)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 6.4 Communication bottleneck
+
+**Main idea.** Moe speed depends on token traffic, not only flops.
+
+Core relation:
+
+$$T_\mathrm{step}\approx\max(T_\mathrm{expert},T_\mathrm{alltoall})$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 6.5 Locality
+
+**Main idea.** Routing and placement choices can reduce cross-device movement.
+
+Core relation:
+
+$$\mathrm{traffic}\downarrow$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 7. Training Dynamics
+
+This part studies training dynamics in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Specialization](#7-specialization) | experts differentiate because they receive different token subsets | $\nabla_{\theta_i}L$ only from routed tokens |
+| [Cold experts](#7-cold-experts) | rarely selected experts learn slowly | $n_i\approx 0\Rightarrow \nabla_{\theta_i}\approx 0$ |
+| [Router noise](#7-router-noise) | noise can encourage exploration early in training | $r'=r+\epsilon$ |
+| [Top-2 gradients](#7-top2-gradients) | top-2 routing gives more experts gradient signal than top-1 | $|S|=2$ |
+| [Stability tradeoff](#7-stability-tradeoff) | strong balancing can fight useful specialization | $L=L_\mathrm{task}+\lambda L_\mathrm{aux}$ |
+
+### 7.1 Specialization
+
+**Main idea.** Experts differentiate because they receive different token subsets.
+
+Core relation:
+
+$$\nabla_{\theta_i}L$ only from routed tokens$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 7.2 Cold experts
+
+**Main idea.** Rarely selected experts learn slowly.
+
+Core relation:
+
+$$n_i\approx 0\Rightarrow \nabla_{\theta_i}\approx 0$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 7.3 Router noise
+
+**Main idea.** Noise can encourage exploration early in training.
+
+Core relation:
+
+$$r'=r+\epsilon$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 7.4 Top-2 gradients
+
+**Main idea.** Top-2 routing gives more experts gradient signal than top-1.
+
+Core relation:
+
+$$|S|=2$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 7.5 Stability tradeoff
+
+**Main idea.** Strong balancing can fight useful specialization.
+
+Core relation:
+
+$$L=L_\mathrm{task}+\lambda L_\mathrm{aux}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 8. Inference Behavior
+
+This part studies inference behavior in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Active compute](#8-active-compute) | per-token expert compute depends on k | $k$ selected experts |
+| [Weight memory](#8-weight-memory) | serving must store or page all experts that may be routed | $P_\mathrm{total}$ resident or streamed |
+| [Batch routing variance](#8-batch-routing-variance) | different requests can activate different experts | $S_t$ varies by token |
+| [Cache interaction](#8-cache-interaction) | MoE changes FFN compute but not attention KV cache math directly | $M_\mathrm{KV}$ unchanged by experts |
+| [Latency tails](#8-latency-tails) | hot experts and cross-device traffic can increase p95 latency | $Q_{0.95}(T)$ |
+
+### 8.1 Active compute
+
+**Main idea.** Per-token expert compute depends on k.
+
+Core relation:
+
+$$k$ selected experts$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 8.2 Weight memory
+
+**Main idea.** Serving must store or page all experts that may be routed.
+
+Core relation:
+
+$$P_\mathrm{total}$ resident or streamed$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 8.3 Batch routing variance
+
+**Main idea.** Different requests can activate different experts.
+
+Core relation:
+
+$$S_t$ varies by token$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 8.4 Cache interaction
+
+**Main idea.** Moe changes ffn compute but not attention kv cache math directly.
+
+Core relation:
+
+$$M_\mathrm{KV}$ unchanged by experts$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 8.5 Latency tails
+
+**Main idea.** Hot experts and cross-device traffic can increase p95 latency.
+
+Core relation:
+
+$$Q_{0.95}(T)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 9. MoE Design Variants
+
+This part studies moe design variants in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Sparsely gated MoE](#9-sparsely-gated-moe) | learned gates select a sparse expert subset | $y=\sum_i g_iE_i(x)$ |
+| [GShard](#9-gshard) | scaled conditional computation with automatic sharding | $\mathrm{expert\ parallelism}$ |
+| [Switch Transformer](#9-switch-transformer) | top-1 routing simplifies dispatch | $k=1$ |
+| [Top-2 MoE](#9-top2-moe) | two experts can improve quality at higher compute | $k=2$ |
+| [Shared experts](#9-shared-experts) | some designs combine routed experts with always-on shared experts | $y=E_\mathrm{shared}(x)+E_\mathrm{routed}(x)$ |
+
+### 9.1 Sparsely gated MoE
+
+**Main idea.** Learned gates select a sparse expert subset.
+
+Core relation:
+
+$$y=\sum_i g_iE_i(x)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 9.2 GShard
+
+**Main idea.** Scaled conditional computation with automatic sharding.
+
+Core relation:
+
+$$\mathrm{expert\ parallelism}$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 9.3 Switch Transformer
+
+**Main idea.** Top-1 routing simplifies dispatch.
+
+Core relation:
+
+$$k=1$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 9.4 Top-2 MoE
+
+**Main idea.** Two experts can improve quality at higher compute.
+
+Core relation:
+
+$$k=2$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 9.5 Shared experts
+
+**Main idea.** Some designs combine routed experts with always-on shared experts.
+
+Core relation:
+
+$$y=E_\mathrm{shared}(x)+E_\mathrm{routed}(x)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+## 10. Diagnostics
+
+This part studies diagnostics in mixture-of-experts LLMs. The useful habit is to separate probability, capacity, compute, memory, and communication.
+
+| Subtopic | Question | Formula |
+| --- | --- | --- |
+| [Expert histogram](#10-expert-histogram) | plot token counts per expert | $n_i$ |
+| [Drop rate](#10-drop-rate) | measure overflowed tokens | $\mathrm{drop}=\sum_i\max(0,n_i-C_i)/T$ |
+| [Router entropy](#10-router-entropy) | track whether routing is collapsing or too diffuse | $H(p)$ |
+| [Per-expert gradients](#10-perexpert-gradients) | cold experts have small or zero gradient norms | $\Vert g_i\Vert$ |
+| [Ablations](#10-ablations) | compare dense, top-1, top-2, and capacity factors | $\Delta L,\Delta T,\Delta M$ |
+
+### 10.1 Expert histogram
+
+**Main idea.** Plot token counts per expert.
+
+Core relation:
+
+$$n_i$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** The histogram is the first picture to look at when an MoE model behaves strangely.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 10.2 Drop rate
+
+**Main idea.** Measure overflowed tokens.
+
+Core relation:
+
+$$\mathrm{drop}=\sum_i\max(0,n_i-C_i)/T$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 10.3 Router entropy
+
+**Main idea.** Track whether routing is collapsing or too diffuse.
+
+Core relation:
+
+$$H(p)$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 10.4 Per-expert gradients
+
+**Main idea.** Cold experts have small or zero gradient norms.
+
+Core relation:
+
+$$\Vert g_i\Vert$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
+### 10.5 Ablations
+
+**Main idea.** Compare dense, top-1, top-2, and capacity factors.
+
+Core relation:
+
+$$\Delta L,\Delta T,\Delta M$$
+
+An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
+
+**Worked micro-example.** If a dense FFN has $2dd_\mathrm{ff}$ parameters and an MoE layer has $M=8$ experts of the same size, total expert parameters increase by 8x. With top-2 routing, each token uses only two experts, so the active FFN compute is about 2x a single dense FFN, not 8x.
+
+**Implementation check.** For every MoE run, log expert token counts, drop rate, router entropy, auxiliary loss, and per-expert gradient norms. A low loss curve can hide a collapsed router.
+
+**AI connection.** This is a practical MoE control variable.
+
+**Common mistake.** Do not say an MoE model "uses all its parameters" for one token. The correct statement is total parameters versus active parameters per token.
 
 ---
 
-## 4. Load Balancing — The Central Problem
+## Practice Exercises
 
-### 4.1 Expert Collapse
+1. Compute top-k experts from router probabilities.
+2. Count dense FFN and MoE expert parameters.
+3. Compute active versus total expert parameters.
+4. Compute expert capacity from tokens, experts, and capacity factor.
+5. Compute drop rate from expert loads.
+6. Compute a Switch-style auxiliary balancing term.
+7. Compute router entropy for a token.
+8. Estimate all-to-all token traffic by expert placement.
+9. Compare top-1 and top-2 active compute.
+10. Write an MoE debugging checklist.
 
-Without explicit load balancing, the router rapidly converges to always sending tokens
-to the same 1–2 experts.
+## Why This Matters for AI
 
-**Self-reinforcing loop:**
+MoE models are attractive because they can increase capacity without a proportional increase in active compute. But they are not free. They create routing, balancing, communication, memory, and serving problems. Learning MoE math means learning to ask precise questions: which experts were active, how balanced were they, how many tokens were dropped, how much traffic moved, and how much quality came from sparsity rather than raw parameter count?
 
-```
-Popular expert → more gradient updates → improves → becomes more popular → …
-```
+## Bridge to Quantization and Distillation
 
-"Rich-get-richer" dynamics. Result: most experts receive zero tokens; effectively a
-dense model with less capacity. Catastrophic for training. Detected by monitoring per-expert
-load distribution.
+Quantization and distillation also change the relationship between quality, memory, and compute. The next section studies how precision reduction and teacher-student training compress models while trying to preserve behavior.
 
-### 4.2 Importance Loss (Shazeer et al. 2017)
+## References
 
-Auxiliary loss penalising imbalanced importance (sum of gate values) across experts:
-
-$$\mathcal{L}_{\text{importance}} = \text{CV}(\text{Importance})^2$$
-
-$$\text{Importance}(x) = \sum_{t=1}^{T} G(x_t) \in \mathbb{R}^N$$
-
-- $\text{CV} = \sigma / \mu$ (coefficient of variation)
-- High CV → high imbalance → high loss
-- Encourages equal total gate weight across all experts
-
-### 4.3 Load Loss / Auxiliary Loss (Standard)
-
-Shazeer et al. (2017) combined importance with load:
-
-$$\mathcal{L}_{\text{aux}} = \alpha \sum_{i=1}^{N} f_i \cdot P_i$$
-
-Where:
-
-$$f_i = \frac{1}{T} \sum_{t=1}^{T} \mathbb{1}\!\left[i \in \text{TopK}(G(x_t))\right]$$
-
-$$P_i = \frac{1}{T} \sum_{t=1}^{T} G(x_t)_i$$
-
-- $f_i$ = fraction of tokens dispatched to expert $i$ (load)
-- $P_i$ = mean gate probability for expert $i$ over batch (importance)
-- Minimise $f_i \cdot P_i$ product: penalises experts that are both frequently chosen
-  AND have high probability
-- $\alpha = 0.01\text{–}0.1$: auxiliary loss coefficient
-
-### 4.4 Z-Loss (Zoph et al. 2022 — ST-MoE)
-
-Auxiliary loss penalising large logit magnitudes before softmax:
-
-$$\mathcal{L}_z = \frac{1}{B} \sum_{b=1}^{B} \left(\log \sum_{i=1}^{N} e^{z_b^{(i)}}\right)^2$$
-
-- $z_b$ = router logits for token $b$ before softmax
-- Large logits → near-one-hot softmax → hard routing → instability
-- Z-loss encourages moderate logit values; softer distributions
-- Stabilises training; reduces loss spikes; combined with auxiliary load loss
-
-### 4.5 Router Load Monitoring
-
-Track per-expert load fraction $f_i$ throughout training:
-
-| Status   | Condition                      | Action                              |
-| -------- | ------------------------------ | ----------------------------------- |
-| Healthy  | $f_i \approx 1/N$ for all $i$  | Continue training                   |
-| Warning  | $f_i > 3/N$ for any expert     | Increase $\alpha$; check routing    |
-| Critical | $f_i \approx 0$ for any expert | Expert collapsed; restart or reinit |
-
-Plot: expert load histogram per layer per step. Standard monitoring in MoE training runs.
-
-### 4.6 Expert Dropout
-
-Randomly drop entire experts during training (set output to zero):
-
-- Forces model to not rely on any single expert; improves redundancy
-- Expert dropout rate: 10–40% during training; none at inference
-- Analogy: dropout for neurons extended to expert level
-
-### 4.7 Jitter Noise (Shazeer 2017)
-
-Add tunable Gaussian noise to router logits before top-k selection:
-
-$$G(x) = \text{softmax}\!\left(W_g\, x + \epsilon \cdot \text{Softplus}(W_n\, x)\right), \quad \epsilon \sim \mathcal{N}(0,1)$$
-
-- Noise scale is learned; provides exploration of expert assignments during training
-- Reduces routing collapse; encourages diverse expert usage
-- Not used at inference (noise removed)
-
----
-
-## 5. Expert Architecture Variants
-
-### 5.1 Standard MoE FFN
-
-Replace dense FFN in transformer block with MoE layer:
-
-```
-Dense Block:  x → Attention → x + Δ → FFN(x) → x + Δ
-MoE Block:    x → Attention → x + Δ → Router → top-k Experts → weighted sum → x + Δ
-```
-
-- Attention is always dense (shared across all tokens)
-- Only the FFN sublayer is sparse/MoE
-- Ratio of MoE to dense layers: every layer (Mixtral), every other layer (Jamba), custom
-
-### 5.2 Expert Size Choices
-
-**Equal-size experts:** each expert = standard FFN; $N$ experts × $d_{ff}$ hidden dim.
-
-- Mixtral 8×7B: each expert has hidden dim = 14,336 (same as dense 7B FFN)
-
-**Fine-grained experts (DeepSeekMoE 2024):** smaller individual experts; many more of them.
-
-- Hypothesis: finer granularity → more combinatorial flexibility in routing
-- DeepSeek-V2: $N=160$ routed experts, each 1/16th size of standard; $k=6$
-- More expert combinations: $\binom{160}{6} = 1.2 \times 10^{10}$ vs $\binom{8}{2} = 28$ for Mixtral
-
-### 5.3 Shared + Routed Experts (DeepSeekMoE)
-
-Divide $N$ experts into:
-
-- $N_s$ **shared experts**: always active for every token (like dense FFN component)
-- $N_r$ **routed experts**: top-k selected per token
-
-$$y = \sum_{i=1}^{N_s} E_i(x) + \sum_{i \in \text{TopK}(\text{routed})} \hat{G}(x)_i\, E_i(x)$$
-
-- Shared experts capture common/universal patterns; routed experts capture specialised patterns
-- Reduces expert redundancy: shared experts prevent multiple routed experts learning the same thing
-- DeepSeek-V3: $N_s=1$ shared; $N_r=256$ routed; top-8 selected
-
-### 5.4 Expert Merging and Recycling
-
-- **Dead experts:** experts that receive near-zero load consistently
-- **Expert merging:** combine weights of dead expert with similar active expert; reinitialise
-- **Expert recycling (Zoph et al. 2022):** periodically reinitialise underutilised experts
-- Prevents capacity waste; all experts contribute to model quality
-
-### 5.5 Conditional Computation Beyond FFN
-
-| Variant                | Description                                            |
-| ---------------------- | ------------------------------------------------------ |
-| MoE attention heads    | Different attention patterns for different tokens      |
-| MoE embedding layers   | Different embeddings per language/domain               |
-| MoE transformer blocks | Route tokens to entirely different transformer stacks  |
-| Modular networks       | Extreme; entirely separate subnetworks per task/domain |
-
-### 5.6 Number of Experts Per Layer
-
-| Strategy              | Description                                | Example                               |
-| --------------------- | ------------------------------------------ | ------------------------------------- |
-| **Uniform**           | All layers have same $N$                   | Mixtral, Switch                       |
-| **Variable**          | More experts in later layers               | Deeper = more semantic specialisation |
-| **Sparse MoE layers** | Only every $k$-th layer is MoE; rest dense | Jamba (MoE + Mamba)                   |
-| **All-MoE**           | Every FFN layer is MoE                     | DeepSeek-V3                           |
-
----
-
-## 6. Training MoE Models
-
-### 6.1 MoE Training Objective
-
-Total loss = task loss + auxiliary losses:
-
-$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{CE}} + \alpha\, \mathcal{L}_{\text{aux}} + \beta\, \mathcal{L}_z$$
-
-| $\alpha$ | Effect                                                     |
-| -------- | ---------------------------------------------------------- |
-| Too high | Router dominates training signal; experts don't specialise |
-| Too low  | Expert collapse; most experts idle                         |
-| Optimal  | Auxiliary loss ≈ 5–10% of total loss                       |
-
-### 6.2 Gradient Flow Through Router
-
-- Only selected top-k experts receive gradients for a given token
-- Router receives gradient signal from all tokens it routes (via gate values)
-- Gradient for expert $i$ parameters: non-zero only when expert $i$ is selected
-- Low-traffic experts: sparse gradient updates; slow learning; may not specialise
-- **Implication:** initial load balancing is critical; experts that start unused stay unused
-
-### 6.3 Initialisation for MoE
-
-- Expert weights: initialised identically (or with small perturbation to break symmetry slightly)
-- If all experts initialised identically: routing is random initially → good starting diversity
-- Router weights: small random initialisation; avoid early collapse to deterministic routing
-- Warmup routing: some works use random routing or high noise for first $N$ steps; gradually reduce
-
-### 6.4 Training Instability in MoE
-
-MoE training is significantly less stable than dense model training:
-
-- Loss spikes more frequent and more severe
-- **Router logit explosion:** $W_g$ values grow → softmax saturates → near-one-hot → collapse
-- Z-loss addresses this; QK-Norm equivalent needed for router
-- Gradient checkpointing: activations for all $N$ experts must be stored during forward; expensive
-
-### 6.5 Data and Expert Specialisation
-
-Experts naturally specialise on different token types, languages, domains:
-
-- Syntax/function words; rare words; specific languages; code vs text
-- Specialisation emerges without explicit supervision; purely from routing gradient
-- Measuring specialisation: for each expert, compute entropy of token-type distribution
-  - Low entropy → high specialisation; high entropy → generalist
-
-### 6.6 Curriculum Learning for MoE
-
-**Upcycling (Komatsuzaki et al. 2022):**
-
-1. Start with a well-trained dense model
-2. Copy dense FFN weights to all $N$ experts
-3. Initialise router randomly
-4. Fine-tune with MoE routing; ~5–10% of original training compute
-
-Much cheaper than training MoE from scratch. Dense model provides strong initialisation.
-
----
-
-## 7. Expert Parallelism
-
-### 7.1 Why Expert Parallelism Is Needed
-
-At scale: all $N$ expert weight matrices must fit in GPU memory.
-
-- DeepSeek-V3: 256 routed experts; if each expert = standard FFN, 256× more FFN memory
-- Solution: distribute experts across GPUs; each GPU holds $N/\text{EP}$ experts
-- **Expert parallelism (EP):** GPUs specialise in specific experts; tokens routed to correct GPU
-
-### 7.2 All-to-All Communication
-
-Forward pass with EP:
-
-```
-Step 1: Each GPU holds subset of expert weights
-Step 2: Router computes expert assignments for local token batch
-Step 3: *** All-to-All Dispatch *** — send tokens to GPU holding assigned expert
-Step 4: Each GPU runs its experts on received tokens
-Step 5: *** All-to-All Combine *** — return processed tokens to originating GPU
-Step 6: Aggregate weighted expert outputs
-```
-
-Two all-to-all operations per MoE layer (dispatch + combine).
-
-### 7.3 All-to-All Mathematics
-
-- EP = number of GPUs in expert parallel group
-- Each GPU sends $T/\text{EP}$ tokens to each other GPU (if perfectly balanced)
-- Total data per GPU: $T \times d \times \text{bytes\_per\_elem}$ sent/received
-
-**Worked example:**
-
-- $T=4096$ tokens, $d=4096$, EP=64, InfiniBand 400 Gb/s = 50 GB/s
-- Data per GPU: $4096 \times 4096 \times 4 / 64 = 1$ MB sent
-- Time: $1\text{ MB} / 50\text{ GB/s} = 0.02$ ms per all-to-all
-- Two all-to-all per layer × 32 layers = 1.28 ms total → manageable
-
-### 7.4 Communication-Compute Overlap
-
-All-to-all can be overlapped with expert computation on other tokens:
-
-- Pipeline: while GPU A computes expert on batch B tokens, receive batch C tokens for next step
-- DeepSeek-V3 training: **DualPipe** algorithm overlaps computation and communication; near-zero overhead
-- Key requirement: computation time >> communication time per layer
-
-### 7.5 Hierarchical Expert Parallelism
-
-Two-level routing: coarse routing to node → fine routing to GPU within node.
-
-| Level      | Interconnect | Bandwidth   |
-| ---------- | ------------ | ----------- |
-| Intra-node | NVLink       | 600 GB/s    |
-| Inter-node | InfiniBand   | 50–400 GB/s |
-
-Locality-aware routing: prefer experts on same node or GPU when quality allows.
-Reduces expensive inter-node all-to-all communication.
-
-### 7.6 Expert Parallelism + Other Parallelism
-
-| Combination | Description                                            |
-| ----------- | ------------------------------------------------------ |
-| EP + DP     | Each DP replica has full expert set; EP within replica |
-| EP + TP     | Each expert further split across tensor-parallel GPUs  |
-| EP + PP     | Expert layers in different pipeline stages             |
-
-DeepSeek-V3 training: EP=32 or EP=64; combined with DP; no TP (communication overhead).
-
----
-
-## 8. MoE Inference Challenges
-
-### 8.1 Memory vs Compute Asymmetry
-
-| Metric              | Dense 37B    | MoE 671B (DeepSeek-V3) |
-| ------------------- | ------------ | ---------------------- |
-| Active params/token | 37B          | 37B                    |
-| Total memory needed | 74 GB (BF16) | 1.34 TB (BF16)         |
-| Compute per token   | Same         | Same                   |
-| Min GPUs (80 GB)    | 1            | 17                     |
-
-Naive: load all $N$ experts → memory = $N \times$ (expert size). Requires multi-GPU
-inference even though compute ≈ small dense model.
-
-### 8.2 Expert Offloading for Inference
-
-- Keep only most frequently used experts in GPU HBM; rest on CPU DRAM or NVMe
-- Load expert on demand when routed to; significant latency cost
-- **Pre-fetching:** predict which experts will be needed next; load ahead of time
-- **Speculative expert prefetch (2024):** use small router to predict expert assignments
-  several steps ahead
-- Works well for offline/batch; too slow for interactive latency SLOs
-
-### 8.3 Expert Activation Patterns
-
-Key observation: expert routing is highly consistent across similar inputs.
-
-- Same token in similar contexts → same expert selected with high probability
-- Expert activation locality: for a given domain, same expert subset repeatedly activated
-- Exploit for caching: cache recently used experts in fast memory; evict cold experts
-- Expert cache hit rate: 70–90% for typical production workloads (2024 empirical results)
-
-### 8.4 Batch Routing Efficiency
-
-| Batch Size | Behaviour                                                              |
-| ---------- | ---------------------------------------------------------------------- |
-| $B=1$      | Only $k$ experts active per token; many experts never touched per step |
-| Large $B$  | More diversity in routing; all experts likely used; better utilisation |
-
-Throughput scales more steeply with batch size for MoE than dense.
-Minimum efficient batch size: $B \geq N/k$.
-
-### 8.5 Expert Dropping at Inference
-
-- At inference: no training signal; some works simply drop overloaded experts
-- Token importance scoring: if expert is overloaded, route lower-importance tokens to backup
-- Second-choice routing: each token maintains ranked expert list; use second choice if first full
-- Quality impact depends on how critical the dropped expert is for that token
-
-### 8.6 MoE Quantisation
-
-| Component            | Quantisation Strategy                              |
-| -------------------- | -------------------------------------------------- |
-| Expert weights (FFN) | INT4/INT8 with GPTQ/AWQ; per-expert calibration    |
-| Router weights       | Keep full precision (small; critical for accuracy) |
-| Shared expert        | Quantise like dense FFN                            |
-| Attention            | Standard quantisation (same as dense model)        |
-
-Challenge: each expert's weight distribution may differ; one-size calibration less effective.
-
----
-
-## 9. Routing Analysis and Interpretability
-
-### 9.1 Measuring Expert Utilisation
-
-Load distribution: histogram of tokens per expert over evaluation set.
-
-Gini coefficient for expert load:
-
-$$G = \frac{\sum_i \sum_j |f_i - f_j|}{2N \sum_i f_i}$$
-
-- $G=0$: perfectly uniform; $G=1$: all tokens to one expert
-- Monitor per layer; layer-wise routing patterns differ significantly
-
-### 9.2 Expert Specialisation Analysis
-
-For each expert $i$, collect all tokens routed to it over a large corpus. Compute
-token distribution and specialisation metrics:
-
-| Metric                   | What It Measures                                         |
-| ------------------------ | -------------------------------------------------------- |
-| Token entropy $H$        | $-\sum_t P(t \mid i)\log P(t \mid i)$; low = specialised |
-| Language specialisation  | Fraction of tokens from each language                    |
-| Syntactic specialisation | Fraction of POS tags (noun, verb, etc.)                  |
-| Domain specialisation    | Fraction from code, math, natural language               |
-
-### 9.3 Observed Specialisation Patterns
-
-- Multilingual MoE: clear language-specific experts emerge (French expert, Chinese expert, code expert)
-- Token frequency: some experts specialise in rare/OOV tokens; others in common tokens
-- Positional patterns: some experts handle early-position tokens; others end-of-sentence
-- Layer depth: shallow layers → syntactic specialisation; deep layers → semantic specialisation
-- Switch Transformer analysis: experts cluster by input characteristics visible in embedding space
-
-### 9.4 Routing Consistency
-
-Same token in different contexts → same expert? Test routing consistency:
-
-- Take token $t$; place in 1000 different contexts; record which expert selected
-- High consistency: **token-level** routing dominant (token identity determines expert)
-- Low consistency: **context-level** routing dominant (surrounding context determines expert)
-- Empirical finding: routing is ~70% consistent for common tokens; less for rare tokens
-
-### 9.5 Expert Attribution
-
-| Method           | Description                                                           |
-| ---------------- | --------------------------------------------------------------------- |
-| Expert ablation  | Zero out single expert; measure capability degradation                |
-| Expert probing   | Train linear probe on expert output for syntactic/semantic properties |
-| Circuit analysis | Trace information flow through specific experts                       |
-
-Active research area (2024–2026): mechanistic interpretability of MoE routing.
-
-### 9.6 Router Confidence
-
-Distribution of top gate value across dataset:
-
-$$\text{Confidence} = \max_i G(x)_i$$
-
-- High confidence: near-one-hot routing; model sure about expert assignment
-- Low confidence: spread across experts; ambiguous token
-- Confidence correlates with token frequency: common tokens → high routing confidence
-- Routing confidence increases with training (router becomes more decisive over time)
-
----
-
-## 10. Advanced Routing Methods
-
-### 10.1 Two-Stage Routing
-
-- First stage: coarse routing to group of experts (e.g. "code group" vs "language group")
-- Second stage: fine routing within selected group
-- Hierarchical MoE: tree-structured routing; reduces routing search space
-- Benefit: $O(\log N)$ routing cost vs $O(N)$ for large $N$
-- Used in very large $N$ settings ($N=512, 1024$)
-
-### 10.2 Input-Conditioned Routing (Conditional MoE)
-
-Router conditioned beyond just the token embedding:
-
-| Condition   | Description                                                       |
-| ----------- | ----------------------------------------------------------------- |
-| Layer index | Routing aware of which transformer layer is being computed        |
-| Position    | Position-aware routing; different experts for different positions |
-| Task/domain | Conditioning on task embedding; explicit domain routing           |
-| History     | Routing conditioned on previous token's expert assignment         |
-
-### 10.3 Reinforcement Learning for Routing
-
-- Train router with RL objective: maximise task reward subject to load balance constraint
-- Router as policy: action = expert assignment; reward = quality + load balance
-- Advantage: directly optimises task metric; not proxy auxiliary loss
-- Challenge: discrete action space; high variance; computationally expensive
-- Research area (2024–2026): RL routing not yet mainstream
-
-### 10.4 Mixture of Depths (MoD — Raposo et al. 2024)
-
-Route tokens through different numbers of layers, not just different experts.
-
-- "Compute allocation" problem: some tokens need deep processing; others need shallow
-- Router decides: process token at this layer OR skip (identity mapping)?
-- Simple tokens skip many layers; complex tokens use full depth
-- Combines with MoE: joint MoD + MoE routing for maximum efficiency
-
-### 10.5 Dynamic Expert Count
-
-Adaptive top-k: not fixed $k$, but variable number of experts per token.
-
-| Strategy         | Description                                                      |
-| ---------------- | ---------------------------------------------------------------- |
-| Confidence-based | High confidence → $k=1$; uncertain → $k=3$                       |
-| Budget-based     | Given compute budget $B$, allocate more experts to harder tokens |
-| Token difficulty | Lightweight scorer predicts optimal $k$ per token                |
-
-### 10.6 Recurrent Routing
-
-- Multiple rounds of routing per MoE layer (iterative routing)
-- Round 1: initial assignment; Round 2: refine based on expert feedback
-- Soft assignment in early rounds; hard top-k in final round
-- Research prototype; not yet mainstream
-
----
-
-## 11. Specific MoE Architectures
-
-### 11.1 Switch Transformer (Fedus et al. 2021)
-
-| Property         | Value                                                    |
-| ---------------- | -------------------------------------------------------- |
-| Total parameters | 1.6T                                                     |
-| Routing          | Top-1 ($k=1$): single expert per token; maximum sparsity |
-| Auxiliary loss   | Load balancing via $f_i \cdot P_i$ sum                   |
-| Capacity factor  | CF = 1.25; token dropping for overflow                   |
-| Key finding      | Top-1 competitive with top-2; simpler routing works      |
-| Stability        | FP32 router; BF16 experts                                |
-
-### 11.2 GShard (Lepikhin et al. 2020)
-
-- Top-2 routing; first expert mandatory, second random with probability ∝ gate value
-- Local dispatch groups: balance within local group of tokens (not globally)
-- Scaled to 600B parameters for multilingual translation
-- First demonstration of MoE outperforming dense at equivalent compute
-
-### 11.3 Mixtral 8×7B (Mistral AI 2023)
-
-| Property              | Value                                                      |
-| --------------------- | ---------------------------------------------------------- |
-| Experts per MoE layer | 8                                                          |
-| Routing               | Top-2 (2 experts active per token)                         |
-| Expert size           | Each expert = standard 7B FFN (hidden dim 14,336)          |
-| Total parameters      | ~46.7B                                                     |
-| Active per token      | ~12.9B                                                     |
-| Architecture          | Every FFN layer is MoE; attention dense; no shared experts |
-| Quality               | Matches or exceeds LLaMA-2 70B at 12.9B active compute     |
-
-### 11.4 Mixtral 8×22B (Mistral AI 2024)
-
-8 experts; top-2 routing; 22B-scale experts. Total: ~141B parameters; active: ~39B.
-Extended context: 65K tokens; strong multilingual and code performance.
-
-### 11.5 DeepSeekMoE (Dai et al. 2024)
-
-- Fine-grained experts: $N=64$ small experts instead of 8 large
-- Shared experts: $N_s=2$ always-active + $N_r=62$ routed; top-6 from routed
-- Better expert utilisation; reduced load imbalance; stronger specialisation
-
-### 11.6 DeepSeek-V2 (2024)
-
-- MLA (low-rank KV compression) + DeepSeekMoE
-- $N=160$ routed; $N_s=2$ shared; top-6 routed per token
-- Total: 236B; active: 21B
-- Device-level load balance loss (not just expert level)
-
-### 11.7 DeepSeek-V3 (2024)
-
-| Property           | Value                                              |
-| ------------------ | -------------------------------------------------- |
-| Routed experts     | 256                                                |
-| Shared experts     | 1                                                  |
-| Top-k              | 8                                                  |
-| Total parameters   | 671B                                               |
-| Active per token   | 37B                                                |
-| Load balancing     | Auxiliary-loss-free; dynamic bias on router logits |
-| Training precision | FP8 throughout; DualPipe overlap                   |
-| Training cost      | ~2.79M H800 GPU hours (~$5.5M)                     |
-
-### 11.8 Grok-1 (xAI 2024)
-
-314B total; 8 experts; top-2 routing; ~86B active. Open-sourced (Apache 2.0);
-largest open MoE at release.
-
-### 11.9 Jamba (AI21 Labs 2024)
-
-Hybrid: alternates Transformer (MoE) + Mamba (SSM) layers.
-
-- MoE layers: 8 experts; top-2 routing
-- 256K context window; KV cache only for attention layers (Mamba has fixed state)
-- Demonstrates MoE + SSM hybrid viability
-
----
-
-## 12. Mathematical Analysis
-
-### 12.1 Capacity and Quality Tradeoff
-
-For fixed compute $C$ and quality target $Q$:
-
-- Dense model: $N_{\text{dense}}$ parameters; quality $Q(N_{\text{dense}}, C)$
-- MoE model: $N_{\text{moe}} = N_{\text{dense}} \times N/k$ total parameters; active $= N_{\text{dense}}$
-- Empirical scaling: quality improves roughly as $\log(N_{\text{moe}}/k) = \log(N_{\text{moe}}) - \log(k)$
-- Diminishing returns from more experts at fixed active count
-
-### 12.2 Expert Routing as Discrete Latent Variable
-
-Token $x$; expert assignment $z \in \{1, \ldots, N\}$; expert output $E_i(x)$.
-
-Marginalised output (soft MoE):
-
-$$y = \sum_{i=1}^{N} P(z=i \mid x) \cdot E_i(x) = \mathbb{E}_{z \sim G(x)}[E_z(x)]$$
-
-- Top-k routing: approximate posterior with sparse distribution
-- **EM interpretation:** E-step = compute routing probabilities; M-step = update expert parameters
-
-### 12.3 Information-Theoretic View of Routing
-
-Router computes: $I(x \to \text{expert})$ = mutual information between input and expert assignment.
-
-- High $I$: routing is input-dependent; strong specialisation
-- Low $I$: routing is near-uniform; weak specialisation
-- Maximising MI between routing and input characteristics encourages specialisation
-- **Balancing objective:** maximise $I$ while constraining load uniformity
-
-### 12.4 Load Balancing as Constrained Optimisation
-
-$$\min_\theta \mathcal{L}_{\text{CE}}(\theta) \quad \text{s.t.} \quad f_i \leq \frac{1+\epsilon}{N} \quad \forall\, i$$
-
-Lagrangian relaxation:
-
-$$\mathcal{L} = \mathcal{L}_{\text{CE}} + \sum_i \lambda_i \max\!\left(0,\; f_i - \frac{1+\epsilon}{N}\right)$$
-
-Standard auxiliary loss is an approximation of this constrained optimisation.
-
-### 12.5 Expert Capacity as Bin Packing
-
-$T$ tokens; $N$ bins (experts); capacity $C$ per bin. Token $i$ has weight 1; assign to
-exactly $k$ bins.
-
-Expected overflow with uniform random routing (Poisson approximation):
-
-$$P(\text{overflow}) \approx 1 - \text{PoissonCDF}\!\left(C;\; T \cdot k / N\right)$$
-
-For $CF = 1.25$: overflow probability ≈ 5–10% of tokens.
-
-### 12.6 Auxiliary Loss Weight Sensitivity
-
-| $\alpha$ Range      | Effect                                                            |
-| ------------------- | ----------------------------------------------------------------- |
-| Too high (>0.1)     | Auxiliary loss dominates; uniform routing but poor specialisation |
-| Too low (<0.001)    | Expert collapse; most capacity wasted                             |
-| Optimal (0.01–0.05) | Auxiliary loss ≈ 5–10% of total loss                              |
-
-### 12.7 Auxiliary-Loss-Free Load Balancing (DeepSeek-V3)
-
-Add per-expert learnable bias $b_i$ to router logits:
-
-$$\text{Modified logit for expert } i = G(x)_i + b_i$$
-
-Bias update rule: monitor load per expert; increase $b_i$ for underloaded; decrease for overloaded:
-
-$$b_i \leftarrow b_i + \gamma \cdot \text{sign}(c_i - \bar{c})$$
-
-- $c_i$ = token count for expert $i$ in recent batch; $\bar{c} = T/N$ target count
-- No auxiliary loss in total objective; load balancing purely through bias adaptation
-- Result: better task quality (no auxiliary loss conflict); similar load balance
-
----
-
-## 13. Common Mistakes
-
-| Mistake                                    | Why It's Wrong                                                                                | Fix                                                                        |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| "MoE is always cheaper than dense"         | Memory cost = all N expert weights; compute = k active experts; memory dominates at inference | Account for total memory, not just active compute                          |
-| "Expert collapse is rare"                  | Without auxiliary loss, collapse happens in first few thousand steps reliably                 | Monitor expert load from step 1; tune α before full run                    |
-| "More experts always better"               | Routing harder; load balance harder; communication overhead grows                             | Tune N and k together; fine-grained experts better than coarse             |
-| "Top-1 routing is inferior to top-2"       | Switch Transformer showed top-1 competitive; simpler routing has advantages                   | Evaluate both; task-specific choice                                        |
-| "Expert specialisation can be controlled"  | Specialisation emerges from training; cannot be explicitly assigned                           | Design auxiliary objectives to encourage desired specialisation indirectly |
-| "Auxiliary loss weight α is not sensitive" | α is highly sensitive; wrong value → collapse or degraded quality                             | Grid search α on small proxy model; use μP to transfer                     |
-| "All-to-all communication is negligible"   | At large EP, all-to-all can be 30–50% of step time without overlap                            | Implement compute-communication overlap; measure ratio explicitly          |
-| "MoE models fine-tune like dense models"   | Expert routing changes under distribution shift; different experts activate                   | Lower LR for router; monitor routing distribution shift                    |
-| "Quantising MoE is same as dense"          | Each expert has different weight distribution; shared calibration insufficient                | Per-expert calibration; expert-aware quantisation                          |
-| "Expert capacity CF=1.0 is fine"           | CF=1.0 means any imbalance drops tokens; realistic imbalance ~20%                             | Use CF=1.25–1.5 for training; CF=1.0 only if load near-perfect             |
-
----
-
-## 14. Exercises
-
-1. **Routing by hand** — given router weights $W_g \in \mathbb{R}^{4 \times 3}$, input
-   $x \in \mathbb{R}^3$: compute $G(x) = \text{softmax}(W_g x)$; identify top-2 experts;
-   compute renormalised gates; compute weighted expert output.
-
-2. **Auxiliary loss** — batch of $T=8$ tokens; 4 experts; $f_i = [0.5, 0.3, 0.15, 0.05]$;
-   $P_i = [0.4, 0.3, 0.2, 0.1]$; compute $L_{\text{aux}} = \sum f_i P_i$; compare to
-   perfectly uniform case.
-
-3. **Capacity and overflow** — $T=1024$ tokens; $N=8$ experts; $k=2$; $CF=1.25$;
-   compute capacity $C$; if expert 1 receives 200 tokens, how many are dropped?
-
-4. **Parameter count** — dense model: $d=4096$, $d_{ff}=16384$; MoE replacement: $N=8$
-   experts, same $d_{ff}$; compute total MoE params vs dense params; active params per
-   token for $k=2$.
-
-5. **Expert utilisation** — load distribution $[0.35, 0.25, 0.15, 0.10, 0.08, 0.04, 0.02, 0.01]$
-   for 8 experts; compute Gini coefficient; is this healthy?
-
-6. **All-to-all latency** — $EP=32$ GPUs; $T=4096$ tokens; $d=4096$; BF16; NVLink 600 GB/s;
-   compute data sent per GPU; estimate all-to-all time; compare to expert compute time.
-
-7. **MoE vs dense scaling** — 10B active params; MoE has $N=64$ experts ($k=2$);
-   estimate relative quality improvement using $\log$ scaling; is 64× extra capacity
-   worth the routing overhead?
-
-8. **Z-loss calculation** — router logits $z = [3.2, 1.1, -0.5, 2.8]$ (4 experts):
-   compute $\mathcal{L}_z = \left(\log \sum e^{z_i}\right)^2$; compare to
-   $z_{\text{uniform}} = [1, 1, 1, 1]$; interpret the regularisation effect.
-
----
-
-## 15. Why This Matters for AI (2026 Perspective)
-
-| Aspect                  | Impact                                                                                   |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| **Frontier capability** | Nearly all leading models (GPT-4, Gemini, Claude, DeepSeek) believed to use MoE          |
-| **Cost efficiency**     | 5–10× more parameters at same training compute; dramatically better $/quality            |
-| **Specialisation**      | Experts specialise by language, domain, task; single model excels everywhere             |
-| **Open source**         | Mixtral and DeepSeek open-sourced competitive MoE models; democratises access            |
-| **Inference cost**      | Active compute ≈ small dense model despite massive total capacity                        |
-| **Multilingual**        | Language-specific experts emerge naturally; better multilingual performance              |
-| **Research frontier**   | Routing algorithms, expert specialisation, auxiliary-loss-free training all active       |
-| **Hardware design**     | MoE's all-to-all pattern drives NVLink bandwidth requirements                            |
-| **Scaling laws**        | MoE shifts scaling laws; expert count is now a fourth axis alongside N, D, C             |
-| **Interpretability**    | Expert routing provides natural modularity; mechanistic interpretability active research |
-
----
-
-## Conceptual Bridge
-
-MoE replaces the monolithic FFN with a conditional computation graph: every token
-activates a different specialised subnetwork. The model is simultaneously many models.
-Routing is the bridge between the input's content and the model's specialised capacity.
-
-Next: **Quantization and Distillation** — how to compress model capacity
-for efficient deployment.
-
-```
-… → [Attention] → h → [Router] → [Expert k₁] + [Expert k₂] → weighted sum → h' → …
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                      THIS section
-```
-
----
-
-[← Efficient Attention and Inference](../09-Efficient-Attention-and-Inference/notes.md) | [Home](../../README.md) | [Quantization and Distillation →](../11-Quantization-and-Distillation/notes.md)
+- Noam Shazeer et al., "Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer", 2017: https://arxiv.org/abs/1701.06538
+- Dmitry Lepikhin et al., "GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding", 2020: https://arxiv.org/abs/2006.16668
+- William Fedus, Barret Zoph, and Noam Shazeer, "Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity", 2021: https://arxiv.org/abs/2101.03961
+- Mistral AI, "Mixtral of Experts", 2024: https://arxiv.org/abs/2401.04088

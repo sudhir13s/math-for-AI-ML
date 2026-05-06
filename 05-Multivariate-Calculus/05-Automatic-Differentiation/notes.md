@@ -1,25 +1,25 @@
-[← Back to Multivariate Calculus](../README.md)
+[<- Back to Multivariate Calculus](../README.md)
 
 ---
 
 # Automatic Differentiation
 
-> _"Differentiating programs, not formulas — that is the key insight that makes modern deep learning possible."_
-> — Automatic differentiation community folklore
+> _"Differentiating programs, not formulas - that is the key insight that makes modern deep learning possible."_
+> - Automatic differentiation community folklore
 
 ## Overview
 
-Automatic differentiation (AD) is the algorithmic machinery that makes gradient-based learning at scale possible. Unlike numerical finite differences (slow, inaccurate) or symbolic differentiation (expression-swell, rigid), AD evaluates exact derivatives of arbitrary computer programs at machine precision, in time proportional to the original computation. Every modern deep-learning framework — PyTorch, JAX, TensorFlow, Flax — is, at its core, an automatic differentiation system wrapped around a linear algebra library.
+Automatic differentiation (AD) is the algorithmic machinery that makes gradient-based learning at scale possible. Unlike numerical finite differences (slow, inaccurate) or symbolic differentiation (expression-swell, rigid), AD evaluates exact derivatives of arbitrary computer programs at machine precision, in time proportional to the original computation. Every modern deep-learning framework - PyTorch, JAX, TensorFlow, Flax - is, at its core, an automatic differentiation system wrapped around a linear algebra library.
 
 This section builds AD from the ground up. We begin with dual number algebra (the mathematical foundation of forward-mode AD), derive the adjoint accumulation algorithm (the foundation of reverse-mode AD and backpropagation), and study computational graphs, topological sort, JVP/VJP operations, higher-order derivatives, gradient checkpointing, and custom autograd functions. Throughout, we connect the mathematics to the engineering decisions inside real frameworks.
 
-**Relationship to adjacent sections:** The chain rule and its role in backpropagation were derived in §05/03. Jacobians and Hessians as mathematical objects were studied in §05/02. This section focuses on *how to compute them efficiently for arbitrary programs*. Gradient descent algorithms that *consume* these gradients are covered in §08/02.
+**Relationship to adjacent sections:** The chain rule and its role in backpropagation were derived in 05/03. Jacobians and Hessians as mathematical objects were studied in 05/02. This section focuses on *how to compute them efficiently for arbitrary programs*. Gradient descent algorithms that *consume* these gradients are covered in 08/02.
 
 ## Prerequisites
 
-- Partial derivatives and the chain rule (`§05/01-Partial-Derivatives`)
-- Jacobian matrices and directional derivatives (`§05/02-Jacobians-and-Hessians`)
-- Backpropagation derivation for neural networks (`§05/03-Chain-Rule-and-Backpropagation`)
+- Partial derivatives and the chain rule (`05/01-Partial-Derivatives`)
+- Jacobian matrices and directional derivatives (`05/02-Jacobians-and-Hessians`)
+- Backpropagation derivation for neural networks (`05/03-Chain-Rule-and-Backpropagation`)
 - Basic Python and NumPy; familiarity with operator overloading
 
 ## Companion Notebooks
@@ -27,7 +27,7 @@ This section builds AD from the ground up. We begin with dual number algebra (th
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive derivations: dual numbers, reverse-mode from scratch, JVP/VJP, higher-order AD, gradient checkpointing, MAML |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises: dual arithmetic through implicit differentiation and meta-learning gradients |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises: dual arithmetic through implicit differentiation and meta-learning gradients |
 
 ## Learning Objectives
 
@@ -39,7 +39,7 @@ After completing this section, you will:
 - Construct and topologically sort a computational graph, and execute a backward pass by hand
 - Distinguish JVP (forward-mode) and VJP (reverse-mode) and choose the efficient mode for a given Jacobian shape
 - Compute Hessian-vector products via nested AD without materialising the full Hessian
-- Implement gradient checkpointing and quantify the memory–compute tradeoff
+- Implement gradient checkpointing and quantify the memory-compute tradeoff
 - Write a custom `autograd.Function` with a manually specified VJP
 - Explain implicit differentiation and differentiate through fixed-point solvers
 - Connect AD to meta-learning (MAML), differentiable programming, and hyperparameter optimisation
@@ -65,13 +65,13 @@ After completing this section, you will:
 - [4. Reverse-Mode AD and Backpropagation](#4-reverse-mode-ad-and-backpropagation)
   - [4.1 Adjoint Variables](#41-adjoint-variables)
   - [4.2 Reverse-Mode Trace](#42-reverse-mode-trace)
-  - [4.3 VJP — Vector-Jacobian Product](#43-vjp--vector-jacobian-product)
+  - [4.3 VJP - Vector-Jacobian Product](#43-vjp--vector-jacobian-product)
   - [4.4 Reverse-Mode Complexity](#44-reverse-mode-complexity)
-  - [4.5 Forward vs Reverse — When to Use Each](#45-forward-vs-reverse--when-to-use-each)
+  - [4.5 Forward vs Reverse - When to Use Each](#45-forward-vs-reverse--when-to-use-each)
 - [5. Computational Graph Mechanics](#5-computational-graph-mechanics)
   - [5.1 DAG Construction](#51-dag-construction)
   - [5.2 Topological Sort](#52-topological-sort)
-  - [5.3 Memory Layout — Tape vs Closure](#53-memory-layout--tape-vs-closure)
+  - [5.3 Memory Layout - Tape vs Closure](#53-memory-layout--tape-vs-closure)
   - [5.4 In-place Operations and Graph Invalidation](#54-in-place-operations-and-graph-invalidation)
 - [6. JVP, VJP, and the Jacobian](#6-jvp-vjp-and-the-jacobian)
   - [6.1 JVP Formal Definition](#61-jvp-formal-definition)
@@ -111,11 +111,11 @@ Given a function $f : \mathbb{R}^n \to \mathbb{R}^m$ implemented as a computer p
 
 $$\frac{\partial f_i}{\partial x_j} \approx \frac{f_i(\mathbf{x} + h\mathbf{e}_j) - f_i(\mathbf{x})}{h}$$
 
-This requires $n$ forward evaluations (one per input dimension) and suffers from two fundamental problems. First, truncation error: the finite-difference formula approximates the derivative with $O(h)$ error. Second, cancellation error: for small $h$, subtracting two nearly equal floating-point numbers destroys significant digits. The sweet spot $h \approx \sqrt{\epsilon_{\text{machine}}} \approx 10^{-8}$ still gives only $O(10^{-8})$ relative accuracy — barely enough to verify a gradient, never enough to use as a training signal over millions of steps. Cost: $O(n)$ function evaluations.
+This requires $n$ forward evaluations (one per input dimension) and suffers from two fundamental problems. First, truncation error: the finite-difference formula approximates the derivative with $O(h)$ error. Second, cancellation error: for small $h$, subtracting two nearly equal floating-point numbers destroys significant digits. The sweet spot $h \approx \sqrt{\epsilon_{\text{machine}}} \approx 10^{-8}$ still gives only $O(10^{-8})$ relative accuracy - barely enough to verify a gradient, never enough to use as a training signal over millions of steps. Cost: $O(n)$ function evaluations.
 
 **2. Symbolic differentiation:**
 
-Apply the rules of calculus to the *symbolic expression* for $f$, producing a new symbolic expression for $\nabla f$. This gives exact derivatives and is the approach taken by computer algebra systems (Mathematica, SymPy). The fatal flaw for ML is **expression swell**: differentiating a composition of $n$ functions can produce a symbolic expression exponentially larger than the original. A 100-layer network cannot be symbolically differentiated — the resulting formula would be astronomically large. Cost: $O(\text{expression size})$, which can be $O(n!)$ in the worst case.
+Apply the rules of calculus to the *symbolic expression* for $f$, producing a new symbolic expression for $\nabla f$. This gives exact derivatives and is the approach taken by computer algebra systems (Mathematica, SymPy). The fatal flaw for ML is **expression swell**: differentiating a composition of $n$ functions can produce a symbolic expression exponentially larger than the original. A 100-layer network cannot be symbolically differentiated - the resulting formula would be astronomically large. Cost: $O(\text{expression size})$, which can be $O(n!)$ in the worst case.
 
 **3. Automatic differentiation:**
 
@@ -123,32 +123,32 @@ AD applies the chain rule mechanically at the level of *elementary operations* (
 
 ```
 COMPARISON: THREE DIFFERENTIATION METHODS
-════════════════════════════════════════════════════════════════════════
+
 
   Method          | Accuracy   | Cost (grad) | Scales to   | Used for
-  ─────────────────────────────────────────────────────────────────────
+  
   Finite Diff.    | ~1e-8 rel  | O(n) evals  | n < 1000    | Grad check
   Symbolic        | Exact      | Expression  | n < 20      | Analysis
                   |            | swell: bad  |             |
-  AD (forward)    | Exact FP   | O(n) × T(f) | n ≤ m       | JVPs, physics
-  AD (reverse)    | Exact FP   | O(1) × T(f) | n >> m      | Training NNs
+  AD (forward)    | Exact FP   | O(n) x T(f) | n <= m       | JVPs, physics
+  AD (reverse)    | Exact FP   | O(1) x T(f) | n >> m      | Training NNs
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-The $O(1) \times T(f)$ cost of reverse-mode AD for scalar outputs is the mathematical miracle underlying all of deep learning. A network with $n = 10^{11}$ parameters (GPT-4 scale) can have its full gradient computed in roughly the time of two forward passes — regardless of $n$.
+The $O(1) \times T(f)$ cost of reverse-mode AD for scalar outputs is the mathematical miracle underlying all of deep learning. A network with $n = 10^{11}$ parameters (GPT-4 scale) can have its full gradient computed in roughly the time of two forward passes - regardless of $n$.
 
 ### 1.2 Why AD Matters for AI
 
-Every training step of every neural network in production today uses reverse-mode automatic differentiation. The gradient $\nabla_\theta \mathcal{L}$ of a scalar loss $\mathcal{L}$ with respect to billions of parameters $\theta$ is computed by a single backward pass through the computational graph — at a cost roughly equal to the forward pass. This would be impossible with finite differences (cost $O(n)$ evaluations) or symbolic differentiation (intractable).
+Every training step of every neural network in production today uses reverse-mode automatic differentiation. The gradient $\nabla_\theta \mathcal{L}$ of a scalar loss $\mathcal{L}$ with respect to billions of parameters $\theta$ is computed by a single backward pass through the computational graph - at a cost roughly equal to the forward pass. This would be impossible with finite differences (cost $O(n)$ evaluations) or symbolic differentiation (intractable).
 
 Beyond simple training, AD enables:
 
-- **Meta-learning (MAML):** Differentiating through an inner gradient descent loop requires computing second-order derivatives — gradients of gradients. AD handles this cleanly via `create_graph=True`.
+- **Meta-learning (MAML):** Differentiating through an inner gradient descent loop requires computing second-order derivatives - gradients of gradients. AD handles this cleanly via `create_graph=True`.
 - **Differentiable physics and rendering:** Gradients of physical simulations allow optimising 3D scenes, fluid dynamics, or molecular configurations end-to-end.
 - **Neural ODEs:** Treating the dynamics of a neural network as a continuous ODE and backpropagating through the ODE solver via the adjoint method.
 - **Differentiable optimisation layers:** Embedding QP or LP solvers inside a network and differentiating through their solutions via implicit differentiation.
-- **Gradient checkpointing:** Trading compute for memory — recomputing activations during the backward pass instead of storing them, enabling training of models that would otherwise overflow GPU memory.
+- **Gradient checkpointing:** Trading compute for memory - recomputing activations during the backward pass instead of storing them, enabling training of models that would otherwise overflow GPU memory.
 
 **For AI (2026):** JAX's `jit`, `vmap`, and `grad` transformations compose AD with JIT compilation and vectorisation, enabling research at scales (and with flexibility) that were impractical with earlier frameworks. The `torch.compile` stack in PyTorch 2.x similarly relies on AD being a first-class algebraic transformation.
 
@@ -163,10 +163,10 @@ The mathematical foundations of AD stretch back further than most practitioners 
 | 1980 | Speelpenning | Efficient reverse-mode AD for composite functions (thesis) |
 | 1981 | Griewank & Walther | Systematic development of AD theory; `ADIFOR` system |
 | 1986 | Rumelhart, Hinton, Williams | Popularised reverse-mode AD as "backpropagation" in neural network context |
-| 1992 | Griewank | `ADOL-C` — first widely-used AD tool for C/C++ |
-| 2015 | Maclaurin, Duvenaud, Adams | `Autograd` — differentiable NumPy, enabling research experimentation |
+| 1992 | Griewank | `ADOL-C` - first widely-used AD tool for C/C++ |
+| 2015 | Maclaurin, Duvenaud, Adams | `Autograd` - differentiable NumPy, enabling research experimentation |
 | 2016 | PyTorch team (Paszke et al.) | Dynamic computational graphs ("define-by-run") revolutionise AD usability |
-| 2018 | Google Brain (Bradbury et al.) | `JAX` — composable function transformations: `grad`, `jit`, `vmap`, `pmap` |
+| 2018 | Google Brain (Bradbury et al.) | `JAX` - composable function transformations: `grad`, `jit`, `vmap`, `pmap` |
 | 2023+ | PyTorch 2.x | `torch.compile` integrates AD with graph-level optimisation |
 
 The key conceptual leap in PyTorch was switching from *static* (TensorFlow 1.x) to *dynamic* computational graphs: the graph is built on-the-fly as Python executes, making debugging, control flow, and research iteration far more natural.
@@ -189,28 +189,28 @@ The graph is acyclic because a value cannot depend on itself (no cycles in time-
 **Example.** For $f(x_1, x_2) = (x_1 + x_2) \cdot \sin(x_1)$:
 
 ```
-COMPUTATIONAL GRAPH EXAMPLE: f(x₁, x₂) = (x₁ + x₂) · sin(x₁)
-════════════════════════════════════════════════════════════════════════
+COMPUTATIONAL GRAPH EXAMPLE: f(x_1, x_2) = (x_1 + x_2) * sin(x_1)
 
-  Inputs:   v₁ = x₁,  v₂ = x₂
 
-  v₃ = v₁ + v₂          (addition)
-  v₄ = sin(v₁)          (unary sine)
-  v₅ = v₃ × v₄          (multiplication)  ← output
+  Inputs:   v_1 = x_1,  v_2 = x_2
+
+  v_3 = v_1 + v_2          (addition)
+  v_4 = sin(v_1)          (unary sine)
+  v_5 = v_3 x v_4          (multiplication)  <- output
 
   Graph edges:
-    v₁ ──→ v₃,  v₂ ──→ v₃
-    v₁ ──→ v₄
-    v₃ ──→ v₅,  v₄ ──→ v₅
+    v_1 -> v_3,  v_2 -> v_3
+    v_1 -> v_4
+    v_3 -> v_5,  v_4 -> v_5
 
-  Topological order: v₁, v₂, v₃, v₄, v₅   (or v₁, v₂, v₄, v₃, v₅)
+  Topological order: v_1, v_2, v_3, v_4, v_5   (or v_1, v_2, v_4, v_3, v_5)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 2.2 The Wengert List
 
-The *Wengert list* (also called the *tape*) is a linearisation of the computational graph — a sequential record of all elementary operations performed during a forward evaluation, along with the intermediate values needed to compute derivatives.
+The *Wengert list* (also called the *tape*) is a linearisation of the computational graph - a sequential record of all elementary operations performed during a forward evaluation, along with the intermediate values needed to compute derivatives.
 
 **Definition 2.2 (Wengert list).** For a forward evaluation of $f$ at $\mathbf{x}$, the Wengert list $W$ is the sequence:
 
@@ -224,9 +224,9 @@ In PyTorch, this tape is implicit in the `grad_fn` chain attached to each tensor
 
 | Step | Variable | Operation | Value | Saved for backward |
 |------|----------|-----------|-------|--------------------|
-| 1 | $v_1$ | input | 1.0 | — |
-| 2 | $v_2$ | input | 2.0 | — |
-| 3 | $v_3$ | $v_1 + v_2$ | 3.0 | — (linear) |
+| 1 | $v_1$ | input | 1.0 | - |
+| 2 | $v_2$ | input | 2.0 | - |
+| 3 | $v_3$ | $v_1 + v_2$ | 3.0 | - (linear) |
 | 4 | $v_4$ | $\sin(v_1)$ | 0.8415 | $v_1 = 1.0$ (to compute $\cos v_1$) |
 | 5 | $v_5$ | $v_3 \times v_4$ | 2.524 | $v_3 = 3.0,\ v_4 = 0.8415$ |
 
@@ -242,13 +242,13 @@ AD works by decomposing every computation into *elementary operations* $\phi : \
 | $u - v$ | $u - v$ | $1$ | $-1$ |
 | $u \cdot v$ | $uv$ | $v$ | $u$ |
 | $u / v$ | $u/v$ | $1/v$ | $-u/v^2$ |
-| $u^a$ (const $a$) | $u^a$ | $au^{a-1}$ | — |
-| $\exp(u)$ | $e^u$ | $e^u$ | — |
-| $\log(u)$ | $\ln u$ | $1/u$ | — |
-| $\sin(u)$ | $\sin u$ | $\cos u$ | — |
-| $\cos(u)$ | $\cos u$ | $-\sin u$ | — |
-| $\max(u, 0)$ | ReLU | $\mathbf{1}[u > 0]$ | — |
-| $\sigma(u)$ | $1/(1+e^{-u})$ | $\sigma(u)(1-\sigma(u))$ | — |
+| $u^a$ (const $a$) | $u^a$ | $au^{a-1}$ | - |
+| $\exp(u)$ | $e^u$ | $e^u$ | - |
+| $\log(u)$ | $\ln u$ | $1/u$ | - |
+| $\sin(u)$ | $\sin u$ | $\cos u$ | - |
+| $\cos(u)$ | $\cos u$ | $-\sin u$ | - |
+| $\max(u, 0)$ | ReLU | $\mathbf{1}[u > 0]$ | - |
+| $\sigma(u)$ | $1/(1+e^{-u})$ | $\sigma(u)(1-\sigma(u))$ | - |
 
 Any differentiable function implemented as a composition of these operations (and control flow that doesn't depend on the differentiated variable) can be automatically differentiated by AD.
 
@@ -265,7 +265,7 @@ Dual numbers provide the cleanest algebraic foundation for forward-mode automati
 **Definition 3.1 (Dual numbers).** The ring of *dual numbers* is:
 $$\mathbb{D} = \{a + b\varepsilon : a, b \in \mathbb{R},\ \varepsilon^2 = 0,\ \varepsilon \neq 0\}$$
 
-The symbol $\varepsilon$ is the *dual unit* — an infinitesimal that satisfies $\varepsilon^2 = 0$ but $\varepsilon \neq 0$. This is not a real number; it is an algebraic extension analogous to how $i^2 = -1$ extends $\mathbb{R}$ to $\mathbb{C}$.
+The symbol $\varepsilon$ is the *dual unit* - an infinitesimal that satisfies $\varepsilon^2 = 0$ but $\varepsilon \neq 0$. This is not a real number; it is an algebraic extension analogous to how $i^2 = -1$ extends $\mathbb{R}$ to $\mathbb{C}$.
 
 **Arithmetic rules.** For dual numbers $\mathbf{a} = a + a'\varepsilon$ and $\mathbf{b} = b + b'\varepsilon$:
 
@@ -303,7 +303,7 @@ $$= \sin 1 + (2\sin 1 + \cos 1)\varepsilon$$
 
 So $f'(1) = 2\sin(1) + \cos(1) \approx 2(0.8415) + 0.5403 = 2.223$.
 
-Verification: $f'(x) = 2x\sin x + x^2 \cos x$, so $f'(1) = 2\sin 1 + \cos 1$. ✓
+Verification: $f'(x) = 2x\sin x + x^2 \cos x$, so $f'(1) = 2\sin 1 + \cos 1$. 
 
 **For $f : \mathbb{R}^n \to \mathbb{R}^m$, partial derivatives.** To compute $\partial f_i / \partial x_j$, evaluate $f$ at $\mathbf{x} + \mathbf{e}_j \varepsilon$ (seeding the $j$-th input with dual part 1, all others 0). The dual part of the $i$-th output gives $\partial f_i / \partial x_j$. This requires $n$ evaluations to fill the full Jacobian.
 
@@ -337,12 +337,12 @@ So $\partial f / \partial x_1 = 2.463$. Using $\dot{\mathbf{x}} = (0, 1)^\top$ i
 - One forward pass with a fixed tangent $\dot{\mathbf{x}}$ computes $J_f \dot{\mathbf{x}}$ in time $O(T(f))$
 - Computing the full $m \times n$ Jacobian requires $n$ passes (one per basis vector $\mathbf{e}_j$): time $O(n \cdot T(f))$
 
-**For AI:** Forward mode is efficient when $n \ll m$ — i.e., few inputs and many outputs. This applies in:
+**For AI:** Forward mode is efficient when $n \ll m$ - i.e., few inputs and many outputs. This applies in:
 - Physics simulations with a few control parameters and many state outputs
 - Sensitivity analysis: how does one input affect all outputs?
 - Neural tangent kernel computations (batched JVPs)
 
-For training neural networks where $n = |\theta| \gg 1$ and $m = 1$ (scalar loss), forward mode would cost $O(|\theta|)$ — completely impractical. Reverse mode handles this in $O(1)$.
+For training neural networks where $n = |\theta| \gg 1$ and $m = 1$ (scalar loss), forward mode would cost $O(|\theta|)$ - completely impractical. Reverse mode handles this in $O(1)$.
 
 ### 3.5 Implementation from Scratch
 
@@ -374,7 +374,7 @@ class Dual:
                     (self.dual * r - self.real * other.dual) / (r * r))
 
     def __repr__(self):
-        return f"Dual({self.real:.6f} + {self.dual:.6f}ε)"
+        return f"Dual({self.real:.6f} + {self.dual:.6f}epsilon)"
 
 import math
 
@@ -391,18 +391,18 @@ def d_exp(x):
 def d_log(x):
     return Dual(math.log(x.real), x.dual / x.real)
 
-# Compute df/dx₁ for f(x₁, x₂) = (x₁ + x₂) * sin(x₁)
+# Compute df/dx_1 for f(x_1, x_2) = (x_1 + x_2) * sin(x_1)
 def f(x1, x2):
     return (x1 + x2) * d_sin(x1)
 
-x1 = Dual(1.0, 1.0)  # seed dx₁ = 1
-x2 = Dual(2.0, 0.0)  # seed dx₂ = 0
+x1 = Dual(1.0, 1.0)  # seed dx_1 = 1
+x2 = Dual(2.0, 0.0)  # seed dx_2 = 0
 result = f(x1, x2)
 print(f"f(1,2) = {result.real:.6f}")
-print(f"df/dx₁ = {result.dual:.6f}")  # → 2.463
+print(f"df/dx_1 = {result.dual:.6f}")  # -> 2.463
 ```
 
-This 40-line implementation is functionally equivalent to the forward-mode core of professional AD libraries. The key insight: by *overloading arithmetic operators*, we make any Python function automatically differentiable — no source code transformation required.
+This 40-line implementation is functionally equivalent to the forward-mode core of professional AD libraries. The key insight: by *overloading arithmetic operators*, we make any Python function automatically differentiable - no source code transformation required.
 
 ---
 
@@ -428,22 +428,22 @@ This is the chain rule applied in reverse: the adjoint of $v_k$ accumulates cont
 
 ```
 ADJOINT ACCUMULATION (Reverse-Mode AD)
-════════════════════════════════════════════════════════════════════════
+
 
   Forward pass:
     For k = 1, 2, ..., K:
-      Evaluate v_k = φ_k(v_{p₁}, ..., v_{pᵣ})
-      Store v_k and the inputs {v_{pⱼ}} needed for backward
+      Evaluate v_k = phi_k(v_{p_1}, ..., v_{p})
+      Store v_k and the inputs {v_{p}} needed for backward
 
   Backward pass:
-    Initialise v̄_K = 1 (output node)
+    Initialise v_K = 1 (output node)
     For k = K, K-1, ..., 1:
       For each parent j of v_k:
-        v̄_j += v̄_k · (∂φ_k / ∂v_j)   [local VJP]
+        v_j += v_k * (partialphi_k / partialv_j)   [local VJP]
 
-  Result: v̄₁, ..., v̄ₙ = ∂f/∂x₁, ..., ∂f/∂xₙ   (full gradient)
+  Result: v_1, ..., v = partialf/partialx_1, ..., partialf/partialx   (full gradient)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 4.2 Reverse-Mode Trace
@@ -475,7 +475,7 @@ ADJOINT ACCUMULATION (Reverse-Mode AD)
 
 In a **single backward pass** we computed both partial derivatives simultaneously. Compare forward mode: two separate passes were needed.
 
-### 4.3 VJP — Vector-Jacobian Product
+### 4.3 VJP - Vector-Jacobian Product
 
 The fundamental operation of reverse-mode AD is the **VJP (vector-Jacobian product)**:
 
@@ -510,44 +510,44 @@ The $\mathrel{+}=$  notation is important: adjoints accumulate across all paths 
 **Theorem 4.1 (Reverse-mode cost).** For $f : \mathbb{R}^n \to \mathbb{R}^m$:
 - One reverse pass computes $\mathbf{v}^\top J_f(\mathbf{x})$ (a VJP) in time $O(T(f))$
 - Computing the full $m \times n$ Jacobian requires $m$ reverse passes: time $O(m \cdot T(f))$
-- For scalar $f$ ($m = 1$): the full gradient $\nabla f \in \mathbb{R}^n$ costs $O(T(f))$ — **independent of $n$**
+- For scalar $f$ ($m = 1$): the full gradient $\nabla f \in \mathbb{R}^n$ costs $O(T(f))$ - **independent of $n$**
 
-This is the **cheap gradient principle**: reverse-mode AD computes gradients of scalar functions in constant overhead relative to the function itself. For a network with $10^{10}$ parameters computing a single scalar loss, the gradient costs roughly $3 \times T(f)$ — not $10^{10} \times T(f)$.
+This is the **cheap gradient principle**: reverse-mode AD computes gradients of scalar functions in constant overhead relative to the function itself. For a network with $10^{10}$ parameters computing a single scalar loss, the gradient costs roughly $3 \times T(f)$ - not $10^{10} \times T(f)$.
 
-**Memory cost.** The backward pass requires access to the intermediate values stored during the forward pass. For a computation with $K$ intermediate variables, the memory cost is $O(K)$. For a deep network with $L$ layers each storing activations of size $d$, this is $O(Ld)$ — significant for large models, motivating gradient checkpointing (§8.1).
+**Memory cost.** The backward pass requires access to the intermediate values stored during the forward pass. For a computation with $K$ intermediate variables, the memory cost is $O(K)$. For a deep network with $L$ layers each storing activations of size $d$, this is $O(Ld)$ - significant for large models, motivating gradient checkpointing (8.1).
 
-### 4.5 Forward vs Reverse — When to Use Each
+### 4.5 Forward vs Reverse - When to Use Each
 
 The choice between forward and reverse mode depends on the shape of the Jacobian:
 
 ```
-FORWARD vs REVERSE MODE — DECISION GUIDE
-════════════════════════════════════════════════════════════════════════
+FORWARD vs REVERSE MODE - DECISION GUIDE
 
-  f : ℝⁿ → ℝᵐ,  Jacobian J ∈ ℝᵐˣⁿ
+
+  f : R -> R,  Jacobian J in R
 
   Forward mode (JVP):                Reverse mode (VJP):
-  ─ Cost: O(n · T(f))                ─ Cost: O(m · T(f))
-  ─ Use when n << m                  ─ Use when m << n
-  ─ Computes J·ṽ for a tangent ṽ     ─ Computes v̄ᵀ·J for a cotangent v̄
+   Cost: O(n * T(f))                 Cost: O(m * T(f))
+   Use when n << m                   Use when m << n
+   Computes J* for a tangent       Computes v*J for a cotangent v
 
   Examples:                          Examples:
-  ─ n=1, m=large: ODE sensitivity    ─ n=large, m=1: NN training
-  ─ Physics: few params, many states ─ Any scalar loss minimisation
-  ─ JVPs in NTK computation          ─ HVPs (see §6.4)
+   n=1, m=large: ODE sensitivity     n=large, m=1: NN training
+   Physics: few params, many states  Any scalar loss minimisation
+   JVPs in NTK computation           HVPs (see 6.4)
 
   Mixed mode: for fat Jacobians      Mixed mode: partition inputs/outputs
   (n < m) use forward; for tall      and interleave forward/reverse
   (n > m) use reverse; square: tie   passes optimally
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-**The crossover point.** Forward mode is preferable when $n < m$ (Jacobian has fewer columns than rows — a "tall" Jacobian). Reverse mode is preferable when $m < n$ (fewer rows — "fat" Jacobian). For square Jacobians ($m = n$), either mode costs $O(n \cdot T(f))$, and the constant factor determines the winner.
+**The crossover point.** Forward mode is preferable when $n < m$ (Jacobian has fewer columns than rows - a "tall" Jacobian). Reverse mode is preferable when $m < n$ (fewer rows - "fat" Jacobian). For square Jacobians ($m = n$), either mode costs $O(n \cdot T(f))$, and the constant factor determines the winner.
 
 **For AI:** Nearly all gradient computations in ML involve a scalar loss ($m = 1$) and a large parameter space ($n = |\theta| \gg 1$). Reverse mode is unambiguously correct for training. Forward mode appears in:
 - Computing JVPs for the Neural Tangent Kernel
-- Hessian-vector products via mixed forward/reverse (§6.4)
+- Hessian-vector products via mixed forward/reverse (6.4)
 - Sensitivity analysis in differentiable simulators
 
 ---
@@ -556,7 +556,7 @@ FORWARD vs REVERSE MODE — DECISION GUIDE
 
 ### 5.1 DAG Construction
 
-Modern AD frameworks build computational graphs *dynamically* as operations are executed — the "define-by-run" or "eager execution" model introduced by PyTorch (Chainer was earlier). This contrasts with the *static graph* approach of TensorFlow 1.x, where you first declare the computation graph symbolically and then execute it.
+Modern AD frameworks build computational graphs *dynamically* as operations are executed - the "define-by-run" or "eager execution" model introduced by PyTorch (Chainer was earlier). This contrasts with the *static graph* approach of TensorFlow 1.x, where you first declare the computation graph symbolically and then execute it.
 
 **PyTorch's dynamic graph construction.** When a tensor with `requires_grad=True` participates in an operation, PyTorch:
 1. Allocates a new output tensor
@@ -579,14 +579,14 @@ w = torch.sin(z)   # sine
 print(w.grad_fn)            # <SinBackward0 object>
 print(w.grad_fn.next_functions)  # ((DotBackward0, 0),)
 print(w.grad_fn.next_functions[0][0].next_functions)
-# ((AccumulateGrad, 0), (AccumulateGrad, 0)) ← leaves
+# ((AccumulateGrad, 0), (AccumulateGrad, 0)) <- leaves
 ```
 
 **JAX's functional approach.** JAX uses *function transformations* rather than mutable graph construction. `jax.grad(f)(x)` traces `f` to build a *jaxpr* (a functional IR), then executes the reverse-mode pass. This is more amenable to JIT compilation (`jit`) and vectorisation (`vmap`) but requires functions to be pure (no side effects).
 
 ### 5.2 Topological Sort
 
-The backward pass must process nodes in *reverse topological order* — each node must be processed before any of its dependencies in the forward graph (equivalently, after all of its successors in the forward graph).
+The backward pass must process nodes in *reverse topological order* - each node must be processed before any of its dependencies in the forward graph (equivalently, after all of its successors in the forward graph).
 
 **Kahn's algorithm** for topological sort:
 
@@ -621,13 +621,13 @@ In practice, PyTorch uses a simpler approach: DFS post-order traversal from the 
 
 **Why topological order matters.** When a variable $v_k$ is used multiple times in the computation (e.g., a residual connection), its adjoint $\bar{v}_k$ must accumulate contributions from *all* downstream uses before being propagated to $v_k$'s own parents. Processing in reverse topological order guarantees this: all successors of $v_k$ are processed before $v_k$ itself.
 
-### 5.3 Memory Layout — Tape vs Closure
+### 5.3 Memory Layout - Tape vs Closure
 
 Two main implementation strategies exist for storing the information needed by the backward pass:
 
 **Tape-based (Wengert list).** The forward pass records each operation in a sequential list (the tape), storing all values needed for the backward VJP computation. The backward pass replays the tape in reverse. This is the approach used by early AD systems and underlies TensorFlow 2.x's `GradientTape`.
 
-**Closure-based.** Each operation creates a closure (a function with captured local state) that computes the VJP. These closures are linked together via the `grad_fn` chain. The backward pass executes these closures in topological order. PyTorch uses this approach — it is more memory-efficient for non-sequential graphs and allows graph pruning.
+**Closure-based.** Each operation creates a closure (a function with captured local state) that computes the VJP. These closures are linked together via the `grad_fn` chain. The backward pass executes these closures in topological order. PyTorch uses this approach - it is more memory-efficient for non-sequential graphs and allows graph pruning.
 
 **Comparison:**
 
@@ -664,13 +664,13 @@ y.backward(torch.ones(3))   # RuntimeError: leaf variable modified in-place
 
 ### 6.1 JVP Formal Definition
 
-**Definition 6.1 (JVP — Jacobian-vector product).** For $f : \mathbb{R}^n \to \mathbb{R}^m$ and a tangent vector $\dot{\mathbf{x}} \in \mathbb{R}^n$, the JVP at $\mathbf{x}$ is:
+**Definition 6.1 (JVP - Jacobian-vector product).** For $f : \mathbb{R}^n \to \mathbb{R}^m$ and a tangent vector $\dot{\mathbf{x}} \in \mathbb{R}^n$, the JVP at $\mathbf{x}$ is:
 
 $$\text{jvp}(f, \mathbf{x}, \dot{\mathbf{x}}) = J_f(\mathbf{x})\, \dot{\mathbf{x}} \in \mathbb{R}^m$$
 
 This is the directional derivative of $f$ in the direction $\dot{\mathbf{x}}$: the first-order change in $f(\mathbf{x})$ as $\mathbf{x}$ moves in direction $\dot{\mathbf{x}}$.
 
-**Geometric interpretation.** If $\mathbf{x}(t)$ is a curve in input space with $\mathbf{x}(0) = \mathbf{x}$ and $\dot{\mathbf{x}}(0) = \dot{\mathbf{x}}$, then $\text{jvp}(f, \mathbf{x}, \dot{\mathbf{x}}) = \frac{d}{dt}[f(\mathbf{x}(t))]|_{t=0}$ — the velocity of the output curve.
+**Geometric interpretation.** If $\mathbf{x}(t)$ is a curve in input space with $\mathbf{x}(0) = \mathbf{x}$ and $\dot{\mathbf{x}}(0) = \dot{\mathbf{x}}$, then $\text{jvp}(f, \mathbf{x}, \dot{\mathbf{x}}) = \frac{d}{dt}[f(\mathbf{x}(t))]|_{t=0}$ - the velocity of the output curve.
 
 **In JAX,** JVPs are first-class:
 ```python
@@ -681,18 +681,18 @@ import jax.numpy as jnp
 def f(x): return jnp.array([x[0]**2, jnp.sin(x[1])])
 
 x = jnp.array([1.0, 2.0])
-v = jnp.array([1.0, 0.0])   # tangent: seed x₁ direction
+v = jnp.array([1.0, 0.0])   # tangent: seed x_1 direction
 primals, tangents = jvp(f, (x,), (v,))
 # tangents = J_f(x) @ v = [2*x[0]*1, cos(x[1])*0] = [2.0, 0.0]
 ```
 
 ### 6.2 VJP Formal Definition
 
-**Definition 6.2 (VJP — vector-Jacobian product).** For $f : \mathbb{R}^n \to \mathbb{R}^m$ and a cotangent vector $\mathbf{v} \in \mathbb{R}^m$ (costate), the VJP at $\mathbf{x}$ is:
+**Definition 6.2 (VJP - vector-Jacobian product).** For $f : \mathbb{R}^n \to \mathbb{R}^m$ and a cotangent vector $\mathbf{v} \in \mathbb{R}^m$ (costate), the VJP at $\mathbf{x}$ is:
 
 $$\text{vjp}(f, \mathbf{x}, \mathbf{v}) = J_f(\mathbf{x})^\top \mathbf{v} \in \mathbb{R}^n$$
 
-**Duality between JVP and VJP.** The JVP maps tangent vectors (in the input's tangent space) to tangent vectors in the output's tangent space. The VJP maps cotangent vectors (in the output's cotangent space — dual to the tangent space) to the input's cotangent space. They are dual operations:
+**Duality between JVP and VJP.** The JVP maps tangent vectors (in the input's tangent space) to tangent vectors in the output's tangent space. The VJP maps cotangent vectors (in the output's cotangent space - dual to the tangent space) to the input's cotangent space. They are dual operations:
 
 $$\langle \mathbf{v},\, J_f(\mathbf{x})\, \dot{\mathbf{x}} \rangle = \langle J_f(\mathbf{x})^\top \mathbf{v},\, \dot{\mathbf{x}} \rangle$$
 
@@ -726,7 +726,7 @@ J = jacobian(f)(x)   # shape (m, n)
 ```python
 from jax import vmap
 all_cols = vmap(lambda v: jvp(f, (x,), (v,))[1])(jnp.eye(n))
-# shape (n, m) — equivalent to J.T, obtained without materialising J
+# shape (n, m) - equivalent to J.T, obtained without materialising J
 ```
 
 ### 6.4 Hessian-Vector Products
@@ -763,7 +763,7 @@ def hvp_torch(loss, params, v):
     return torch.cat([h.flatten() for h in hvp])
 ```
 
-Cost: $O(T(f))$ time, $O(T(f))$ memory — the same as a single forward-backward pass. This makes Newton-CG (Hessian-free optimisation) tractable for large models.
+Cost: $O(T(f))$ time, $O(T(f))$ memory - the same as a single forward-backward pass. This makes Newton-CG (Hessian-free optimisation) tractable for large models.
 
 ---
 
@@ -771,7 +771,7 @@ Cost: $O(T(f))$ time, $O(T(f))$ memory — the same as a single forward-backward
 
 ### 7.1 Second Derivatives via create_graph
 
-The standard reverse-mode backward pass discards the computational graph after execution (memory efficiency). To differentiate *through* the backward pass — computing second-order derivatives — we must keep the graph:
+The standard reverse-mode backward pass discards the computational graph after execution (memory efficiency). To differentiate *through* the backward pass - computing second-order derivatives - we must keep the graph:
 
 **In PyTorch:** Pass `create_graph=True` to `backward()` or `autograd.grad()`. This builds a new computational graph for the gradient computation itself, enabling further differentiation.
 
@@ -782,16 +782,16 @@ def f(x): return (x[0]**3 + x[1]**2).sum()
 
 # First-order gradient
 grad = torch.autograd.grad(f(x), x, create_graph=True)[0]
-# grad = [3x₀², 2x₁] = [3, 4]
+# grad = [3x_0^2, 2x_1] = [3, 4]
 
 # Second-order: differentiate grad[0] w.r.t. x
 d2f_dx0_dx0 = torch.autograd.grad(grad[0], x, retain_graph=True)[0][0]
-# = 6x₀ = 6
+# = 6x_0 = 6
 d2f_dx0_dx1 = torch.autograd.grad(grad[0], x, retain_graph=True)[0][1]
 # = 0
 ```
 
-The key insight: `create_graph=True` makes the gradient a regular tensor connected to the computation graph — differentiating it gives second-order derivatives.
+The key insight: `create_graph=True` makes the gradient a regular tensor connected to the computation graph - differentiating it gives second-order derivatives.
 
 **In JAX:** Higher-order derivatives are natural via function composition:
 ```python
@@ -799,8 +799,8 @@ import jax.numpy as jnp
 from jax import grad
 
 f = lambda x: x**4
-f_prime   = grad(f)        # 4x³
-f_double  = grad(f_prime)  # 12x²
+f_prime   = grad(f)        # 4x^3
+f_double  = grad(f_prime)  # 12x^2
 f_triple  = grad(f_double) # 24x
 
 x = jnp.array(2.0)
@@ -809,24 +809,24 @@ print(f_prime(x), f_double(x), f_triple(x))  # 32, 48, 24
 
 ### 7.2 Hessian-Vector Products via Nested AD
 
-As shown in §6.4, HVPs can be computed via a single reverse pass over the JVP computation (or forward pass over the reverse):
+As shown in 6.4, HVPs can be computed via a single reverse pass over the JVP computation (or forward pass over the reverse):
 
 ```
 NESTED AD PATTERNS FOR SECOND-ORDER DERIVATIVES
-════════════════════════════════════════════════════════════════════════
+
 
   Pattern                  | Cost      | Memory | Use case
-  ──────────────────────────────────────────────────────────────────
-  reverse-over-reverse     | O(T)      | O(T)²  | Full Hessian rows
+  
+  reverse-over-reverse     | O(T)      | O(T)^2  | Full Hessian rows
   forward-over-reverse     | O(T)      | O(T)   | HVP (preferred)
   reverse-over-forward     | O(T)      | O(T)   | HVP (alternative)
   forward-over-forward     | O(T)      | O(T)   | HVP via dual numbers
 
-  For HVP: H(x)v = ∂/∂x [∇f(x)·v]
-    → forward-over-reverse: jvp(grad(f), x, v) [JAX idiomatic]
-    → reverse-over-forward: grad(lambda x: jvp(f,x,v)[1])(x)
+  For HVP: H(x)v = partial/partialx [nablaf(x)*v]
+    -> forward-over-reverse: jvp(grad(f), x, v) [JAX idiomatic]
+    -> reverse-over-forward: grad(lambda x: jvp(f,x,v)[1])(x)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 **Full Hessian (when needed).** For small-scale problems or explicit Hessian computations:
@@ -837,7 +837,7 @@ H = hessian(f)(x)   # shape (n, n)
 # Equivalent to: vmap(jax.grad(jax.grad(f)))(jnp.eye(n))
 ```
 
-Cost: $O(n)$ reverse passes, each of cost $O(T(f))$ → total $O(n \cdot T(f))$ time, $O(n^2)$ memory.
+Cost: $O(n)$ reverse passes, each of cost $O(T(f))$ -> total $O(n \cdot T(f))$ time, $O(n^2)$ memory.
 
 ### 7.3 Taylor-Mode Forward AD
 
@@ -845,7 +845,7 @@ Cost: $O(n)$ reverse passes, each of cost $O(T(f))$ → total $O(n \cdot T(f))$ 
 
 $$[f(\mathbf{x}),\ f'(\mathbf{x})\mathbf{v},\ \frac{1}{2}f''(\mathbf{x})[\mathbf{v},\mathbf{v}],\ \ldots,\ \frac{1}{k!}f^{(k)}(\mathbf{x})[\mathbf{v}^k]]$$
 
-Dual numbers (§3) are jets of order 1. Hyper-dual numbers extend this to order 2 and beyond. The key property: all arithmetic operations on order-$k$ jets can be defined purely algebraically, without any additional passes through the original function.
+Dual numbers (3) are jets of order 1. Hyper-dual numbers extend this to order 2 and beyond. The key property: all arithmetic operations on order-$k$ jets can be defined purely algebraically, without any additional passes through the original function.
 
 **Applications in ML:**
 - Computing higher-order gradient penalties (regularisation on Hessian norms)
@@ -862,7 +862,7 @@ Dual numbers (§3) are jets of order 1. Hyper-dual numbers extend this to order 
 **Memory amplification.** With `create_graph=True`, the graph for the backward pass itself is stored. For a network with $L$ layers, this doubles the memory (storing both forward and backward activation graphs). For higher orders, memory grows multiplicatively. This is why:
 - Full Hessian computations are impractical beyond $n \sim 10^5$ parameters
 - HVPs (which avoid materialising the Hessian) scale to $n \sim 10^{10}$
-- Gradient checkpointing (§8.1) is essential for large-scale higher-order AD
+- Gradient checkpointing (8.1) is essential for large-scale higher-order AD
 
 ---
 
@@ -876,24 +876,24 @@ Dual numbers (§3) are jets of order 1. Hyper-dual numbers extend this to order 
 
 ```
 GRADIENT CHECKPOINTING: MEMORY vs COMPUTE TRADEOFF
-════════════════════════════════════════════════════════════════════════
+
 
   Standard training:
-    Forward:   store all L activations     → memory O(L)
-    Backward:  use stored activations      → no extra compute
+    Forward:   store all L activations     -> memory O(L)
+    Backward:  use stored activations      -> no extra compute
 
-  With checkpointing (√L scheme):
-    Divide L layers into √L segments.
-    Forward: store only activations at √L segment boundaries.
-    Backward: for each segment, recompute the √L activations within it.
+  With checkpointing (sqrtL scheme):
+    Divide L layers into sqrtL segments.
+    Forward: store only activations at sqrtL segment boundaries.
+    Backward: for each segment, recompute the sqrtL activations within it.
 
   Cost analysis:
-    Memory:  O(√L) instead of O(L)
-    Compute: O(L) + O(√L · √L) = O(2L)  [one extra forward pass total]
+    Memory:  O(sqrtL) instead of O(L)
+    Compute: O(L) + O(sqrtL * sqrtL) = O(2L)  [one extra forward pass total]
 
   In practice: checkpointing roughly halves memory for ~33% extra compute.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 **In PyTorch:**
@@ -938,8 +938,8 @@ logsumexp = LogSumExpFunction.apply
 
 **Use cases for custom backward:**
 - **Numerical stability:** Computing log-softmax directly is more stable than `log(softmax(x))`
-- **Efficiency:** The forward pass of `norm(x)` divides by `norm(x)`, but the backward is a simple vector normalisation — storing the normalised vector is cheaper
-- **Non-differentiable operations with surrogate gradients:** The straight-through estimator for binary quantisation (§8.3)
+- **Efficiency:** The forward pass of `norm(x)` divides by `norm(x)`, but the backward is a simple vector normalisation - storing the normalised vector is cheaper
+- **Non-differentiable operations with surrogate gradients:** The straight-through estimator for binary quantisation (8.3)
 - **External solvers:** Differentiating through an LP/QP/neural ODE solver via the implicit function theorem
 
 **JAX `custom_vjp`:**
@@ -998,27 +998,27 @@ As temperature $\tau \to 0$, $y$ approaches a one-hot sample from $\pi$. For $\t
 
 ```
 MIXED-PRECISION AD CONSIDERATIONS
-════════════════════════════════════════════════════════════════════════
+
 
   FP16 range: ~6e-5 to 6.5e4  (dynamic range: 5 orders of magnitude)
   FP32 range: ~1.2e-38 to 3.4e38  (dynamic range: 77 orders of magnitude)
 
   Gradient underflow in FP16:
-  ─ Gradients of deep networks often have values < 6e-5
-  ─ These round to zero in FP16, killing learning (vanishing gradients)
+   Gradients of deep networks often have values < 6e-5
+   These round to zero in FP16, killing learning (vanishing gradients)
 
   Solution: Loss scaling
-  ─ Multiply loss by scale factor S (e.g., S = 2^15)
-  ─ Gradients are S× larger → stay in FP16 range
-  ─ Before weight update, divide by S to recover true gradient
-  ─ Dynamic loss scaling: halve S on overflow, double on stability
+   Multiply loss by scale factor S (e.g., S = 2^15)
+   Gradients are Sx larger -> stay in FP16 range
+   Before weight update, divide by S to recover true gradient
+   Dynamic loss scaling: halve S on overflow, double on stability
 
   BF16 (bfloat16):
-  ─ Same dynamic range as FP32 (8 exponent bits)
-  ─ Smaller mantissa (7 bits vs 23 for FP32, 10 for FP16)
-  ─ Less underflow risk than FP16; preferred for modern LLM training
+   Same dynamic range as FP32 (8 exponent bits)
+   Smaller mantissa (7 bits vs 23 for FP32, 10 for FP16)
+   Less underflow risk than FP16; preferred for modern LLM training
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 **Numerically stable gradient implementations.** Some gradients are analytically well-defined but numerically problematic:
@@ -1037,22 +1037,22 @@ PyTorch's and JAX's standard library operations are implemented with these numer
 The training loop of a neural network is the canonical application of reverse-mode AD. Given parameters $\theta$, inputs $\mathbf{x}$, targets $\mathbf{y}$, and loss $\mathcal{L} = \ell(f_\theta(\mathbf{x}), \mathbf{y})$:
 
 1. **Forward pass:** Evaluate $f_\theta(\mathbf{x})$ and $\mathcal{L}$, building the computational graph
-2. **Backward pass:** Call `loss.backward()` — runs reverse-mode AD, accumulating $\partial\mathcal{L}/\partial\theta_i$ into `param.grad` for each parameter
+2. **Backward pass:** Call `loss.backward()` - runs reverse-mode AD, accumulating $\partial\mathcal{L}/\partial\theta_i$ into `param.grad` for each parameter
 3. **Update:** Optimizer applies $\theta \leftarrow \theta - \alpha \nabla_\theta \mathcal{L}$ (or more complex update rules)
 
-**The gradient descent step itself** is covered in §08/02. The AD machinery in step 2 is what this section provides.
+**The gradient descent step itself** is covered in 08/02. The AD machinery in step 2 is what this section provides.
 
 **Layer-by-layer VJP structure.** For a 3-layer network $f = f_3 \circ f_2 \circ f_1$:
 
 $$\nabla_\theta \mathcal{L} = J_{f_1}^\top \cdot J_{f_2}^\top \cdot J_{f_3}^\top \cdot \nabla_\mathbf{y} \ell$$
 
-Reverse mode computes this right-to-left — starting from $\nabla_\mathbf{y}\ell$ and multiplying by each layer's transposed Jacobian in sequence. This is exactly backpropagation.
+Reverse mode computes this right-to-left - starting from $\nabla_\mathbf{y}\ell$ and multiplying by each layer's transposed Jacobian in sequence. This is exactly backpropagation.
 
 **For LLMs specifically.** Training GPT-4-class models involves:
 - $|\theta| \sim 10^{12}$ parameters
 - Sequence lengths $T \sim 32768$
 - Activations dominating memory (not weights): $O(L \cdot T \cdot d_{\text{model}})$
-- Gradient checkpointing (§8.1) at every layer is standard
+- Gradient checkpointing (8.1) at every layer is standard
 - Mixed-precision (BF16) + loss scaling for numerical stability
 - Tensor parallelism splits the graph across devices; AD must handle cross-device VJPs
 
@@ -1066,7 +1066,7 @@ where $U_\tau(\theta) = \theta - \alpha \nabla_\theta \mathcal{L}_\tau(\theta)$ 
 
 $$\nabla_\theta \mathcal{L}_\tau(U_\tau(\theta)) = (I - \alpha \nabla_\theta^2 \mathcal{L}_\tau(\theta))^\top \nabla_{U_\tau(\theta)} \mathcal{L}_\tau(U_\tau(\theta))$$
 
-This requires the Hessian $\nabla_\theta^2 \mathcal{L}_\tau(\theta)$ — a second-order derivative, computed via `create_graph=True`.
+This requires the Hessian $\nabla_\theta^2 \mathcal{L}_\tau(\theta)$ - a second-order derivative, computed via `create_graph=True`.
 
 ```python
 # MAML inner loop with higher-order gradients (PyTorch)
@@ -1099,11 +1099,11 @@ Differentiable programming extends the AD paradigm beyond neural networks to arb
 - **Differentiable molecular dynamics:** Optimise molecular configurations for drug design by differentiating through force-field evaluations.
 - **Neural Architecture Search (DARTS):** Differentiable NAS makes architecture parameters continuous, enabling gradient-based optimisation of the architecture itself.
 
-**Neural ODEs (Chen et al., 2018).** Model the hidden state of a neural network as a continuous dynamical system $\frac{d\mathbf{h}}{dt} = f_\theta(\mathbf{h}(t), t)$. The ODE is solved numerically; the backward pass uses the *adjoint method* — solving a second ODE backward in time for the adjoint variables, avoiding storing the full trajectory. Memory cost: $O(1)$ (only the final state, plus the ODE solver's working memory).
+**Neural ODEs (Chen et al., 2018).** Model the hidden state of a neural network as a continuous dynamical system $\frac{d\mathbf{h}}{dt} = f_\theta(\mathbf{h}(t), t)$. The ODE is solved numerically; the backward pass uses the *adjoint method* - solving a second ODE backward in time for the adjoint variables, avoiding storing the full trajectory. Memory cost: $O(1)$ (only the final state, plus the ODE solver's working memory).
 
 ### 9.4 Implicit Differentiation
 
-**The implicit function theorem in AD.** Many ML procedures solve an inner optimisation problem $\mathbf{z}^*(\theta) = \arg\min_\mathbf{z} F(\mathbf{z}, \theta)$. We want $\nabla_\theta g(\mathbf{z}^*(\theta))$ — gradients through the solver.
+**The implicit function theorem in AD.** Many ML procedures solve an inner optimisation problem $\mathbf{z}^*(\theta) = \arg\min_\mathbf{z} F(\mathbf{z}, \theta)$. We want $\nabla_\theta g(\mathbf{z}^*(\theta))$ - gradients through the solver.
 
 At the solution, the first-order condition gives $\nabla_\mathbf{z} F(\mathbf{z}^*, \theta) = 0$. Differentiating this identity implicitly:
 
@@ -1122,13 +1122,13 @@ This gives the exact gradient without unrolling the inner solver. Cost: one line
 
 ### 9.5 Gradient-Based Hyperparameter Optimisation
 
-**Hypergradients.** Let $\theta^*(λ)$ be the optimal model parameters for hyperparameter $\lambda$ (e.g., learning rate, regularisation weight). The *hypergradient* $\nabla_\lambda g(\theta^*(λ))$ tells us how to adjust $\lambda$ to improve the validation loss $g$.
+**Hypergradients.** Let $\theta^*(lambda)$ be the optimal model parameters for hyperparameter $\lambda$ (e.g., learning rate, regularisation weight). The *hypergradient* $\nabla_\lambda g(\theta^*(lambda))$ tells us how to adjust $\lambda$ to improve the validation loss $g$.
 
-**Truncated backpropagation through time (TBPTT).** Approximate $\theta^*(λ)$ by running $K$ gradient steps (instead of converging), then backpropagate through these $K$ steps. Cost: $K \times$ the forward training cost.
+**Truncated backpropagation through time (TBPTT).** Approximate $\theta^*(lambda)$ by running $K$ gradient steps (instead of converging), then backpropagate through these $K$ steps. Cost: $K \times$ the forward training cost.
 
 **IFT-based hyperparameter optimisation (DrMAD, T1-T2).** Use the implicit function theorem:
 
-$$\nabla_\lambda g(\theta^*(λ)) = -\nabla_\lambda \nabla_\theta \mathcal{L}_{\text{train}} \cdot (\nabla_\theta^2 \mathcal{L}_{\text{train}})^{-1} \cdot \nabla_\theta g(\theta^*(λ))$$
+$$\nabla_\lambda g(\theta^*(lambda)) = -\nabla_\lambda \nabla_\theta \mathcal{L}_{\text{train}} \cdot (\nabla_\theta^2 \mathcal{L}_{\text{train}})^{-1} \cdot \nabla_\theta g(\theta^*(lambda))$$
 
 Efficient computation: apply CG to solve the linear system, then backpropagate through the gradient-vector product.
 
@@ -1149,7 +1149,7 @@ This jointly learns the architecture and weights in a single differentiable opti
 | 3 | In-place operations on tensors with `requires_grad=True` | Corrupts saved values in the computational graph needed for the backward pass | Use out-of-place operations (`x = x + 1` not `x += 1`) |
 | 4 | Forgetting `zero_grad()` before each training step | Gradients accumulate (are added) across steps by default; old gradients corrupt new ones | Call `optimizer.zero_grad()` (or `model.zero_grad()`) at the start of each training iteration |
 | 5 | Confusing `.detach()` with `.item()` | `.item()` extracts a Python scalar (breaks the graph by design); `.detach()` creates a tensor that stops gradient flow | Use `.detach()` to stop gradient flow; `.item()` for logging scalar values |
-| 6 | Not using `create_graph=True` for meta-learning | Without `create_graph=True`, the gradient is a leaf tensor — differentiating it again gives zero | Always use `create_graph=True` when you need second-order derivatives |
+| 6 | Not using `create_graph=True` for meta-learning | Without `create_graph=True`, the gradient is a leaf tensor - differentiating it again gives zero | Always use `create_graph=True` when you need second-order derivatives |
 | 7 | Materialising the full Hessian for HVPs | $O(n^2)$ memory is infeasible for $n > 10^5$ | Use the HVP trick: $H\mathbf{v} = \nabla[\nabla f \cdot \mathbf{v}]$; costs $O(T(f))$ |
 | 8 | Applying the straight-through estimator carelessly | STE works for binary/ternary quantisation; using it for arbitrary non-differentiable functions can give misleading gradients | Verify that the STE approximation is valid for your specific operation and loss landscape |
 | 9 | Expecting exact gradients from mixed-precision AD | FP16 arithmetic introduces rounding errors that accumulate in long backward passes | Use BF16 for better range, or FP32 accumulation; enable loss scaling |
@@ -1161,7 +1161,7 @@ This jointly learns the architecture and weights in a single differentiable opti
 
 ## 11. Exercises
 
-**Exercise 1 ★ — Dual Number Implementation**
+**Exercise 1  - Dual Number Implementation**
 Implement a complete dual number class supporting `+`, `-`, `*`, `/`, and the elementary functions `exp`, `log`, `sin`, `cos`. Use your implementation to compute the gradient of $f(x) = \log(\sin(x^2) + e^x)$ at $x = 1.5$ and verify against finite differences.
 (a) Implement the `Dual` class with operator overloading.
 (b) Implement the elementary dual functions.
@@ -1169,18 +1169,18 @@ Implement a complete dual number class supporting `+`, `-`, `*`, `/`, and the el
 (d) Compare to the central finite difference approximation.
 (e) What is the accuracy difference? Why?
 
-**Exercise 2 ★ — Manual Reverse-Mode Trace**
+**Exercise 2  - Manual Reverse-Mode Trace**
 For $f(x_1, x_2, x_3) = (x_1 \cdot x_2 + x_3) \cdot \exp(-x_1)$ at $(1, 2, 3)$:
 (a) Write the Wengert list (forward trace table) with all intermediate values.
 (b) Initialise the backward pass with $\bar{v}_{\text{output}} = 1$ and compute all adjoints.
 (c) State the full gradient $\nabla f(1, 2, 3)$.
 (d) Verify your result against `numpy`-based finite differences.
-(e) Count the number of multiply-add operations in forward vs backward — what is the overhead ratio?
+(e) Count the number of multiply-add operations in forward vs backward - what is the overhead ratio?
 
-**Exercise 3 ★ — Topological Sort**
+**Exercise 3  - Topological Sort**
 Implement the Kahn's algorithm topological sort for a computational graph. Apply it to the graph defined by the function $f(x, y, z) = \sin(x + y) \cdot \log(y \cdot z)$ and determine the correct backward pass order. Verify that your ordering respects all dependencies.
 
-**Exercise 4 ★★ — JVP vs VJP Complexity Crossover**
+**Exercise 4  - JVP vs VJP Complexity Crossover**
 For a function $f : \mathbb{R}^n \to \mathbb{R}^m$, the full Jacobian costs $O(n \cdot T(f))$ with forward mode and $O(m \cdot T(f))$ with reverse mode.
 (a) Implement both approaches for a random linear map $f(\mathbf{x}) = A\mathbf{x}$, $A \in \mathbb{R}^{m \times n}$.
 (b) Measure runtime for $(n,m) \in \{(10, 100), (100, 10), (50, 50), (1000, 1)\}$.
@@ -1188,7 +1188,7 @@ For a function $f : \mathbb{R}^n \to \mathbb{R}^m$, the full Jacobian costs $O(n
 (d) Verify the crossover prediction at $n = m$.
 (e) What does this imply for choosing forward vs reverse mode in a physics simulation with $n = 5$ control parameters and $m = 1000$ state outputs?
 
-**Exercise 5 ★★ — Hessian-Vector Products**
+**Exercise 5  - Hessian-Vector Products**
 Implement three methods for computing $H(\mathbf{x})\mathbf{v}$ where $H = \nabla^2 f$ and $f(\mathbf{x}) = \frac{1}{2}\mathbf{x}^\top A^\top A \mathbf{x} + \mathbf{b}^\top \mathbf{x}$ (so $H = A^\top A$):
 (a) Direct: materialise $H = A^\top A$ and multiply by $\mathbf{v}$.
 (b) Via nested AD: $H\mathbf{v} = \nabla[\nabla f \cdot \mathbf{v}]$ using PyTorch or JAX.
@@ -1196,15 +1196,15 @@ Implement three methods for computing $H(\mathbf{x})\mathbf{v}$ where $H = \nabl
 (d) Profile memory usage for $n \in \{100, 1000, 10000\}$.
 (e) At what $n$ does materialising the Hessian become impractical (exceeds 1GB)?
 
-**Exercise 6 ★★ — Custom Backward Function**
+**Exercise 6  - Custom Backward Function**
 Implement a numerically stable `log1p_exp` function (which computes $\log(1 + e^x)$, a.k.a. softplus) with a custom VJP.
-(a) Implement the naive version: `log(1 + exp(x))` — observe overflow at $x > 88$.
+(a) Implement the naive version: `log(1 + exp(x))` - observe overflow at $x > 88$.
 (b) Implement the stable version: `x + log(1 + exp(-x))` for $x > 0$; `log(1 + exp(x))` for $x \leq 0`.
 (c) Define a custom backward function with VJP $\partial\text{softplus}/\partial x = \sigma(x)$.
 (d) Verify the VJP matches finite differences at $x \in \{-10, 0, 10, 100\}$.
 (e) Show that the naive implementation fails at large $x$ while your custom implementation does not.
 
-**Exercise 7 ★★★ — Gradient Checkpointing Analysis**
+**Exercise 7  - Gradient Checkpointing Analysis**
 Analyse gradient checkpointing for a depth-$L$ sequential network.
 (a) Implement a sequential computation chain $v_k = \sigma(W_k v_{k-1})$ for $k = 1, \ldots, L$.
 (b) Measure peak memory usage (number of activations stored) for $L \in \{10, 50, 100\}$, both with and without checkpointing.
@@ -1212,7 +1212,7 @@ Analyse gradient checkpointing for a depth-$L$ sequential network.
 (d) Verify the memory reduction ratio approaches $\sqrt{L}$ as $L$ grows.
 (e) Measure the runtime overhead of checkpointing (extra forward computations) and confirm it is approximately one extra forward pass.
 
-**Exercise 8 ★★★ — Implicit Differentiation through a Linear Solver**
+**Exercise 8  - Implicit Differentiation through a Linear Solver**
 Given $\mathbf{z}^*(\theta) = \arg\min_\mathbf{z} \frac{1}{2}||A\mathbf{z} - \mathbf{b}||^2 + \frac{1}{2}\theta||\mathbf{z}||^2$ (ridge regression), compute $d\mathbf{z}^*/d\theta$ via:
 (a) Unrolling: differentiate through $K=50$ steps of gradient descent; compare to exact.
 (b) Implicit differentiation: derive and implement the IFT formula $d\mathbf{z}^*/d\theta = -(A^\top A + \theta I)^{-1} \mathbf{z}^*$.
@@ -1229,7 +1229,7 @@ Given $\mathbf{z}^*(\theta) = \arg\min_\mathbf{z} \frac{1}{2}||A\mathbf{z} - \ma
 | Reverse-mode AD | The engine of all neural network training. Without it, training a GPT-class model would require $10^{11}$ function evaluations per gradient step instead of 2. |
 | JVP/VJP distinction | JAX's `jit(vmap(grad(f)))` chains transforms on JVPs/VJPs, enabling $100\times$ hardware utilisation via automatic batching and parallelism. |
 | Gradient checkpointing | Enables training 100B+ parameter models on finite GPU memory. GPT-3 training used aggressive checkpointing; LLaMA uses it at every transformer block. |
-| Custom VJPs | PyTorch's fused attention kernels (FlashAttention) implement custom VJPs for numerical stability and memory efficiency — cutting attention memory from $O(T^2)$ to $O(T)$. |
+| Custom VJPs | PyTorch's fused attention kernels (FlashAttention) implement custom VJPs for numerical stability and memory efficiency - cutting attention memory from $O(T^2)$ to $O(T)$. |
 | Higher-order AD | MAML and MAML-adjacent meta-learning methods rely on differentiating through the inner gradient update. Used in few-shot learning and rapid domain adaptation. |
 | Implicit differentiation | DEQ models backpropagate through fixed-point iterations in $O(1)$ memory via the adjoint; differentiable optimisation layers (cvxpy layers) enable constraint-aware neural architectures. |
 | Differentiable rendering | NeRF and 3DGS reconstruct 3D scenes from 2D images via AD through a volumetric renderer. Foundation of many multimodal understanding systems. |
@@ -1241,40 +1241,40 @@ Given $\mathbf{z}^*(\theta) = \arg\min_\mathbf{z} \frac{1}{2}||A\mathbf{z} - \ma
 
 ## Conceptual Bridge
 
-Automatic differentiation sits at the interface of mathematics and software engineering. The dual number construction (§3) shows that AD has deep algebraic roots — it is not a numerical trick but an exact algebraic computation carried out in an extended number system. The adjoint method (§4) connects to the theory of Lagrange multipliers and optimal control: the adjoints $\bar{v}_k$ are exactly the co-state variables in the Pontryagin maximum principle.
+Automatic differentiation sits at the interface of mathematics and software engineering. The dual number construction (3) shows that AD has deep algebraic roots - it is not a numerical trick but an exact algebraic computation carried out in an extended number system. The adjoint method (4) connects to the theory of Lagrange multipliers and optimal control: the adjoints $\bar{v}_k$ are exactly the co-state variables in the Pontryagin maximum principle.
 
-This section builds directly on the chain rule derivation from §05/03-Chain-Rule-and-Backpropagation, which established *why* the backward pass computes correct gradients. Here we have established *how* to implement it efficiently for arbitrary programs, including the data structures (Wengert list, closure graph), the algorithms (topological sort, adjoint accumulation), and the engineering considerations (memory, precision, non-differentiable operations).
+This section builds directly on the chain rule derivation from 05/03-Chain-Rule-and-Backpropagation, which established *why* the backward pass computes correct gradients. Here we have established *how* to implement it efficiently for arbitrary programs, including the data structures (Wengert list, closure graph), the algorithms (topological sort, adjoint accumulation), and the engineering considerations (memory, precision, non-differentiable operations).
 
-Looking forward, the gradients computed by AD feed directly into optimisation algorithms (§08/02-Gradient-Descent and beyond). The AD machinery also underlies the optimality condition analysis from §05/04 — numerical KKT verification uses AD to compute gradients of constraints, and gradient-based hyperparameter optimisation (§9.5) connects back to the Lagrangian duality theory developed there.
+Looking forward, the gradients computed by AD feed directly into optimisation algorithms (08/02-Gradient-Descent and beyond). The AD machinery also underlies the optimality condition analysis from 05/04 - numerical KKT verification uses AD to compute gradients of constraints, and gradient-based hyperparameter optimisation (9.5) connects back to the Lagrangian duality theory developed there.
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
 
-  §04 Calculus Fundamentals
-  ├── §05 Multivariate Calculus
-  │   ├── 01-Partial-Derivatives         ← partial derivs, gradients
-  │   ├── 02-Jacobians-and-Hessians      ← Jacobian structure, Hessians
-  │   ├── 03-Chain-Rule-Backpropagation  ← WHY backprop works
-  │   ├── 04-Optimality-Conditions       ← KKT, duality, constrained opt
-  │   └── 05-Automatic-Differentiation  ◄══ YOU ARE HERE
-  │         (HOW to compute grads efficiently)
-  │
-  └── §08 Optimization
-      ├── 02-Gradient-Descent            ← uses AD-computed gradients
-      └── ...
+
+  04 Calculus Fundamentals
+   05 Multivariate Calculus
+      01-Partial-Derivatives         <- partial derivs, gradients
+      02-Jacobians-and-Hessians      <- Jacobian structure, Hessians
+      03-Chain-Rule-Backpropagation  <- WHY backprop works
+      04-Optimality-Conditions       <- KKT, duality, constrained opt
+      05-Automatic-Differentiation   YOU ARE HERE
+           (HOW to compute grads efficiently)
+  
+   08 Optimization
+       02-Gradient-Descent            <- uses AD-computed gradients
+       ...
 
   AD is the implementation layer between
   mathematical calculus and practical optimisation.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ---
 
 ## Appendix A: Gradient Checking in Practice
 
-Gradient checking is the standard technique for verifying that an analytical VJP implementation is correct. Despite AD being "exact", custom backward functions (`torch.autograd.Function`) can contain bugs — gradient checking catches them.
+Gradient checking is the standard technique for verifying that an analytical VJP implementation is correct. Despite AD being "exact", custom backward functions (`torch.autograd.Function`) can contain bugs - gradient checking catches them.
 
 ### A.1 The Central Finite Difference Test
 
@@ -1282,7 +1282,7 @@ For each parameter $\theta_i$, compute:
 
 $$\frac{\partial \mathcal{L}}{\partial \theta_i} \approx \frac{\mathcal{L}(\theta + h \mathbf{e}_i) - \mathcal{L}(\theta - h \mathbf{e}_i)}{2h}$$
 
-and compare to the analytic gradient from `backward()`. With $h = 10^{-5}$, the central difference has $O(h^2) = O(10^{-10})$ truncation error and $O(\epsilon_{\text{machine}}/h) = O(10^{-11})$ cancellation error — giving a sweet spot accuracy of roughly $10^{-7}$ to $10^{-10}$.
+and compare to the analytic gradient from `backward()`. With $h = 10^{-5}$, the central difference has $O(h^2) = O(10^{-10})$ truncation error and $O(\epsilon_{\text{machine}}/h) = O(10^{-11})$ cancellation error - giving a sweet spot accuracy of roughly $10^{-7}$ to $10^{-10}$.
 
 **Rule of thumb:** If the relative error
 
@@ -1321,7 +1321,7 @@ def gradient_check(f, x, eps=1e-5, tol=1e-4):
 | Relative error > 1e-2 | Wrong sign in VJP (e.g., forgot negative in sin/cos backward) |
 | Relative error ~ 1e-7 to 1e-3 | FP32 precision limitation; try FP64 or reduce network depth |
 | Specific parameter has large error | Missing contribution from a fan-out node (forgot +=) |
-| Error only at boundaries | Non-smooth operation (ReLU at 0, max at ties) — expected |
+| Error only at boundaries | Non-smooth operation (ReLU at 0, max at ties) - expected |
 
 **For AI:** PyTorch's `torch.autograd.gradcheck` is the production-quality version. It uses complex-step differentiation (evaluating at $x + ih$ in the complex plane) instead of real finite differences, giving machine-precision gradient checks without the cancellation problem.
 
@@ -1335,7 +1335,7 @@ ok = gradcheck(my_custom_function, (x,), eps=1e-6, atol=1e-4)
 print(f'gradcheck: {"PASS" if ok else "FAIL"}')
 ```
 
-Note: `gradcheck` requires `float64` — the extra precision is necessary to separate AD errors from FP32 rounding noise.
+Note: `gradcheck` requires `float64` - the extra precision is necessary to separate AD errors from FP32 rounding noise.
 
 ### A.2 When Gradient Checking Fails at Non-Smooth Points
 
@@ -1344,26 +1344,26 @@ Functions like ReLU, absolute value, and max/min have non-smooth points where th
 - For $h > 0$: $(\text{relu}(h) - \text{relu}(-h))/(2h) = h/(2h) = 0.5$
 - But the subgradient convention is `relu'(0) = 0`
 
-This causes gradient check failures that are *not bugs* — they are expected behaviour. Filter them by checking that failures only occur at known non-smooth points.
+This causes gradient check failures that are *not bugs* - they are expected behaviour. Filter them by checking that failures only occur at known non-smooth points.
 
 ---
 
-## Appendix B: AD in Modern Frameworks — Design Comparison
+## Appendix B: AD in Modern Frameworks - Design Comparison
 
 Understanding the design choices in PyTorch, JAX, and TensorFlow 2.x helps explain why certain patterns (like `create_graph`, `detach`, and functional transforms) exist.
 
-### B.1 PyTorch — Dynamic Graph with Closures
+### B.1 PyTorch - Dynamic Graph with Closures
 
-PyTorch's autograd is **define-by-run**: the graph is constructed imperatively as Python executes. Each tensor with `requires_grad=True` carries a `grad_fn` — a closure that captures the local VJP rule and references to its input tensors.
+PyTorch's autograd is **define-by-run**: the graph is constructed imperatively as Python executes. Each tensor with `requires_grad=True` carries a `grad_fn` - a closure that captures the local VJP rule and references to its input tensors.
 
 **Key design decisions:**
 - **Mutable tensors:** PyTorch tensors are mutable (unlike JAX arrays), enabling in-place operations but requiring careful graph tracking
-- **`retain_graph=False` by default:** The backward pass frees the graph after execution — important for memory efficiency in the typical single-backward-pass training loop
+- **`retain_graph=False` by default:** The backward pass frees the graph after execution - important for memory efficiency in the typical single-backward-pass training loop
 - **`no_grad()` context:** Disables graph construction entirely, halving memory and time for inference
-- **`detach()`:** Creates a new tensor sharing data but not connected to the graph — used to stop gradient flow (e.g., in target networks for RL, in EMA teacher models)
+- **`detach()`:** Creates a new tensor sharing data but not connected to the graph - used to stop gradient flow (e.g., in target networks for RL, in EMA teacher models)
 - **`torch.compile` (PyTorch 2.x):** Traces the Python program to a graph IR, then applies backend-specific optimisations (fusing operations, reducing memory allocations) while preserving AD correctness
 
-### B.2 JAX — Functional Transforms
+### B.2 JAX - Functional Transforms
 
 JAX takes a fundamentally different approach: **pure functional transformations** over programs. There are no mutable tensors; `jax.grad(f)(x)` returns a new function (the gradient function) by tracing `f` to a JAX expression (jaxpr).
 
@@ -1375,11 +1375,11 @@ JAX takes a fundamentally different approach: **pure functional transformations*
 - `jax.vmap(f)`: vectorise over a batch dimension without explicit looping
 - `jax.pmap(f)`: parallelise over multiple devices
 
-**Composability:** `jax.jit(jax.vmap(jax.grad(f)))` works as expected — the transforms compose algebraically. This is possible because they all operate on the same functional IR (jaxpr).
+**Composability:** `jax.jit(jax.vmap(jax.grad(f)))` works as expected - the transforms compose algebraically. This is possible because they all operate on the same functional IR (jaxpr).
 
 **Limitations:** JAX requires pure functions (no side effects, no in-place mutation). Control flow that depends on values must use `jax.lax.cond` / `jax.lax.while_loop` to be JIT-compatible.
 
-### B.3 TensorFlow 2.x — GradientTape
+### B.3 TensorFlow 2.x - GradientTape
 
 TensorFlow 2.x uses a **tape-based** approach via `tf.GradientTape`. Operations on `tf.Variable` objects within the tape context are recorded, and `tape.gradient(loss, vars)` executes the backward pass.
 
@@ -1392,7 +1392,7 @@ with tf.GradientTape() as tape:
 grad = tape.gradient(y, x)   # [2x_0, 2x_1] = [2, 4]
 ```
 
-The tape is consumed after `gradient()` — analogous to PyTorch's `retain_graph=False`. For higher-order derivatives, nest tapes:
+The tape is consumed after `gradient()` - analogous to PyTorch's `retain_graph=False`. For higher-order derivatives, nest tapes:
 
 ```python
 with tf.GradientTape() as outer:
@@ -1410,14 +1410,14 @@ When `loss.backward()` is called:
 2. **Gradient initialisation:** `loss.grad = tensor(1.0)` (the incoming cotangent is 1)
 3. **Backward pass loop:** For each node in reverse order:
    a. Retrieve the incoming `grad_output` (accumulated cotangent)
-   b. Call `grad_fn.apply(grad_output)` → executes the local VJP closure
+   b. Call `grad_fn.apply(grad_output)` -> executes the local VJP closure
    c. Distribute the resulting cotangents to the `next_functions` (parent nodes)
    d. Accumulate into `leaf.grad` for leaf tensors
 4. **Graph cleanup:** Links are broken (graph freed) unless `retain_graph=True`
 5. **Hook execution:** Any registered backward hooks fire at step 3c
 
 Understanding this loop explains why:
-- The `.grad` attribute accumulates (+=) across multiple `.backward()` calls — always call `zero_grad()` between training steps
+- The `.grad` attribute accumulates (+=) across multiple `.backward()` calls - always call `zero_grad()` between training steps
 - Calling `.backward()` on a non-scalar requires passing a `gradient` argument (the initial cotangent vector matching the tensor shape)
 - `torch.autograd.grad()` is a lower-level alternative that gives finer control over which nodes' gradients to return
 
@@ -1453,7 +1453,7 @@ AD computes these automatically, but the key insight is that by freezing $W_0$ (
 
 **For AI:** LoRA reduces fine-tuning memory from $O(dk)$ to $O(r(d+k))$ per layer. For GPT-3-scale models ($d = k \sim 4096$, $r \sim 16$), this is a $\sim 250\times$ reduction in gradient storage per weight matrix.
 
-### C.3 FlashAttention — Custom Backward for I/O Efficiency
+### C.3 FlashAttention - Custom Backward for I/O Efficiency
 
 Standard attention computes:
 $$\text{Attn}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d}}\right) V$$
@@ -1467,7 +1467,7 @@ $$\frac{\partial \mathcal{L}}{\partial Q} = \left(\frac{\partial \mathcal{L}}{\p
 
 where $D_i = \sum_j P_{ij} \frac{\partial \mathcal{L}}{\partial O_{ij}}$ is a scalar per row, computable in $O(T)$.
 
-This custom VJP reduces attention memory from $O(T^2)$ to $O(T)$ — enabling context lengths that would be impossible with standard AD.
+This custom VJP reduces attention memory from $O(T^2)$ to $O(T)$ - enabling context lengths that would be impossible with standard AD.
 
 
 ---
@@ -1484,7 +1484,7 @@ $$\nabla_\phi \mathbb{E}_{p_\phi}[\mathcal{L}(\mathbf{z})] = \nabla_\phi \mathbb
 
 The gradient now passes through $g_\phi$ via standard AD.
 
-**Standard example — Gaussian:** $\mathbf{z} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\sigma}^2)$ is reparameterised as $\mathbf{z} = \boldsymbol{\mu} + \boldsymbol{\sigma} \odot \boldsymbol{\epsilon}$ with $\boldsymbol{\epsilon} \sim \mathcal{N}(0, I)$.
+**Standard example - Gaussian:** $\mathbf{z} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\sigma}^2)$ is reparameterised as $\mathbf{z} = \boldsymbol{\mu} + \boldsymbol{\sigma} \odot \boldsymbol{\epsilon}$ with $\boldsymbol{\epsilon} \sim \mathcal{N}(0, I)$.
 
 ```python
 # Reparameterised sampling (PyTorch)
@@ -1492,14 +1492,14 @@ mu = encoder_mu(x)       # mean from network
 log_var = encoder_logv(x)  # log variance from network
 sigma = torch.exp(0.5 * log_var)
 eps = torch.randn_like(sigma)
-z = mu + sigma * eps     # reparameterised sample — differentiable in mu, sigma
+z = mu + sigma * eps     # reparameterised sample - differentiable in mu, sigma
 
 # Loss: reconstruction + KL divergence
 loss = recon_loss(decoder(z), x) + kl_loss(mu, log_var)
 loss.backward()  # gradients flow through z to mu and sigma via eps
 ```
 
-The reparameterisation trick is the key operation in Variational Autoencoders (VAE) and diffusion models — any model that samples from a learned distribution and needs to backpropagate through the sampling operation.
+The reparameterisation trick is the key operation in Variational Autoencoders (VAE) and diffusion models - any model that samples from a learned distribution and needs to backpropagate through the sampling operation.
 
 ### D.2 Score Function Estimator (REINFORCE)
 
@@ -1511,9 +1511,9 @@ This is estimated by sampling $\mathbf{z}_1, \ldots, \mathbf{z}_K \sim p_\phi$ a
 
 $$\frac{1}{K} \sum_{k=1}^K \mathcal{L}(\mathbf{z}_k) \nabla_\phi \log p_\phi(\mathbf{z}_k)$$
 
-**For AI:** Policy gradient in reinforcement learning (REINFORCE, PPO, SAC) uses this estimator — the policy gradient theorem is exactly the score function estimator applied to the expected cumulative reward.
+**For AI:** Policy gradient in reinforcement learning (REINFORCE, PPO, SAC) uses this estimator - the policy gradient theorem is exactly the score function estimator applied to the expected cumulative reward.
 
-### D.3 Straight-Through Estimator — Detailed Derivation
+### D.3 Straight-Through Estimator - Detailed Derivation
 
 For binary quantisation $q(x) = \text{sign}(x)$ (which has zero gradient everywhere), the STE uses:
 
@@ -1521,7 +1521,7 @@ $$\frac{\partial \mathcal{L}}{\partial x} \approx \frac{\partial \mathcal{L}}{\p
 
 The clipping condition $|x| \leq 1$ is often added to avoid gradient explosion at saturated neurons. This is the version used in binary neural network training (BinaryConnect, XNOR-Net).
 
-**Theoretical justification:** The STE can be understood as the derivative of a piecewise-linear soft approximation to sign($x$) — specifically, the derivative of the clipped linear function $\text{clip}(x, -1, 1)$ evaluated at $q(x)$. As quantisation precision increases (2-bit, 4-bit, 8-bit), the STE approximation improves.
+**Theoretical justification:** The STE can be understood as the derivative of a piecewise-linear soft approximation to sign($x$) - specifically, the derivative of the clipped linear function $\text{clip}(x, -1, 1)$ evaluated at $q(x)$. As quantisation precision increases (2-bit, 4-bit, 8-bit), the STE approximation improves.
 
 **In quantisation-aware training (QAT):**
 
@@ -1600,14 +1600,14 @@ def ntk_row(params, x, X):
 
 $$\frac{d\mathbf{a}(t)}{dt} = -\mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial \mathbf{h}}, \quad \frac{d\mathbf{g}}{dt} = -\mathbf{a}(t)^\top \frac{\partial f_\theta}{\partial \theta}$$
 
-where $\mathbf{a}(t) = \partial \mathcal{L} / \partial \mathbf{h}(t)$ is the adjoint (continuous counterpart of the discrete adjoint in standard AD). This is solved by *reverse-time integration* — starting from the terminal condition $\mathbf{a}(T) = \partial \mathcal{L} / \partial \mathbf{h}(T)$ and integrating backward.
+where $\mathbf{a}(t) = \partial \mathcal{L} / \partial \mathbf{h}(t)$ is the adjoint (continuous counterpart of the discrete adjoint in standard AD). This is solved by *reverse-time integration* - starting from the terminal condition $\mathbf{a}(T) = \partial \mathcal{L} / \partial \mathbf{h}(T)$ and integrating backward.
 
-Memory cost: $O(1)$ activations (only the current state) — as opposed to $O(L)$ for a discrete $L$-layer ResNet. This makes Neural ODEs attractive for very deep networks and continuous-time dynamics.
+Memory cost: $O(1)$ activations (only the current state) - as opposed to $O(L)$ for a discrete $L$-layer ResNet. This makes Neural ODEs attractive for very deep networks and continuous-time dynamics.
 
 
 ---
 
-## Appendix F: Debugging AD Issues — A Field Guide
+## Appendix F: Debugging AD Issues - A Field Guide
 
 This appendix collects the most common AD debugging scenarios encountered in practice, with systematic diagnostic approaches.
 
@@ -1676,7 +1676,7 @@ This appendix collects the most common AD debugging scenarios encountered in pra
    scaler.update()
    ```
 
-4. **Check learning rate — too large causes NaN in first step:**
+4. **Check learning rate - too large causes NaN in first step:**
    ```python
    # Rule of thumb: lr < 1 / (max eigenvalue of Hessian)
    # For Adam: lr = 1e-4 to 3e-4 for most transformer architectures
@@ -1796,13 +1796,13 @@ In tensor-parallel training (Megatron-LM, DeepSpeed), the model is split across 
 
 ---
 
-## Appendix H: Mathematical Foundations — Cotangent Spaces and Functors
+## Appendix H: Mathematical Foundations - Cotangent Spaces and Functors
 
 For readers with a differential geometry background, AD has a clean categorical formulation that explains why JVP and VJP are duals, and why they compose correctly.
 
 ### H.1 Tangent and Cotangent Spaces
 
-For a smooth manifold $M$ and a point $p \in M$, the **tangent space** $T_p M$ is the vector space of tangent vectors — directions in which one can move from $p$. The **cotangent space** $T_p^* M$ is its dual — linear functionals on $T_p M$.
+For a smooth manifold $M$ and a point $p \in M$, the **tangent space** $T_p M$ is the vector space of tangent vectors - directions in which one can move from $p$. The **cotangent space** $T_p^* M$ is its dual - linear functionals on $T_p M$.
 
 For $M = \mathbb{R}^n$, $T_p \mathbb{R}^n \cong \mathbb{R}^n$ (tangent vectors are just vectors). The cotangent space $T_p^* \mathbb{R}^n \cong (\mathbb{R}^n)^*$ consists of row vectors (linear maps $\mathbb{R}^n \to \mathbb{R}$).
 
@@ -1835,9 +1835,9 @@ In the language of category theory, a **functor** is a structure-preserving map 
 - **Forward AD (JVP functor):** Maps each function $f : \mathbb{R}^n \to \mathbb{R}^m$ to a function $\hat{f} : \mathbb{R}^n \times \mathbb{R}^n \to \mathbb{R}^m \times \mathbb{R}^m$ that computes $(f(x), J_f(x)v)$ simultaneously
 - **Reverse AD (VJP functor):** Maps each function $f$ to a pair $(f^{\text{fwd}}, f^{\text{bwd}})$ where the backward component $f^{\text{bwd}}$ computes $J_f(x)^\top \bar{y}$ given the forward primals
 
-The correctness of AD — specifically that chaining VJPs gives the correct gradient — follows from this functor being a *homomorphism*: it preserves composition. This is a formal statement of the chain rule.
+The correctness of AD - specifically that chaining VJPs gives the correct gradient - follows from this functor being a *homomorphism*: it preserves composition. This is a formal statement of the chain rule.
 
-**For AI:** JAX's design makes this categorical structure explicit. `jax.linear_util.wrap_init` and the `Trace`/`Tracer` abstraction are direct implementations of this functor machinery. Understanding this structure explains why `jax.grad(jax.jit(f)) == jax.jit(jax.grad(f))` — both are applying the same mathematical functor, and functors respect composition.
+**For AI:** JAX's design makes this categorical structure explicit. `jax.linear_util.wrap_init` and the `Trace`/`Tracer` abstraction are direct implementations of this functor machinery. Understanding this structure explains why `jax.grad(jax.jit(f)) == jax.jit(jax.grad(f))` - both are applying the same mathematical functor, and functors respect composition.
 
 
 ---
@@ -1848,10 +1848,10 @@ The correctness of AD — specifically that chaining VJPs gives the correct grad
 
 ```
 AD MODE SELECTION
-════════════════════════════════════════════════════════════════════════
+
 
   Scenario                        Mode      Reason
-  ──────────────────────────────────────────────────────────────────────
+  
   Scalar loss, many params        Reverse   O(1) passes for scalar output
   Many outputs, few inputs        Forward   n << m, n passes suffices
   Full Jacobian, n~m              Either    Pick by implementation ease
@@ -1862,7 +1862,7 @@ AD MODE SELECTION
   Physics simulation gradient     Forward   Few controls, many outputs
   Hyperparameter gradient (IFT)   Reverse   + linear solve for implicit
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### I.2 VJP Rules Quick Reference
@@ -1920,25 +1920,25 @@ AD MODE SELECTION
 
 ## Further Reading
 
-1. **Griewank & Walther** — *Evaluating Derivatives: Principles and Techniques of Algorithmic Differentiation* (2008). The canonical reference. Covers forward and reverse mode, complexity theory, and higher-order AD.
+1. **Griewank & Walther** - *Evaluating Derivatives: Principles and Techniques of Algorithmic Differentiation* (2008). The canonical reference. Covers forward and reverse mode, complexity theory, and higher-order AD.
 
-2. **Baydin, Pearlmutter, Radul & Siskind** — *Automatic Differentiation in Machine Learning: a Survey* (JMLR 2018). Accessible survey connecting AD theory to ML practice.
+2. **Baydin, Pearlmutter, Radul & Siskind** - *Automatic Differentiation in Machine Learning: a Survey* (JMLR 2018). Accessible survey connecting AD theory to ML practice.
 
-3. **Paszke, Gross, Massa et al.** — *PyTorch: An Imperative Style, High-Performance Deep Learning Library* (NeurIPS 2019). Describes the design of PyTorch's autograd engine.
+3. **Paszke, Gross, Massa et al.** - *PyTorch: An Imperative Style, High-Performance Deep Learning Library* (NeurIPS 2019). Describes the design of PyTorch's autograd engine.
 
-4. **Bradbury, Frostig, Hawkins et al.** — *JAX: composable transformations of Python+NumPy programs* (2018). Describes JAX's functional AD and transform composition.
+4. **Bradbury, Frostig, Hawkins et al.** - *JAX: composable transformations of Python+NumPy programs* (2018). Describes JAX's functional AD and transform composition.
 
-5. **Maclaurin, Duvenaud & Adams** — *Gradient-based Hyperparameter Optimization through Reversible Learning* (ICML 2015). Original `autograd` paper; derives hyperparameter gradients via AD through training.
+5. **Maclaurin, Duvenaud & Adams** - *Gradient-based Hyperparameter Optimization through Reversible Learning* (ICML 2015). Original `autograd` paper; derives hyperparameter gradients via AD through training.
 
-6. **Dao, Fu, Ermon, Rudra & Re** — *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness* (NeurIPS 2022). Custom backward for attention; IO complexity analysis.
+6. **Dao, Fu, Ermon, Rudra & Re** - *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness* (NeurIPS 2022). Custom backward for attention; IO complexity analysis.
 
-7. **Chen, Rubanova, Bettencourt & Duvenaud** — *Neural Ordinary Differential Equations* (NeurIPS 2018). Adjoint method for continuous-depth networks.
+7. **Chen, Rubanova, Bettencourt & Duvenaud** - *Neural Ordinary Differential Equations* (NeurIPS 2018). Adjoint method for continuous-depth networks.
 
-8. **Blondel, Berthet, Cuturi et al.** — *Efficient and Modular Implicit Differentiation* (NeurIPS 2022). Unifies IFT, DEQ, differentiable optimisation layers.
+8. **Blondel, Berthet, Cuturi et al.** - *Efficient and Modular Implicit Differentiation* (NeurIPS 2022). Unifies IFT, DEQ, differentiable optimisation layers.
 
-9. **Karpathy** — *micrograd* (2020). Minimal 100-line autograd engine; pedagogically invaluable.
+9. **Karpathy** - *micrograd* (2020). Minimal 100-line autograd engine; pedagogically invaluable.
 
-10. **Hu, Shen, Wallis et al.** — *LoRA: Low-Rank Adaptation of Large Language Models* (ICLR 2022). AD through low-rank parameterisation for parameter-efficient fine-tuning.
+10. **Hu, Shen, Wallis et al.** - *LoRA: Low-Rank Adaptation of Large Language Models* (ICLR 2022). AD through low-rank parameterisation for parameter-efficient fine-tuning.
 
 
 ---
@@ -1976,6 +1976,6 @@ AD MODE SELECTION
 
 ---
 
-*End of §05/05-Automatic-Differentiation.*
+*End of 05/05-Automatic-Differentiation.*
 
-*Next section: §06-Probability-Theory introduces the probabilistic foundations — random variables, distributions, expectation — that underpin the statistical learning theory of modern neural networks.*
+*Next section: 06-Probability-Theory introduces the probabilistic foundations - random variables, distributions, expectation - that underpin the statistical learning theory of modern neural networks.*

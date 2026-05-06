@@ -1,34 +1,34 @@
-[← Back to Fourier Analysis](../README.md) | [Previous: Convolution Theorem ←](../04-Convolution-Theorem/notes.md) | [Next Chapter: Statistical Learning Theory →](../../21-Statistical-Learning-Theory/README.md)
+[<- Back to Fourier Analysis](../README.md) | [Previous: Convolution Theorem <-](../04-Convolution-Theorem/notes.md) | [Next Chapter: Statistical Learning Theory ->](../../21-Statistical-Learning-Theory/README.md)
 
 ---
 
 # Wavelets and Multiresolution Analysis
 
 > _"Wavelets are a mathematical microscope: by changing the magnification and the position of the lens, one can examine local features at any desired scale."_
-> — Stéphane Mallat, *A Wavelet Tour of Signal Processing*, 1998
+> - Stephane Mallat, *A Wavelet Tour of Signal Processing*, 1998
 
 ## Overview
 
-The Fourier transform is one of the most powerful tools in mathematics — but it has a fundamental blind spot. When you decompose a signal into sinusoids, you learn *which* frequencies are present, but you lose all information about *when* they occur. A spike at 1 kHz in the first millisecond looks identical to a spike at 1 kHz in the last millisecond. For stationary signals this is fine, but real-world signals — speech, music, seismic data, financial time series, images — are profoundly non-stationary. Their frequency content changes over time.
+The Fourier transform is one of the most powerful tools in mathematics - but it has a fundamental blind spot. When you decompose a signal into sinusoids, you learn *which* frequencies are present, but you lose all information about *when* they occur. A spike at 1 kHz in the first millisecond looks identical to a spike at 1 kHz in the last millisecond. For stationary signals this is fine, but real-world signals - speech, music, seismic data, financial time series, images - are profoundly non-stationary. Their frequency content changes over time.
 
 **Wavelets** solve this problem by replacing the infinite sinusoidal Fourier atoms with localized oscillations called **wavelets** ("small waves"). A wavelet $\psi$ is a function with zero mean, compact (or rapidly decaying) support, and enough smoothness to serve as a basis. By shifting $\psi$ in time and scaling it in frequency, we get a family of basis functions that simultaneously encode position and scale information. The resulting **wavelet transform** gives a time-scale representation of signals that adapts to their local structure.
 
-This section develops wavelets from first principles: the continuous wavelet transform (CWT), the theory of Multiresolution Analysis (MRA) that underpins discrete wavelets, the Mallat fast algorithm ($O(N)$ — faster than FFT!), the celebrated Daubechies construction of compactly-supported wavelets with vanishing moments, 2D wavelet transforms and JPEG 2000, and the modern AI applications: Mallat's scattering networks (stable CNNs without learned weights), wavelet-based attention transformers, and wavelet regularization in diffusion models.
+This section develops wavelets from first principles: the continuous wavelet transform (CWT), the theory of Multiresolution Analysis (MRA) that underpins discrete wavelets, the Mallat fast algorithm ($O(N)$ - faster than FFT!), the celebrated Daubechies construction of compactly-supported wavelets with vanishing moments, 2D wavelet transforms and JPEG 2000, and the modern AI applications: Mallat's scattering networks (stable CNNs without learned weights), wavelet-based attention transformers, and wavelet regularization in diffusion models.
 
 ## Prerequisites
 
-- **Fourier Transform** — FT definition, Plancherel theorem, uncertainty principle ([§20-02](../02-Fourier-Transform/notes.md))
-- **DFT and FFT** — discrete Fourier transform, filter banks ([§20-03](../03-Discrete-Fourier-Transform-and-FFT/notes.md))
-- **Convolution Theorem** — filter design, LTI systems, QMF conditions ([§20-04](../04-Convolution-Theorem/notes.md))
-- **$L^2$ spaces** — inner products, orthonormal bases, Hilbert space completeness ([§12-02](../../12-Functional-Analysis/02-Hilbert-Spaces/notes.md) preview)
-- **Complex exponentials** — $e^{i\theta} = \cos\theta + i\sin\theta$, modulus, argument ([§01](../../01-Mathematical-Foundations/README.md))
+- **Fourier Transform** - FT definition, Plancherel theorem, uncertainty principle ([Section 20-02](../02-Fourier-Transform/notes.md))
+- **DFT and FFT** - discrete Fourier transform, filter banks ([Section 20-03](../03-Discrete-Fourier-Transform-and-FFT/notes.md))
+- **Convolution Theorem** - filter design, LTI systems, QMF conditions ([Section 20-04](../04-Convolution-Theorem/notes.md))
+- **$L^2$ spaces** - inner products, orthonormal bases, Hilbert space completeness ([Section 12-02](../../12-Functional-Analysis/02-Hilbert-Spaces/notes.md) preview)
+- **Complex exponentials** - $e^{i\theta} = \cos\theta + i\sin\theta$, modulus, argument ([Section 01](../../01-Mathematical-Foundations/README.md))
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | CWT scalograms, MRA cascade, Mallat algorithm, Daubechies construction, 2D DWT, scattering networks, wavelet denoising |
-| [exercises.ipynb](exercises.ipynb) | 8 graded problems: Haar DWT by hand through scattering network feature analysis |
+| [exercises.ipynb](exercises.ipynb) | 10 graded problems: Haar DWT by hand through scattering network feature analysis |
 
 ## Learning Objectives
 
@@ -73,7 +73,7 @@ After completing this section, you will:
 - [5. Daubechies Wavelets](#5-daubechies-wavelets)
   - [5.1 Vanishing Moments](#51-vanishing-moments)
   - [5.2 Constructing db2 via Spectral Factorization](#52-constructing-db2-via-spectral-factorization)
-  - [5.3 Regularity and Hölder Continuity](#53-regularity-and-hölder-continuity)
+  - [5.3 Regularity and Holder Continuity](#53-regularity-and-holder-continuity)
   - [5.4 Wavelet Family Comparison](#54-wavelet-family-comparison)
 - [6. Discrete Wavelet Transform in Practice](#6-discrete-wavelet-transform-in-practice)
   - [6.1 Multi-Level Decomposition Tree](#61-multi-level-decomposition-tree)
@@ -107,13 +107,13 @@ $$\hat{f}(\xi) = \int_{-\infty}^{\infty} f(t)\, e^{-2\pi i \xi t}\, dt$$
 
 integrates over all time. Information about the temporal location of a frequency event is completely lost. A piano chord struck at $t=0$ and the same chord struck at $t=10$ seconds have identical Fourier transforms (in magnitude).
 
-This is not a defect of a particular implementation — it is a fundamental consequence of using globally supported basis functions. Sinusoids $e^{2\pi i \xi t}$ have infinite support: they oscillate forever in both directions. When you decompose a signal in this basis, temporal information is irrevocably mixed into the phase relationships between coefficients, and extracting it requires knowing all coefficients simultaneously.
+This is not a defect of a particular implementation - it is a fundamental consequence of using globally supported basis functions. Sinusoids $e^{2\pi i \xi t}$ have infinite support: they oscillate forever in both directions. When you decompose a signal in this basis, temporal information is irrevocably mixed into the phase relationships between coefficients, and extracting it requires knowing all coefficients simultaneously.
 
-**The consequences for AI are immediate.** When processing speech, EEG signals, financial time series, or any non-stationary data, global frequency analysis discards the temporal structure that carries meaning. A voice recording of "cat" vs "tac" have similar Fourier magnitude spectra but different time-frequency patterns. The Whisper model addresses this by computing a mel-spectrogram (short-time Fourier transform) that provides local frequency information — but STFT has its own limitations that wavelets resolve more elegantly.
+**The consequences for AI are immediate.** When processing speech, EEG signals, financial time series, or any non-stationary data, global frequency analysis discards the temporal structure that carries meaning. A voice recording of "cat" vs "tac" have similar Fourier magnitude spectra but different time-frequency patterns. The Whisper model addresses this by computing a mel-spectrogram (short-time Fourier transform) that provides local frequency information - but STFT has its own limitations that wavelets resolve more elegantly.
 
 ### 1.2 The Uncertainty Principle and What Wavelets Buy
 
-The Heisenberg-Gabor uncertainty principle (§20-02) states that no function can be simultaneously localized in both time and frequency beyond the bound:
+The Heisenberg-Gabor uncertainty principle (Section 20-02) states that no function can be simultaneously localized in both time and frequency beyond the bound:
 
 $$\Delta t \cdot \Delta \xi \geq \frac{1}{4\pi}$$
 
@@ -123,9 +123,9 @@ where $\Delta t$ and $\Delta \xi$ are the standard deviations of $|f(t)|^2$ and 
 
 $$\text{STFT}_f(t,\xi) = \int_{-\infty}^{\infty} f(\tau)\, g(\tau - t)\, e^{-2\pi i \xi \tau}\, d\tau$$
 
-This gives local frequency information near time $t$. But the window $g$ is **fixed** — every frequency is analyzed at the same time resolution $\Delta t$. This is suboptimal: low frequencies vary slowly (wide window optimal), while high frequencies vary rapidly (narrow window optimal).
+This gives local frequency information near time $t$. But the window $g$ is **fixed** - every frequency is analyzed at the same time resolution $\Delta t$. This is suboptimal: low frequencies vary slowly (wide window optimal), while high frequencies vary rapidly (narrow window optimal).
 
-**What wavelets do:** Wavelets use a window whose width automatically adapts to the analysis scale. At high frequencies (small scale $a$), the wavelet is narrow in time — providing good temporal resolution. At low frequencies (large scale $a$), the wavelet is wide — providing good frequency resolution. This is the "constant-Q" or "constant relative bandwidth" property:
+**What wavelets do:** Wavelets use a window whose width automatically adapts to the analysis scale. At high frequencies (small scale $a$), the wavelet is narrow in time - providing good temporal resolution. At low frequencies (large scale $a$), the wavelet is wide - providing good frequency resolution. This is the "constant-Q" or "constant relative bandwidth" property:
 
 $$\frac{\Delta\xi}{\xi} = \text{const}$$
 
@@ -143,9 +143,9 @@ Think of this geometrically: as $a$ decreases (zooming in), $\psi_{a,b}$ becomes
 
 $$W_\psi f(a, b) = \langle f, \psi_{a,b} \rangle = \int_{-\infty}^{\infty} f(t)\, \frac{1}{\sqrt{a}}\,\psi\!\left(\frac{t-b}{a}\right)\, dt$$
 
-measures the "content" of $f$ near time $b$ at scale $a$ — precisely the behavior of a microscope adjusted to different magnifications and positions.
+measures the "content" of $f$ near time $b$ at scale $a$ - precisely the behavior of a microscope adjusted to different magnifications and positions.
 
-**For AI:** Scattering networks (Mallat, 2012) use this idea to build stable, translation-invariant feature representations by cascading wavelet transforms with modulus nonlinearities. The resulting features have provable stability properties that learned CNNs lack — they cannot be destabilized by small deformations of the input.
+**For AI:** Scattering networks (Mallat, 2012) use this idea to build stable, translation-invariant feature representations by cascading wavelet transforms with modulus nonlinearities. The resulting features have provable stability properties that learned CNNs lack - they cannot be destabilized by small deformations of the input.
 
 ### 1.4 Historical Timeline
 
@@ -154,7 +154,7 @@ measures the "content" of $f$ near time $b$ at scale $a$ — precisely the behav
 | 1807 | Fourier | Series decomposition of heat equation solutions |
 | 1910 | Haar | First wavelet: the Haar function $\psi = \mathbf{1}_{[0,1/2)} - \mathbf{1}_{[1/2,1)}$ |
 | 1946 | Gabor | Time-frequency atoms; uncertainty principle |
-| 1965 | Cooley-Tukey | FFT algorithm — makes DFT computationally practical |
+| 1965 | Cooley-Tukey | FFT algorithm - makes DFT computationally practical |
 | 1982 | Morlet, Grossmann | Continuous wavelet transform formalized for geophysics |
 | 1986 | Meyer | Construction of smooth orthonormal wavelets |
 | 1988 | Daubechies | Compactly supported orthonormal wavelets with $p$ vanishing moments (db$p$) |
@@ -177,7 +177,7 @@ measures the "content" of $f$ near time $b$ at scale $a$ — precisely the behav
 
 $$C_\psi = \int_0^{\infty} \frac{|\hat{\psi}(\xi)|^2}{\xi}\, d\xi < \infty$$
 
-This requires $\hat{\psi}(0) = 0$, i.e., $\int_{-\infty}^{\infty} \psi(t)\, dt = 0$ — the wavelet must have zero mean. Informally, it must "oscillate" (wave) while also being localized (small = "let"). The condition $C_\psi < \infty$ ensures the CWT is invertible.
+This requires $\hat{\psi}(0) = 0$, i.e., $\int_{-\infty}^{\infty} \psi(t)\, dt = 0$ - the wavelet must have zero mean. Informally, it must "oscillate" (wave) while also being localized (small = "let"). The condition $C_\psi < \infty$ ensures the CWT is invertible.
 
 **Definition 2.2 (Continuous Wavelet Transform).** For $f \in L^2(\mathbb{R})$ and admissible $\psi$, the CWT is:
 
@@ -193,11 +193,11 @@ The measure $\frac{da\, db}{a^2}$ is the natural invariant measure on the affine
 
 $$\frac{1}{C_\psi}\int_0^\infty\int_{-\infty}^\infty |W_\psi f(a,b)|^2\,\frac{da\,db}{a^2} = \|f\|_{L^2}^2$$
 
-**For AI:** The CWT is used for speech analysis (Morlet CWT of mel-filtered audio), EEG artifact detection, and seismic signal interpretation. However, it is the *discrete* wavelet transform — derived from MRA — that dominates computational applications.
+**For AI:** The CWT is used for speech analysis (Morlet CWT of mel-filtered audio), EEG artifact detection, and seismic signal interpretation. However, it is the *discrete* wavelet transform - derived from MRA - that dominates computational applications.
 
 ### 2.2 Common Wavelet Families
 
-**The Haar Wavelet** is the simplest compactly-supported wavelet, introduced by Alfréd Haar in 1910:
+**The Haar Wavelet** is the simplest compactly-supported wavelet, introduced by Alfred Haar in 1910:
 
 $$\psi_\text{Haar}(t) = \begin{cases} 1 & 0 \leq t < 1/2 \\ -1 & 1/2 \leq t < 1 \\ 0 & \text{otherwise} \end{cases}$$
 
@@ -233,7 +233,7 @@ Increasing $N$ gives smoother wavelets at the cost of longer filters (support $=
 
 **Hilbert space background.** The space $L^2(\mathbb{R}) = \{f : \mathbb{R} \to \mathbb{C} : \int |f|^2 < \infty\}$ is a Hilbert space with inner product $\langle f, g \rangle = \int_{-\infty}^\infty f(t)\overline{g(t)}\, dt$.
 
-> **Recall (§12-02):** A Hilbert space is a complete inner product space. In $L^2(\mathbb{R})$, the Riesz representation theorem guarantees that every bounded linear functional is of the form $f \mapsto \langle f, g \rangle$ for a unique $g$.
+> **Recall (Section 12-02):** A Hilbert space is a complete inner product space. In $L^2(\mathbb{R})$, the Riesz representation theorem guarantees that every bounded linear functional is of the form $f \mapsto \langle f, g \rangle$ for a unique $g$.
 
 A family $\{\psi_{j,k}\}$ of wavelets forms an **orthonormal basis** of $L^2(\mathbb{R})$ if:
 1. $\langle \psi_{j,k}, \psi_{j',k'} \rangle = \delta_{jj'}\delta_{kk'}$ (orthonormality)
@@ -245,7 +245,7 @@ $$\|f\|^2 = \sum_{j \in \mathbb{Z}} \sum_{k \in \mathbb{Z}} |\langle f, \psi_{j,
 
 Energy is perfectly preserved in the wavelet domain.
 
-**For AI:** This energy preservation is crucial for compression and denoising. The wavelet coefficients $d_{j,k} = \langle f, \psi_{j,k}\rangle$ measure the "energy contribution" of scale $j$, position $k$. Large coefficients correspond to significant signal features; small coefficients correspond to noise — the basis for threshold denoising.
+**For AI:** This energy preservation is crucial for compression and denoising. The wavelet coefficients $d_{j,k} = \langle f, \psi_{j,k}\rangle$ measure the "energy contribution" of scale $j$, position $k$. Large coefficients correspond to significant signal features; small coefficients correspond to noise - the basis for threshold denoising.
 
 ---
 
@@ -277,7 +277,7 @@ $$\langle \phi(\cdot - k), \phi(\cdot - l) \rangle = \delta_{kl}, \qquad k, l \i
 
 **Example 3.1 (Haar MRA).** Define $V_j$ as the space of functions that are piecewise constant on dyadic intervals $[k \cdot 2^j, (k+1) \cdot 2^j)$ for $k \in \mathbb{Z}$. The scaling function is $\phi(t) = \mathbf{1}_{[0,1)}$. All five MRA axioms are satisfied. The approximation of $f$ at scale $j$ is the conditional expectation $E[f | \mathcal{F}_j]$ where $\mathcal{F}_j$ is the $\sigma$-algebra generated by dyadic intervals of width $2^j$.
 
-**Example 3.2 (Sinc / Shannon MRA).** Define $V_j$ as the Paley-Wiener space of functions bandlimited to $[-2^{-j}\pi, 2^{-j}\pi]$. The scaling function is $\phi(t) = \text{sinc}(\pi t) = \sin(\pi t)/(\pi t)$. This is the MRA of ideally bandlimited signals. The sinc wavelet has infinite support — impractical but theoretically illuminating.
+**Example 3.2 (Sinc / Shannon MRA).** Define $V_j$ as the Paley-Wiener space of functions bandlimited to $[-2^{-j}\pi, 2^{-j}\pi]$. The scaling function is $\phi(t) = \text{sinc}(\pi t) = \sin(\pi t)/(\pi t)$. This is the MRA of ideally bandlimited signals. The sinc wavelet has infinite support - impractical but theoretically illuminating.
 
 ### 3.2 Scaling Functions and the Two-Scale Relation
 
@@ -287,7 +287,7 @@ Since $V_0 \subset V_{-1}$ (axiom 1) and $\{\phi(t-k)\}_k$ is an orthonormal bas
 
 $$\phi(t) = \sqrt{2}\sum_{k \in \mathbb{Z}} h_k\,\phi(2t - k)$$
 
-where the coefficients $\{h_k\}$ form the **low-pass analysis filter**. This is the fundamental equation of wavelet theory — it says the scaling function at scale 0 is a weighted sum of translated scaling functions at scale $-1$ (twice as fine).
+where the coefficients $\{h_k\}$ form the **low-pass analysis filter**. This is the fundamental equation of wavelet theory - it says the scaling function at scale 0 is a weighted sum of translated scaling functions at scale $-1$ (twice as fine).
 
 The Fourier transform of the two-scale relation gives:
 
@@ -305,7 +305,7 @@ This is the critical constraint in wavelet filter design.
 
 ### 3.3 Detail Spaces and the Orthogonal Complement
 
-Since $V_{j+1} \subset V_j$ (finer is a subspace of coarser — careful: indexing), define the **detail space** $W_j$ as the orthogonal complement of $V_{j+1}$ within $V_j$:
+Since $V_{j+1} \subset V_j$ (finer is a subspace of coarser - careful: indexing), define the **detail space** $W_j$ as the orthogonal complement of $V_{j+1}$ within $V_j$:
 
 $$V_j = V_{j+1} \oplus W_{j+1}$$
 
@@ -342,9 +342,9 @@ The QMF condition guarantees:
 2. $\psi_{0,k} \perp \psi_{0,l}$ for $k \neq l$ (translated wavelets are orthogonal)
 3. $\psi_{j,k} \perp \psi_{j',k'}$ for $j \neq j'$ (wavelets at different scales are orthogonal)
 
-**Example 3.3 (Haar filters).** For the Haar wavelet: $h_0 = h_1 = 1/\sqrt{2}$ (all others zero). Then $g_0 = 1/\sqrt{2}$, $g_1 = -1/\sqrt{2}$. Verify: $g_k = (-1)^k h_{1-k}$: $g_0 = (-1)^0 h_1 = h_1 = 1/\sqrt{2}$, $g_1 = (-1)^1 h_0 = -h_0 = -1/\sqrt{2}$. ✓
+**Example 3.3 (Haar filters).** For the Haar wavelet: $h_0 = h_1 = 1/\sqrt{2}$ (all others zero). Then $g_0 = 1/\sqrt{2}$, $g_1 = -1/\sqrt{2}$. Verify: $g_k = (-1)^k h_{1-k}$: $g_0 = (-1)^0 h_1 = h_1 = 1/\sqrt{2}$, $g_1 = (-1)^1 h_0 = -h_0 = -1/\sqrt{2}$. PASS
 
-**Geometric interpretation.** The filter bank $[H, G]$ splits the frequency axis $[0, 1]$ (normalized) into two halves: $H$ preserves $[0, 1/2]$ (low frequencies = approximation), $G$ preserves $[1/2, 1]$ (high frequencies = detail). This is the wavelet counterpart of the Convolution Theorem from §20-04: decomposition into frequency bands via orthogonal filter pairs.
+**Geometric interpretation.** The filter bank $[H, G]$ splits the frequency axis $[0, 1]$ (normalized) into two halves: $H$ preserves $[0, 1/2]$ (low frequencies = approximation), $G$ preserves $[1/2, 1]$ (high frequencies = detail). This is the wavelet counterpart of the Convolution Theorem from Section 20-04: decomposition into frequency bands via orthogonal filter pairs.
 
 ---
 
@@ -352,7 +352,7 @@ The QMF condition guarantees:
 
 ### 4.1 Analysis Filter Bank
 
-The Mallat algorithm (1989) computes the DWT via iterated convolution + downsampling — no need for the inner products $\langle f, \psi_{j,k}\rangle$ to be computed directly.
+The Mallat algorithm (1989) computes the DWT via iterated convolution + downsampling - no need for the inner products $\langle f, \psi_{j,k}\rangle$ to be computed directly.
 
 Given a sequence $\mathbf{a}^{(0)} = \{a^{(0)}_n\}$ (the "approximation coefficients" at the finest scale, equivalent to sampling $f$ at integer positions), one step of the DWT computes:
 
@@ -365,8 +365,8 @@ Here $\mathbf{a}^{(j+1)}$ are the **approximation coefficients** at scale $j+1$ 
 Pictorially, one DWT step is:
 
 ```
-a^{(j)} ──┬──[low-pass h]──[↓2]──→  a^{(j+1)}   (approximation)
-          └──[high-pass g]──[↓2]──→  d^{(j+1)}   (detail)
+a^{(j)} --+--[low-pass h]--[v2]--->  a^{(j+1)}   (approximation)
+          +--[high-pass g]--[v2]--->  d^{(j+1)}   (detail)
 ```
 
 Repeating on $\mathbf{a}^{(j+1)}$ gives the full multi-level decomposition.
@@ -382,9 +382,9 @@ $$a^{(j)}_n = \sum_k a^{(j+1)}_k\, h_{n-2k} + \sum_k d^{(j+1)}_k\, g_{n-2k}$$
 Pictorially:
 
 ```
-a^{(j+1)} ──[↑2]──[h]──┐
-                         ⊕──→  a^{(j)}
-d^{(j+1)} ──[↑2]──[g]──┘
+a^{(j+1)} --[^2]--[h]--+
+                         +--->  a^{(j)}
+d^{(j+1)} --[^2]--[g]--+
 ```
 
 where $\uparrow 2$ denotes upsampling by 2 (zero insertion between samples). The synthesis filters are the time-reverses of the analysis filters (for orthogonal wavelets).
@@ -411,7 +411,7 @@ At level 1, the DWT processes $N$ samples with two convolutions + downsamplings,
 
 $$\text{Total cost} = O(N) + O(N/2) + O(N/4) + \cdots = O(N)\sum_{j=0}^{J} 2^{-j} = O(N)\cdot 2 = O(N)$$
 
-**The DWT is $O(N)$ — faster than the FFT's $O(N\log N)$!**
+**The DWT is $O(N)$ - faster than the FFT's $O(N\log N)$!**
 
 Comparison:
 
@@ -440,7 +440,7 @@ Equivalently, in the Fourier domain: $\hat{\psi}^{(k)}(0) = 0$ for $k = 0,\ldots
 
 **Why vanishing moments matter:**
 
-1. **Polynomial annihilation.** If $f$ is a polynomial of degree $< N$ on the support of $\psi_{j,k}$, then $\langle f, \psi_{j,k}\rangle = 0$. Smooth signals (well-approximated by polynomials locally) have near-zero detail coefficients everywhere except near discontinuities. This leads to **sparse wavelet representations** — ideal for compression.
+1. **Polynomial annihilation.** If $f$ is a polynomial of degree $< N$ on the support of $\psi_{j,k}$, then $\langle f, \psi_{j,k}\rangle = 0$. Smooth signals (well-approximated by polynomials locally) have near-zero detail coefficients everywhere except near discontinuities. This leads to **sparse wavelet representations** - ideal for compression.
 
 2. **Approximation order.** With $N$ vanishing moments, the wavelet approximation error at scale $j$ satisfies $\|f - P_j f\| \leq C \cdot 2^{-jN} \|f^{(N)}\|$ for $f \in C^N$. More vanishing moments = better approximation of smooth functions.
 
@@ -479,19 +479,19 @@ $$h_0 = \frac{1+\sqrt{3}}{4\sqrt{2}}, \quad h_1 = \frac{3+\sqrt{3}}{4\sqrt{2}}, 
 
 Numerically: $h \approx \{0.4830, 0.8365, 0.2241, -0.1294\}$.
 
-**Verification:** $h_0^2 + h_1^2 + h_2^2 + h_3^2 = 1$ ✓, $\sum h_k = \sqrt{2}$ ✓, $h_0h_2 + h_1h_3 = 0$ ✓
+**Verification:** $h_0^2 + h_1^2 + h_2^2 + h_3^2 = 1$ PASS, $\sum h_k = \sqrt{2}$ PASS, $h_0h_2 + h_1h_3 = 0$ PASS
 
-### 5.3 Regularity and Hölder Continuity
+### 5.3 Regularity and Holder Continuity
 
 The regularity of the Daubechies scaling function $\phi$ is determined by the spectral radius of the transition matrix $T_{ij} = \sqrt{2}\, h_{i-2j}$. For db$N$:
 
-**Theorem 5.1 (Daubechies regularity).** The db$N$ scaling function $\phi \in C^\alpha$ (Hölder continuous of order $\alpha$) with:
+**Theorem 5.1 (Daubechies regularity).** The db$N$ scaling function $\phi \in C^\alpha$ (Holder continuous of order $\alpha$) with:
 
 $$\alpha_N \approx 0.2075N \qquad \text{(asymptotically as } N \to \infty\text{)}$$
 
 Specific values:
 - db1 (Haar): $\alpha = 0$ (discontinuous, bounded variation)
-- db2: $\alpha \approx 0.550$ (Hölder continuous but not differentiable)
+- db2: $\alpha \approx 0.550$ (Holder continuous but not differentiable)
 - db4: $\alpha \approx 1.275$ (once continuously differentiable)
 - db8: $\alpha \approx 2.9$ (twice continuously differentiable)
 
@@ -501,7 +501,7 @@ The scaling function becomes smoother as $N$ increases, at the cost of wider sup
 
 ```
 WAVELET FAMILY COMPARISON
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Wavelet    | Support | VM | Regularity | Symmetric | Orthogonal
   -----------|---------|----|------------|-----------|------------
@@ -513,15 +513,15 @@ WAVELET FAMILY COMPARISON
   coif4      | [-5,5]  |  4 | C^1.28     | Near-sym  | Yes
   bior2.2    | [-1,3]  |  2 | C^1        | Yes       | Biortho
   CDF 9/7    | large   |  4 | smooth     | Yes       | Biortho
-  Mexican Hat| ∞       |  2 | C^∞        | Yes       | No (frame)
-  Morlet     | ∞       |  ∞ | C^∞        | Near-sym  | No (frame)
+  Mexican Hat| infty       |  2 | C^infty        | Yes       | No (frame)
+  Morlet     | infty       |  infty | C^infty        | Near-sym  | No (frame)
 
   VM = Vanishing Moments; CDF 9/7 = JPEG 2000 standard
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** Smooth wavelets (large $N$) produce sparse representations for smooth neural network weights and activations, while Haar is efficient for piecewise constant approximations. The CDF 9/7 biorthogonal wavelet used in JPEG 2000 balances symmetry, smoothness, and reconstruction quality — it is also used in wavelet-domain diffusion models to separate frequency bands.
+**For AI:** Smooth wavelets (large $N$) produce sparse representations for smooth neural network weights and activations, while Haar is efficient for piecewise constant approximations. The CDF 9/7 biorthogonal wavelet used in JPEG 2000 balances symmetry, smoothness, and reconstruction quality - it is also used in wavelet-domain diffusion models to separate frequency bands.
 
 ---
 
@@ -533,24 +533,24 @@ The Mallat algorithm applied $J$ times to a length-$N$ signal produces the **wav
 
 ```
 WAVELET DECOMPOSITION TREE (J=3 levels)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input:  a[n],  length N
-     │
-     ├──[h,↓2]──→  a1[n],  length N/2    (approximation, level 1)
-     │               │
-     │               ├──[h,↓2]──→  a2[n],  length N/4   (approx., L2)
-     │               │               │
-     │               │               ├──[h,↓2]──→  a3[n]  (approx., L3)
-     │               │               └──[g,↓2]──→  d3[n]  (detail, L3)
-     │               │
-     │               └──[g,↓2]──→  d2[n],  length N/4   (detail, L2)
-     │
-     └──[g,↓2]──→  d1[n],  length N/2    (detail, level 1)
+     |
+     +--[h,v2]--->  a1[n],  length N/2    (approximation, level 1)
+     |               |
+     |               +--[h,v2]--->  a2[n],  length N/4   (approx., L2)
+     |               |               |
+     |               |               +--[h,v2]--->  a3[n]  (approx., L3)
+     |               |               +--[g,v2]--->  d3[n]  (detail, L3)
+     |               |
+     |               +--[g,v2]--->  d2[n],  length N/4   (detail, L2)
+     |
+     +--[g,v2]--->  d1[n],  length N/2    (detail, level 1)
 
   Storage: N/2 + N/4 + N/4 + N/8 + N/8 + ... = N  (no redundancy!)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 The output is: $\{a_J, d_J, d_{J-1}, \ldots, d_1\}$ with total length $= N$ (for periodic boundary). No information is lost or duplicated.
@@ -563,11 +563,11 @@ The output is: $\{a_J, d_J, d_{J-1}, \ldots, d_1\}$ with total length $= N$ (for
 
 ### 6.2 Wavelet Packets
 
-Standard DWT applies the filter bank only to the approximation branch ($\mathbf{a}^{(j)}$). **Wavelet packets** apply it to both branches — creating a full binary tree of subband decompositions:
+Standard DWT applies the filter bank only to the approximation branch ($\mathbf{a}^{(j)}$). **Wavelet packets** apply it to both branches - creating a full binary tree of subband decompositions:
 
-At each node $(j, n)$ (level $j$, node $n$), both the "approximation" and "detail" sub-signals are further decomposed. This gives $2^j$ subbands at level $j$, each of width $N/2^j$. The collection of all leaves at level $J$ corresponds to $2^J$ frequency subbands, each of width $N/2^J$ — the same as a DFT with $N/2^J$ bins.
+At each node $(j, n)$ (level $j$, node $n$), both the "approximation" and "detail" sub-signals are further decomposed. This gives $2^j$ subbands at level $j$, each of width $N/2^j$. The collection of all leaves at level $J$ corresponds to $2^J$ frequency subbands, each of width $N/2^J$ - the same as a DFT with $N/2^J$ bins.
 
-The **best-basis algorithm** (Coifman-Wickerhauser, 1992) selects the pruning of this tree that minimizes a cost function (e.g., entropy) — giving an adaptive time-frequency decomposition that is optimal for the specific signal.
+The **best-basis algorithm** (Coifman-Wickerhauser, 1992) selects the pruning of this tree that minimizes a cost function (e.g., entropy) - giving an adaptive time-frequency decomposition that is optimal for the specific signal.
 
 ### 6.3 2D DWT and Image Subbands
 
@@ -575,34 +575,34 @@ For 2D signals (images), the DWT is applied **separably**: first along rows, the
 
 ```
 2D DWT SUBBANDS (one level)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Input image (H × W)
-  ┌─────────────────────────┐
-  │                         │
-  │      f(x, y)            │
-  │                         │
-  └─────────────────────────┘
-              │
-              ▼
-  ┌────────────┬────────────┐
-  │ LL (H/2×W/2) │ LH (H/2×W/2) │
-  │ Low-row     │ Low-row    │
-  │ Low-col     │ High-col   │
-  │ (approx.)   │ (hor. edges)│
-  ├────────────┼────────────┤
-  │ HL (H/2×W/2) │ HH (H/2×W/2) │
-  │ High-row    │ High-row   │
-  │ Low-col     │ High-col   │
-  │ (vert. edges)│ (diag. edges)│
-  └────────────┴────────────┘
+  Input image (H  W)
+  +-------------------------+
+  |                         |
+  |      f(x, y)            |
+  |                         |
+  +-------------------------+
+              |
+              
+  +------------+------------+
+  | LL (H/2W/2) | LH (H/2W/2) |
+  | Low-row     | Low-row    |
+  | Low-col     | High-col   |
+  | (approx.)   | (hor. edges)|
+  +------------+------------+
+  | HL (H/2W/2) | HH (H/2W/2) |
+  | High-row    | High-row   |
+  | Low-col     | High-col   |
+  | (vert. edges)| (diag. edges)|
+  +------------+------------+
 
   LL = approximation (coarse image)
   LH = horizontal detail (vertical edges)
   HL = vertical detail (horizontal edges)
   HH = diagonal detail (diagonal edges)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 Applying the 2D DWT recursively to the LL subband gives the standard **pyramid decomposition** used in image processing.
@@ -613,15 +613,15 @@ Applying the 2D DWT recursively to the LL subband gives the standard **pyramid d
 
 JPEG 2000 (2000) uses the CDF 9/7 biorthogonal wavelet (Le Gall 5/3 for lossless) to transform images before quantization and entropy coding. The key advantages over DCT-based JPEG:
 
-1. **No blocking artifacts** — the wavelet support spans the entire image, avoiding the 8×8 block boundary artifacts of JPEG
-2. **Scalable quality** — truncating the bitstream at any point gives a valid (lower quality) image
-3. **Region of Interest (ROI) coding** — different quality levels for different image regions
-4. **Better compression at high quality** — 20-30% better than JPEG at visually lossless quality
+1. **No blocking artifacts** - the wavelet support spans the entire image, avoiding the 88 block boundary artifacts of JPEG
+2. **Scalable quality** - truncating the bitstream at any point gives a valid (lower quality) image
+3. **Region of Interest (ROI) coding** - different quality levels for different image regions
+4. **Better compression at high quality** - 20-30% better than JPEG at visually lossless quality
 
-The coding steps: 2D DWT (up to 5 levels) → coefficient quantization → EBCOT entropy coding (embedded block coding with optimal truncation).
+The coding steps: 2D DWT (up to 5 levels) -> coefficient quantization -> EBCOT entropy coding (embedded block coding with optimal truncation).
 
 **Modern relevance:** Wavelet-based compression principles inform:
-- **Neural image codecs** (Ballé et al.): hyperprior model operates on wavelet-like feature maps
+- **Neural image codecs** (Balle et al.): hyperprior model operates on wavelet-like feature maps
 - **Wavelet-domain diffusion models** (WaveDiff, 2023): diffusion operates on DWT coefficients rather than pixels, reducing sequence length by $4\times$ per level
 - **VCT (Video Compression Transformer)**: uses learned transforms similar to wavelet filter banks
 
@@ -705,21 +705,21 @@ This is the key property that CNNs lack: a small rotation or stretch can change 
 
 ```
 Scattering Network Architecture
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input f(x)
-      │
-      ├── φ_J * f ─────────────────────────────→ S_0 (global average)
-      │
-      ├── |f * ψ_{λ1}| * φ_J ──────────────────→ S_1 (J terms)
-      │
-      └── ||f * ψ_{λ1}| * ψ_{λ2}| * φ_J ───────→ S_2 (J² terms)
+      |
+      +-- _J * f ------------------------------> S_0 (global average)
+      |
+      +-- |f * _{1}| * _J -------------------> S_1 (J terms)
+      |
+      +-- ||f * _{1}| * _{2}| * _J --------> S_2 (J2 terms)
 
-  Total feature dimension: O(J²)   (vs O(K²C) for CNN)
+  Total feature dimension: O(J2)   (vs O(K2C) for CNN)
   Invariance: proven          (vs empirical for CNN)
   Stability: proven            (vs empirical for CNN)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **For AI:** Scattering features fed to a simple linear classifier achieve ~87% on CIFAR-10. In protein structure prediction, a variant of scattering (SE(3)-equivariant networks) is used by AlphaFold2 to process atomic coordinates.
@@ -732,11 +732,11 @@ Scattering Network Architecture
 2. Run Transformer attention only on the approximation $a_J$ (length $N/2^J$)
 3. Reconstruct full-resolution outputs via IDWT
 
-This reduces the $O(N^2)$ attention complexity to $O((N/2^J)^2)$ — a factor of $4^J$ speedup.
+This reduces the $O(N^2)$ attention complexity to $O((N/2^J)^2)$ - a factor of $4^J$ speedup.
 
 **Wavelet Attention (2023, various groups)** applies 2D DWT to attention logits:
 - Compute attention score matrix $S = QK^\top/\sqrt{d}$ of shape $(L \times L)$
-- Apply 2D DWT to $S$ → sparse representation (most attention is low-frequency)
+- Apply 2D DWT to $S$ -> sparse representation (most attention is low-frequency)
 - Threshold small wavelet coefficients (attention is concentrated on main diagonals)
 - Reconstruct and apply softmax
 
@@ -748,11 +748,11 @@ This achieves near-full-attention quality with sparse coefficient computation, s
 
 The standard Vision Transformer (ViT) processes all patches at a single scale with quadratic attention. Hierarchical architectures introduce the wavelet-like multi-scale structure:
 
-**Swin Transformer (2021):** Applies attention within local windows and shifts them across layers. The patch merging operation (concatenating 2×2 patches and projecting) is equivalent to a stride-2 convolution — structurally analogous to the DWT low-pass filter + downsampling step.
+**Swin Transformer (2021):** Applies attention within local windows and shifts them across layers. The patch merging operation (concatenating 22 patches and projecting) is equivalent to a stride-2 convolution - structurally analogous to the DWT low-pass filter + downsampling step.
 
-**PVT (Pyramid Vision Transformer, 2021):** Explicitly uses 4 stages with spatial reduction ratios $\{1, 1/2, 1/4, 1/8\}$ — matching the wavelet octave decomposition exactly.
+**PVT (Pyramid Vision Transformer, 2021):** Explicitly uses 4 stages with spatial reduction ratios $\{1, 1/2, 1/4, 1/8\}$ - matching the wavelet octave decomposition exactly.
 
-**FPN (Feature Pyramid Network, 2017):** Multi-scale feature maps combined via lateral connections — the convolutional analogue of the wavelet synthesis filter bank.
+**FPN (Feature Pyramid Network, 2017):** Multi-scale feature maps combined via lateral connections - the convolutional analogue of the wavelet synthesis filter bank.
 
 **Common pattern:** Resolution halved, channels doubled at each level. This is exactly the wavelet dyadic tree structure, with learned filters replacing fixed wavelet filters.
 
@@ -761,15 +761,15 @@ The standard Vision Transformer (ViT) processes all patches at a single scale wi
 **WaveDiff (2023)** applies the diffusion process in the wavelet domain rather than pixel space:
 
 1. Apply 2D DWT to images: $x \to (x_{LL}, x_{LH}, x_{HL}, x_{HH})$
-2. Apply Gaussian noise only to high-frequency subbands ($x_{LH}, x_{HL}, x_{HH}$) — preserving the global structure in $x_{LL}$
+2. Apply Gaussian noise only to high-frequency subbands ($x_{LH}, x_{HL}, x_{HH}$) - preserving the global structure in $x_{LL}$
 3. Train the denoising network on the (much smaller) wavelet coefficients
 
 Benefits:
-- Sequence length reduced by $4\times$ per level → attention is $16\times$ cheaper
+- Sequence length reduced by $4\times$ per level -> attention is $16\times$ cheaper
 - High-frequency details are easier to model when separated from low-frequency structure
 - Generation quality is preserved since wavelets are invertible
 
-**Wavelet-based training regularization:** The spectral bias phenomenon (neural networks learn low frequencies first) can be accelerated by decomposing loss functions in the wavelet domain. Penalizing different scales at different rates speeds up convergence — equivalent to preconditioning by the wavelet spectrum.
+**Wavelet-based training regularization:** The spectral bias phenomenon (neural networks learn low frequencies first) can be accelerated by decomposing loss functions in the wavelet domain. Penalizing different scales at different rates speeds up convergence - equivalent to preconditioning by the wavelet spectrum.
 
 ### 8.5 Wavelet Denoising: Donoho-Johnstone
 
@@ -792,7 +792,7 @@ The **Donoho-Johnstone** framework (1994) provides a near-optimal, computational
 
 $$\sup_{f \in \mathcal{F}} E\|\hat{f} - f\|^2 \leq \left(2\log N + 1\right)\left(\sigma^2 + \inf_{g \in \mathcal{F}} \|f - g\|^2\right)$$
 
-This is within a $2\log N$ factor of the minimax optimal risk — essentially unimprovable without additional assumptions.
+This is within a $2\log N$ factor of the minimax optimal risk - essentially unimprovable without additional assumptions.
 
 **For AI:** Wavelet thresholding connects to:
 - **LASSO** ($\ell^1$ penalty) in the wavelet domain: soft thresholding is the proximal operator for $\ell^1$
@@ -809,7 +809,7 @@ This is within a $2\log N$ factor of the minimax optimal risk — essentially un
 | 2 | Using Haar wavelets for smooth signals and expecting good compression | Haar has only 1 vanishing moment; smooth functions need wavelets with many vanishing moments | Choose db4+ or sym4+ for signals with continuous derivatives |
 | 3 | Confusing scale and frequency | In CWT, small scale $a$ = high frequency, large $a$ = low frequency; axes are often plotted reversed | Always label axes explicitly; clarify whether vertical axis is "scale" or "frequency" |
 | 4 | Using the CWT for discrete signals without discretization | CWT is defined for continuous $f \in L^2(\mathbb{R})$; applying it naively to sampled data gives aliasing | Use the DWT (Mallat algorithm) for discrete signals, or the pseudo-CWT with $a = 2^j$ sampling |
-| 5 | Thinking DWT is redundant (like STFT) | DWT has exactly $N$ coefficients for $N$ inputs — it is non-redundant | The redundant version (undecimated DWT, "à trous") is useful for denoising but costs $O(N\log N)$ storage |
+| 5 | Thinking DWT is redundant (like STFT) | DWT has exactly $N$ coefficients for $N$ inputs - it is non-redundant | The redundant version (undecimated DWT, "a trous") is useful for denoising but costs $O(N\log N)$ storage |
 | 6 | Forgetting the $1/\sqrt{a}$ normalization in the CWT | Without it, $\|\psi_{a,b}\|$ varies with scale, breaking energy conservation | Always use $\psi_{a,b}(t) = a^{-1/2}\psi((t-b)/a)$ for $L^2$ normalization |
 | 7 | Applying only one level of DWT and calling it "multi-scale" | Single-level DWT splits into only 2 bands; multi-scale analysis requires $J \geq 3$ levels | Apply DWT recursively to the approximation branch for $J = \lfloor\log_2 N\rfloor - 3$ levels |
 | 8 | Selecting threshold $\lambda$ globally (same for all scales) | Noise variance varies across scales for colored noise; a global threshold over- or under-smooths | Use scale-adaptive threshold: $\lambda_j = \hat{\sigma}_j\sqrt{2\log N_j}$ where $N_j$ is the number of coefficients at level $j$ |
@@ -820,7 +820,7 @@ This is within a $2\log N$ factor of the minimax optimal risk — essentially un
 
 ## 10. Exercises
 
-**Exercise 1 ★ — Haar DWT by Hand**
+**Exercise 1 * - Haar DWT by Hand**
 
 Given the signal $f = [4, 6, 10, 12, 8, 6, 5, 5]$:
 
@@ -834,7 +834,7 @@ Given the signal $f = [4, 6, 10, 12, 8, 6, 5, 5]$:
 
 ---
 
-**Exercise 2 ★ — Admissibility and Zero Mean**
+**Exercise 2 * - Admissibility and Zero Mean**
 
 **(a)** Verify that the Haar wavelet $\psi = \mathbf{1}_{[0,1/2)} - \mathbf{1}_{[1/2,1)}$ has zero mean: $\int_{-\infty}^\infty \psi(t)\,dt = 0$.
 
@@ -846,7 +846,7 @@ Given the signal $f = [4, 6, 10, 12, 8, 6, 5, 5]$:
 
 ---
 
-**Exercise 3 ★ — MRA Axiom Verification**
+**Exercise 3 * - MRA Axiom Verification**
 
 Verify that the **Shannon (sinc) MRA** satisfies all five MRA axioms:
 - $V_j = \{f \in L^2(\mathbb{R}) : \text{supp}(\hat{f}) \subseteq [-2^{-j}\pi, 2^{-j}\pi]\}$
@@ -862,7 +862,7 @@ Verify that the **Shannon (sinc) MRA** satisfies all five MRA axioms:
 
 ---
 
-**Exercise 4 ★★ — Mallat Algorithm Implementation**
+**Exercise 4 ** - Mallat Algorithm Implementation**
 
 Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms from scratch using only `numpy`.
 
@@ -876,7 +876,7 @@ Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms fro
 
 ---
 
-**Exercise 5 ★★ — Daubechies Filter Verification**
+**Exercise 5 ** - Daubechies Filter Verification**
 
 **(a)** Given the db2 filter $h = [(1+\sqrt{3})/(4\sqrt{2}),\, (3+\sqrt{3})/(4\sqrt{2}),\, (3-\sqrt{3})/(4\sqrt{2}),\, (1-\sqrt{3})/(4\sqrt{2})]$, verify:
    - $\sum_k h_k = \sqrt{2}$ (normalization)
@@ -891,7 +891,7 @@ Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms fro
 
 ---
 
-**Exercise 6 ★★ — 2D DWT and Image Compression**
+**Exercise 6 ** - 2D DWT and Image Compression**
 
 **(a)** Load or generate a $256 \times 256$ grayscale test image (use `scipy.datasets.face(gray=True)` or a numpy-generated pattern). Apply 3 levels of 2D Haar DWT using `pywt.wavedec2`.
 
@@ -903,7 +903,7 @@ Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms fro
 
 ---
 
-**Exercise 7 ★★★ — Scattering Transform Features**
+**Exercise 7 *** - Scattering Transform Features**
 
 **(a)** Implement a simple 1D scattering transform (order 1 and 2) using `pywt`:
    - Zeroth order: low-pass filter the input
@@ -918,7 +918,7 @@ Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms fro
 
 ---
 
-**Exercise 8 ★★★ — Wavelet Denoising and Sparse Coding**
+**Exercise 8 *** - Wavelet Denoising and Sparse Coding**
 
 **(a)** Implement Donoho-Johnstone wavelet denoising with:
    - Universal threshold $\lambda = \hat{\sigma}\sqrt{2\log N}$
@@ -938,10 +938,10 @@ Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms fro
 | AI Concept | Wavelet Connection | Concrete Impact |
 |------------|-------------------|-----------------|
 | Convolutional neural networks | Each conv layer is a learned filter bank; DWT is the fixed-filter special case | Understanding wavelets explains WHY CNNs learn edge detectors and Gabor-like filters at lower layers |
-| Swin Transformer patch merging | Identical to stride-2 DWT low-pass filter: concatenate 2×2 patches → linear projection | Multi-scale attention is the learned version of multi-level DWT |
+| Swin Transformer patch merging | Identical to stride-2 DWT low-pass filter: concatenate 22 patches -> linear projection | Multi-scale attention is the learned version of multi-level DWT |
 | ViT + FPN / feature pyramids | Multi-resolution feature maps follow the wavelet octave structure exactly | Architecture design: number of levels, channel doubling at each scale |
-| Speech: Whisper / wav2vec 2.0 | Mel spectrogram is an STFT with mel-warped frequencies ≈ wavelet constant-Q analysis | Replacing STFT with CWT could improve speech models; wavelet features more robust to pitch shift |
-| Diffusion models (WaveDiff) | Separate noise diffusion of LL vs LH/HL/HH subbands; reduces sequence length 4× | Lower sampling cost, better preservation of global structure, faster inference |
+| Speech: Whisper / wav2vec 2.0 | Mel spectrogram is an STFT with mel-warped frequencies approx wavelet constant-Q analysis | Replacing STFT with CWT could improve speech models; wavelet features more robust to pitch shift |
+| Diffusion models (WaveDiff) | Separate noise diffusion of LL vs LH/HL/HH subbands; reduces sequence length 4 | Lower sampling cost, better preservation of global structure, faster inference |
 | Scattering networks | CNN-equivalent features with zero learned parameters; provably stable to deformations | Robustness certification, data-efficient learning, group-equivariant architectures |
 | Sparse autoencoders (SAE) | Mechanistic interpretability via sparse wavelet-like features of activations | Soft thresholding = LASSO proximal operator; same math as wavelet denoising |
 | Gradient compression | Transmit top-$k$ gradient values = hard threshold in parameter space | Wavelet-domain gradient: compress gradient per scale/location, not per parameter |
@@ -956,56 +956,56 @@ Implement the complete Mallat DWT (analysis) and IDWT (synthesis) algorithms fro
 
 ### Looking Backward
 
-This section sits at the summit of the Fourier Analysis chapter. Everything built in §20-01 through §20-04 contributes:
+This section sits at the summit of the Fourier Analysis chapter. Everything built in Section 20-01 through Section 20-04 contributes:
 
-**From §20-01 (Fourier Series):** The idea of decomposing a signal into orthogonal basis functions is generalized: instead of sinusoids with fixed global support, we use wavelets with variable-scale local support. The Parseval identity from §20-01 reappears as the energy conservation property of the wavelet transform.
+**From Section 20-01 (Fourier Series):** The idea of decomposing a signal into orthogonal basis functions is generalized: instead of sinusoids with fixed global support, we use wavelets with variable-scale local support. The Parseval identity from Section 20-01 reappears as the energy conservation property of the wavelet transform.
 
-**From §20-02 (Fourier Transform):** The uncertainty principle $\Delta t \cdot \Delta\xi \geq 1/(4\pi)$ is the fundamental constraint that motivates wavelets. The continuous Fourier transform is the "full-global" limit; the CWT interpolates between full-time and full-frequency localization. Plancherel's theorem underlies both.
+**From Section 20-02 (Fourier Transform):** The uncertainty principle $\Delta t \cdot \Delta\xi \geq 1/(4\pi)$ is the fundamental constraint that motivates wavelets. The continuous Fourier transform is the "full-global" limit; the CWT interpolates between full-time and full-frequency localization. Plancherel's theorem underlies both.
 
-**From §20-03 (DFT and FFT):** The Mallat algorithm uses convolution + downsampling — precisely the operations made efficient by the FFT in §20-03. The DWT at each level costs $O(N)$ via direct convolution (filter is short); a CWT discretization would cost $O(N\log N)$ via FFT.
+**From Section 20-03 (DFT and FFT):** The Mallat algorithm uses convolution + downsampling - precisely the operations made efficient by the FFT in Section 20-03. The DWT at each level costs $O(N)$ via direct convolution (filter is short); a CWT discretization would cost $O(N\log N)$ via FFT.
 
-**From §20-04 (Convolution Theorem):** The filter bank conditions (QMF, perfect reconstruction) are applications of the convolution algebra from §20-04. The LTI system framework identifies each wavelet scale as a bandpass filter; the synthesis bank cancels aliasing via the Convolution Theorem's frequency-domain perspective.
+**From Section 20-04 (Convolution Theorem):** The filter bank conditions (QMF, perfect reconstruction) are applications of the convolution algebra from Section 20-04. The LTI system framework identifies each wavelet scale as a bandpass filter; the synthesis bank cancels aliasing via the Convolution Theorem's frequency-domain perspective.
 
 ### Looking Forward
 
-**Statistical Learning Theory (§21):** Wavelet regularity classes (Besov spaces, Sobolev spaces) are the natural function classes for non-parametric estimation. Minimax rates of convergence depend on the wavelet regularity of the target function.
+**Statistical Learning Theory (Section 21):** Wavelet regularity classes (Besov spaces, Sobolev spaces) are the natural function classes for non-parametric estimation. Minimax rates of convergence depend on the wavelet regularity of the target function.
 
-**Functional Analysis (§12):** The MRA axioms live in $L^2(\mathbb{R})$ — a Hilbert space (§12-02). Riesz bases, frames, and Hilbert space geometry underpin the infinite-dimensional wavelet theory. The scattering transform connects to group representations (§12-04 preview).
+**Functional Analysis (Section 12):** The MRA axioms live in $L^2(\mathbb{R})$ - a Hilbert space (Section 12-02). Riesz bases, frames, and Hilbert space geometry underpin the infinite-dimensional wavelet theory. The scattering transform connects to group representations (Section 12-04 preview).
 
-**Differential Geometry (§25):** Wavelets generalize to manifolds via harmonic analysis on Riemannian spaces. Spectral graph wavelets (§11-04) extend the MRA framework to graphs. Heat kernel wavelets define multi-scale decompositions on curved spaces — used in geometric deep learning.
+**Differential Geometry (Section 25):** Wavelets generalize to manifolds via harmonic analysis on Riemannian spaces. Spectral graph wavelets (Section 11-04) extend the MRA framework to graphs. Heat kernel wavelets define multi-scale decompositions on curved spaces - used in geometric deep learning.
 
 ```
 WAVELET SECTION IN CURRICULUM
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-  §20-01 Fourier Series                    §12-02 Hilbert Spaces
-     ↓ orthogonal basis concept                ↓ L² theory
-  §20-02 Fourier Transform               §20-03 DFT and FFT
-     ↓ uncertainty principle                   ↓ filter banks, O(N log N)
-  §20-04 Convolution Theorem
-     ↓ QMF, LTI systems
-  ╔══════════════════════════════════════╗
-  ║  §20-05 WAVELETS                     ║
-  ║  ─────────────────────────────────── ║
-  ║  CWT, MRA, Mallat O(N) algorithm     ║
-  ║  Daubechies, QMF, perfect recon.     ║
-  ║  2D DWT, JPEG 2000, scattering       ║
-  ║  Denoising, WaveDiff, WaveBERT       ║
-  ╚══════════════════════════════════════╝
-          ↓                    ↓
-  §21 Statistical          §11-04 Spectral
+  Section 20-01 Fourier Series                    Section 12-02 Hilbert Spaces
+     v orthogonal basis concept                v L2 theory
+  Section 20-02 Fourier Transform               Section 20-03 DFT and FFT
+     v uncertainty principle                   v filter banks, O(N log N)
+  Section 20-04 Convolution Theorem
+     v QMF, LTI systems
+  +======================================+
+  |  Section 20-05 WAVELETS                     |
+  |  ----------------------------------- |
+  |  CWT, MRA, Mallat O(N) algorithm     |
+  |  Daubechies, QMF, perfect recon.     |
+  |  2D DWT, JPEG 2000, scattering       |
+  |  Denoising, WaveDiff, WaveBERT       |
+  +======================================+
+          v                    v
+  Section 21 Statistical          Section 11-04 Spectral
   Learning Theory          Graph Theory
   (Besov spaces,           (Graph wavelets,
    minimax rates)           GCN, ChebNet)
-          ↓                    ↓
-  §25 Differential         §12-04 Group
+          v                    v
+  Section 25 Differential         Section 12-04 Group
   Geometry                 Representations
   (manifold wavelets)      (scattering theory)
 
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 ```
 
-[← Back to Fourier Analysis](../README.md) | [Previous: Convolution Theorem ←](../04-Convolution-Theorem/notes.md) | [Next Chapter: Statistical Learning Theory →](../../21-Statistical-Learning-Theory/README.md)
+[<- Back to Fourier Analysis](../README.md) | [Previous: Convolution Theorem <-](../04-Convolution-Theorem/notes.md) | [Next Chapter: Statistical Learning Theory ->](../../21-Statistical-Learning-Theory/README.md)
 
 ---
 
@@ -1013,12 +1013,12 @@ WAVELET SECTION IN CURRICULUM
 
 ### A.1 Motivation for Biorthogonal Wavelets
 
-Daubechies' theorem establishes an uncomfortable trade-off for orthonormal wavelets: **a compactly supported orthonormal wavelet with more than 1 vanishing moment cannot be symmetric**. This is a fundamental obstruction — symmetry requires the filter to satisfy $H(\xi) = e^{-2\pi i K\xi}\overline{H(-\xi)}$ for some integer $K$, which is incompatible with compact support and orthonormality (except for the Haar wavelet).
+Daubechies' theorem establishes an uncomfortable trade-off for orthonormal wavelets: **a compactly supported orthonormal wavelet with more than 1 vanishing moment cannot be symmetric**. This is a fundamental obstruction - symmetry requires the filter to satisfy $H(\xi) = e^{-2\pi i K\xi}\overline{H(-\xi)}$ for some integer $K$, which is incompatible with compact support and orthonormality (except for the Haar wavelet).
 
 Symmetry is highly desirable in image processing: symmetric filters do not introduce phase distortion, and symmetric boundary extension (mirror padding) is more natural than periodic extension. For this reason, **biorthogonal wavelets** (Cohen-Daubechies-Feauveau, 1992) replace the single orthonormal filter bank with a *pair* of filter banks:
 
-- **Analysis filters:** $\{h, g\}$ — used in the forward DWT
-- **Synthesis filters:** $\{\tilde{h}, \tilde{g}\}$ — used in the inverse DWT
+- **Analysis filters:** $\{h, g\}$ - used in the forward DWT
+- **Synthesis filters:** $\{\tilde{h}, \tilde{g}\}$ - used in the inverse DWT
 
 where the analysis and synthesis wavelets $\psi$ and $\tilde{\psi}$ satisfy the **biorthogonality condition**:
 
@@ -1032,23 +1032,23 @@ The **Cohen-Daubechies-Feauveau 9/7 wavelet** (CDF 9/7) is the biorthogonal wave
 - Analysis filter length: 9 taps (odd, therefore symmetric)
 - Synthesis filter length: 7 taps (odd, symmetric)
 - 4 vanishing moments (analysis) / 4 vanishing moments (synthesis)
-- Linear phase (symmetric filter → zero phase distortion)
+- Linear phase (symmetric filter -> zero phase distortion)
 
 The 9/7 analysis lowpass filter coefficients are:
 
 | $k$ | $h_k$ |
 |-----|--------|
 | 0 | 0.6029490182363579 |
-| ±1 | 0.2668641184428723 |
-| ±2 | −0.07822326652898785 |
-| ±3 | −0.01686411844287495 |
-| ±4 | 0.02674875741080976 |
+| 1 | 0.2668641184428723 |
+| 2 | -0.07822326652898785 |
+| 3 | -0.01686411844287495 |
+| 4 | 0.02674875741080976 |
 
 The filter is symmetric: $h_k = h_{-k}$. The corresponding synthesis filter has 7 nonzero coefficients.
 
 **Why 9/7?** The choice balances:
-- Compression efficiency (4 vanishing moments ≈ good polynomial annihilation)
-- Visual quality (smooth synthesis wavelet ≈ no ringing artifacts)
+- Compression efficiency (4 vanishing moments approx good polynomial annihilation)
+- Visual quality (smooth synthesis wavelet approx no ringing artifacts)
 - Computational cost (9 taps = fast, especially in hardware)
 - Symmetry (eliminates the Daubechies asymmetry problem)
 
@@ -1056,7 +1056,7 @@ For **lossless** JPEG 2000, the Le Gall 5/3 biorthogonal wavelet is used (intege
 
 ### A.3 Lifting Scheme
 
-The **lifting scheme** (Sweldens, 1995) provides an efficient factorization of any wavelet filter bank into elementary "lifting steps" — pairs of **predict** and **update** operations:
+The **lifting scheme** (Sweldens, 1995) provides an efficient factorization of any wavelet filter bank into elementary "lifting steps" - pairs of **predict** and **update** operations:
 
 1. **Split:** divide the signal into even ($e_n = x_{2n}$) and odd ($o_n = x_{2n+1}$) samples
 2. **Predict:** update odd samples to reduce prediction error: $o_n \leftarrow o_n - P(e)_n$
@@ -1092,7 +1092,7 @@ for constants $0 < A \leq B < \infty$ called **frame bounds**. If $A = B$, the f
 
 ### B.2 Undecimated DWT (Stationary Wavelet Transform)
 
-The **undecimated DWT** (also called shift-invariant DWT or "à trous" algorithm) removes the $\downarrow 2$ downsampling step in the Mallat algorithm:
+The **undecimated DWT** (also called shift-invariant DWT or "a trous" algorithm) removes the $\downarrow 2$ downsampling step in the Mallat algorithm:
 
 ```
 Analysis step (undecimated):
@@ -1103,9 +1103,9 @@ Analysis step (undecimated):
 The output at each level has the same length $N$ as the input. Total output size: $O(N \cdot J)$ (redundant by factor $J$).
 
 **Properties:**
-- **Shift-invariant:** $\text{UDWT}(T_k f) = T_k(\text{UDWT}(f))$ — unlike the downsampled DWT where shifts cause coefficient permutations
+- **Shift-invariant:** $\text{UDWT}(T_k f) = T_k(\text{UDWT}(f))$ - unlike the downsampled DWT where shifts cause coefficient permutations
 - **Better denoising:** Averaging over all circular shifts of the DWT (cycle-spinning) gives the undecimated DWT implicitly; this averages out the artifacts from the dyadic grid
-- **Cost:** $O(NJ)$ instead of $O(N)$ — more expensive but often worth it for denoising
+- **Cost:** $O(NJ)$ instead of $O(N)$ - more expensive but often worth it for denoising
 
 **Cycle-spinning** (Coifman-Donoho, 1995): Average wavelet-threshold denoising over all $N$ cyclic shifts. Equivalent to undecimated DWT thresholding. Eliminates "ringing" artifacts near discontinuities that standard DWT thresholding produces.
 
@@ -1124,9 +1124,9 @@ $$\left(\sum_{j \geq 0} \left(2^{js} \left(\sum_k |d_{j,k}|^p\right)^{1/p}\right
 This characterization makes wavelet coefficients the canonical coordinate system for Besov spaces.
 
 **Key special cases:**
-- $B^s_{2,2} = H^s$ (Sobolev space) — standard smooth functions
-- $B^s_{\infty,\infty} = C^s$ (Hölder space) — functions with $s$ bounded derivatives
-- $B^s_{1,1}$ — functions with sparse wavelet representations (relevant for compression)
+- $B^s_{2,2} = H^s$ (Sobolev space) - standard smooth functions
+- $B^s_{\infty,\infty} = C^s$ (Holder space) - functions with $s$ bounded derivatives
+- $B^s_{1,1}$ - functions with sparse wavelet representations (relevant for compression)
 
 **For AI:** The **spectral bias** of neural networks (Rahaman et al., 2018) can be formalized as: gradient descent preferentially fits functions in lower-order Besov spaces first. Understanding Besov spaces explains why networks need curriculum learning for high-frequency targets.
 
@@ -1150,7 +1150,7 @@ The wavelet coefficients $d_{j,k} = \langle f, \psi_{j,k}\rangle$ carry rich inf
 
 | Coefficient behavior | Signal property |
 |---------------------|-----------------|
-| $|d_{j,k}| \sim 2^{j(\alpha+1/2)}$ as $j \to \infty$ | $f$ is Hölder $C^\alpha$ at $2^j k$ |
+| $|d_{j,k}| \sim 2^{j(\alpha+1/2)}$ as $j \to \infty$ | $f$ is Holder $C^\alpha$ at $2^j k$ |
 | $|d_{j,k}|$ drops exponentially in $j$ | $f$ is smooth (infinitely differentiable) near $2^j k$ |
 | Large isolated coefficients across scales | Point singularity (discontinuity) at $2^j k$ |
 | Cone of influence: large $|d_{j,k}|$ for $k$ near $k_0$ at scale $j$ | Singularity at $x_0 \approx 2^j k_0$ |
@@ -1158,7 +1158,7 @@ The wavelet coefficients $d_{j,k} = \langle f, \psi_{j,k}\rangle$ carry rich inf
 This local regularity characterization is used in:
 - **Image edge detection** via wavelet modulus maxima (Mallat-Hwang algorithm)
 - **Fractal dimension estimation** from power-law behavior of $\sum_k |d_{j,k}|^2$
-- **Neural network weight analysis** — regularity of trained weight matrices
+- **Neural network weight analysis** - regularity of trained weight matrices
 
 ---
 
@@ -1171,7 +1171,7 @@ Subband coding (used in audio compression: MP3's filterbank, Dolby Atmos's DTS s
 - Orthogonal / biorthogonal filter bank
 - Perfect reconstruction guarantee
 
-MP3 uses a 32-band uniform QMF filter bank (not wavelet — uniform bands). AAC uses the Modified DCT (MDCT) — a lapped transform that shares the PR property with wavelets but uses cosine instead of wavelet basis functions. The similarity is not coincidental: all PR filter banks can be parameterized via unitary matrices (Vaidyanathan, 1993).
+MP3 uses a 32-band uniform QMF filter bank (not wavelet - uniform bands). AAC uses the Modified DCT (MDCT) - a lapped transform that shares the PR property with wavelets but uses cosine instead of wavelet basis functions. The similarity is not coincidental: all PR filter banks can be parameterized via unitary matrices (Vaidyanathan, 1993).
 
 ### D.2 Relationship to Multirate Signal Processing
 
@@ -1195,13 +1195,13 @@ The wavelet transform and self-attention both compute weighted sums over all inp
 | Equivariance | Translation-equivariant | Permutation-equivariant |
 | Inversion | Exact (PR) | Via LayerNorm + residuals |
 
-Attention can be viewed as a **data-adaptive, globally-supported filter bank** — it learns which positions to attend to, while a wavelet selects which scale/location to probe. The convergence of wavelet ideas and attention is driving research in wavelet-based long-range Transformers (see §8.2).
+Attention can be viewed as a **data-adaptive, globally-supported filter bank** - it learns which positions to attend to, while a wavelet selects which scale/location to probe. The convergence of wavelet ideas and attention is driving research in wavelet-based long-range Transformers (see Section 8.2).
 ### D.4 Wavelets and Renormalization Group Theory
 
-In theoretical physics, the **renormalization group (RG)** describes how physical systems look at different scales. The key operation — integrating out short-distance degrees of freedom to obtain an effective theory at larger scales — is structurally identical to the DWT low-pass step:
+In theoretical physics, the **renormalization group (RG)** describes how physical systems look at different scales. The key operation - integrating out short-distance degrees of freedom to obtain an effective theory at larger scales - is structurally identical to the DWT low-pass step:
 
-- **RG block-spin transformation** (Kadanoff 1966): average spins in a block → coarser description
-- **DWT approximation step:** $a^{(j+1)}_k = \sum_n h_{n-2k} a^{(j)}_n$ — average input samples via $h$ → coarser approximation
+- **RG block-spin transformation** (Kadanoff 1966): average spins in a block -> coarser description
+- **DWT approximation step:** $a^{(j+1)}_k = \sum_n h_{n-2k} a^{(j)}_n$ - average input samples via $h$ -> coarser approximation
 
 The detail coefficients $d^{(j)}$ capture the "fluctuations" integrated out at each RG step. The analogy is precise for the Haar wavelet (block averaging = Kadanoff transformation) and approximate for general wavelets.
 
@@ -1392,7 +1392,7 @@ $$T(N) = \sum_{j=1}^{J} O(p \cdot N/2^{j-1}) = O(pN)\sum_{j=0}^{J-1}(1/2)^j = O(
 
 Since $p$ is fixed (depends only on the wavelet family, not $N$), $T(N) = O(N)$. $\square$
 
-**Remark:** The $O(N)$ complexity is strict: for a $p$-tap filter, the constant is exactly $2p$ multiplications per input sample (across all levels). For db4 ($p=8$): 16 multiplications/sample — far fewer than the $N\log_2 N$ operations of the FFT.
+**Remark:** The $O(N)$ complexity is strict: for a $p$-tap filter, the constant is exactly $2p$ multiplications per input sample (across all levels). For db4 ($p=8$): 16 multiplications/sample - far fewer than the $N\log_2 N$ operations of the FFT.
 
 <!-- end of notes -->
 

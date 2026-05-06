@@ -1,32 +1,32 @@
-[← Back to Probability Theory](../README.md) | [Next: Common Distributions →](../02-Common-Distributions/notes.md)
+[<- Back to Probability Theory](../README.md) | [Next: Common Distributions ->](../02-Common-Distributions/notes.md)
 
 ---
 
 # Introduction to Probability and Random Variables
 
 > _"Probability theory is nothing but common sense reduced to calculation."_
-> — Pierre-Simon Laplace, 1814
+> - Pierre-Simon Laplace, 1814
 
 ## Overview
 
-Probability theory is the mathematical language for reasoning under uncertainty — and uncertainty is everywhere in machine learning. Every training example is a noisy sample from an unknown distribution; every weight initialisation is a random draw; every language model output is a distribution over tokens. To reason rigorously about any of these, we need the formal apparatus built in this section.
+Probability theory is the mathematical language for reasoning under uncertainty - and uncertainty is everywhere in machine learning. Every training example is a noisy sample from an unknown distribution; every weight initialisation is a random draw; every language model output is a distribution over tokens. To reason rigorously about any of these, we need the formal apparatus built in this section.
 
-We begin at the foundations: the Kolmogorov axioms that define what a probability is, and the algebraic rules (complement, union, conditional probability, Bayes' theorem) that follow from them. We then introduce the central object of probabilistic modelling — the *random variable* — and its two modes: discrete (characterised by a probability mass function) and continuous (characterised by a probability density function). We close with the expectation and variance of a random variable, which distil a full distribution into its most useful summary statistics.
+We begin at the foundations: the Kolmogorov axioms that define what a probability is, and the algebraic rules (complement, union, conditional probability, Bayes' theorem) that follow from them. We then introduce the central object of probabilistic modelling - the *random variable* - and its two modes: discrete (characterised by a probability mass function) and continuous (characterised by a probability density function). We close with the expectation and variance of a random variable, which distil a full distribution into its most useful summary statistics.
 
-**Scope:** This section is the canonical home for probability axioms, conditional probability, independence, random variable definitions, CDF/PDF/PMF, and the Bernoulli/Uniform/Gaussian distributions at an introductory level. The full catalogue of named distributions (Binomial, Poisson, Beta, Dirichlet, Categorical, Student-t) is covered in §02. Joint distributions and Bayes' theorem for random variables are developed in §03. The full treatment of expectation, covariance, LOTUS, and moment generating functions is in §04.
+**Scope:** This section is the canonical home for probability axioms, conditional probability, independence, random variable definitions, CDF/PDF/PMF, and the Bernoulli/Uniform/Gaussian distributions at an introductory level. The full catalogue of named distributions (Binomial, Poisson, Beta, Dirichlet, Categorical, Student-t) is covered in Section02. Joint distributions and Bayes' theorem for random variables are developed in Section03. The full treatment of expectation, covariance, LOTUS, and moment generating functions is in Section04.
 
 ## Prerequisites
 
 - Basic set theory: union ($A \cup B$), intersection ($A \cap B$), complement ($A^c$), subset ($A \subseteq B$)
-- Single-variable calculus: integration, differentiation — [§03-Integration](../../04-Calculus-Fundamentals/03-Integration/notes.md)
-- Series and summation notation — [§04-Series-and-Sequences](../../04-Calculus-Fundamentals/04-Series-and-Sequences/notes.md)
+- Single-variable calculus: integration, differentiation - [Section03-Integration](../../04-Calculus-Fundamentals/03-Integration/notes.md)
+- Series and summation notation - [Section04-Series-and-Sequences](../../04-Calculus-Fundamentals/04-Series-and-Sequences/notes.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive derivations: Kolmogorov axioms, Bayes' theorem, CDF/PDF/PMF, Bernoulli, Gaussian intro, change of variables, cross-entropy |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises: axiom proofs through probabilistic language model analysis |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises: axiom proofs through probabilistic language model analysis |
 
 ## Learning Objectives
 
@@ -40,7 +40,7 @@ After completing this section, you will:
 - Write the CDF $F(x) = P(X \leq x)$ for a discrete and a continuous random variable, and list its four properties
 - Compute probabilities from a PMF (discrete case) and a PDF (continuous case)
 - Describe the Bernoulli and Uniform distributions completely: PMF/PDF, mean, variance, and ML uses
-- Introduce the Gaussian distribution and state the 68–95–99.7 rule
+- Introduce the Gaussian distribution and state the 68-95-99.7 rule
 - Compute $\mathbb{E}[X]$ and $\operatorname{Var}(X)$ for simple distributions and apply linearity of expectation
 - Apply the change-of-variables formula for monotone transformations of a continuous random variable
 - Express cross-entropy loss as negative log-likelihood and explain what it minimises
@@ -53,12 +53,12 @@ After completing this section, you will:
   - [1.1 What Is Probability? Three Interpretations](#11-what-is-probability-three-interpretations)
   - [1.2 Why Probability Is the Language of AI](#12-why-probability-is-the-language-of-ai)
   - [1.3 Historical Timeline](#13-historical-timeline)
-- [2. Formal Definitions — Probability Spaces](#2-formal-definitions--probability-spaces)
+- [2. Formal Definitions - Probability Spaces](#2-formal-definitions--probability-spaces)
   - [2.1 Sample Spaces and Events](#21-sample-spaces-and-events)
   - [2.2 The Three Kolmogorov Axioms](#22-the-three-kolmogorov-axioms)
   - [2.3 Immediate Consequences of the Axioms](#23-immediate-consequences-of-the-axioms)
-  - [2.4 Probability Measures — Examples and Non-Examples](#24-probability-measures--examples-and-non-examples)
-- [3. Computing Probabilities — The Core Rules](#3-computing-probabilities--the-core-rules)
+  - [2.4 Probability Measures - Examples and Non-Examples](#24-probability-measures--examples-and-non-examples)
+- [3. Computing Probabilities - The Core Rules](#3-computing-probabilities--the-core-rules)
   - [3.1 Complement and Monotonicity](#31-complement-and-monotonicity)
   - [3.2 Inclusion-Exclusion Principle](#32-inclusion-exclusion-principle)
   - [3.3 Conditional Probability](#33-conditional-probability)
@@ -70,23 +70,23 @@ After completing this section, you will:
   - [4.2 Conditional Independence](#42-conditional-independence)
   - [4.3 Pairwise vs Mutual Independence](#43-pairwise-vs-mutual-independence)
   - [4.4 Why Independence Matters for AI](#44-why-independence-matters-for-ai)
-- [5. Random Variables — Formal Foundation](#5-random-variables--formal-foundation)
+- [5. Random Variables - Formal Foundation](#5-random-variables--formal-foundation)
   - [5.1 Definition: Random Variable as a Measurable Function](#51-definition-random-variable-as-a-measurable-function)
-  - [5.2 Discrete vs Continuous — Taxonomy](#52-discrete-vs-continuous--taxonomy)
+  - [5.2 Discrete vs Continuous - Taxonomy](#52-discrete-vs-continuous--taxonomy)
   - [5.3 The Cumulative Distribution Function](#53-the-cumulative-distribution-function)
   - [5.4 CDF Properties and the Fundamental Theorem](#54-cdf-properties-and-the-fundamental-theorem)
 - [6. Discrete Random Variables](#6-discrete-random-variables)
   - [6.1 Probability Mass Function](#61-probability-mass-function)
-  - [6.2 Bernoulli Distribution — The Canonical Example](#62-bernoulli-distribution--the-canonical-example)
+  - [6.2 Bernoulli Distribution - The Canonical Example](#62-bernoulli-distribution--the-canonical-example)
   - [6.3 Geometric Distribution](#63-geometric-distribution)
   - [6.4 Preview: Binomial, Categorical, Poisson](#64-preview-binomial-categorical-poisson)
 - [7. Continuous Random Variables](#7-continuous-random-variables)
   - [7.1 Probability Density Function](#71-probability-density-function)
   - [7.2 From CDF to PDF: the Derivative Relationship](#72-from-cdf-to-pdf-the-derivative-relationship)
   - [7.3 Uniform Distribution](#73-uniform-distribution)
-  - [7.4 Gaussian Distribution — Introduction](#74-gaussian-distribution--introduction)
+  - [7.4 Gaussian Distribution - Introduction](#74-gaussian-distribution--introduction)
   - [7.5 Preview: Exponential, Beta, Gamma](#75-preview-exponential-beta-gamma)
-- [8. Expectation and Variance — Foundations](#8-expectation-and-variance--foundations)
+- [8. Expectation and Variance - Foundations](#8-expectation-and-variance--foundations)
   - [8.1 Expected Value: Definition and Linearity](#81-expected-value-definition-and-linearity)
   - [8.2 Variance and Standard Deviation](#82-variance-and-standard-deviation)
   - [8.3 Key Properties and Common Pitfalls](#83-key-properties-and-common-pitfalls)
@@ -112,28 +112,28 @@ After completing this section, you will:
 
 Probability is a number in $[0, 1]$ assigned to an event, measuring how likely that event is to occur. But what does "likely" mean? There are three major interpretations, and each underpins a different school of thought in statistics and machine learning.
 
-**1. Classical (equally likely outcomes).** If a sample space $\Omega$ has $N$ equally likely outcomes and event $A$ contains $k$ of them, then $P(A) = k/N$. This is the interpretation of textbook dice and card problems. It breaks down when outcomes are not equally likely — flipping a biased coin, for instance.
+**1. Classical (equally likely outcomes).** If a sample space $\Omega$ has $N$ equally likely outcomes and event $A$ contains $k$ of them, then $P(A) = k/N$. This is the interpretation of textbook dice and card problems. It breaks down when outcomes are not equally likely - flipping a biased coin, for instance.
 
 **2. Frequentist (long-run relative frequency).** $P(A)$ is the limiting proportion of times $A$ occurs in an infinite sequence of identical, independent experiments: $P(A) = \lim_{n \to \infty} \frac{\text{count of } A \text{ in } n \text{ trials}}{n}$. This is the foundation of classical statistics (hypothesis testing, confidence intervals). Its weakness: it cannot assign probabilities to one-off events ("the probability that GPT-5 passes the bar exam").
 
-**3. Bayesian (degree of belief).** $P(A)$ represents a rational agent's degree of belief that $A$ is true, updated as new evidence arrives. This interpretation allows probabilities for singular events and underpins Bayesian inference, Bayesian neural networks, and probabilistic generative models. Crucially, different agents can assign different prior probabilities to the same event — and Bayes' theorem tells them how to update rationally.
+**3. Bayesian (degree of belief).** $P(A)$ represents a rational agent's degree of belief that $A$ is true, updated as new evidence arrives. This interpretation allows probabilities for singular events and underpins Bayesian inference, Bayesian neural networks, and probabilistic generative models. Crucially, different agents can assign different prior probabilities to the same event - and Bayes' theorem tells them how to update rationally.
 
 ```
 THREE INTERPRETATIONS OF PROBABILITY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Classical           Frequentist              Bayesian
-  ─────────────────   ────────────────────     ──────────────────────
+  -----------------   --------------------     ----------------------
   P(A) = k/N          P(A) = lim freq(A)       P(A) = degree of belief
   Equally likely       Long-run proportion      Updated by evidence
   outcomes             Objective               Subjective / rational
   Dice, cards          Hypothesis tests         Generative models
                        Confidence intervals     Bayesian NNs, VAEs
 
-  All three satisfy the same axioms (§2.2).
+  All three satisfy the same axioms (Section2.2).
   They differ only in WHAT those axioms are applied to.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **For AI:** Modern ML systems implicitly blend all three. A softmax output layer uses the classical interpretation (outputs sum to 1). Training loop analysis uses frequentist reasoning (expected loss over the data distribution). Bayesian neural networks, RLHF reward models, and variational autoencoders use Bayesian reasoning explicitly.
@@ -153,22 +153,22 @@ Every component of a modern AI system is probabilistic:
 
 | Year | Person | Contribution |
 |------|--------|-------------|
-| 1654 | Pascal & Fermat | Correspondence on gambling problems — foundations of combinatorial probability |
-| 1713 | Jacob Bernoulli | *Ars Conjectandi* — law of large numbers, Bernoulli distribution |
-| 1763 | Thomas Bayes (posthumous) | Essay on inverse probability — what we now call Bayes' theorem |
-| 1812 | Pierre-Simon Laplace | *Théorie analytique des probabilités* — systematic probability theory, Laplace approximation |
-| 1837 | Siméon Poisson | Poisson distribution — rare events in large samples |
+| 1654 | Pascal & Fermat | Correspondence on gambling problems - foundations of combinatorial probability |
+| 1713 | Jacob Bernoulli | *Ars Conjectandi* - law of large numbers, Bernoulli distribution |
+| 1763 | Thomas Bayes (posthumous) | Essay on inverse probability - what we now call Bayes' theorem |
+| 1812 | Pierre-Simon Laplace | *Theorie analytique des probabilites* - systematic probability theory, Laplace approximation |
+| 1837 | Simeon Poisson | Poisson distribution - rare events in large samples |
 | 1900 | Karl Pearson | Chi-squared distribution, correlation coefficient |
-| 1933 | Andrei Kolmogorov | Rigorous axiomatic foundation — the three axioms that unify all interpretations |
-| 1950s | Shannon | Information theory — entropy connects probability to communication |
-| 1980s | Judea Pearl | Bayesian networks — graphical models for probabilistic reasoning |
-| 1990s | Gelman, Rubin et al. | MCMC methods — practical Bayesian inference for complex models |
-| 2013 | Kingma & Welling | Variational Autoencoders — learned latent distributions via reparameterisation |
-| 2020 | Ho et al. | Denoising Diffusion Probabilistic Models — probabilistic generative modelling at scale |
+| 1933 | Andrei Kolmogorov | Rigorous axiomatic foundation - the three axioms that unify all interpretations |
+| 1950s | Shannon | Information theory - entropy connects probability to communication |
+| 1980s | Judea Pearl | Bayesian networks - graphical models for probabilistic reasoning |
+| 1990s | Gelman, Rubin et al. | MCMC methods - practical Bayesian inference for complex models |
+| 2013 | Kingma & Welling | Variational Autoencoders - learned latent distributions via reparameterisation |
+| 2020 | Ho et al. | Denoising Diffusion Probabilistic Models - probabilistic generative modelling at scale |
 
 ---
 
-## 2. Formal Definitions — Probability Spaces
+## 2. Formal Definitions - Probability Spaces
 
 ### 2.1 Sample Spaces and Events
 
@@ -184,12 +184,12 @@ Every component of a modern AI system is probabilistic:
 **Definition 2.2 (Event).** An *event* $A$ is a subset of $\Omega$, i.e., $A \subseteq \Omega$. We say event $A$ *occurs* if the observed outcome $\omega \in A$.
 
 **Event algebra.** Events combine using set operations:
-- **Complement:** $A^c = \Omega \setminus A$ — "$A$ does not occur"
-- **Union:** $A \cup B$ — "$A$ or $B$ (or both) occur"
-- **Intersection:** $A \cap B$ — "both $A$ and $B$ occur"
-- **Difference:** $A \setminus B = A \cap B^c$ — "$A$ occurs but $B$ does not"
+- **Complement:** $A^c = \Omega \setminus A$ - "$A$ does not occur"
+- **Union:** $A \cup B$ - "$A$ or $B$ (or both) occur"
+- **Intersection:** $A \cap B$ - "both $A$ and $B$ occur"
+- **Difference:** $A \setminus B = A \cap B^c$ - "$A$ occurs but $B$ does not"
 
-**The $\sigma$-algebra (brief note).** For continuous sample spaces (e.g., $\Omega = \mathbb{R}$), we cannot assign probabilities to *every* subset — some are too pathological (Vitali sets). The solution is to restrict to a *$\sigma$-algebra* $\mathcal{F}$: a collection of subsets of $\Omega$ that is closed under complement and countable unions. The standard choice for $\Omega = \mathbb{R}$ is the *Borel $\sigma$-algebra* $\mathcal{B}(\mathbb{R})$, generated by all open intervals. For this course, you can think of "events" as "any reasonable subset of $\Omega$" — the measure-theoretic subtlety is noted but not required.
+**The $\sigma$-algebra (brief note).** For continuous sample spaces (e.g., $\Omega = \mathbb{R}$), we cannot assign probabilities to *every* subset - some are too pathological (Vitali sets). The solution is to restrict to a *$\sigma$-algebra* $\mathcal{F}$: a collection of subsets of $\Omega$ that is closed under complement and countable unions. The standard choice for $\Omega = \mathbb{R}$ is the *Borel $\sigma$-algebra* $\mathcal{B}(\mathbb{R})$, generated by all open intervals. For this course, you can think of "events" as "any reasonable subset of $\Omega$" - the measure-theoretic subtlety is noted but not required.
 
 ### 2.2 The Three Kolmogorov Axioms
 
@@ -236,7 +236,7 @@ $$P(A_1 \cup \cdots \cup A_n) = P(A_1) + \cdots + P(A_n)$$
 
 *Proof.* $\emptyset \subseteq A \subseteq \Omega$, so by monotonicity: $0 = P(\emptyset) \leq P(A) \leq P(\Omega) = 1$. $\square$
 
-### 2.4 Probability Measures — Examples and Non-Examples
+### 2.4 Probability Measures - Examples and Non-Examples
 
 **Examples of valid probability measures:**
 
@@ -252,13 +252,13 @@ $$P(A_1 \cup \cdots \cup A_n) = P(A_1) + \cdots + P(A_n)$$
 
 | Assignment | Axiom violated |
 |---|---|
-| $P(\{H\}) = 0.6$, $P(\{T\}) = 0.6$ | Axiom 2: total = 1.2 ≠ 1 |
+| $P(\{H\}) = 0.6$, $P(\{T\}) = 0.6$ | Axiom 2: total = 1.2 \\neq 1 |
 | $P(\{H\}) = -0.1$, $P(\{T\}) = 1.1$ | Axiom 1: negative probability |
 | $P(\{H\}) = 0.5$, $P(\{T\}) = 0.5$, $P(\{H,T\}) = 0.8$ | Axiom 3: $P(\{H\} \cup \{T\}) \neq P(\{H\}) + P(\{T\})$ |
 
 ---
 
-## 3. Computing Probabilities — The Core Rules
+## 3. Computing Probabilities - The Core Rules
 
 ### 3.1 Complement and Monotonicity
 
@@ -266,11 +266,11 @@ The complement rule is one of the most practically useful consequences of the ax
 
 **Complement rule:** $P(A^c) = 1 - P(A)$
 
-This is particularly useful when $P(A^c)$ is easier to compute than $P(A)$ directly. This technique — "compute the complement" — is ubiquitous in probability:
+This is particularly useful when $P(A^c)$ is easier to compute than $P(A)$ directly. This technique - "compute the complement" - is ubiquitous in probability:
 
 **Example.** What is the probability that at least one of 10 coin flips is heads (for a fair coin)?
 
-Direct approach: sum $P(\text{exactly } k \text{ heads})$ for $k = 1, \ldots, 10$ — tedious.
+Direct approach: sum $P(\text{exactly } k \text{ heads})$ for $k = 1, \ldots, 10$ - tedious.
 
 Complement approach: $P(\text{at least one head}) = 1 - P(\text{no heads}) = 1 - (1/2)^{10} = 1023/1024 \approx 0.999$.
 
@@ -291,7 +291,7 @@ $$P\!\left(\bigcup_{i=1}^n A_i\right) = \sum_i P(A_i) - \sum_{i<j} P(A_i \cap A_
 **Union bound (Boole's inequality):** A simpler but looser bound:
 $$P\!\left(\bigcup_{i=1}^n A_i\right) \leq \sum_{i=1}^n P(A_i)$$
 
-**For AI:** The union bound is the workhorse of statistical learning theory. To prove that a learned classifier generalises to unseen data with high probability, one typically applies the union bound over all possible hypotheses, then uses concentration inequalities (§05) to bound each term.
+**For AI:** The union bound is the workhorse of statistical learning theory. To prove that a learned classifier generalises to unseen data with high probability, one typically applies the union bound over all possible hypotheses, then uses concentration inequalities (Section05) to bound each term.
 
 ### 3.3 Conditional Probability
 
@@ -303,27 +303,27 @@ $$P(A \mid B) = \frac{P(A \cap B)}{P(B)}, \quad P(B) > 0$$
 **Intuition:** Conditioning on $B$ restricts the sample space from $\Omega$ to $B$. Within this restricted space, we renormalise by dividing by $P(B)$ to ensure the conditional probabilities sum to 1.
 
 ```
-CONDITIONAL PROBABILITY — GEOMETRIC INTUITION
-════════════════════════════════════════════════════════════════════════
+CONDITIONAL PROBABILITY - GEOMETRIC INTUITION
+========================================================================
 
   Before conditioning:         After conditioning on B:
-  ┌─────────────────────┐      ┌─────────────────────┐
-  │          Ω           │      │         B            │
-  │   ┌────────────┐    │      │   ┌──────────────┐  │
-  │   │  A   │A∩B │ B  │      │   │  A∩B         │  │
-  │   │      │    │    │      │   │ (renormalised)│  │
-  │   └────────────┘    │      │   └──────────────┘  │
-  └─────────────────────┘      └─────────────────────┘
+  +---------------------+      +---------------------+
+  |          \\Omega           |      |         B            |
+  |   +------------+    |      |   +--------------+  |
+  |   |  A   |A\\capB | B  |      |   |  A\\capB         |  |
+  |   |      |    |    |      |   | (renormalised)|  |
+  |   +------------+    |      |   +--------------+  |
+  +---------------------+      +---------------------+
 
-  P(A) = area(A) / area(Ω)     P(A|B) = area(A∩B) / area(B)
+  P(A) = area(A) / area(\\Omega)     P(A|B) = area(A\\capB) / area(B)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Key properties of conditional probability:**
 - $P(\cdot \mid B)$ is itself a valid probability measure on $(\Omega, \mathcal{F})$: it satisfies all three Kolmogorov axioms
-- $P(B \mid B) = 1$ — given $B$ occurred, $B$ certainly occurred
-- $P(A^c \mid B) = 1 - P(A \mid B)$ — the complement rule holds conditionally
+- $P(B \mid B) = 1$ - given $B$ occurred, $B$ certainly occurred
+- $P(A^c \mid B) = 1 - P(A \mid B)$ - the complement rule holds conditionally
 
 **Non-example:** $P(A \mid B) \neq P(B \mid A)$ in general. This asymmetry is the source of the classic prosecutor's fallacy: $P(\text{DNA match} \mid \text{innocent})$ is very small, but $P(\text{innocent} \mid \text{DNA match})$ could be substantial in a large population.
 
@@ -341,7 +341,7 @@ $$P(A_1 \cap A_2 \cap \cdots \cap A_n) = P(A_1) \cdot P(A_2 \mid A_1) \cdot P(A_
 
 $$P(x_1, x_2, \ldots, x_T) = P(x_1) \cdot P(x_2 \mid x_1) \cdot P(x_3 \mid x_1, x_2) \cdots P(x_T \mid x_1, \ldots, x_{T-1})$$
 
-Every GPT-family model is directly computing these conditional probabilities. The model is trained to minimise the average negative log of each factor — i.e., the cross-entropy loss.
+Every GPT-family model is directly computing these conditional probabilities. The model is trained to minimise the average negative log of each factor - i.e., the cross-entropy loss.
 
 ### 3.5 Law of Total Probability
 
@@ -377,7 +377,7 @@ $$P(B \mid A) = \frac{P(A \mid B) \cdot P(B)}{P(A \mid B) P(B) + P(A \mid B^c) P
 
 $$\underbrace{P(B \mid A)}_{\text{posterior}} = \frac{\overbrace{P(A \mid B)}^{\text{likelihood}} \cdot \overbrace{P(B)}^{\text{prior}}}{\underbrace{P(A)}_{\text{evidence}}}$$
 
-**Classic example — Spam filter.** Email is spam with prior $P(\text{spam}) = 0.3$. The word "lottery" appears in 80% of spam emails but only 5% of legitimate ones. Given an email contains "lottery", what is $P(\text{spam} \mid \text{lottery})$?
+**Classic example - Spam filter.** Email is spam with prior $P(\text{spam}) = 0.3$. The word "lottery" appears in 80% of spam emails but only 5% of legitimate ones. Given an email contains "lottery", what is $P(\text{spam} \mid \text{lottery})$?
 
 $$P(\text{spam} \mid \text{lottery}) = \frac{0.80 \times 0.30}{0.80 \times 0.30 + 0.05 \times 0.70} = \frac{0.24}{0.24 + 0.035} = \frac{0.24}{0.275} \approx 0.873$$
 
@@ -397,12 +397,12 @@ Intuitively, events $A$ and $B$ are independent if knowing one occurred gives no
 **Definition 4.1 (Independence).** Events $A$ and $B$ are *independent*, written $A \perp B$, if:
 $$P(A \cap B) = P(A) \cdot P(B)$$
 
-Equivalently (when $P(B) > 0$): $P(A \mid B) = P(A)$ — conditioning on $B$ does not change the probability of $A$.
+Equivalently (when $P(B) > 0$): $P(A \mid B) = P(A)$ - conditioning on $B$ does not change the probability of $A$.
 
 **Why this definition?** The conditional probability $P(A \mid B) = P(A \cap B)/P(B)$ equals $P(A)$ if and only if $P(A \cap B) = P(A)P(B)$. The multiplicative form is preferred as it is symmetric and well-defined even when $P(A) = 0$ or $P(B) = 0$.
 
 **Examples of independent events:**
-- Two fair coin flips: $P(\text{H on flip 1} \cap \text{H on flip 2}) = 1/4 = 1/2 \times 1/2$ ✓
+- Two fair coin flips: $P(\text{H on flip 1} \cap \text{H on flip 2}) = 1/4 = 1/2 \times 1/2$ [ok]
 - Drawing with replacement: second draw is independent of first
 - Two separate neural network weight initialisations drawn i.i.d.
 
@@ -414,7 +414,7 @@ Equivalently (when $P(B) > 0$): $P(A \mid B) = P(A)$ — conditioning on $B$ doe
 **For $n$ events (mutual independence):** Events $A_1, \ldots, A_n$ are mutually independent if for every subset $S \subseteq \{1, \ldots, n\}$:
 $$P\!\left(\bigcap_{i \in S} A_i\right) = \prod_{i \in S} P(A_i)$$
 
-This is strictly stronger than pairwise independence (see §4.3).
+This is strictly stronger than pairwise independence (see Section4.3).
 
 ### 4.2 Conditional Independence
 
@@ -423,12 +423,12 @@ Conditional independence is one of the most important concepts in probabilistic 
 **Definition 4.2 (Conditional independence).** Events $A$ and $B$ are *conditionally independent given* $C$, written $A \perp B \mid C$, if:
 $$P(A \cap B \mid C) = P(A \mid C) \cdot P(B \mid C)$$
 
-Equivalently (when $P(B \cap C) > 0$): $P(A \mid B, C) = P(A \mid C)$ — once we know $C$, learning $B$ gives no additional information about $A$.
+Equivalently (when $P(B \cap C) > 0$): $P(A \mid B, C) = P(A \mid C)$ - once we know $C$, learning $B$ gives no additional information about $A$.
 
-**The classic example — explaining away.** Let $A$ = "the grass is wet", $B$ = "the sprinkler is on", $C$ = "it rained". Rain and sprinkler are independent causes of wet grass. But:
+**The classic example - explaining away.** Let $A$ = "the grass is wet", $B$ = "the sprinkler is on", $C$ = "it rained". Rain and sprinkler are independent causes of wet grass. But:
 
 - Without knowing whether it rained: $A$ and $B$ are marginally dependent (if the grass is wet, the sprinkler being on is more likely)
-- Given that it rained: $A \perp B \mid C$ — knowing the sprinkler status adds nothing once we know it rained
+- Given that it rained: $A \perp B \mid C$ - knowing the sprinkler status adds nothing once we know it rained
 
 **Caution:** Independence and conditional independence are logically independent:
 - $A \perp B$ does NOT imply $A \perp B \mid C$ (conditioning can introduce dependence)
@@ -436,7 +436,7 @@ Equivalently (when $P(B \cap C) > 0$): $P(A \mid B, C) = P(A \mid C)$ — once w
 
 **For AI:** Conditional independence is the foundation of:
 - **Naive Bayes:** assumes features are conditionally independent given the class label
-- **Hidden Markov Models:** $x_t \perp x_{t'} \mid z_t$ — observations are independent given the hidden state
+- **Hidden Markov Models:** $x_t \perp x_{t'} \mid z_t$ - observations are independent given the hidden state
 - **Bayesian networks:** the factorisation $P(X_1, \ldots, X_n) = \prod_i P(X_i \mid \text{parents}(X_i))$ encodes a set of conditional independence assumptions
 - **Attention masks:** attention weights in transformers implement conditional independence (causal masking = future tokens are conditionally independent of past given present)
 
@@ -449,11 +449,11 @@ Equivalently (when $P(B \cap C) > 0$): $P(A \mid B, C) = P(A \mid C)$ — once w
 **Mutual independence implies pairwise independence but not vice versa.** The following counterexample (Bernstein, 1928) shows that pairwise independence can hold without mutual independence:
 
 Roll two fair dice. Define:
-- $A$ = "first die shows even" — $P(A) = 1/2$
-- $B$ = "second die shows even" — $P(B) = 1/2$
-- $C$ = "sum of dice is even" — $P(C) = 1/2$
+- $A$ = "first die shows even" - $P(A) = 1/2$
+- $B$ = "second die shows even" - $P(B) = 1/2$
+- $C$ = "sum of dice is even" - $P(C) = 1/2$
 
-Check pairwise: $P(A \cap B) = 1/4 = P(A)P(B)$ ✓, $P(A \cap C) = 1/4$ ✓, $P(B \cap C) = 1/4$ ✓.
+Check pairwise: $P(A \cap B) = 1/4 = P(A)P(B)$ [ok], $P(A \cap C) = 1/4$ [ok], $P(B \cap C) = 1/4$ [ok].
 
 But $P(A \cap B \cap C) = P(\text{both even, sum even}) = P(\text{both even}) = 1/4 \neq P(A)P(B)P(C) = 1/8$.
 
@@ -465,22 +465,22 @@ So $A, B, C$ are pairwise independent but not mutually independent.
 
 Independence assumptions make otherwise intractable problems tractable.
 
-**Without independence:** The joint distribution of $n$ binary random variables requires $2^n - 1$ parameters. For $n = 100$ features, this is $2^{100} - 1 \approx 10^{30}$ — utterly infeasible.
+**Without independence:** The joint distribution of $n$ binary random variables requires $2^n - 1$ parameters. For $n = 100$ features, this is $2^{100} - 1 \approx 10^{30}$ - utterly infeasible.
 
-**With conditional independence (Naive Bayes):** Given class $C$, features are independent: $P(\mathbf{x} \mid C) = \prod_{j=1}^n P(x_j \mid C)$. Now only $n$ parameters per class — linear in $n$.
+**With conditional independence (Naive Bayes):** Given class $C$, features are independent: $P(\mathbf{x} \mid C) = \prod_{j=1}^n P(x_j \mid C)$. Now only $n$ parameters per class - linear in $n$.
 
 **Independence in optimisation:** Mini-batch gradient descent assumes that samples in a batch are independent draws from the training distribution. This independence makes the batch gradient an unbiased estimator of the full gradient.
 
-**Independence and parallelism:** Independently distributed data can be processed in parallel without communication — the foundation of distributed ML training (data parallelism).
+**Independence and parallelism:** Independently distributed data can be processed in parallel without communication - the foundation of distributed ML training (data parallelism).
 
 
 ---
 
-## 5. Random Variables — Formal Foundation
+## 5. Random Variables - Formal Foundation
 
 ### 5.1 Definition: Random Variable as a Measurable Function
 
-The outcomes in a sample space $\Omega$ can be anything — text strings, images, dice faces. To do mathematics with them, we need to convert them to numbers. A random variable does exactly this.
+The outcomes in a sample space $\Omega$ can be anything - text strings, images, dice faces. To do mathematics with them, we need to convert them to numbers. A random variable does exactly this.
 
 **Definition 5.1 (Random variable).** A *random variable* $X$ is a (measurable) function from the sample space $\Omega$ to the real line $\mathbb{R}$:
 $$X : \Omega \to \mathbb{R}, \quad \omega \mapsto X(\omega)$$
@@ -501,35 +501,35 @@ The *measurability* requirement ensures that $\{\omega \in \Omega : X(\omega) \l
 
 The event $\{X \leq x\} = \{\omega \in \Omega : X(\omega) \leq x\}$ is well-defined, and we write $P(X \leq x)$ as shorthand for $P(\{X \leq x\})$.
 
-### 5.2 Discrete vs Continuous — Taxonomy
+### 5.2 Discrete vs Continuous - Taxonomy
 
 Random variables split into two main types based on the range of $X$.
 
 ```
 TAXONOMY OF RANDOM VARIABLES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Random Variable X: Ω → ℝ
-  │
-  ├── Discrete: X takes countably many values {x₁, x₂, x₃, ...}
-  │   │
-  │   ├── Characterised by PMF: p(x) = P(X = x)
-  │   ├── CDF: F(x) = Σ p(xᵢ) for all xᵢ ≤ x   (staircase)
-  │   └── Examples: Bernoulli, Geometric, Binomial, Poisson, Categorical
-  │
-  └── Continuous: X takes values in an interval (uncountably many)
-      │
-      ├── Characterised by PDF: f(x) such that P(a≤X≤b) = ∫ₐᵇ f(x)dx
-      ├── CDF: F(x) = ∫₋∞ˣ f(t)dt   (smooth, differentiable)
-      └── Examples: Uniform, Gaussian, Exponential, Beta, Gamma
+  Random Variable X: \\Omega -> \\mathbb{R}
+  |
+  +-- Discrete: X takes countably many values {x_1, x_2, x_3, ...}
+  |   |
+  |   +-- Characterised by PMF: p(x) = P(X = x)
+  |   +-- CDF: F(x) = \\Sigma p(x_i) for all x_i \\leq x   (staircase)
+  |   +-- Examples: Bernoulli, Geometric, Binomial, Poisson, Categorical
+  |
+  +-- Continuous: X takes values in an interval (uncountably many)
+      |
+      +-- Characterised by PDF: f(x) such that P(a\\leqX\\leqb) = \\int_a^b f(x)dx
+      +-- CDF: F(x) = \\int_-\\infty^x f(t)dt   (smooth, differentiable)
+      +-- Examples: Uniform, Gaussian, Exponential, Beta, Gamma
 
   Note: "Mixed" random variables exist (CDF is a mix of jumps and
   smooth parts) but are rare in practice.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Key distinction — probability at a point:**
+**Key distinction - probability at a point:**
 - Discrete: $P(X = x)$ can be positive (it is the PMF value)
 - Continuous: $P(X = x) = 0$ for every specific $x$ (the probability of hitting any exact value is zero). Probabilities come from integrating over intervals.
 
@@ -560,7 +560,7 @@ $$P(X > x) = 1 - F(x)$$
 3. **Limits:** $\lim_{x \to -\infty} F(x) = 0$ and $\lim_{x \to +\infty} F(x) = 1$
 4. **Jump characterisation:** $P(X = x) = F(x) - F(x^-)$ where $F(x^-) = \lim_{y \uparrow x} F(y)$. For continuous $X$, this is 0 everywhere; for discrete $X$, it equals the PMF at jump points.
 
-*These four properties completely characterise CDFs* — any function satisfying them is the CDF of some random variable. This is both the universality and the tractability of the CDF.
+*These four properties completely characterise CDFs* - any function satisfying them is the CDF of some random variable. This is both the universality and the tractability of the CDF.
 
 **Fundamental theorem (continuous case):** For continuous $X$ with CDF $F$ and PDF $f$:
 $$f(x) = \frac{d}{dx} F(x), \quad F(x) = \int_{-\infty}^x f(t)\, dt$$
@@ -581,16 +581,16 @@ $$p_X(x) = P(X = x), \quad x \in \mathcal{X}$$
 2. $\sum_{x \in \mathcal{X}} p_X(x) = 1$ (Axiom 2)
 3. $p_X(x) = 0$ for $x \notin \mathcal{X}$
 
-**CDF from PMF:** $F_X(x) = \sum_{x_i \leq x} p_X(x_i)$ — sum all PMF values at or below $x$.
+**CDF from PMF:** $F_X(x) = \sum_{x_i \leq x} p_X(x_i)$ - sum all PMF values at or below $x$.
 
 **Non-examples of valid PMFs:**
 - $p(0) = 0.6, p(1) = 0.6$: sum = 1.2 > 1
 - $p(0) = -0.2, p(1) = 1.2$: negative value
 - $p(k) = 1/k$ for $k = 1, 2, \ldots$: $\sum 1/k = \infty$ (harmonic series diverges)
 
-**For AI:** Every classifier's output layer implicitly defines a PMF over classes. The softmax function $\text{softmax}(\mathbf{z})_k = e^{z_k}/\sum_j e^{z_j}$ produces a vector of non-negative values summing to 1 — a valid PMF over the $K$ classes. Training minimises the cross-entropy between this PMF and the one-hot PMF of the true label.
+**For AI:** Every classifier's output layer implicitly defines a PMF over classes. The softmax function $\text{softmax}(\mathbf{z})_k = e^{z_k}/\sum_j e^{z_j}$ produces a vector of non-negative values summing to 1 - a valid PMF over the $K$ classes. Training minimises the cross-entropy between this PMF and the one-hot PMF of the true label.
 
-### 6.2 Bernoulli Distribution — The Canonical Example
+### 6.2 Bernoulli Distribution - The Canonical Example
 
 The Bernoulli distribution is the simplest non-trivial probability distribution: a single binary trial.
 
@@ -629,7 +629,7 @@ $$P(X = k) = (1-p)^{k-1} p, \quad k = 1, 2, 3, \ldots$$
 **Properties:**
 - **Mean:** $\mathbb{E}[X] = 1/p$
 - **Variance:** $\operatorname{Var}(X) = (1-p)/p^2$
-- **Memoryless property:** $P(X > m+n \mid X > m) = P(X > n)$ — the past gives no information about the remaining wait time. The Geometric is the only discrete memoryless distribution.
+- **Memoryless property:** $P(X > m+n \mid X > m) = P(X > n)$ - the past gives no information about the remaining wait time. The Geometric is the only discrete memoryless distribution.
 
 **Geometric series check (normalisation):**
 $$\sum_{k=1}^\infty (1-p)^{k-1}p = p \sum_{k=0}^\infty (1-p)^k = p \cdot \frac{1}{1-(1-p)} = p \cdot \frac{1}{p} = 1 \checkmark$$
@@ -641,22 +641,22 @@ $$\sum_{k=1}^\infty (1-p)^{k-1}p = p \sum_{k=0}^\infty (1-p)^k = p \cdot \frac{1
 
 ### 6.4 Preview: Binomial, Categorical, Poisson
 
-The following distributions have their full treatment in §02-Common-Distributions. They are introduced here briefly for orientation:
+The following distributions have their full treatment in Section02-Common-Distributions. They are introduced here briefly for orientation:
 
 > **Preview: Binomial Distribution**
 > $\text{Binomial}(n, p)$ counts the number of successes in $n$ independent Bernoulli($p$) trials: $P(X = k) = \binom{n}{k}p^k(1-p)^{n-k}$ for $k = 0, 1, \ldots, n$. Mean $np$, variance $np(1-p)$. As $n \to \infty$ with $np = \lambda$ fixed, the Binomial converges to Poisson($\lambda$).
 >
-> → _Full treatment: [Common Distributions §2](../02-Common-Distributions/notes.md)_
+> -> _Full treatment: [Common Distributions Section2](../02-Common-Distributions/notes.md)_
 
 > **Preview: Categorical Distribution**
 > $\text{Categorical}(\mathbf{p})$ with $\mathbf{p} \in \Delta^{K-1}$ (the probability simplex) models selection of one of $K$ categories: $P(X = k) = p_k$. This is the distribution underlying softmax classifiers and language model next-token prediction.
 >
-> → _Full treatment: [Common Distributions §4](../02-Common-Distributions/notes.md)_
+> -> _Full treatment: [Common Distributions Section4](../02-Common-Distributions/notes.md)_
 
 > **Preview: Poisson Distribution**
 > $\text{Poisson}(\lambda)$ models the number of events in a fixed interval when events occur independently at constant rate $\lambda$: $P(X = k) = e^{-\lambda}\lambda^k/k!$. Mean = Variance = $\lambda$. Used in modelling word frequencies (Zipf/Poisson approximation), network packet arrivals, and mutation rates.
 >
-> → _Full treatment: [Common Distributions §3](../02-Common-Distributions/notes.md)_
+> -> _Full treatment: [Common Distributions Section3](../02-Common-Distributions/notes.md)_
 
 ---
 
@@ -671,11 +671,11 @@ For continuous random variables, individual points have probability zero. Probab
 2. $\int_{-\infty}^{\infty} f_X(x)\, dx = 1$
 3. For any $a \leq b$: $P(a \leq X \leq b) = \int_a^b f_X(x)\, dx$
 
-**Critical distinction:** The PDF $f_X(x)$ is NOT a probability. It is a probability *density* — probability per unit length. In particular, $f_X(x)$ can exceed 1 (though the integral must equal 1).
+**Critical distinction:** The PDF $f_X(x)$ is NOT a probability. It is a probability *density* - probability per unit length. In particular, $f_X(x)$ can exceed 1 (though the integral must equal 1).
 
-**Example:** $f_X(x) = 2x$ for $x \in [0,1]$ and $0$ elsewhere. This is a valid PDF: non-negative, integrates to $\int_0^1 2x\,dx = [x^2]_0^1 = 1$. Note $f_X(0.9) = 1.8 > 1$, but this is fine — it is a density.
+**Example:** $f_X(x) = 2x$ for $x \in [0,1]$ and $0$ elsewhere. This is a valid PDF: non-negative, integrates to $\int_0^1 2x\,dx = [x^2]_0^1 = 1$. Note $f_X(0.9) = 1.8 > 1$, but this is fine - it is a density.
 
-**Probability at a point:** $P(X = x) = \int_x^x f(t)\,dt = 0$. This is why conditioning on a continuous event requires care and is handled via conditional densities (§03).
+**Probability at a point:** $P(X = x) = \int_x^x f(t)\,dt = 0$. This is why conditioning on a continuous event requires care and is handled via conditional densities (Section03).
 
 **Non-examples of valid PDFs:**
 - $f(x) = x$ on $[0,1]$: $\int_0^1 x\,dx = 1/2 \neq 1$ (not normalised)
@@ -721,9 +721,9 @@ $$\operatorname{Var}(X) = \frac{a^2+ab+b^2}{3} - \left(\frac{a+b}{2}\right)^2 = 
 - **Data augmentation:** random cropping positions, rotation angles, colour jitter magnitudes drawn from uniform distributions
 - **Hyperparameter search:** random search over hyperparameter ranges samples uniformly from the search space
 
-### 7.4 Gaussian Distribution — Introduction
+### 7.4 Gaussian Distribution - Introduction
 
-The Gaussian (Normal) distribution is the most important continuous distribution in all of probability and statistics, due to the Central Limit Theorem (§06-Stochastic-Processes) and its mathematical tractability.
+The Gaussian (Normal) distribution is the most important continuous distribution in all of probability and statistics, due to the Central Limit Theorem (Section06-Stochastic-Processes) and its mathematical tractability.
 
 **Definition 7.3 (Gaussian distribution).** $X \sim \mathcal{N}(\mu, \sigma^2)$ with mean $\mu \in \mathbb{R}$ and variance $\sigma^2 > 0$ if:
 $$f_X(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right), \quad x \in \mathbb{R}$$
@@ -736,8 +736,8 @@ Its CDF is $\Phi(z) = \int_{-\infty}^z \phi(t)\, dt$, which has no closed form b
 **Properties:**
 - **Mean:** $\mathbb{E}[X] = \mu$
 - **Variance:** $\operatorname{Var}(X) = \sigma^2$
-- **Symmetry:** $f(\mu - x) = f(\mu + x)$ — symmetric about $\mu$
-- **68–95–99.7 rule:**
+- **Symmetry:** $f(\mu - x) = f(\mu + x)$ - symmetric about $\mu$
+- **68-95-99.7 rule:**
   - $P(\mu - \sigma \leq X \leq \mu + \sigma) \approx 68.27\%$
   - $P(\mu - 2\sigma \leq X \leq \mu + 2\sigma) \approx 95.45\%$
   - $P(\mu - 3\sigma \leq X \leq \mu + 3\sigma) \approx 99.73\%$
@@ -745,9 +745,9 @@ Its CDF is $\Phi(z) = \int_{-\infty}^z \phi(t)\, dt$, which has no closed form b
 - **Affine stability:** If $X \sim \mathcal{N}(\mu, \sigma^2)$, then $aX + b \sim \mathcal{N}(a\mu + b, a^2\sigma^2)$
 
 **Why the Gaussian is ubiquitous:**
-1. **Central Limit Theorem (preview):** The sum of many i.i.d. random variables with finite variance converges to a Gaussian — regardless of the original distribution. See §06.
+1. **Central Limit Theorem (preview):** The sum of many i.i.d. random variables with finite variance converges to a Gaussian - regardless of the original distribution. See Section06.
 2. **Maximum entropy:** Among all continuous distributions with fixed mean $\mu$ and variance $\sigma^2$, the Gaussian maximises entropy (is the "least informative" given these constraints)
-3. **Conjugacy:** The Gaussian is conjugate to itself under Bayesian updating with Gaussian likelihood — the posterior is also Gaussian
+3. **Conjugacy:** The Gaussian is conjugate to itself under Bayesian updating with Gaussian likelihood - the posterior is also Gaussian
 
 **ML applications of the Gaussian:**
 - **Weight initialisation (He/Kaiming):** weights drawn from $\mathcal{N}(0, 2/n_{\text{in}})$ for ReLU networks
@@ -757,23 +757,23 @@ Its CDF is $\Phi(z) = \int_{-\infty}^z \phi(t)\, dt$, which has no closed form b
 - **Score functions:** the score $\nabla_x \log p(x)$ for a Gaussian is linear: $\nabla_x \log \mathcal{N}(x;\mu,\sigma^2) = -(x-\mu)/\sigma^2$
 
 > **Preview: Exponential, Beta, Gamma Distributions**
-> The Exponential distribution models waiting times between Poisson events; the Beta models probabilities on $[0,1]$ (conjugate prior for Bernoulli); the Gamma generalises both. Full treatment: [Common Distributions §5, §6, §7](../02-Common-Distributions/notes.md).
+> The Exponential distribution models waiting times between Poisson events; the Beta models probabilities on $[0,1]$ (conjugate prior for Bernoulli); the Gamma generalises both. Full treatment: [Common Distributions Section5, Section6, Section7](../02-Common-Distributions/notes.md).
 
 
 ---
 
-## 8. Expectation and Variance — Foundations
+## 8. Expectation and Variance - Foundations
 
 ### 8.1 Expected Value: Definition and Linearity
 
-The expected value (or mean) of a random variable is its probability-weighted average — the "centre of mass" of its distribution.
+The expected value (or mean) of a random variable is its probability-weighted average - the "centre of mass" of its distribution.
 
-**Definition 8.1 (Expected value — discrete).** For a discrete $X$ with PMF $p_X$:
+**Definition 8.1 (Expected value - discrete).** For a discrete $X$ with PMF $p_X$:
 $$\mathbb{E}[X] = \sum_{x \in \mathcal{X}} x \cdot p_X(x)$$
 
 (provided the sum converges absolutely: $\sum |x| p_X(x) < \infty$).
 
-**Definition 8.2 (Expected value — continuous).** For a continuous $X$ with PDF $f_X$:
+**Definition 8.2 (Expected value - continuous).** For a continuous $X$ with PDF $f_X$:
 $$\mathbb{E}[X] = \int_{-\infty}^{\infty} x \cdot f_X(x)\, dx$$
 
 (provided the integral converges absolutely).
@@ -784,12 +784,12 @@ $$\mathbb{E}[X] = \int_{-\infty}^{\infty} x \cdot f_X(x)\, dx$$
 - $\mathcal{N}(\mu, \sigma^2)$: $\mathbb{E}[X] = \mu$ (by symmetry and definition)
 - Fair die: $\mathbb{E}[X] = (1+2+3+4+5+6)/6 = 3.5$
 
-**Non-example (expectation undefined):** The Cauchy distribution with PDF $f(x) = 1/(\pi(1+x^2))$ has $\int_{-\infty}^\infty |x|/(π(1+x^2))\,dx = \infty$, so $\mathbb{E}[X]$ does not exist. This is why heavy-tailed distributions require care.
+**Non-example (expectation undefined):** The Cauchy distribution with PDF $f(x) = 1/(\pi(1+x^2))$ has $\int_{-\infty}^\infty |x|/(\\pi(1+x^2))\,dx = \infty$, so $\mathbb{E}[X]$ does not exist. This is why heavy-tailed distributions require care.
 
 **Theorem 8.1 (Linearity of expectation).** For any random variables $X$, $Y$ and constants $a$, $b$:
 $$\mathbb{E}[aX + bY] = a\,\mathbb{E}[X] + b\,\mathbb{E}[Y]$$
 
-This holds whether or not $X$ and $Y$ are independent — linearity of expectation is unconditional.
+This holds whether or not $X$ and $Y$ are independent - linearity of expectation is unconditional.
 
 *Proof (discrete):* $\mathbb{E}[aX + bY] = \sum_{x,y}(ax+by)P(X=x, Y=y) = a\sum_x x \sum_y P(X=x,Y=y) + b\sum_y y \sum_x P(X=x,Y=y) = a\mathbb{E}[X] + b\mathbb{E}[Y]$. $\square$
 
@@ -801,13 +801,13 @@ This follows from linearity of both expectation and differentiation.
 **Expected value of a function:** For $g : \mathbb{R} \to \mathbb{R}$:
 $$\mathbb{E}[g(X)] = \sum_x g(x) p_X(x) \quad (\text{discrete}), \qquad \mathbb{E}[g(X)] = \int g(x) f_X(x)\, dx \quad (\text{continuous})$$
 
-This is the *Law of the Unconscious Statistician (LOTUS)* — you can compute $\mathbb{E}[g(X)]$ directly from the distribution of $X$ without finding the distribution of $g(X)$ first. (Full treatment in §04.)
+This is the *Law of the Unconscious Statistician (LOTUS)* - you can compute $\mathbb{E}[g(X)]$ directly from the distribution of $X$ without finding the distribution of $g(X)$ first. (Full treatment in Section04.)
 
 **Warning:** $\mathbb{E}[g(X)] \neq g(\mathbb{E}[X])$ in general. For example, $\mathbb{E}[X^2] \neq (\mathbb{E}[X])^2$ (the gap is the variance). Jensen's inequality gives the direction: if $g$ is convex, $g(\mathbb{E}[X]) \leq \mathbb{E}[g(X)]$.
 
 ### 8.2 Variance and Standard Deviation
 
-Variance measures spread — how far a random variable typically deviates from its mean.
+Variance measures spread - how far a random variable typically deviates from its mean.
 
 **Definition 8.3 (Variance).** The *variance* of $X$ is:
 $$\operatorname{Var}(X) = \mathbb{E}\!\left[(X - \mathbb{E}[X])^2\right]$$
@@ -832,7 +832,7 @@ $$\operatorname{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$$
 4. If $X \perp Y$: $\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y)$
 
 **For AI:** Variance appears throughout ML:
-- **Bias-variance tradeoff:** test error = bias² + variance + irreducible noise. High-variance models overfit.
+- **Bias-variance tradeoff:** test error = bias^2 + variance + irreducible noise. High-variance models overfit.
 - **Gradient variance:** the variance of the stochastic gradient estimator determines training stability. Variance reduction techniques (control variates, importance sampling) reduce this.
 - **Batch normalisation:** standardises activations to have mean 0 and variance 1 within each batch, stabilising training.
 - **Uncertainty in predictions:** the variance of a Gaussian output head models aleatoric uncertainty.
@@ -856,17 +856,17 @@ Examples: $(\mathbb{E}[X])^2 \leq \mathbb{E}[X^2]$ (taking $g(x)=x^2$); $e^{\mat
 > **Preview: Covariance and Correlation**
 > The covariance $\operatorname{Cov}(X,Y) = \mathbb{E}[(X-\mu_X)(Y-\mu_Y)]$ measures linear dependence between two random variables. The covariance matrix $\Sigma$ of a random vector extends this to multiple dimensions. These are the core tools for analysing multivariate distributions.
 >
-> → _Full treatment: [Expectation and Moments §3](../04-Expectation-and-Moments/notes.md)_
+> -> _Full treatment: [Expectation and Moments Section3](../04-Expectation-and-Moments/notes.md)_
 
 > **Preview: Law of the Unconscious Statistician (LOTUS)**
 > LOTUS allows computing $\mathbb{E}[g(X)]$ using the distribution of $X$ directly: no change-of-variables required. It is the foundational tool for deriving moments and the expected loss under a distribution.
 >
-> → _Full treatment: [Expectation and Moments §2](../04-Expectation-and-Moments/notes.md)_
+> -> _Full treatment: [Expectation and Moments Section2](../04-Expectation-and-Moments/notes.md)_
 
 > **Preview: Moment Generating Functions**
 > The MGF $M_X(t) = \mathbb{E}[e^{tX}]$ encodes all moments of $X$: $\mathbb{E}[X^n] = M_X^{(n)}(0)$. MGFs are the key tool for proving the Central Limit Theorem and computing tail bounds.
 >
-> → _Full treatment: [Expectation and Moments §5](../04-Expectation-and-Moments/notes.md)_
+> -> _Full treatment: [Expectation and Moments Section5](../04-Expectation-and-Moments/notes.md)_
 
 ---
 
@@ -881,7 +881,7 @@ $$p_Y(y) = P(Y = y) = P(g(X) = y) = \sum_{x : g(x) = y} p_X(x)$$
 
 **Example.** $X \sim \text{Uniform}\{1,2,3,4,5,6\}$ (fair die), $Y = X^2 \bmod 6$. Then $p_Y(1) = P(X^2 \equiv 1 \bmod 6) = P(X \in \{1,5\}) = 1/3$, etc.
 
-**Continuous case — CDF method.** For continuous $X$ and $Y = g(X)$, compute the CDF of $Y$:
+**Continuous case - CDF method.** For continuous $X$ and $Y = g(X)$, compute the CDF of $Y$:
 $$F_Y(y) = P(Y \leq y) = P(g(X) \leq y) = P(X \in \{x : g(x) \leq y\})$$
 
 then differentiate to get the PDF: $f_Y(y) = F_Y'(y)$.
@@ -890,7 +890,7 @@ then differentiate to get the PDF: $f_Y(y) = F_Y'(y)$.
 
 For monotone transformations, the CDF method yields a clean formula.
 
-**Theorem 9.1 (Change of variables — monotone, 1-D).** Let $X$ have PDF $f_X$ and CDF $F_X$. Let $g$ be a differentiable, strictly monotone function on the support of $X$, with inverse $h = g^{-1}$. Then $Y = g(X)$ has PDF:
+**Theorem 9.1 (Change of variables - monotone, 1-D).** Let $X$ have PDF $f_X$ and CDF $F_X$. Let $g$ be a differentiable, strictly monotone function on the support of $X$, with inverse $h = g^{-1}$. Then $Y = g(X)$ has PDF:
 $$f_Y(y) = f_X(h(y)) \cdot \left|\frac{dh}{dy}\right| = f_X(h(y)) \cdot \left|\frac{1}{g'(h(y))}\right|$$
 
 *Derivation (increasing $g$):*
@@ -905,9 +905,9 @@ $$f_Y(y) = \phi(\ln y) \cdot \frac{1}{y} = \frac{1}{\sqrt{2\pi}}\, e^{-(\ln y)^2
 **Example.** $X \sim \mathcal{N}(\mu, \sigma^2)$, $Y = (X - \mu)/\sigma$ (standardisation). Here $g(x) = (x-\mu)/\sigma$, $h(y) = \mu + \sigma y$, $h'(y) = \sigma$:
 $$f_Y(y) = f_X(\mu + \sigma y) \cdot \sigma = \frac{1}{\sqrt{2\pi\sigma^2}} e^{-y^2/2} \cdot \sigma = \frac{1}{\sqrt{2\pi}} e^{-y^2/2} = \phi(y)$$
 
-So $Y \sim \mathcal{N}(0,1)$. ✓
+So $Y \sim \mathcal{N}(0,1)$. [ok]
 
-**For AI:** The change-of-variables formula is the mathematical foundation of *normalising flows* — generative models that learn a bijection $g : \mathbb{R}^d \to \mathbb{R}^d$ transforming a simple base distribution (e.g., $\mathcal{N}(0,I)$) into a complex target distribution. The log-density of the transformed variable is:
+**For AI:** The change-of-variables formula is the mathematical foundation of *normalising flows* - generative models that learn a bijection $g : \mathbb{R}^d \to \mathbb{R}^d$ transforming a simple base distribution (e.g., $\mathcal{N}(0,I)$) into a complex target distribution. The log-density of the transformed variable is:
 $$\log p_Y(y) = \log p_X(g^{-1}(y)) + \log |\det J_{g^{-1}}(y)|$$
 where $J_{g^{-1}}$ is the Jacobian of the inverse transformation.
 
@@ -923,8 +923,8 @@ Then $\mathbb{E}[Z] = 0$ and $\operatorname{Var}(Z) = 1$ regardless of the distr
 **Applications in ML:**
 - **Feature normalisation (preprocessing):** standardise each feature so that the gradient has comparable scale across dimensions, improving optimiser convergence
 - **Batch normalisation (BN):** standardises activations within each mini-batch, then applies learned scale and shift parameters $(\gamma, \beta)$: $\hat{x} = (x - \hat{\mu})/\hat{\sigma}$, output $= \gamma\hat{x} + \beta$
-- **Layer normalisation (LN):** same idea but normalising across features rather than the batch dimension — standard in transformer models
-- **RMS Normalisation (RMSNorm):** a simplified variant using only the RMS (root mean square), dropping the mean subtraction — used in LLaMA, Gemma, and Mistral models: $\hat{x}_i = x_i / \text{RMS}(\mathbf{x})$
+- **Layer normalisation (LN):** same idea but normalising across features rather than the batch dimension - standard in transformer models
+- **RMS Normalisation (RMSNorm):** a simplified variant using only the RMS (root mean square), dropping the mean subtraction - used in LLaMA, Gemma, and Mistral models: $\hat{x}_i = x_i / \text{RMS}(\mathbf{x})$
 
 ---
 
@@ -954,7 +954,7 @@ Minimising negative log-likelihood under a Gaussian noise model is equivalent to
 **For language modelling.** Each token has distribution $p_\theta(x_t \mid x_{<t}) = \text{Categorical}(\text{softmax}(z_t))$. The NLL loss over a sequence of $T$ tokens is:
 $$\mathcal{L} = -\frac{1}{T}\sum_{t=1}^T \log p_\theta(x_t \mid x_{<t})$$
 
-This is the standard pretraining loss for GPT-family models. The perplexity is $\exp(\mathcal{L})$ — a lower perplexity means the model assigns higher probability to the actual next token.
+This is the standard pretraining loss for GPT-family models. The perplexity is $\exp(\mathcal{L})$ - a lower perplexity means the model assigns higher probability to the actual next token.
 
 ### 10.2 Bayesian Inference: Prior, Likelihood, Posterior
 
@@ -967,10 +967,10 @@ The normalising constant $p(\mathcal{D}) = \int p(\mathcal{D} \mid \theta) p(\th
 **MAP estimation.** The Maximum A Posteriori (MAP) estimate is the mode of the posterior:
 $$\theta^*_{\text{MAP}} = \arg\max_\theta \log p(\theta \mid \mathcal{D}) = \arg\max_\theta \left[\log p(\mathcal{D} \mid \theta) + \log p(\theta)\right]$$
 
-With a Gaussian prior $p(\theta) = \mathcal{N}(0, \lambda^{-1}I)$, the $\log p(\theta)$ term becomes $-\lambda\|\theta\|^2/2$ — i.e., L2 regularisation (weight decay). MAP estimation with a Gaussian prior is exactly regularised MLE.
+With a Gaussian prior $p(\theta) = \mathcal{N}(0, \lambda^{-1}I)$, the $\log p(\theta)$ term becomes $-\lambda\|\theta\|^2/2$ - i.e., L2 regularisation (weight decay). MAP estimation with a Gaussian prior is exactly regularised MLE.
 
 **For AI:** Bayesian thinking is increasingly central to modern AI:
-- **Model uncertainty (epistemic):** the posterior over models captures uncertainty from limited data — Bayesian deep learning approximates this posterior
+- **Model uncertainty (epistemic):** the posterior over models captures uncertainty from limited data - Bayesian deep learning approximates this posterior
 - **RLHF reward model:** human preferences give a likelihood $P(\text{human prefers } y_1 \text{ over } y_2 \mid r_1, r_2)$; updating the reward model is a posterior update
 - **In-context learning:** some interpretations frame few-shot ICL as implicit Bayesian updating over hypotheses about the task
 
@@ -980,13 +980,13 @@ A language model defines a probability distribution over sequences of tokens. Gi
 
 $$P(\mathbf{x}) = P(x_1) \cdot P(x_2 \mid x_1) \cdot P(x_3 \mid x_1, x_2) \cdots P(x_T \mid x_1, \ldots, x_{T-1}) = \prod_{t=1}^T P(x_t \mid x_{<t})$$
 
-by the chain rule of probability (§3.4). Each conditional $P(x_t \mid x_{<t})$ is a Categorical distribution over $|\mathcal{V}|$ tokens, produced by the transformer's softmax output.
+by the chain rule of probability (Section3.4). Each conditional $P(x_t \mid x_{<t})$ is a Categorical distribution over $|\mathcal{V}|$ tokens, produced by the transformer's softmax output.
 
 **Sampling strategies as distribution operations:**
-- **Greedy decoding:** always take $\arg\max P(x_t \mid x_{<t})$ — equivalent to a degenerate point mass
+- **Greedy decoding:** always take $\arg\max P(x_t \mid x_{<t})$ - equivalent to a degenerate point mass
 - **Temperature scaling:** replace logits $z$ with $z/\tau$; $\tau \to 0$ approaches greedy, $\tau \to \infty$ approaches uniform
-- **Top-$k$ sampling:** restrict to the $k$ most probable tokens, renormalise — truncates the distribution
-- **Top-$p$ (nucleus) sampling:** restrict to the smallest set of tokens whose cumulative probability $\geq p$, renormalise — adapts the cutoff to the entropy of the distribution
+- **Top-$k$ sampling:** restrict to the $k$ most probable tokens, renormalise - truncates the distribution
+- **Top-$p$ (nucleus) sampling:** restrict to the smallest set of tokens whose cumulative probability $\geq p$, renormalise - adapts the cutoff to the entropy of the distribution
 
 **Bits-per-character (BPC) and perplexity:** The quality of a language model is measured by how much probability mass it assigns to held-out text. Perplexity = $\exp(-\frac{1}{T}\sum_t \log P(x_t \mid x_{<t}))$. A perplexity of $k$ means the model is "as uncertain as a uniform distribution over $k$ choices" at each step.
 
@@ -1018,14 +1018,14 @@ Each source of randomness introduces variance into the training process. Underst
 | # | Mistake | Why It's Wrong | Fix |
 |---|---|---|---|
 | 1 | Confusing $P(A \mid B)$ with $P(B \mid A)$ | These are completely different quantities (prosecutor's fallacy, base rate neglect) | Always identify which is the "given" and which is the "unknown" before applying Bayes' theorem |
-| 2 | Treating $f_X(x)$ as a probability | The PDF is a density — it can exceed 1, and individual point probabilities are always 0 for continuous $X$ | Probabilities come from integrating the PDF: $P(a \leq X \leq b) = \int_a^b f(x)dx$ |
+| 2 | Treating $f_X(x)$ as a probability | The PDF is a density - it can exceed 1, and individual point probabilities are always 0 for continuous $X$ | Probabilities come from integrating the PDF: $P(a \leq X \leq b) = \int_a^b f(x)dx$ |
 | 3 | Assuming independence from $\mathbb{E}[XY] = \mathbb{E}[X]\mathbb{E}[Y]$ | Uncorrelated does not imply independent; independence is strictly stronger | Use the definition: $X \perp Y \iff P(X \leq x, Y \leq y) = P(X \leq x)P(Y \leq y)$ for all $x,y$ |
 | 4 | Applying Axiom 3 to non-disjoint events | $P(A \cup B) = P(A) + P(B)$ holds only when $A \cap B = \emptyset$ | Use inclusion-exclusion: $P(A \cup B) = P(A) + P(B) - P(A \cap B)$ |
 | 5 | Forgetting to check normalisation when constructing a PMF/PDF | An un-normalised function cannot be a PMF or PDF | Always verify $\sum_x p(x) = 1$ (discrete) or $\int f(x)dx = 1$ (continuous) |
 | 6 | Using $\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y)$ without checking independence | Variance is additive only for uncorrelated (not just any) random variables | Add the covariance term: $\operatorname{Var}(X+Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) + 2\operatorname{Cov}(X,Y)$ |
 | 7 | Confusing $\mathbb{E}[g(X)]$ with $g(\mathbb{E}[X])$ | Jensen's inequality shows these differ whenever $g$ is nonlinear | Compute $\mathbb{E}[g(X)]$ using LOTUS: $\mathbb{E}[g(X)] = \sum_x g(x)p(x)$ or $\int g(x)f(x)dx$ |
 | 8 | Confusing pairwise independence with mutual independence | Events can be pairwise independent but not mutually independent (Bernstein example) | For $n > 2$ events, verify independence for all $2^n - n - 1$ subsets, or use a structural argument |
-| 9 | Assuming $P(A \cap B) = 0$ when $A$ and $B$ are independent | Independence means $P(A \cap B) = P(A)P(B)$; this is zero only when $P(A) = 0$ or $P(B) = 0$ | Independence ≠ mutual exclusivity. Disjoint events ($A \cap B = \emptyset$) with positive probability are necessarily dependent |
+| 9 | Assuming $P(A \cap B) = 0$ when $A$ and $B$ are independent | Independence means $P(A \cap B) = P(A)P(B)$; this is zero only when $P(A) = 0$ or $P(B) = 0$ | Independence \\neq mutual exclusivity. Disjoint events ($A \cap B = \emptyset$) with positive probability are necessarily dependent |
 | 10 | Applying the change-of-variables formula without the absolute value of the Jacobian | For decreasing transformations, the Jacobian $dh/dy$ is negative; omitting the absolute value gives a negative PDF | Always write $f_Y(y) = f_X(h(y)) \cdot |h'(y)|$ |
 | 11 | Concluding $X$ and $Y$ are independent from a correlation of zero in non-Gaussian data | Zero correlation $\Leftrightarrow$ uncorrelated, which does NOT imply independence for non-Gaussian distributions | Independence implies zero correlation, but not vice versa. Check independence directly or use copulas |
 | 12 | Treating conditional probability as symmetric: $P(A \mid B) = P(B \mid A)$ | $P(A \mid B) = P(B \mid A)$ only if $P(A) = P(B)$ (from Bayes' theorem with equal priors) | Apply Bayes' theorem to convert between the two: $P(B \mid A) = P(A \mid B) P(B) / P(A)$ |
@@ -1034,7 +1034,7 @@ Each source of randomness introduces variance into the training process. Underst
 
 ## 12. Exercises
 
-**Exercise 1 ★ — Axiom Derivations**
+**Exercise 1 * - Axiom Derivations**
 Using only the three Kolmogorov axioms, prove each of the following:
 (a) $P(\emptyset) = 0$
 (b) $P(A^c) = 1 - P(A)$
@@ -1044,7 +1044,7 @@ Using only the three Kolmogorov axioms, prove each of the following:
 
 *Each proof should cite exactly which axiom(s) and which previously proved results it uses.*
 
-**Exercise 2 ★ — Bayes' Theorem Application**
+**Exercise 2 * - Bayes' Theorem Application**
 A medical test for a disease has sensitivity 95% (true positive rate) and specificity 98% (true negative rate). The disease affects 0.5% of the population.
 (a) Define events $D$ (has disease) and $T$ (tests positive). State all given probabilities.
 (b) Compute $P(T)$ using the law of total probability.
@@ -1052,7 +1052,7 @@ A medical test for a disease has sensitivity 95% (true positive rate) and specif
 (d) Explain why the result might surprise a clinician unfamiliar with Bayes' theorem.
 (e) How would the answer change if the disease prevalence were 10% instead of 0.5%? Compute and interpret.
 
-**Exercise 3 ★ — PMF Construction and Verification**
+**Exercise 3 * - PMF Construction and Verification**
 A biased die has $P(X = k) = c \cdot k$ for $k \in \{1, 2, 3, 4, 5, 6\}$.
 (a) Find the normalisation constant $c$.
 (b) Verify this is a valid PMF.
@@ -1060,7 +1060,7 @@ A biased die has $P(X = k) = c \cdot k$ for $k \in \{1, 2, 3, 4, 5, 6\}$.
 (d) Compute $\operatorname{Var}(X)$.
 (e) What is $P(X \geq 4)$? Compare to the fair die.
 
-**Exercise 4 ★★ — CDF Analysis**
+**Exercise 4 ** - CDF Analysis**
 Let $X$ have CDF $F(x) = 1 - e^{-\lambda x}$ for $x \geq 0$ and $F(x) = 0$ for $x < 0$ (Exponential distribution).
 (a) Show this is a valid CDF (check all four properties from Theorem 5.1).
 (b) Find the PDF $f(x)$ by differentiating the CDF.
@@ -1068,14 +1068,14 @@ Let $X$ have CDF $F(x) = 1 - e^{-\lambda x}$ for $x \geq 0$ and $F(x) = 0$ for $
 (d) Show the memoryless property: $P(X > s+t \mid X > s) = P(X > t)$ for all $s, t > 0$.
 (e) For $\lambda = 1$: compute $P(1 \leq X \leq 2)$ exactly and numerically.
 
-**Exercise 5 ★★ — Independence and Conditional Independence**
+**Exercise 5 ** - Independence and Conditional Independence**
 Roll two fair dice, letting $X$ be the result of die 1 and $Y$ the result of die 2. Define $Z = X + Y$ (the sum).
 (a) Verify that $X$ and $Y$ are independent.
 (b) Show that $X$ and $Z$ are not independent (hint: compute $P(X=1, Z=2)$ and compare to $P(X=1)P(Z=2)$).
-(c) Now condition on the event $\{Z = 7\}$. Show that $X$ and $Y$ are conditionally independent given $Z = 7$ fails — or more precisely, show $P(X=1, Y=6 \mid Z=7) = P(X=1 \mid Z=7) P(Y=6 \mid Z=7)$ and check whether this holds.
+(c) Now condition on the event $\{Z = 7\}$. Show that $X$ and $Y$ are conditionally independent given $Z = 7$ fails - or more precisely, show $P(X=1, Y=6 \mid Z=7) = P(X=1 \mid Z=7) P(Y=6 \mid Z=7)$ and check whether this holds.
 (d) Explain in words why knowing $Z$ induces dependence between $X$ and $Y$.
 
-**Exercise 6 ★★ — Change of Variables**
+**Exercise 6 ** - Change of Variables**
 Let $X \sim \text{Uniform}(0, 1)$.
 (a) Find the PDF of $Y = -\ln X$. What distribution is this?
 (b) Find the PDF of $W = X^2$.
@@ -1083,7 +1083,7 @@ Let $X \sim \text{Uniform}(0, 1)$.
 (d) If $U \sim \text{Uniform}(0,1)$, show that $F_X^{-1}(U)$ has the same distribution as $X$ for any CDF $F_X$ (the inverse CDF / quantile transform method).
 (e) How is part (d) used in sampling from arbitrary distributions in ML?
 
-**Exercise 7 ★★★ — Cross-Entropy Loss Derivation**
+**Exercise 7 *** - Cross-Entropy Loss Derivation**
 Consider a $K$-class classification problem with model $p_\theta(y \mid \mathbf{x}) = \text{softmax}(f_\theta(\mathbf{x}))_y$.
 (a) Write the negative log-likelihood for a single example $(\mathbf{x}, y^*)$.
 (b) Show this equals the cross-entropy $H(p_{\text{true}}, p_\theta)$ where $p_{\text{true}}$ is the one-hot distribution.
@@ -1091,7 +1091,7 @@ Consider a $K$-class classification problem with model $p_\theta(y \mid \mathbf{
 (d) Explain why label smoothing replaces the one-hot $p_{\text{true}}$ with $(1-\varepsilon)\mathbf{e}_{y^*} + \varepsilon/K \cdot \mathbf{1}$, and how this changes the loss.
 (e) For language modelling with vocabulary size $|\mathcal{V}| = 32000$: if the model assigns probability 0.8 to the correct next token, what is the NLL? The perplexity?
 
-**Exercise 8 ★★★ — Probabilistic Analysis of Dropout**
+**Exercise 8 *** - Probabilistic Analysis of Dropout**
 During training, dropout independently sets each of $d$ activations to 0 with probability $p_{\text{drop}}$, and scales the remaining by $1/(1-p_{\text{drop}})$.
 (a) Let $M_i \sim \text{Bernoulli}(1-p_{\text{drop}})$ be the mask for activation $i$. What is $\mathbb{E}[M_i]$?
 (b) Let $h_i$ be the pre-dropout activation. Define $\tilde{h}_i = M_i \cdot h_i / (1-p_{\text{drop}})$. Show $\mathbb{E}[\tilde{h}_i] = h_i$ (inverted dropout preserves the expected activation).
@@ -1105,12 +1105,12 @@ During training, dropout independently sets each of $d$ activations to 0 with pr
 
 | Concept | Impact on AI/LLMs |
 |---|---|
-| Kolmogorov axioms | The foundation of every probabilistic model. MLE, MAP, VAEs, diffusion models, Bayesian NNs — all rest on these three axioms. Knowing the axioms lets you verify whether a proposed probability model is well-defined. |
+| Kolmogorov axioms | The foundation of every probabilistic model. MLE, MAP, VAEs, diffusion models, Bayesian NNs - all rest on these three axioms. Knowing the axioms lets you verify whether a proposed probability model is well-defined. |
 | Conditional probability | The core operation in Bayesian inference and autoregressive language modelling. Every $P(x_t \mid x_{<t})$ in a language model is a conditional probability. Causal attention implements conditional independence structure. |
 | Bayes' theorem | Underlies RLHF (updating reward model beliefs from human feedback), Bayesian hyperparameter search, and the theoretical analysis of in-context learning as implicit Bayesian inference. |
 | Independence | The i.i.d. assumption justifies mini-batch gradient descent. Conditional independence defines the graphical structure of Bayesian networks and the Markov property of diffusion models. |
 | PMF / Categorical distribution | Every token prediction in a language model is a Categorical PMF. Softmax produces a valid PMF over $|\mathcal{V}|$ tokens. Sampling strategies (top-$k$, top-$p$, temperature) are operations on this PMF. |
-| Gaussian distribution | Used in weight initialisation (He, Glorot), VAE latent spaces, diffusion forward processes, Gaussian process priors, and noise injection for differential privacy. The CLT (§06) explains its ubiquity. |
+| Gaussian distribution | Used in weight initialisation (He, Glorot), VAE latent spaces, diffusion forward processes, Gaussian process priors, and noise injection for differential privacy. The CLT (Section06) explains its ubiquity. |
 | Expected value | The training objective is an expected loss $\mathbb{E}_{\mathbf{x},y}[\mathcal{L}(\theta)]$ over the data distribution. Linearity of expectation justifies mini-batch gradient estimation. |
 | Variance | Gradient variance determines training stability. BN and LN are variance-control mechanisms. Dropout variance analysis guides the choice of dropout rate. |
 | Change of variables | Foundation of normalising flows (Glow, RealNVP, neural spline flows). The change-of-variables formula computes the density of a transformed distribution. |
@@ -1120,50 +1120,50 @@ During training, dropout independently sets each of $d$ activations to 0 with pr
 
 ## Conceptual Bridge
 
-This section establishes the probability-theoretic language that all subsequent sections build upon. We began from the Kolmogorov axioms — three simple rules that define what probabilities must be — and derived the core computational rules (complement, union, conditioning, total probability, Bayes) that allow us to reason under uncertainty. The random variable formalism converts outcomes to numbers, enabling the full machinery of analysis.
+This section establishes the probability-theoretic language that all subsequent sections build upon. We began from the Kolmogorov axioms - three simple rules that define what probabilities must be - and derived the core computational rules (complement, union, conditioning, total probability, Bayes) that allow us to reason under uncertainty. The random variable formalism converts outcomes to numbers, enabling the full machinery of analysis.
 
-**Looking back:** The section draws on set theory (union, intersection, complement — assumed), on calculus for the continuous case (integration for CDFs and PDFs, differentiation for the fundamental theorem), and on the concept of a function (random variables are functions). The proof techniques (direct calculation from axioms, algebraic manipulation) mirror those in linear algebra and calculus sections of this course.
+**Looking back:** The section draws on set theory (union, intersection, complement - assumed), on calculus for the continuous case (integration for CDFs and PDFs, differentiation for the fundamental theorem), and on the concept of a function (random variables are functions). The proof techniques (direct calculation from axioms, algebraic manipulation) mirror those in linear algebra and calculus sections of this course.
 
-**Looking forward — within this chapter:**
-- §02-Common-Distributions takes the distribution vocabulary started here (Bernoulli, Uniform, Gaussian) and completes it: Binomial, Poisson, Exponential, Beta, Dirichlet, Categorical, Student-t, plus the exponential family.
-- §03-Joint-Distributions extends the single-variable machinery to multiple random variables: joint PDFs, marginalisation, and Bayes' theorem for random variables rather than events.
-- §04-Expectation-and-Moments develops expectation much more deeply: LOTUS, covariance matrices, MGFs, characteristic functions, and the full moment theory.
-- §05-Concentration-Inequalities proves how expectations and variances control tail probabilities (Markov, Chebyshev, Hoeffding) — the mathematical tools for generalisation guarantees.
-- §06-Stochastic-Processes introduces the Central Limit Theorem (explaining Gaussian ubiquity) and Gaussian processes (infinite-dimensional generalisations).
-- §07-Markov-Chains uses conditional independence (§4.2) and Bayes' theorem (§3.6) to define memoryless sequential processes and MCMC sampling.
+**Looking forward - within this chapter:**
+- Section02-Common-Distributions takes the distribution vocabulary started here (Bernoulli, Uniform, Gaussian) and completes it: Binomial, Poisson, Exponential, Beta, Dirichlet, Categorical, Student-t, plus the exponential family.
+- Section03-Joint-Distributions extends the single-variable machinery to multiple random variables: joint PDFs, marginalisation, and Bayes' theorem for random variables rather than events.
+- Section04-Expectation-and-Moments develops expectation much more deeply: LOTUS, covariance matrices, MGFs, characteristic functions, and the full moment theory.
+- Section05-Concentration-Inequalities proves how expectations and variances control tail probabilities (Markov, Chebyshev, Hoeffding) - the mathematical tools for generalisation guarantees.
+- Section06-Stochastic-Processes introduces the Central Limit Theorem (explaining Gaussian ubiquity) and Gaussian processes (infinite-dimensional generalisations).
+- Section07-Markov-Chains uses conditional independence (Section4.2) and Bayes' theorem (Section3.6) to define memoryless sequential processes and MCMC sampling.
 
-**Looking forward — across chapters:**
+**Looking forward - across chapters:**
 - Chapter 7 (Statistics) builds estimation theory (MLE, MAP, confidence intervals) directly on the probability foundation here.
-- Chapter 8 (Optimisation) uses the Gaussian noise model (§7.4) and NLL loss (§10.1) to motivate SGD and Adam.
-- Chapter 9 (Information Theory) defines entropy as $-\mathbb{E}[\log p(X)]$ and KL divergence in terms of two probability measures — direct extensions of §8.1 and §10.1.
+- Chapter 8 (Optimisation) uses the Gaussian noise model (Section7.4) and NLL loss (Section10.1) to motivate SGD and Adam.
+- Chapter 9 (Information Theory) defines entropy as $-\mathbb{E}[\log p(X)]$ and KL divergence in terms of two probability measures - direct extensions of Section8.1 and Section10.1.
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §04 Calculus Fundamentals
-  §05 Multivariate Calculus
-  │
-  └── §06 Probability Theory
-      ├── 01-Introduction-and-Random-Variables   ◄══ YOU ARE HERE
-      │     (probability spaces, RVs, CDF/PDF/PMF, E[X], Var[X])
-      ├── 02-Common-Distributions
-      │     (Binomial, Poisson, Gaussian, Beta, Dirichlet, ...)
-      ├── 03-Joint-Distributions
-      │     (joint PDF, marginalisation, Bayes for RVs)
-      ├── 04-Expectation-and-Moments
-      │     (LOTUS, covariance, MGF, higher moments)
-      ├── 05-Concentration-Inequalities
-      │     (Markov, Chebyshev, Hoeffding, PAC bounds)
-      ├── 06-Stochastic-Processes
-      │     (LLN, CLT, Gaussian processes)
-      └── 07-Markov-Chains
+  Section04 Calculus Fundamentals
+  Section05 Multivariate Calculus
+  |
+  +-- Section06 Probability Theory
+      +-- 01-Introduction-and-Random-Variables   <== YOU ARE HERE
+      |     (probability spaces, RVs, CDF/PDF/PMF, E[X], Var[X])
+      +-- 02-Common-Distributions
+      |     (Binomial, Poisson, Gaussian, Beta, Dirichlet, ...)
+      +-- 03-Joint-Distributions
+      |     (joint PDF, marginalisation, Bayes for RVs)
+      +-- 04-Expectation-and-Moments
+      |     (LOTUS, covariance, MGF, higher moments)
+      +-- 05-Concentration-Inequalities
+      |     (Markov, Chebyshev, Hoeffding, PAC bounds)
+      +-- 06-Stochastic-Processes
+      |     (LLN, CLT, Gaussian processes)
+      +-- 07-Markov-Chains
             (MCMC, detailed balance, stationary distributions)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-[← Back to Probability Theory](../README.md) | [Next: Common Distributions →](../02-Common-Distributions/notes.md)
+[<- Back to Probability Theory](../README.md) | [Next: Common Distributions ->](../02-Common-Distributions/notes.md)
 
 ---
 
@@ -1188,7 +1188,7 @@ This means the normalisation constant $1/\sqrt{2\pi\sigma^2}$ in the Gaussian PD
 
 ---
 
-## Appendix B: Discrete Probability — Worked Examples in Full
+## Appendix B: Discrete Probability - Worked Examples in Full
 
 ### B.1 The Birthday Problem
 
@@ -1206,12 +1206,12 @@ $$P(A) = 1 - P(A^c) = 1 - \prod_{k=0}^{n-1}\frac{365-k}{365}$$
 | $n$ | $P(\text{at least one match})$ |
 |---|---|
 | 10 | 11.7% |
-| 23 | 50.7% — **crossover point** |
+| 23 | 50.7% - **crossover point** |
 | 50 | 97.0% |
 | 70 | 99.9% |
 
 **For AI:** The birthday paradox is closely related to hash collision probability and the birthday attack in cryptography. In machine learning, it appears in:
-- **Retrieval collision:** The probability that two embeddings in a high-dimensional space are closer than a threshold depends on how many embeddings exist — birthday-paradox type reasoning
+- **Retrieval collision:** The probability that two embeddings in a high-dimensional space are closer than a threshold depends on how many embeddings exist - birthday-paradox type reasoning
 - **Token collision in tokenisation:** In BPE tokenisation, character pairs collide and merge; the frequency of collisions follows birthday-paradox dynamics
 - **Data deduplication:** Estimating the probability of exact or near-duplicate examples in large training datasets
 
@@ -1229,11 +1229,11 @@ $$\sum_{k=1}^{\infty}(1-p)^{k-1}p = p\sum_{j=0}^{\infty}(1-p)^j = p \cdot \frac{
 $$\mathbb{E}[X] = \sum_{k=1}^{\infty}k(1-p)^{k-1}p = p\sum_{k=1}^{\infty}k(1-p)^{k-1} = p \cdot \frac{d}{dq}\sum_{k=0}^{\infty}q^k\bigg|_{q=1-p}$$
 $$= p \cdot \frac{d}{dq}\frac{1}{1-q}\bigg|_{q=1-p} = p \cdot \frac{1}{(1-q)^2}\bigg|_{q=1-p} = p \cdot \frac{1}{p^2} = \frac{1}{p}$$
 
-The expected wait time is $1/p$ — intuitively, if each trial has probability $p$ of success, on average you need $1/p$ trials.
+The expected wait time is $1/p$ - intuitively, if each trial has probability $p$ of success, on average you need $1/p$ trials.
 
 ---
 
-## Appendix C: Continuous Distributions — Computing Moments Directly
+## Appendix C: Continuous Distributions - Computing Moments Directly
 
 ### C.1 Gaussian Mean and Variance from First Principles
 
@@ -1252,7 +1252,7 @@ $$= \frac{1}{\sqrt{2\pi}}\left[-ze^{-z^2/2}\right]_{-\infty}^{\infty} + \frac{1}
 
 Therefore $\operatorname{Var}(X) = \sigma^2 \cdot 1 = \sigma^2$. $\square$
 
-### C.2 Uniform Distribution Variance — Direct Computation
+### C.2 Uniform Distribution Variance - Direct Computation
 
 For $X \sim \text{Uniform}(a,b)$:
 
@@ -1275,7 +1275,7 @@ $$P(X \geq t) \leq \frac{\mathbb{E}[X]}{t}$$
 
 *Proof sketch:* $\mathbb{E}[X] = \mathbb{E}[X \cdot \mathbf{1}_{X \geq t}] + \mathbb{E}[X \cdot \mathbf{1}_{X < t}] \geq \mathbb{E}[X \cdot \mathbf{1}_{X \geq t}] \geq t \cdot P(X \geq t)$.
 
-This connects the expected value (§8.1) to tail probabilities. Full treatment with applications to PAC bounds: [§05-Concentration-Inequalities](../05-Concentration-Inequalities/notes.md).
+This connects the expected value (Section8.1) to tail probabilities. Full treatment with applications to PAC bounds: [Section05-Concentration-Inequalities](../05-Concentration-Inequalities/notes.md).
 
 ### D.2 Jensen's Inequality
 
@@ -1283,21 +1283,21 @@ For a convex function $g$ and random variable $X$:
 $$g(\mathbb{E}[X]) \leq \mathbb{E}[g(X)]$$
 
 Examples:
-- $g(x) = x^2$ (convex): $(\mathbb{E}[X])^2 \leq \mathbb{E}[X^2]$ — the computational variance formula
-- $g(x) = e^x$ (convex): $e^{\mathbb{E}[X]} \leq \mathbb{E}[e^X]$ — used in exponential tail bounds
-- $g(x) = -\log x$ (convex for $x > 0$): $-\log \mathbb{E}[X] \leq \mathbb{E}[-\log X]$ — used in ELBO derivation for VAEs
+- $g(x) = x^2$ (convex): $(\mathbb{E}[X])^2 \leq \mathbb{E}[X^2]$ - the computational variance formula
+- $g(x) = e^x$ (convex): $e^{\mathbb{E}[X]} \leq \mathbb{E}[e^X]$ - used in exponential tail bounds
+- $g(x) = -\log x$ (convex for $x > 0$): $-\log \mathbb{E}[X] \leq \mathbb{E}[-\log X]$ - used in ELBO derivation for VAEs
 
 ### D.3 Cauchy-Schwarz for Expectations
 
 $$|\mathbb{E}[XY]|^2 \leq \mathbb{E}[X^2] \cdot \mathbb{E}[Y^2]$$
 
-This bounds the correlation between random variables and is used to prove the variance of sums and covariance properties in §04.
+This bounds the correlation between random variables and is used to prove the variance of sums and covariance properties in Section04.
 
 ---
 
-## Appendix E: Probability in High Dimensions — A Preview
+## Appendix E: Probability in High Dimensions - A Preview
 
-All of the distributions introduced in this section are one-dimensional ($X : \Omega \to \mathbb{R}$). In machine learning, we almost always work with high-dimensional data — image pixels, word embeddings, weight tensors. High-dimensional probability has surprising and sometimes counterintuitive properties:
+All of the distributions introduced in this section are one-dimensional ($X : \Omega \to \mathbb{R}$). In machine learning, we almost always work with high-dimensional data - image pixels, word embeddings, weight tensors. High-dimensional probability has surprising and sometimes counterintuitive properties:
 
 ### E.1 The Curse of Dimensionality for Probability
 
@@ -1307,7 +1307,7 @@ $$V_d = \frac{\pi^{d/2}}{\Gamma(d/2+1)} \cdot 0.5^d$$
 
 For $d = 2$: $V_2 = \pi/4 \approx 0.785$. For $d = 10$: $V_{10} \approx 0.0025$. For $d = 100$: essentially 0.
 
-Almost all the volume of a high-dimensional cube is in its corners, not near its centre. A uniform distribution over the hypercube concentrates most of its mass far from the centre — which means nearest-neighbour methods based on Euclidean distance break down.
+Almost all the volume of a high-dimensional cube is in its corners, not near its centre. A uniform distribution over the hypercube concentrates most of its mass far from the centre - which means nearest-neighbour methods based on Euclidean distance break down.
 
 ### E.2 Gaussian Concentration in High Dimensions
 
@@ -1318,16 +1318,16 @@ By the law of large numbers: $\|\mathbf{z}\|^2/d \to 1$ as $d \to \infty$ (conce
 - High-dimensional Gaussian samples are approximately uniformly distributed on the $\sqrt{d}$-sphere
 - The dot product $\mathbf{z}_1 \cdot \mathbf{z}_2 \approx 0$ for two independent samples (random vectors are nearly orthogonal)
 
-**For AI:** This explains why random embedding matrices in transformers initialised with $\mathcal{N}(0, 1/d)$ produce approximately orthogonal row vectors in high dimensions — a useful inductive bias for attention.
+**For AI:** This explains why random embedding matrices in transformers initialised with $\mathcal{N}(0, 1/d)$ produce approximately orthogonal row vectors in high dimensions - a useful inductive bias for attention.
 
-These high-dimensional considerations are fully developed in §03-Joint-Distributions (multivariate Gaussian) and §05-Concentration-Inequalities (concentration of measure).
+These high-dimensional considerations are fully developed in Section03-Joint-Distributions (multivariate Gaussian) and Section05-Concentration-Inequalities (concentration of measure).
 
 
 ---
 
-## Appendix F: Information Theory Preview — Entropy and KL Divergence
+## Appendix F: Information Theory Preview - Entropy and KL Divergence
 
-This appendix previews two information-theoretic quantities that appear constantly in ML loss functions. The full derivations using the expectation operator belong in §04 (Expectation and Moments) and Chapter 9 (Information Theory).
+This appendix previews two information-theoretic quantities that appear constantly in ML loss functions. The full derivations using the expectation operator belong in Section04 (Expectation and Moments) and Chapter 9 (Information Theory).
 
 ### F.1 Entropy: Measuring Uncertainty
 
@@ -1338,15 +1338,15 @@ Entropy measures the average "surprise" or uncertainty in $X$. Higher entropy = 
 
 **Key values:**
 - Bernoulli($p$): $H = -p\log p - (1-p)\log(1-p)$. Maximum $H = \log 2 \approx 0.693$ nats at $p = 0.5$ (fair coin). Zero when $p = 0$ or $p = 1$ (certain outcome).
-- Uniform on $n$ values: $H = \log n$ — this is the **maximum entropy** distribution for a discrete variable with $n$ outcomes.
-- Deterministic: $H = 0$ — no uncertainty.
+- Uniform on $n$ values: $H = \log n$ - this is the **maximum entropy** distribution for a discrete variable with $n$ outcomes.
+- Deterministic: $H = 0$ - no uncertainty.
 
 For continuous random variables, the **differential entropy** is:
 $$h(X) = -\int p(x) \log p(x) \, dx$$
 
 The Gaussian $\mathcal{N}(\mu, \sigma^2)$ has differential entropy $h = \frac{1}{2}\log(2\pi e \sigma^2)$, which is the **maximum entropy** distribution for a continuous variable with fixed variance.
 
-**For AI:** The cross-entropy loss for classification is $H(y, \hat{p}) = -\sum_c y_c \log \hat{p}_c$. When $y$ is a one-hot label, this equals $-\log \hat{p}_{y}$ — the negative log probability the model assigned to the correct class.
+**For AI:** The cross-entropy loss for classification is $H(y, \hat{p}) = -\sum_c y_c \log \hat{p}_c$. When $y$ is a one-hot label, this equals $-\log \hat{p}_{y}$ - the negative log probability the model assigned to the correct class.
 
 ### F.2 KL Divergence: Measuring Distribution Distance
 
@@ -1356,32 +1356,32 @@ $$D_{\mathrm{KL}}(p \| q) = \sum_x p(x) \log \frac{p(x)}{q(x)} = \mathbb{E}_p\le
 Properties (proved using Jensen's inequality in Appendix D):
 1. $D_{\mathrm{KL}}(p \| q) \geq 0$ (non-negativity; follows from $-\log$ being convex)
 2. $D_{\mathrm{KL}}(p \| q) = 0 \iff p = q$ (equals zero only when identical)
-3. $D_{\mathrm{KL}}(p \| q) \neq D_{\mathrm{KL}}(q \| p)$ (asymmetric — not a metric)
+3. $D_{\mathrm{KL}}(p \| q) \neq D_{\mathrm{KL}}(q \| p)$ (asymmetric - not a metric)
 
 **Decomposition:** Cross-entropy $= $ entropy $+$ KL divergence:
 $$H(p, q) = H(p) + D_{\mathrm{KL}}(p \| q)$$
 
-Since $H(p)$ is fixed when $p$ is the true label distribution, minimising cross-entropy loss is equivalent to minimising $D_{\mathrm{KL}}(p \| q)$ — pushing the model's distribution $q$ toward the true distribution $p$.
+Since $H(p)$ is fixed when $p$ is the true label distribution, minimising cross-entropy loss is equivalent to minimising $D_{\mathrm{KL}}(p \| q)$ - pushing the model's distribution $q$ toward the true distribution $p$.
 
 **For AI:** VAE training minimises the ELBO, which includes a $D_{\mathrm{KL}}(q_\phi(z|x) \| p(z))$ regularisation term. RLHF preference modelling computes KL penalties between the fine-tuned and reference policy distributions.
 
-> → _Full treatment: [Chapter 9 — Information Theory](../../09-Information-Theory/README.md)_
+> -> _Full treatment: [Chapter 9 - Information Theory](../../09-Information-Theory/README.md)_
 
 ### F.3 Negative Log-Likelihood Connects Entropy and Probability
 
 For a dataset $\{x_1, \ldots, x_n\}$ drawn i.i.d. from $p$, the **negative log-likelihood** under model $q_\theta$ is:
 $$-\log L(\theta) = -\sum_{i=1}^n \log q_\theta(x_i)$$
 
-By the law of large numbers (§06 preview), as $n \to \infty$:
+By the law of large numbers (Section06 preview), as $n \to \infty$:
 $$-\frac{1}{n}\log L(\theta) \to \mathbb{E}_p[-\log q_\theta(X)] = H(p, q_\theta)$$
 
 Minimising NLL is therefore equivalent to minimising cross-entropy, which is equivalent to minimising $D_{\mathrm{KL}}(p \| q_\theta)$. **Maximum likelihood estimation is KL minimisation.**
 
 ---
 
-## Appendix G: The Exponential Family — A Preview
+## Appendix G: The Exponential Family - A Preview
 
-Almost every distribution in §02 belongs to a unified family called the **exponential family**. Understanding this family's structure explains why Gaussian, Bernoulli, Poisson, and many other distributions share the same algorithmic properties in ML.
+Almost every distribution in Section02 belongs to a unified family called the **exponential family**. Understanding this family's structure explains why Gaussian, Bernoulli, Poisson, and many other distributions share the same algorithmic properties in ML.
 
 ### G.1 Exponential Family Form
 
@@ -1389,10 +1389,10 @@ A distribution belongs to the exponential family if its PDF/PMF can be written a
 $$p(x; \eta) = h(x) \exp\left(\eta^\top T(x) - A(\eta)\right)$$
 
 where:
-- $\eta \in \mathbb{R}^k$ — **natural parameters** (the parameterisation used in optimisation)
-- $T(x) \in \mathbb{R}^k$ — **sufficient statistics** (all information about $\eta$ in the data is captured by $T(x)$)
-- $A(\eta) = \log \int h(x)\exp(\eta^\top T(x)) \, dx$ — **log-partition function** (ensures normalisation)
-- $h(x)$ — **base measure** (does not depend on $\eta$)
+- $\eta \in \mathbb{R}^k$ - **natural parameters** (the parameterisation used in optimisation)
+- $T(x) \in \mathbb{R}^k$ - **sufficient statistics** (all information about $\eta$ in the data is captured by $T(x)$)
+- $A(\eta) = \log \int h(x)\exp(\eta^\top T(x)) \, dx$ - **log-partition function** (ensures normalisation)
+- $h(x)$ - **base measure** (does not depend on $\eta$)
 
 ### G.2 Standard Distributions as Exponential Family Members
 
@@ -1411,17 +1411,17 @@ The log-partition function $A(\eta)$ is **convex** and its derivatives give the 
 $$\nabla_\eta A(\eta) = \mathbb{E}_{p_\eta}[T(X)] \quad \text{(mean of sufficient statistics)}$$
 $$\nabla^2_\eta A(\eta) = \operatorname{Cov}_{p_\eta}[T(X)] \quad \text{(covariance of sufficient statistics)}$$
 
-This means computing moments of exponential family distributions reduces to differentiating $A(\eta)$ — a powerful computational shortcut.
+This means computing moments of exponential family distributions reduces to differentiating $A(\eta)$ - a powerful computational shortcut.
 
 **For AI:** Softmax attention uses the log-partition function. The logsumexp operation $\log \sum_j e^{a_j}$ is the log-partition function of a categorical distribution over query-key matches. The numerical stability trick $\log \sum_j e^{a_j - \max a} + \max a$ exploits properties of $A(\eta)$.
 
-> → _Full treatment: [§02-Common-Distributions](../02-Common-Distributions/notes.md)_
+> -> _Full treatment: [Section02-Common-Distributions](../02-Common-Distributions/notes.md)_
 
 ---
 
 ## Appendix H: Extended Worked Examples
 
-### H.1 The Monty Hall Problem — Conditional Probability in Action
+### H.1 The Monty Hall Problem - Conditional Probability in Action
 
 **Setup:** A car is behind one of three doors. You choose Door 1. The host (who knows where the car is) opens Door 3, revealing a goat. Should you switch to Door 2?
 
@@ -1441,11 +1441,11 @@ $$P(C_2 | O_3) = \frac{P(O_3|C_2)P(C_2)}{P(O_3)} = \frac{(1)(1/3)}{1/2} = \frac{
 
 **Conclusion:** Switching wins with probability $2/3$. Staying wins with probability $1/3$.
 
-**Intuition:** The host's action is not random — they always reveal a goat. This action transfers probability mass from Door 3 to Door 2 (given your initial choice was Door 1). The host's knowledge changes the posterior.
+**Intuition:** The host's action is not random - they always reveal a goat. This action transfers probability mass from Door 3 to Door 2 (given your initial choice was Door 1). The host's knowledge changes the posterior.
 
-**For AI:** This illustrates why naive probabilistic reasoning fails when the observation process is not independent of the hypothesis. In model evaluation, the selection of which test examples to report affects the posterior over model quality — a key issue in benchmark gaming.
+**For AI:** This illustrates why naive probabilistic reasoning fails when the observation process is not independent of the hypothesis. In model evaluation, the selection of which test examples to report affects the posterior over model quality - a key issue in benchmark gaming.
 
-### H.2 The Prosecutor's Fallacy — $P(A|B) \neq P(B|A)$
+### H.2 The Prosecutor's Fallacy - $P(A|B) \neq P(B|A)$
 
 A DNA test for a rare genetic marker has false positive rate $0.1\%$ and false negative rate $0\%$. The marker is present in $0.01\%$ of the population. A defendant tests positive. A prosecutor claims: "The probability of a false positive is only $0.1\%$, so there is a $99.9\%$ chance the defendant is guilty."
 
@@ -1462,7 +1462,7 @@ The actual probability of guilt given the positive test is only about $9\%$, not
 
 **For AI:** This fallacy appears in anomaly detection. A model with $99.9\%$ accuracy on a test set may have only $50\%$ precision on a rare-class detection task if the base rate of the rare class is $0.1\%$.
 
-### H.3 Coupon Collector Problem — Expected Waiting Times
+### H.3 Coupon Collector Problem - Expected Waiting Times
 
 There are $n$ distinct coupons. Each cereal box contains one coupon uniformly at random. How many boxes must you buy (in expectation) to collect all $n$ coupons?
 
@@ -1477,11 +1477,11 @@ where $H_n = 1 + 1/2 + 1/3 + \cdots + 1/n \approx \ln n + 0.577$ (harmonic numbe
 
 For $n = 365$ (days of the year): $\mathbb{E}[T] = 365 \cdot H_{365} \approx 365 \cdot 6.46 \approx 2365$ attempts needed to see all birthdays.
 
-**For AI:** The coupon collector framework models how many gradient steps are needed for a stochastic optimizer to see every training example at least once. For $n$ training examples, about $n \ln n$ steps are needed in expectation — which is why practitioners set epoch counts based on logarithmic growth.
+**For AI:** The coupon collector framework models how many gradient steps are needed for a stochastic optimizer to see every training example at least once. For $n$ training examples, about $n \ln n$ steps are needed in expectation - which is why practitioners set epoch counts based on logarithmic growth.
 
 ---
 
-## Appendix I: Characteristic Functions and Moment Generating Functions — Preview
+## Appendix I: Characteristic Functions and Moment Generating Functions - Preview
 
 ### I.1 The Moment Generating Function (MGF)
 
@@ -1507,23 +1507,23 @@ This product rule for MGFs is the probabilistic analogue of the convolution theo
 
 The **characteristic function** of $X$ is $\varphi_X(t) = \mathbb{E}[e^{itX}]$ (Fourier transform of the density). Unlike the MGF, the characteristic function always exists and uniquely determines the distribution. It is the tool used in the proof of the Central Limit Theorem.
 
-> → _Full treatment: [§04-Expectation-and-Moments](../04-Expectation-and-Moments/notes.md)_
+> -> _Full treatment: [Section04-Expectation-and-Moments](../04-Expectation-and-Moments/notes.md)_
 
 
 ---
 
-## Appendix J: Simulation and Monte Carlo Methods — A Preview
+## Appendix J: Simulation and Monte Carlo Methods - A Preview
 
 A recurring theme throughout this chapter is that computing exact probabilities analytically is often hard or impossible. **Monte Carlo simulation** is the practical alternative: approximate $\mathbb{E}[g(X)]$ by averaging over many samples.
 
 ### J.1 The Monte Carlo Principle
 
-If $X_1, X_2, \ldots, X_n$ are i.i.d. samples from $p(x)$, then by the Law of Large Numbers (§06):
+If $X_1, X_2, \ldots, X_n$ are i.i.d. samples from $p(x)$, then by the Law of Large Numbers (Section06):
 $$\frac{1}{n}\sum_{i=1}^n g(X_i) \xrightarrow{n \to \infty} \mathbb{E}_p[g(X)]$$
 
 The Monte Carlo estimator $\hat{\mu}_n = \frac{1}{n}\sum_{i=1}^n g(X_i)$ is **unbiased** ($\mathbb{E}[\hat{\mu}_n] = \mathbb{E}[g(X)]$) and has variance $\operatorname{Var}(g(X))/n$, so the standard error is $\sigma/\sqrt{n}$ regardless of dimension.
 
-**Why this matters:** Unlike numerical integration (which requires exponentially many grid points in high dimensions), Monte Carlo has convergence rate $O(1/\sqrt{n})$ independent of dimension. This makes it the tool of choice for high-dimensional integrals — exactly the setting of modern ML.
+**Why this matters:** Unlike numerical integration (which requires exponentially many grid points in high dimensions), Monte Carlo has convergence rate $O(1/\sqrt{n})$ independent of dimension. This makes it the tool of choice for high-dimensional integrals - exactly the setting of modern ML.
 
 ### J.2 Estimating Probabilities
 
@@ -1560,7 +1560,7 @@ When the inverse CDF has no closed form, use **rejection sampling**: to sample f
 
 The accepted samples have distribution $p$. The acceptance rate is $1/M$, so choose $M$ as small as possible.
 
-**For AI:** Rejection sampling underlies early language model decoding strategies. Modern methods like nucleus sampling (top-$p$) and temperature sampling directly manipulate the token probability distribution — understanding these requires the CDF and quantile framework from §7.
+**For AI:** Rejection sampling underlies early language model decoding strategies. Modern methods like nucleus sampling (top-$p$) and temperature sampling directly manipulate the token probability distribution - understanding these requires the CDF and quantile framework from Section7.
 
 ### J.5 Monte Carlo Integration of Normalisation Constants
 
@@ -1569,9 +1569,9 @@ Many probabilistic models have densities of the form $p(x) = \tilde{p}(x)/Z$ whe
 - Boltzmann distribution: $Z = \sum_x e^{-E(x)/T}$ over exponentially many states
 - Normalising flow: $Z = 1$ by construction but requires a change-of-variables Jacobian
 
-Monte Carlo methods (particularly MCMC, developed in §07) are the primary tools for inference in these models.
+Monte Carlo methods (particularly MCMC, developed in Section07) are the primary tools for inference in these models.
 
-> → _Full treatment: [§07-Markov-Chains](../07-Markov-Chains/notes.md) (MCMC); [§06-Stochastic-Processes](../06-Stochastic-Processes/notes.md) (LLN and CLT)_
+> -> _Full treatment: [Section07-Markov-Chains](../07-Markov-Chains/notes.md) (MCMC); [Section06-Stochastic-Processes](../06-Stochastic-Processes/notes.md) (LLN and CLT)_
 
 
 ---
@@ -1589,14 +1589,14 @@ from scipy import stats
 # Bernoulli(p=0.3)
 rv = stats.bernoulli(p=0.3)
 rv.pmf(1)          # P(X=1) = 0.3
-rv.cdf(0)          # P(X≤0) = 0.7
+rv.cdf(0)          # P(X\\leq0) = 0.7
 rv.rvs(size=100)   # 100 random samples
 
 # Gaussian N(mu=2, sigma=1.5)
 rv = stats.norm(loc=2, scale=1.5)
-rv.pdf(2.0)        # f(2.0) = 1/(1.5*sqrt(2π)) ≈ 0.266
-rv.cdf(2.0)        # Φ(0) = 0.5
-rv.ppf(0.975)      # inverse CDF (quantile): z such that P(X≤z)=0.975
+rv.pdf(2.0)        # f(2.0) = 1/(1.5*sqrt(2\\pi)) \\approx 0.266
+rv.cdf(2.0)        # \\Phi(0) = 0.5
+rv.ppf(0.975)      # inverse CDF (quantile): z such that P(X\\leqz)=0.975
 
 # Uniform(a=0, b=1)
 rv = stats.uniform(loc=0, scale=1)
@@ -1610,18 +1610,18 @@ The `loc` and `scale` parameters implement the location-scale transform: $X = \t
 import torch
 from torch.distributions import Bernoulli, Normal, Uniform, Categorical
 
-# Bernoulli — for binary classification output
+# Bernoulli - for binary classification output
 dist = Bernoulli(probs=torch.tensor(0.3))
-dist.log_prob(torch.tensor(1.0))  # log P(X=1) = log(0.3) ≈ -1.204
+dist.log_prob(torch.tensor(1.0))  # log P(X=1) = log(0.3) \\approx -1.204
 dist.sample()                      # sample {0,1}
-dist.entropy()                     # H(X) ≈ 0.611 nats
+dist.entropy()                     # H(X) \\approx 0.611 nats
 
-# Normal — for regression, VAE latent, etc.
+# Normal - for regression, VAE latent, etc.
 dist = Normal(loc=torch.tensor(0.0), scale=torch.tensor(1.0))
-dist.log_prob(torch.tensor(1.96))  # log f(1.96) ≈ -2.84
-dist.cdf(torch.tensor(1.96))       # ≈ 0.975
+dist.log_prob(torch.tensor(1.96))  # log f(1.96) \\approx -2.84
+dist.cdf(torch.tensor(1.96))       # \\approx 0.975
 
-# Categorical — for language model outputs
+# Categorical - for language model outputs
 logits = torch.tensor([2.0, 1.0, 0.5])  # unnormalised log probabilities
 dist = Categorical(logits=logits)
 dist.probs                              # softmax probabilities
@@ -1629,41 +1629,41 @@ dist.log_prob(torch.tensor(0))          # log P(X=0)
 dist.entropy()                          # entropy of the distribution
 ```
 
-### K.3 Reparameterisation — The Cornerstone of VAE Training
+### K.3 Reparameterisation - The Cornerstone of VAE Training
 
 The **reparameterisation trick** lets us differentiate through a sampling operation:
 
 Instead of sampling $z \sim \mathcal{N}(\mu, \sigma^2)$ (which has no gradient w.r.t. $\mu, \sigma$), write:
 $$z = \mu + \sigma \cdot \epsilon, \quad \epsilon \sim \mathcal{N}(0, 1)$$
 
-Now $\partial z / \partial \mu = 1$ and $\partial z / \partial \sigma = \epsilon$ — gradients flow through.
+Now $\partial z / \partial \mu = 1$ and $\partial z / \partial \sigma = \epsilon$ - gradients flow through.
 
 ```python
 # Without reparameterisation (WRONG for training)
 z = Normal(mu, sigma).sample()  # no gradient
 
 # With reparameterisation (CORRECT)
-eps = torch.randn_like(sigma)   # ε ~ N(0,1)
+eps = torch.randn_like(sigma)   # \\varepsilon ~ N(0,1)
 z = mu + sigma * eps             # z ~ N(mu, sigma^2), gradients flow
 ```
 
-This technique requires understanding that $\mathcal{N}(\mu, \sigma^2)$ and $\mu + \sigma \mathcal{N}(0,1)$ have the same distribution — a direct consequence of the location-scale property developed in §7.3.
+This technique requires understanding that $\mathcal{N}(\mu, \sigma^2)$ and $\mu + \sigma \mathcal{N}(0,1)$ have the same distribution - a direct consequence of the location-scale property developed in Section7.3.
 
 **For AI:** VAE encoders output $(\mu, \log\sigma^2)$ and use this trick to sample the latent code $z$ while maintaining a differentiable path back to the encoder parameters. The same idea extends to normalising flows and diffusion model sampling.
 
 ---
 
-## Appendix L: Measure Theory — The Foundations Beneath the Formalism
+## Appendix L: Measure Theory - The Foundations Beneath the Formalism
 
 This section develops probability from elementary axioms without requiring measure theory. But for completeness, this appendix sketches where the measure-theoretic foundations live and when you need them.
 
 ### L.1 Why Elementary Probability Is Insufficient
 
-The elementary theory (as developed in §2) works when the sample space $\Omega$ is discrete or when we can write explicit PDF formulas. It breaks for:
+The elementary theory (as developed in Section2) works when the sample space $\Omega$ is discrete or when we can write explicit PDF formulas. It breaks for:
 
-1. **Mixed distributions**: a random variable that is sometimes discrete (e.g., exactly zero) and sometimes continuous (e.g., positive real) — arises in zero-inflated models and ReLU activations.
+1. **Mixed distributions**: a random variable that is sometimes discrete (e.g., exactly zero) and sometimes continuous (e.g., positive real) - arises in zero-inflated models and ReLU activations.
 
-2. **Limits**: taking limits of sequences of random variables requires knowing what "$X_n \to X$" means precisely — there are multiple notions of convergence ($L^2$, almost sure, in probability, in distribution) that are not cleanly expressible without measure theory.
+2. **Limits**: taking limits of sequences of random variables requires knowing what "$X_n \to X$" means precisely - there are multiple notions of convergence ($L^2$, almost sure, in probability, in distribution) that are not cleanly expressible without measure theory.
 
 3. **Conditional expectation on events of probability zero**: $\mathbb{E}[Y | X = x]$ when $P(X = x) = 0$ (any continuous $X$) requires the Radon-Nikodym theorem.
 
@@ -1672,15 +1672,15 @@ The elementary theory (as developed in §2) works when the sample space $\Omega$
 ### L.2 The Measure-Theoretic Setup
 
 A **probability space** is a triple $(\Omega, \mathcal{F}, P)$ where:
-- $\Omega$ — sample space (any set)
-- $\mathcal{F}$ — **sigma-algebra**: a collection of subsets of $\Omega$ closed under complement and countable union (the measurable events)
-- $P: \mathcal{F} \to [0,1]$ — probability measure satisfying Kolmogorov's axioms
+- $\Omega$ - sample space (any set)
+- $\mathcal{F}$ - **sigma-algebra**: a collection of subsets of $\Omega$ closed under complement and countable union (the measurable events)
+- $P: \mathcal{F} \to [0,1]$ - probability measure satisfying Kolmogorov's axioms
 
 A **random variable** is a **measurable function** $X: \Omega \to \mathbb{R}$, meaning $\{X \leq x\} \in \mathcal{F}$ for all $x$ (so that $P(X \leq x)$ is well-defined).
 
 The **distribution** of $X$ is the induced measure $\mu_X(B) = P(X^{-1}(B))$ for Borel sets $B \subseteq \mathbb{R}$.
 
-The **Lebesgue integral** replaces the Riemann integral and is defined for any measurable function — this is what makes $\mathbb{E}[X] = \int X \, dP$ well-defined even for random variables with no PDF.
+The **Lebesgue integral** replaces the Riemann integral and is defined for any measurable function - this is what makes $\mathbb{E}[X] = \int X \, dP$ well-defined even for random variables with no PDF.
 
 ### L.3 The Lebesgue-Stieltjes Integral Unifies PDF and PMF
 
@@ -1692,7 +1692,7 @@ This notation works for both discrete and continuous cases:
 - Discrete: $dF(x) = \sum_k p_k \,\delta(x - x_k)$ (use a sum)
 - Mixed: combination of both
 
-**For AI:** Importance sampling in policy gradient methods (PPO, TRPO) uses the Radon-Nikodym derivative implicitly when bounding the ratio $\pi_\theta(a|s)/\pi_{\theta_{\text{old}}}(a|s)$ — this is the change-of-measure formula at work.
+**For AI:** Importance sampling in policy gradient methods (PPO, TRPO) uses the Radon-Nikodym derivative implicitly when bounding the ratio $\pi_\theta(a|s)/\pi_{\theta_{\text{old}}}(a|s)$ - this is the change-of-measure formula at work.
 
 > The full measure-theoretic treatment is beyond the scope of this curriculum. The reader interested in rigorous foundations should consult Billingsley's *Probability and Measure* or Durrett's *Probability: Theory and Examples*.
 
@@ -1701,40 +1701,40 @@ This notation works for both discrete and continuous cases:
 
 ## Appendix M: Classic Probability Paradoxes and Their Resolutions
 
-### M.1 Bertrand's Paradox — Why "Uniform at Random" Needs Specification
+### M.1 Bertrand's Paradox - Why "Uniform at Random" Needs Specification
 
 **Problem:** A chord is drawn "at random" in a unit circle. What is the probability the chord is longer than the side of the inscribed equilateral triangle (length $\sqrt{3}$)?
 
 The answer depends on how you sample "at random":
 
-**Method 1 — Random endpoints:** Choose two points uniformly on the circle's circumference. Probability = $1/3$.
+**Method 1 - Random endpoints:** Choose two points uniformly on the circle's circumference. Probability = $1/3$.
 
-**Method 2 — Random midpoint:** Choose a point uniformly inside the circle as the chord's midpoint. Probability = $1/4$.
+**Method 2 - Random midpoint:** Choose a point uniformly inside the circle as the chord's midpoint. Probability = $1/4$.
 
-**Method 3 — Random radius and distance:** Choose a radius uniformly; choose the midpoint's distance from centre uniformly on $[0,1]$. Probability = $1/2$.
+**Method 3 - Random radius and distance:** Choose a radius uniformly; choose the midpoint's distance from centre uniformly on $[0,1]$. Probability = $1/2$.
 
 All three methods are geometrically natural, yet give different answers.
 
-**Resolution:** The phrase "uniform at random" is not well-defined without specifying the **sample space** and the **probability measure** on it. The three methods define different probability spaces $(\Omega, \mathcal{F}, P)$ — they are asking different questions.
+**Resolution:** The phrase "uniform at random" is not well-defined without specifying the **sample space** and the **probability measure** on it. The three methods define different probability spaces $(\Omega, \mathcal{F}, P)$ - they are asking different questions.
 
 **Lesson for ML:** When we say "sample a random minibatch" or "sample a random initialisation," we must specify the distribution explicitly. The implicit assumption (uniform distribution) can lead to different algorithmic properties depending on whether we sample with or without replacement, sample tokens or sequences, etc.
 
 ### M.2 The Two-Envelope Paradox
 
-Two envelopes each contain money; one has twice the amount of the other. You pick one, see $X$ inside, and are offered the chance to switch. You reason: the other envelope contains either $X/2$ (probability $1/2$) or $2X$ (probability $1/2$). Expected value of switching: $\frac{1}{2}(X/2) + \frac{1}{2}(2X) = \frac{5X}{4} > X$. So you should always switch — but the same reasoning applies after switching back!
+Two envelopes each contain money; one has twice the amount of the other. You pick one, see $X$ inside, and are offered the chance to switch. You reason: the other envelope contains either $X/2$ (probability $1/2$) or $2X$ (probability $1/2$). Expected value of switching: $\frac{1}{2}(X/2) + \frac{1}{2}(2X) = \frac{5X}{4} > X$. So you should always switch - but the same reasoning applies after switching back!
 
 **Resolution:** The calculation is flawed because the event "the other envelope has $2X$" and "the other envelope has $X/2$" cannot both be assigned probability $1/2$ simultaneously for a fixed $X$. The reasoning treats $X$ as fixed and random simultaneously. A rigorous Bayesian analysis shows no advantage to switching when the prior over the smaller amount is proper (integrable).
 
-**Lesson for ML:** The paradox arises from mixing conditional and unconditional reasoning. In ML, this appears in off-policy evaluation (evaluating policy $\pi_\text{new}$ using data from $\pi_\text{old}$) — naively computing expected reward leads to analogous double-counting errors.
+**Lesson for ML:** The paradox arises from mixing conditional and unconditional reasoning. In ML, this appears in off-policy evaluation (evaluating policy $\pi_\text{new}$ using data from $\pi_\text{old}$) - naively computing expected reward leads to analogous double-counting errors.
 
-### M.3 The St. Petersburg Paradox — When Expected Value Is Infinite
+### M.3 The St. Petersburg Paradox - When Expected Value Is Infinite
 
 A game: flip a fair coin repeatedly. If the first head appears on flip $k$, you win $2^k$ dollars. Expected value:
 $$\mathbb{E}[\text{winnings}] = \sum_{k=1}^\infty 2^k \cdot \frac{1}{2^k} = \sum_{k=1}^\infty 1 = \infty$$
 
 Yet no rational person would pay more than ~$25 to play.
 
-**Resolution:** Human decision-making is based on **utility**, not raw monetary value. If utility is $u(w) = \log(w)$ (a common assumption in economics), the expected utility is finite. This gives **expected utility theory** — the rational framework for decisions under uncertainty.
+**Resolution:** Human decision-making is based on **utility**, not raw monetary value. If utility is $u(w) = \log(w)$ (a common assumption in economics), the expected utility is finite. This gives **expected utility theory** - the rational framework for decisions under uncertainty.
 
 **For AI:** Reinforcement learning explicitly maximises expected return (reward), which can lead to high-variance, unstable policies if reward distributions have heavy tails. Techniques like reward normalisation, reward clipping (PPO), and distributional RL (C51, QR-DQN) are direct engineering responses to the St. Petersburg problem.
 
@@ -1751,9 +1751,9 @@ This appendix collects all the inequalities introduced in this section and previ
 | **Boole (union bound)** | $P\!\left(\bigcup_i A_i\right) \leq \sum_i P(A_i)$ | When events may overlap; gives upper bound |
 | **Inclusion-exclusion** | $P(A \cup B) = P(A) + P(B) - P(A \cap B)$ | Exact for two events |
 | **Bonferroni** | $P\!\left(\bigcap_i A_i^c\right) \geq 1 - \sum_i P(A_i)$ | Lower bound on "all good" probability |
-| **Fréchet** | $\max(0, P(A)+P(B)-1) \leq P(A \cap B) \leq \min(P(A),P(B))$ | Bounds on intersection without independence |
+| **Frechet** | $\max(0, P(A)+P(B)-1) \leq P(A \cap B) \leq \min(P(A),P(B))$ | Bounds on intersection without independence |
 
-### Moment-Based Bounds (from §05)
+### Moment-Based Bounds (from Section05)
 
 | Inequality | Statement | Uses |
 |---|---|---|
@@ -1762,7 +1762,7 @@ This appendix collects all the inequalities introduced in this section and previ
 | **Jensen** | $g(\mathbb{E}[X]) \leq \mathbb{E}[g(X)]$ for convex $g$ | Log-sum-exp, ELBO, entropy |
 | **Cauchy-Schwarz** | $|\mathbb{E}[XY]|^2 \leq \mathbb{E}[X^2]\mathbb{E}[Y^2]$ | Bounds correlation |
 
-### Concentration Bounds (from §05)
+### Concentration Bounds (from Section05)
 
 | Inequality | Statement | When to Use |
 |---|---|---|
@@ -1781,7 +1781,7 @@ This appendix provides a slightly more formal treatment of sigma-algebras for re
 
 ### O.1 Why Sigma-Algebras Appear
 
-The Kolmogorov axioms in §2 assume we know which subsets of $\Omega$ count as "events." For finite or countable $\Omega$, every subset is an event. For continuous $\Omega = \mathbb{R}$, we cannot assign probabilities to all subsets (Vitali sets are non-measurable), so we restrict to a collection $\mathcal{F}$ closed under the operations we need.
+The Kolmogorov axioms in Section2 assume we know which subsets of $\Omega$ count as "events." For finite or countable $\Omega$, every subset is an event. For continuous $\Omega = \mathbb{R}$, we cannot assign probabilities to all subsets (Vitali sets are non-measurable), so we restrict to a collection $\mathcal{F}$ closed under the operations we need.
 
 ### O.2 The Borel Sigma-Algebra
 
@@ -1799,14 +1799,14 @@ $$\mathcal{F}_0 \subseteq \mathcal{F}_1 \subseteq \mathcal{F}_2 \subseteq \cdots
 
 where $\mathcal{F}_t$ represents "all information available by time $t$."
 
-A random variable $X_t$ is **$\mathcal{F}_t$-measurable** if its value is determined by the information in $\mathcal{F}_t$ — that is, you can compute $X_t$ from the history up to time $t$.
+A random variable $X_t$ is **$\mathcal{F}_t$-measurable** if its value is determined by the information in $\mathcal{F}_t$ - that is, you can compute $X_t$ from the history up to time $t$.
 
 **Example:** In a sequential decision problem:
-- $\mathcal{F}_0 = \{\emptyset, \Omega\}$ — no information (only trivial events)
-- $\mathcal{F}_1 = \sigma(X_1)$ — sigma-algebra generated by the first observation
-- $\mathcal{F}_t = \sigma(X_1, \ldots, X_t)$ — sigma-algebra generated by observations up to time $t$
+- $\mathcal{F}_0 = \{\emptyset, \Omega\}$ - no information (only trivial events)
+- $\mathcal{F}_1 = \sigma(X_1)$ - sigma-algebra generated by the first observation
+- $\mathcal{F}_t = \sigma(X_1, \ldots, X_t)$ - sigma-algebra generated by observations up to time $t$
 
-The **Markov property** (§07) states: $X_{t+1}$ depends on $\mathcal{F}_t$ only through $X_t$ (not the full history).
+The **Markov property** (Section07) states: $X_{t+1}$ depends on $\mathcal{F}_t$ only through $X_t$ (not the full history).
 
 **For AI:** The attention mechanism's causal mask in GPT-style models enforces a filtration: token $t$ can only attend to tokens at positions $\leq t$. The mask ensures $\mathcal{F}_t$-measurability of each token prediction, making the autoregressive language model a valid probabilistic model of sequences.
 
@@ -1815,11 +1815,11 @@ The **Markov property** (§07) states: $X_{t+1}$ depends on $\mathcal{F}_t$ only
 For any random variable $X$, the **generated sigma-algebra** is:
 $$\sigma(X) = \{X^{-1}(B) : B \in \mathcal{B}(\mathbb{R})\} = \{\{\omega : X(\omega) \in B\} : B \in \mathcal{B}(\mathbb{R})\}$$
 
-This is the smallest sigma-algebra that makes $X$ measurable — it contains exactly the information encoded in $X$.
+This is the smallest sigma-algebra that makes $X$ measurable - it contains exactly the information encoded in $X$.
 
-For a discrete random variable: $\sigma(X) = \sigma(\{X = x_1\}, \{X = x_2\}, \ldots)$ — the partition of $\Omega$ induced by the values of $X$.
+For a discrete random variable: $\sigma(X) = \sigma(\{X = x_1\}, \{X = x_2\}, \ldots)$ - the partition of $\Omega$ induced by the values of $X$.
 
-**Key insight:** Conditional expectation $\mathbb{E}[Y | X]$ is really $\mathbb{E}[Y | \sigma(X)]$ — the expectation of $Y$ given all the information encoded in $X$. This formulation (using sigma-algebras) is what makes conditional expectation rigorously defined even when $P(X = x) = 0$.
+**Key insight:** Conditional expectation $\mathbb{E}[Y | X]$ is really $\mathbb{E}[Y | \sigma(X)]$ - the expectation of $Y$ given all the information encoded in $X$. This formulation (using sigma-algebras) is what makes conditional expectation rigorously defined even when $P(X = x) = 0$.
 
 ---
 
@@ -1849,7 +1849,7 @@ $$\mathbb{E}[X] = G_X'(1), \quad \mathbb{E}[X(X-1)] = G_X''(1), \quad \operatorn
 | Poisson($\lambda$) | $e^{\lambda(z-1)}$ |
 | Geometric($p$) | $pz/(1-(1-p)z)$ |
 
-The Binomial PGF $(1-p+pz)^n$ is the $n$-fold product of Bernoulli PGFs — directly encoding that a Binomial is a sum of $n$ i.i.d. Bernoullis (by the product property for independent variables).
+The Binomial PGF $(1-p+pz)^n$ is the $n$-fold product of Bernoulli PGFs - directly encoding that a Binomial is a sum of $n$ i.i.d. Bernoullis (by the product property for independent variables).
 
 **Product property:** If $X \perp Y$: $G_{X+Y}(z) = G_X(z) \cdot G_Y(z)$.
 
@@ -1865,43 +1865,43 @@ $$G_{\text{Pois}(\lambda_1)}(z) \cdot G_{\text{Pois}(\lambda_2)}(z) = e^{\lambda
 
 Understanding how probability theory evolved helps locate the axioms, distributions, and theorems in their proper intellectual context.
 
-### Q.1 Pre-Axiomatic Period (1654–1900)
+### Q.1 Pre-Axiomatic Period (1654-1900)
 
 **Pascal and Fermat (1654):** The famous exchange of letters about the "Problem of Points" (how to divide stakes in an unfinished game) is often cited as the birth of probability theory. They developed the idea of expected value and laid groundwork for combinatorics.
 
 **Bernoulli (1713):** Jakob Bernoulli's *Ars Conjectandi* stated the first version of the Law of Large Numbers: relative frequencies of outcomes converge to true probabilities. This transformed probability from gambling mathematics to a science of inference.
 
-**Bayes (1763):** Thomas Bayes' posthumous *Essay* gave the first treatment of inverse probability — inferring parameters from observations. Richard Price edited and published it; Laplace independently developed the same ideas more completely.
+**Bayes (1763):** Thomas Bayes' posthumous *Essay* gave the first treatment of inverse probability - inferring parameters from observations. Richard Price edited and published it; Laplace independently developed the same ideas more completely.
 
-**Laplace (1812):** *Théorie analytique des probabilités* synthesised the field, introducing characteristic functions, the Central Limit Theorem, the method of moments, and the formal definition of probability as a fraction of equally likely cases.
+**Laplace (1812):** *Theorie analytique des probabilites* synthesised the field, introducing characteristic functions, the Central Limit Theorem, the method of moments, and the formal definition of probability as a fraction of equally likely cases.
 
-**Gauss (1809, 1823):** Derived the normal distribution as the error distribution minimising the sum of squared residuals. Proved that the sample mean is the best linear unbiased estimator — establishing connections between probability and statistics.
+**Gauss (1809, 1823):** Derived the normal distribution as the error distribution minimising the sum of squared residuals. Proved that the sample mean is the best linear unbiased estimator - establishing connections between probability and statistics.
 
-**Chebyshev, Markov, Lyapunov (1867–1901):** Proved increasingly general versions of the CLT. Markov introduced his eponymous chains; Lyapunov's proof of the CLT via characteristic functions is essentially the modern proof.
+**Chebyshev, Markov, Lyapunov (1867-1901):** Proved increasingly general versions of the CLT. Markov introduced his eponymous chains; Lyapunov's proof of the CLT via characteristic functions is essentially the modern proof.
 
-### Q.2 Axiomatic Period (1900–1950)
+### Q.2 Axiomatic Period (1900-1950)
 
 **Borel (1909):** Proved the strong law of large numbers for the Bernoulli case, introducing Borel sets and measure-theoretic methods.
 
-**Kolmogorov (1933):** *Grundbegriffe der Wahrscheinlichkeitsrechnung* placed probability theory on rigorous measure-theoretic foundations. The three axioms in §2 are Kolmogorov's. This work resolved foundational debates and enabled the rigorous development of stochastic processes.
+**Kolmogorov (1933):** *Grundbegriffe der Wahrscheinlichkeitsrechnung* placed probability theory on rigorous measure-theoretic foundations. The three axioms in Section2 are Kolmogorov's. This work resolved foundational debates and enabled the rigorous development of stochastic processes.
 
-**Wiener (1923):** Constructed Brownian motion rigorously as a probability measure on function spaces — the first infinite-dimensional probability space.
+**Wiener (1923):** Constructed Brownian motion rigorously as a probability measure on function spaces - the first infinite-dimensional probability space.
 
 **Doob (1940s):** Developed martingale theory, providing rigorous tools for studying random processes with conditional structure.
 
-### Q.3 Modern Period (1950–present)
+### Q.3 Modern Period (1950-present)
 
-**Shannon (1948):** *A Mathematical Theory of Communication* introduced entropy, mutual information, and channel capacity — connecting probability to communication. Cross-entropy loss in modern ML is a direct descendant.
+**Shannon (1948):** *A Mathematical Theory of Communication* introduced entropy, mutual information, and channel capacity - connecting probability to communication. Cross-entropy loss in modern ML is a direct descendant.
 
-**Robbins-Monro (1951):** Stochastic approximation — the theoretical foundation for stochastic gradient descent. Proved that gradient estimates from mini-batches converge to the true gradient.
+**Robbins-Monro (1951):** Stochastic approximation - the theoretical foundation for stochastic gradient descent. Proved that gradient estimates from mini-batches converge to the true gradient.
 
-**Dempster-Laird-Rubin (1977):** The EM algorithm — an expectation-maximisation procedure for MLE with latent variables. Built on conditional expectation and Jensen's inequality.
+**Dempster-Laird-Rubin (1977):** The EM algorithm - an expectation-maximisation procedure for MLE with latent variables. Built on conditional expectation and Jensen's inequality.
 
-**Pearl (1988):** Bayesian networks and causal inference — graphical models encoding conditional independence structure. Direct descendant of conditional probability in §4 and §03 of this chapter.
+**Pearl (1988):** Bayesian networks and causal inference - graphical models encoding conditional independence structure. Direct descendant of conditional probability in Section4 and Section03 of this chapter.
 
-**Goodfellow et al. (2014):** Generative Adversarial Networks — training a generator to match a target distribution by playing a minimax game. The divergence between generated and true distributions is what is being minimised (implicitly or explicitly).
+**Goodfellow et al. (2014):** Generative Adversarial Networks - training a generator to match a target distribution by playing a minimax game. The divergence between generated and true distributions is what is being minimised (implicitly or explicitly).
 
-**Sohl-Dickstein et al. (2015), Ho et al. (2020):** Diffusion models — add Gaussian noise progressively (forward process), then learn to denoise (reverse process). Grounded in stochastic processes and Gaussian distributions.
+**Sohl-Dickstein et al. (2015), Ho et al. (2020):** Diffusion models - add Gaussian noise progressively (forward process), then learn to denoise (reverse process). Grounded in stochastic processes and Gaussian distributions.
 
 ### Q.4 The Connections to Modern LLMs
 
@@ -1909,16 +1909,16 @@ Every component of a modern language model has a probabilistic interpretation ro
 
 | LLM Component | Probability Foundation | Section |
 |---|---|---|
-| Token prediction | Categorical distribution over vocabulary | §6 (discrete RV) |
-| Temperature scaling | Scale parameter of Gumbel distribution | §7 (continuous RV) |
-| Dropout | Bernoulli mask on activations | §6 (Bernoulli) |
-| Weight initialisation | Normal distribution, variance scaling | §7 (Gaussian) |
-| KV cache attention | Conditional probability over past keys | §4 (conditioning) |
-| RLHF reward model | Bradley-Terry preference model | §3 (conditional probability) |
-| Beam search | Greedy argmax over joint probability | §6 (joint events) |
-| Perplexity metric | Exponential of cross-entropy | §8 (expectation) |
-| Calibration | Agreement between predicted probs and frequencies | §2 (frequentist) |
-| Chain-of-thought | Latent variable model over reasoning traces | §4 (conditional independence) |
+| Token prediction | Categorical distribution over vocabulary | Section6 (discrete RV) |
+| Temperature scaling | Scale parameter of Gumbel distribution | Section7 (continuous RV) |
+| Dropout | Bernoulli mask on activations | Section6 (Bernoulli) |
+| Weight initialisation | Normal distribution, variance scaling | Section7 (Gaussian) |
+| KV cache attention | Conditional probability over past keys | Section4 (conditioning) |
+| RLHF reward model | Bradley-Terry preference model | Section3 (conditional probability) |
+| Beam search | Greedy argmax over joint probability | Section6 (joint events) |
+| Perplexity metric | Exponential of cross-entropy | Section8 (expectation) |
+| Calibration | Agreement between predicted probs and frequencies | Section2 (frequentist) |
+| Chain-of-thought | Latent variable model over reasoning traces | Section4 (conditional independence) |
 
 
 ---

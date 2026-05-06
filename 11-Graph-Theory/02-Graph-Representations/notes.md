@@ -1,4 +1,4 @@
-[← Back to Graph Theory](../README.md) | [Previous: Graph Basics ←](../01-Graph-Basics/notes.md) | [Next: Graph Algorithms →](../03-Graph-Algorithms/notes.md)
+[<- Back to Graph Theory](../README.md) | [Previous: Graph Basics <-](../01-Graph-Basics/notes.md) | [Next: Graph Algorithms ->](../03-Graph-Algorithms/notes.md)
 
 ---
 
@@ -8,16 +8,16 @@
 
 ## Overview
 
-A graph $G = (V, E)$ is an abstract mathematical object. To compute with it — to run algorithms, train neural networks, or query databases — we must map it to a concrete data structure. This section studies that mapping: how to store graphs efficiently in memory, how to support the operations our algorithms need, and how to choose the right representation for each task.
+A graph $G = (V, E)$ is an abstract mathematical object. To compute with it - to run algorithms, train neural networks, or query databases - we must map it to a concrete data structure. This section studies that mapping: how to store graphs efficiently in memory, how to support the operations our algorithms need, and how to choose the right representation for each task.
 
 The choice of representation is not cosmetic. An adjacency matrix makes eigenvalue computation trivial but wastes $O(n^2)$ memory for a sparse social network with millions of nodes. An adjacency list supports fast neighbour enumeration but is slow for checking whether a specific edge exists. The PyTorch Geometric `edge_index` format packs all edges into a single GPU tensor, enabling batched sparse operations at scale. Understanding these trade-offs is essential for anyone implementing graph algorithms or graph neural networks.
 
-This section introduces six core representations — adjacency matrix, adjacency list, edge list, COO, CSR/CSC, and incidence matrix — with full mathematical definitions, space-time complexity analysis, implementation details, and guidance on when to use each. We also cover the Laplacian matrix $L = D - A$ (defined here; eigenvalue analysis is in §04), the PyTorch Geometric `Data` object, heterogeneous and dynamic graphs, and a systematic decision framework for representation selection.
+This section introduces six core representations - adjacency matrix, adjacency list, edge list, COO, CSR/CSC, and incidence matrix - with full mathematical definitions, space-time complexity analysis, implementation details, and guidance on when to use each. We also cover the Laplacian matrix $L = D - A$ (defined here; eigenvalue analysis is in 04), the PyTorch Geometric `Data` object, heterogeneous and dynamic graphs, and a systematic decision framework for representation selection.
 
 ## Prerequisites
 
-- Graph definitions: $G = (V, E)$, adjacency, degree, directed/undirected — [§01 Graph Basics](../01-Graph-Basics/notes.md)
-- Matrix operations and notation — [Ch. 02 Linear Algebra Basics](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
+- Graph definitions: $G = (V, E)$, adjacency, degree, directed/undirected - [01 Graph Basics](../01-Graph-Basics/notes.md)
+- Matrix operations and notation - [Ch. 02 Linear Algebra Basics](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
 - Basic Python and NumPy familiarity
 
 ## Companion Notebooks
@@ -89,16 +89,16 @@ After completing this section, you will:
 - [7. Incidence Matrix](#7-incidence-matrix)
   - [7.1 Definition and Properties](#71-definition-and-properties)
   - [7.2 Directed Incidence Matrix](#72-directed-incidence-matrix)
-  - [7.3 The Identity L = BB^⊤](#73-the-identity-l--bb)
+  - [7.3 The Identity L = BB^^T](#73-the-identity-l--bb)
   - [7.4 Hypergraph Incidence Matrix](#74-hypergraph-incidence-matrix)
   - [7.5 When to Use the Incidence Matrix](#75-when-to-use-the-incidence-matrix)
 - [8. Representation Conversions](#8-representation-conversions)
   - [8.1 Conversion Complexity Table](#81-conversion-complexity-table)
-  - [8.2 Edge List ↔ Adjacency Matrix](#82-edge-list--adjacency-matrix)
-  - [8.3 Edge List ↔ Adjacency List](#83-edge-list--adjacency-list)
-  - [8.4 Adjacency Matrix ↔ CSR](#84-adjacency-matrix--csr)
-  - [8.5 COO ↔ CSR ↔ CSC](#85-coo--csr--csc)
-  - [8.6 PyG ↔ NetworkX ↔ SciPy](#86-pyg--networkx--scipy)
+  - [8.2 Edge List <-> Adjacency Matrix](#82-edge-list--adjacency-matrix)
+  - [8.3 Edge List <-> Adjacency List](#83-edge-list--adjacency-list)
+  - [8.4 Adjacency Matrix <-> CSR](#84-adjacency-matrix--csr)
+  - [8.5 COO <-> CSR <-> CSC](#85-coo--csr--csc)
+  - [8.6 PyG <-> NetworkX <-> SciPy](#86-pyg--networkx--scipy)
 - [9. Heterogeneous and Dynamic Graphs](#9-heterogeneous-and-dynamic-graphs)
   - [9.1 Heterogeneous Graphs](#91-heterogeneous-graphs)
   - [9.2 PyG HeteroData](#92-pyg-heterodata)
@@ -124,13 +124,13 @@ After completing this section, you will:
 
 ### 1.1 Why Representation Matters
 
-A graph is an abstract object — a set of vertices and a set of edges. Before we can run a single algorithm on it, we need to answer a concrete engineering question: *how do we store it in memory?*
+A graph is an abstract object - a set of vertices and a set of edges. Before we can run a single algorithm on it, we need to answer a concrete engineering question: *how do we store it in memory?*
 
-This question matters more than it might seem. Consider a social network with $n = 10^8$ users (Facebook-scale). The "obvious" representation — a square adjacency matrix $A \in \{0,1\}^{n \times n}$ — would require $10^{16}$ bits of storage, roughly a billion terabytes. Yet this same graph has only $m \approx 10^{11}$ edges (average degree ~1000), and a sparse adjacency list stores it in $O(n + m) \approx O(10^{11})$ bytes — about 100 gigabytes, entirely within reach of a modern data centre node.
+This question matters more than it might seem. Consider a social network with $n = 10^8$ users (Facebook-scale). The "obvious" representation - a square adjacency matrix $A \in \{0,1\}^{n \times n}$ - would require $10^{16}$ bits of storage, roughly a billion terabytes. Yet this same graph has only $m \approx 10^{11}$ edges (average degree ~1000), and a sparse adjacency list stores it in $O(n + m) \approx O(10^{11})$ bytes - about 100 gigabytes, entirely within reach of a modern data centre node.
 
 Conversely, when running a Graph Convolutional Network (GCN) on a small dense molecular graph ($n = 30$ atoms, $m = 60$ bonds), the adjacency matrix is the natural choice: it enables the GCN's core computation $\hat{A} X W$ as a single dense matrix multiply, with full GPU utilization and no sparse indexing overhead.
 
-**The wrong representation doesn't just waste memory — it changes algorithmic complexity.** Checking whether edge $(u, v)$ exists takes $O(1)$ with an adjacency matrix but $O(\deg(u))$ with an adjacency list. Enumerating all neighbours of $u$ takes $O(n)$ with an adjacency matrix but $O(\deg(u))$ with an adjacency list. For a power-law graph where most nodes have degree $\sim 10$ but a few hubs have degree $\sim 10^5$, these differences dominate runtime.
+**The wrong representation doesn't just waste memory - it changes algorithmic complexity.** Checking whether edge $(u, v)$ exists takes $O(1)$ with an adjacency matrix but $O(\deg(u))$ with an adjacency list. Enumerating all neighbours of $u$ takes $O(n)$ with an adjacency matrix but $O(\deg(u))$ with an adjacency list. For a power-law graph where most nodes have degree $\sim 10$ but a few hubs have degree $\sim 10^5$, these differences dominate runtime.
 
 **For AI:** Every major GNN framework uses a different primary representation:
 - **PyTorch Geometric (PyG):** COO `edge_index` tensor, shape $2 \times m$
@@ -146,7 +146,7 @@ Any graph representation must efficiently support (some subset of) four fundamen
 
 ```
 THE FOUR FUNDAMENTAL GRAPH QUERIES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Q1.  EDGE EXISTENCE   Does edge (u, v) exist?
                         E.g., "Is user A friends with user B?"
@@ -160,70 +160,70 @@ THE FOUR FUNDAMENTAL GRAPH QUERIES
   Q4.  EDGE ITER        Iterate over all edges
                         E.g., "For every friendship, compute weight"
 
-  Q5.  (Bonus) MATRIX   Compute A·x, A²·x, eigendecompose A
+  Q5.  (Bonus) MATRIX   Compute A*x, A^2*x, eigendecompose A
                         E.g., PageRank, GCN, spectral clustering
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-No single representation answers all five questions optimally. The adjacency matrix excels at Q1 and Q5 but wastes memory and is slow for Q2. The adjacency list excels at Q2 and Q3 but is awkward for Q5. Sparse formats (CSR) balance Q2–Q5 for large sparse graphs. The art is choosing the right tool.
+No single representation answers all five questions optimally. The adjacency matrix excels at Q1 and Q5 but wastes memory and is slow for Q2. The adjacency list excels at Q2 and Q3 but is awkward for Q5. Sparse formats (CSR) balance Q2-Q5 for large sparse graphs. The art is choosing the right tool.
 
 ### 1.3 A Taxonomy of Graph Representations
 
 ```
 GRAPH REPRESENTATION TAXONOMY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   DENSE                    SPARSE                    HYBRID
-  ─────────────────────    ─────────────────────     ──────────────────
+  ---------------------    ---------------------     ------------------
   Adjacency Matrix         Adjacency List            CSR / CSC
-  (n×n array)              (dict of lists)           (3-array format)
+  (n\timesn array)              (dict of lists)           (3-array format)
 
                            Adjacency Set             COO / edge_index
-                           (dict of sets)            (2×m tensor)
+                           (dict of sets)            (2\timesm tensor)
 
                            Edge List                 LIL / DOK
                            (list of tuples)          (dynamic sparse)
 
   STRUCTURED               GENERALISED
-  ─────────────────────    ─────────────────────
+  ---------------------    ---------------------
   Incidence Matrix         Heterogeneous adjacency
-  (n×m, vertex-edge)       (multiple relation types)
+  (n\timesm, vertex-edge)       (multiple relation types)
 
   Laplacian L = D - A      Temporal snapshot list
   (combinatorial)          (graph_t for each time t)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.4 Historical Evolution
 
 The history of graph representations mirrors the history of computing hardware:
 
-- **1736 (Euler):** Graphs as drawings on paper — no formal data structure
-- **1960s:** Adjacency matrices become standard in combinatorics textbooks; O(n²) space is acceptable for small graphs
+- **1736 (Euler):** Graphs as drawings on paper - no formal data structure
+- **1960s:** Adjacency matrices become standard in combinatorics textbooks; O(n^2) space is acceptable for small graphs
 - **1970s:** Adjacency lists emerge as graphs grow larger; Dijkstra's 1959 algorithm is re-implemented with lists
 - **1980s:** Compressed Sparse Row (CSR) format developed for sparse linear algebra; adopted for large graph algorithms
 - **1990s:** Web-scale graphs (PageRank, 1998) expose the inadequacy of dense representations; sparse formats dominate
 - **2000s:** GraphChi, PowerGraph, Pregel enable distributed graph processing with edge-list-based disk formats
-- **2017:** PyTorch Geometric introduces `edge_index` — a COO format on GPU tensors — as the standard for GNN research
+- **2017:** PyTorch Geometric introduces `edge_index` - a COO format on GPU tensors - as the standard for GNN research
 - **2020s:** Mixed precision, TPU padding, and FlashAttention-style sparse attention define new representation challenges
 
 ### 1.5 What This Section Covers vs. What Comes Later
 
 This section defines and analyses six core representations. Content that builds on these representations but belongs to later sections:
 
-> **Preview: Graph Algorithms (§03)**
+> **Preview: Graph Algorithms (03)**
 >
-> BFS, DFS, Dijkstra, and Kruskal all operate *on* the representations defined here. The choice of adjacency list vs. matrix determines the asymptotic complexity of these algorithms. Full algorithmic treatment: [§03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
+> BFS, DFS, Dijkstra, and Kruskal all operate *on* the representations defined here. The choice of adjacency list vs. matrix determines the asymptotic complexity of these algorithms. Full algorithmic treatment: [03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
 
-> **Preview: Spectral Graph Theory (§04)**
+> **Preview: Spectral Graph Theory (04)**
 >
-> The Laplacian $L = D - A$ defined in §3.4 below is the central object of spectral graph theory. Its eigenvalues encode connectivity, bipartiteness, and cluster structure. Eigenvalue analysis, the Fiedler vector, and spectral clustering: [§04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md).
+> The Laplacian $L = D - A$ defined in 3.4 below is the central object of spectral graph theory. Its eigenvalues encode connectivity, bipartiteness, and cluster structure. Eigenvalue analysis, the Fiedler vector, and spectral clustering: [04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md).
 
-> **Preview: Graph Neural Networks (§05)**
+> **Preview: Graph Neural Networks (05)**
 >
-> GNNs use the adjacency matrix or `edge_index` to define message-passing operations. The normalised adjacency $\hat{A} = D^{-1/2} A D^{-1/2}$ introduced in §3.5 is the GCN propagation rule (Kipf & Welling, 2017). Full GNN architectures: [§05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
+> GNNs use the adjacency matrix or `edge_index` to define message-passing operations. The normalised adjacency $\hat{A} = D^{-1/2} A D^{-1/2}$ introduced in 3.5 is the GCN propagation rule (Kipf & Welling, 2017). Full GNN architectures: [05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
 
 ---
 
@@ -236,10 +236,10 @@ This section defines and analyses six core representations. Content that builds 
 A representation is *correct* if it is **lossless**: $\mathcal{R}(G_1) = \mathcal{R}(G_2)$ iff $G_1 \cong G_2$ (up to vertex labelling in the canonical form). Practically, we work with *labelled* graphs where vertices have fixed integer indices $0, 1, \ldots, n-1$, and correctness means exact reconstruction of both vertex and edge sets.
 
 **Notation.** Throughout this section:
-- $n = |V|$ — number of vertices
-- $m = |E|$ — number of edges
-- $\Delta = \max_{v \in V} \deg(v)$ — maximum degree
-- $\bar{d} = 2m/n$ — average degree (undirected)
+- $n = |V|$ - number of vertices
+- $m = |E|$ - number of edges
+- $\Delta = \max_{v \in V} \deg(v)$ - maximum degree
+- $\bar{d} = 2m/n$ - average degree (undirected)
 
 ### 2.2 Complexity Measures
 
@@ -306,7 +306,7 @@ $$A_{ij} = \begin{cases} 1 & \text{if } \{i, j\} \in E \\ 0 & \text{otherwise} \
 
 $$A = \begin{pmatrix} 0 & 1 & 1 & 0 \\ 1 & 0 & 1 & 1 \\ 1 & 1 & 0 & 1 \\ 0 & 1 & 1 & 0 \end{pmatrix}$$
 
-Degree check: row sums are $[2, 3, 3, 2]$, so $\sum \deg = 10 = 2 \times 5 = 2|E|$. ✓
+Degree check: row sums are $[2, 3, 3, 2]$, so $\sum \deg = 10 = 2 \times 5 = 2|E|$. OK
 
 ### 3.2 Directed and Weighted Variants
 
@@ -327,7 +327,7 @@ Common weight semantics:
 - **Distance weights** ($w > 0$, smaller = closer): road networks, molecular bond lengths
 - **Signed weights** ($w \in \mathbb{R}$): financial networks (positive = cooperation, negative = competition)
 
-**For AI:** Transformer attention defines a weighted digraph where $A_{ij} = \operatorname{softmax}(Q_i K_j^\top / \sqrt{d_k})$ — a fully connected weighted directed graph over sequence positions. Each attention head defines a different graph on the same token set.
+**For AI:** Transformer attention defines a weighted digraph where $A_{ij} = \operatorname{softmax}(Q_i K_j^\top / \sqrt{d_k})$ - a fully connected weighted directed graph over sequence positions. Each attention head defines a different graph on the same token set.
 
 ### 3.3 Self-Loops and Augmented Adjacency
 
@@ -355,7 +355,7 @@ $$L = D - A$$
 1. **Symmetric:** $L = L^\top$ (for undirected graphs)
 2. **Positive semidefinite:** $L \succeq 0$, i.e., $\mathbf{x}^\top L \mathbf{x} \geq 0$ for all $\mathbf{x} \in \mathbb{R}^n$
 3. **Zero row sums:** $L \mathbf{1} = \mathbf{0}$ (so $\lambda = 0$ is always an eigenvalue)
-4. **Quadratic form:** $\mathbf{x}^\top L \mathbf{x} = \sum_{\{i,j\} \in E} (x_i - x_j)^2$ — measures "roughness" of $\mathbf{x}$ on $G$
+4. **Quadratic form:** $\mathbf{x}^\top L \mathbf{x} = \sum_{\{i,j\} \in E} (x_i - x_j)^2$ - measures "roughness" of $\mathbf{x}$ on $G$
 5. **Connectivity:** $G$ is connected iff the second-smallest eigenvalue $\lambda_2 > 0$ (Fiedler value)
 
 For the diamond graph above:
@@ -376,9 +376,9 @@ This identity has a beautiful interpretation: $\mathbf{x}^\top L \mathbf{x}$ mea
 
 **Proof of zero row sums (Property 3):** $(L\mathbf{1})_i = D_{ii} \cdot 1 - \sum_j A_{ij} \cdot 1 = \deg(i) - \deg(i) = 0$. $\square$
 
-So $\mathbf{1} \in \ker(L)$ always — the all-ones vector is in the null space of $L$, meaning $\lambda = 0$ is always an eigenvalue. For a connected graph, $\lambda = 0$ has multiplicity exactly 1 (the null space is spanned by $\mathbf{1}$). For a graph with $k$ connected components, $\lambda = 0$ has multiplicity $k$.
+So $\mathbf{1} \in \ker(L)$ always - the all-ones vector is in the null space of $L$, meaning $\lambda = 0$ is always an eigenvalue. For a connected graph, $\lambda = 0$ has multiplicity exactly 1 (the null space is spanned by $\mathbf{1}$). For a graph with $k$ connected components, $\lambda = 0$ has multiplicity $k$.
 
-**Worked numerical verification — diamond graph:**
+**Worked numerical verification - diamond graph:**
 
 $$\mathbf{x} = (1, 0, 0, -1)^\top$$
 
@@ -394,7 +394,7 @@ $$L\mathbf{x} = \begin{pmatrix} 2 & -1 & -1 & 0 \\ -1 & 3 & -1 & -1 \\ -1 & -1 &
 
 $$\mathbf{x}^\top L \mathbf{x} = (1)(2) + (0)(0) + (0)(0) + (-1)(2) = 2 + 0 + 0 - 2 = 0$$
 
-Wait — this gives 0, not 4. Let me recheck the edge set. Diamond graph edges: $\{0,1\}, \{0,2\}, \{1,2\}, \{1,3\}, \{2,3\}$. With $\mathbf{x} = (1,0,0,-1)^\top$:
+Wait - this gives 0, not 4. Let me recheck the edge set. Diamond graph edges: $\{0,1\}, \{0,2\}, \{1,2\}, \{1,3\}, \{2,3\}$. With $\mathbf{x} = (1,0,0,-1)^\top$:
 
 - $\{0,1\}$: $(1-0)^2 = 1$
 - $\{0,2\}$: $(1-0)^2 = 1$
@@ -404,13 +404,13 @@ Wait — this gives 0, not 4. Let me recheck the edge set. Diamond graph edges: 
 
 Sum $= 4$. The discrepancy is in the matrix multiply: let me recheck $L$ for the diamond graph with edges $\{0,1\},\{0,2\},\{1,2\},\{1,3\},\{2,3\}$. Degrees: $\deg(0) = 2$, $\deg(1) = 3$, $\deg(2) = 3$, $\deg(3) = 2$.
 
-$$L = \begin{pmatrix}2&-1&-1&0\\-1&3&-1&-1\\-1&-1&3&-1\\0&-1&-1&2\end{pmatrix}, \quad L\mathbf{x} = \begin{pmatrix}2(1)+(-1)(0)+(-1)(0)+0(-1)\\(-1)(1)+3(0)+(-1)(0)+(-1)(-1)\\(-1)(1)+(-1)(0)+3(0)+(-1)(-1)\\0(1)+(-1)(0)+(-1)(0)+2(-1)\end{pmatrix} = \begin{pmatrix}2\\0\\0\\-2\end{pmatrix}$$
+$$L = \begin{pmatrix}2&-1&-1&0\\-1&3&-1&-1\\-1&-1&3&-1\\0&-1&-1&2\end{pmatrix}, \quad L\mathbf{x} = \begin{pmatrix}2(1)+(-1)(0)+(-1)(0)+0(-1)\\ (-1)(1)+3(0)+(-1)(0)+(-1)(-1)\\ (-1)(1)+(-1)(0)+3(0)+(-1)(-1)\\0(1)+(-1)(0)+(-1)(0)+2(-1)\end{pmatrix} = \begin{pmatrix}2\\0\\0\\-2\end{pmatrix}$$
 
 $$\mathbf{x}^\top L\mathbf{x} = 1\cdot2 + 0\cdot0 + 0\cdot0 + (-1)(-2) = 2 + 2 = 4 \quad \checkmark$$
 
 The quadratic form correctly evaluates to 4, confirming that vertices 0 and 3 (which have values $+1$ and $-1$ while being two hops apart) create variation spread across the four boundary edges.
 
-> **The full spectral analysis of $L$ — eigenvalues, Fiedler vector, spectral clustering — belongs to §04.** Here we define $L$ as a matrix derived from the graph and establish its basic algebraic properties. See [§04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md) for the complete treatment.
+> **The full spectral analysis of $L$ - eigenvalues, Fiedler vector, spectral clustering - belongs to 04.** Here we define $L$ as a matrix derived from the graph and establish its basic algebraic properties. See [04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md) for the complete treatment.
 
 ### 3.5 Normalised Adjacency
 
@@ -436,13 +436,13 @@ $P$ is the transition matrix of the random walk on $G$: $P_{ij}$ is the probabil
 
 $$L_{\text{sym}} = I - D^{-1/2} A D^{-1/2} = I - \hat{A}$$
 
-Eigenvalues of $L_{\text{sym}}$ lie in $[0, 2]$; the GCN can be derived as a first-order polynomial filter on $L_{\text{sym}}$ (see §04).
+Eigenvalues of $L_{\text{sym}}$ lie in $[0, 2]$; the GCN can be derived as a first-order polynomial filter on $L_{\text{sym}}$ (see 04).
 
 ### 3.6 Space-Time Analysis
 
 | Operation | Complexity | Notes |
 |-----------|-----------|-------|
-| Space | $O(n^2)$ | Always — regardless of $m$ |
+| Space | $O(n^2)$ | Always - regardless of $m$ |
 | Edge query $(i,j)$ | $O(1)$ | Direct array access |
 | Neighbour enum of $v$ | $O(n)$ | Must scan full row |
 | Add/remove edge | $O(1)$ | Set one entry |
@@ -457,17 +457,17 @@ Eigenvalues of $L_{\text{sym}}$ lie in $[0, 2]$; the GCN can be derived as a fir
 
 The adjacency matrix bridges graph theory and linear algebra, enabling powerful matrix-based analyses:
 
-**Walk counting:** $(A^k)_{ij}$ counts walks of length $k$ from $i$ to $j$ (proved in §01). This gives a matrix-algebraic approach to: triangle counting ($\operatorname{tr}(A^3)/6$), reachability ($\sum_{k=0}^\infty A^k$ for DAGs), and PageRank.
+**Walk counting:** $(A^k)_{ij}$ counts walks of length $k$ from $i$ to $j$ (proved in 01). This gives a matrix-algebraic approach to: triangle counting ($\operatorname{tr}(A^3)/6$), reachability ($\sum_{k=0}^\infty A^k$ for DAGs), and PageRank.
 
 **PageRank (Page et al., 1999):** The stationary distribution $\boldsymbol{\pi}$ of the damped random walk solves:
 
 $$\boldsymbol{\pi} = \alpha P^\top \boldsymbol{\pi} + \frac{1-\alpha}{n} \mathbf{1}$$
 
-where $\alpha \approx 0.85$ is the damping factor. Solving this requires repeated sparse matrix-vector multiplication — justifying CSR over dense $A$.
+where $\alpha \approx 0.85$ is the damping factor. Solving this requires repeated sparse matrix-vector multiplication - justifying CSR over dense $A$.
 
-**Spectral decomposition:** $A = Q \Lambda Q^\top$ (for symmetric $A$) reveals the graph's eigenspectrum — covered fully in §04.
+**Spectral decomposition:** $A = Q \Lambda Q^\top$ (for symmetric $A$) reveals the graph's eigenspectrum - covered fully in 04.
 
-**For AI:** The GCN layer computes $H' = \sigma(\hat{A} H W)$. With $n = 10^4$ nodes, $d = 128$ features, and $n_h = 64$ hidden units, this is a $10^4 \times 10^4$ sparse-dense matrix multiplication — the dominant computational cost. Efficient sparse implementations (cuSPARSE, PyG's `torch_sparse`) are essential.
+**For AI:** The GCN layer computes $H' = \sigma(\hat{A} H W)$. With $n = 10^4$ nodes, $d = 128$ features, and $n_h = 64$ hidden units, this is a $10^4 \times 10^4$ sparse-dense matrix multiplication - the dominant computational cost. Efficient sparse implementations (cuSPARSE, PyG's `torch_sparse`) are essential.
 
 ### 3.8 When to Use the Adjacency Matrix
 
@@ -515,7 +515,7 @@ $$\hat{A}_{12} = \frac{1}{\sqrt{4 \cdot 4}} = \frac{1}{4} = 0.25$$
 
 **Step 5: Apply $H^{(1)} = \operatorname{ReLU}(\hat{A} H^{(0)} W)$.**
 
-With $H^{(0)} = I_4$ (identity features) and $W \in \mathbb{R}^{4 \times 2}$ (learned weights), the output is $\hat{A} W$ — each row of $W$ is aggregated and weighted by the normalised adjacency. Node 1 (highest degree) receives the most averaged signal; node 0 and 3 (boundary nodes) receive less mixing.
+With $H^{(0)} = I_4$ (identity features) and $W \in \mathbb{R}^{4 \times 2}$ (learned weights), the output is $\hat{A} W$ - each row of $W$ is aggregated and weighted by the normalised adjacency. Node 1 (highest degree) receives the most averaged signal; node 0 and 3 (boundary nodes) receive less mixing.
 
 **Key insight:** The normalisation $\tilde{D}^{-1/2} \tilde{A} \tilde{D}^{-1/2}$ ensures that aggregating over a high-degree hub does not blow up the magnitude of the resulting embedding, because contributions are divided by $\sqrt{\deg(u) \cdot \deg(v)}$.
 
@@ -575,7 +575,7 @@ adj_out[v]  # out-neighbours of v (for forward pass)
 adj_in[v]   # in-neighbours of v  (for backward pass / reverse BFS)
 ```
 
-**For AI:** GNNs often need both directions. In PyG, setting `add_self_loops=True` and using `to_undirected()` generates bidirectional edges automatically. Message passing typically uses `adj_out` (source → destination aggregation).
+**For AI:** GNNs often need both directions. In PyG, setting `add_self_loops=True` and using `to_undirected()` generates bidirectional edges automatically. Message passing typically uses `adj_out` (source -> destination aggregation).
 
 **Weighted adjacency list.** Each entry stores a `(neighbour, weight)` pair:
 
@@ -630,19 +630,19 @@ For graphs where edge existence queries dominate (e.g., link prediction, graph c
 | Build from edge list | $O(n + m)$ | $O(n + m)$ |
 | Matrix-vector $A\mathbf{x}$ | $O(m)$ | $O(m)$ |
 
-**Critical advantage over adjacency matrix:** For sparse graphs with $m = O(n)$, the adjacency list reduces memory from $O(n^2)$ to $O(n)$ — a factor of $n$. For $n = 10^6$, this is the difference between 1 TB and 1 MB.
+**Critical advantage over adjacency matrix:** For sparse graphs with $m = O(n)$, the adjacency list reduces memory from $O(n^2)$ to $O(n)$ - a factor of $n$. For $n = 10^6$, this is the difference between 1 TB and 1 MB.
 
 ### 4.5 Cache Performance and Memory Layout
 
 The Python dictionary-of-lists adjacency representation, while correct and flexible, has poor **cache locality**. Each list is a separate Python object allocated at a random memory address, causing cache misses during graph traversal.
 
-**Cache-friendly alternative: flat CSR arrays** (see §6.2). CSR packs all adjacency information into two contiguous arrays, dramatically improving cache hit rates for algorithms that traverse many edges.
+**Cache-friendly alternative: flat CSR arrays** (see 6.2). CSR packs all adjacency information into two contiguous arrays, dramatically improving cache hit rates for algorithms that traverse many edges.
 
 **Memory layout comparison (1M edges):**
 
 ```text
-Python dict-of-lists:  ~80 bytes per edge (Python overhead)  → ~80 MB
-NumPy CSR arrays:      ~8 bytes per edge (int64)             → ~8 MB
+Python dict-of-lists:  ~80 bytes per edge (Python overhead)  -> ~80 MB
+NumPy CSR arrays:      ~8 bytes per edge (int64)             -> ~8 MB
 ```
 
 For production GNN code, the adjacency list (Python dict) is a prototyping tool; CSR or COO formats are used in actual training.
@@ -665,9 +665,9 @@ For production GNN code, the adjacency list (Python dict) is a prototyping tool;
 
 Beyond the basic Python dictionary, several implementation patterns arise in practice:
 
-**Pattern 1 — CSR as a flattened adjacency list.** The CSR format (§6.2) can be viewed as a memory-efficient adjacency list: `col_idx[row_ptr[i]:row_ptr[i+1]]` is exactly the neighbour list of vertex $i$, stored in a flat array for cache efficiency. The adjacency list and CSR are conceptually equivalent; CSR is the production-grade, cache-friendly version.
+**Pattern 1 - CSR as a flattened adjacency list.** The CSR format (6.2) can be viewed as a memory-efficient adjacency list: `col_idx[row_ptr[i]:row_ptr[i+1]]` is exactly the neighbour list of vertex $i$, stored in a flat array for cache efficiency. The adjacency list and CSR are conceptually equivalent; CSR is the production-grade, cache-friendly version.
 
-**Pattern 2 — Sorted adjacency list.** When edge queries are common but an adjacency set is too memory-intensive, keep each neighbour list *sorted* and use binary search:
+**Pattern 2 - Sorted adjacency list.** When edge queries are common but an adjacency set is too memory-intensive, keep each neighbour list *sorted* and use binary search:
 
 ```python
 import bisect
@@ -687,7 +687,7 @@ class SortedAdjList:
 
 Edge lookup is $O(\log \deg(u))$. Insertion is $O(\deg(u))$ to shift elements. This is a good middle ground between adjacency list ($O(\deg)$ lookup) and adjacency set ($O(1)$ lookup with high memory).
 
-**Pattern 3 — Degree-aware pre-allocation.** When the degree sequence is known in advance (e.g., loading from a file), pre-allocate arrays of the correct size to avoid repeated resizing:
+**Pattern 3 - Degree-aware pre-allocation.** When the degree sequence is known in advance (e.g., loading from a file), pre-allocate arrays of the correct size to avoid repeated resizing:
 
 ```python
 def build_adj_preallocated(n, edges):
@@ -702,9 +702,9 @@ def build_adj_preallocated(n, edges):
     return adj
 ```
 
-This avoids Python list resizing overhead and produces NumPy arrays for each row — enabling vectorised operations per neighbourhood.
+This avoids Python list resizing overhead and produces NumPy arrays for each row - enabling vectorised operations per neighbourhood.
 
-**For AI — GraphSAGE neighbour sampling.** GraphSAGE (Hamilton et al., 2017) samples a fixed number $k$ of neighbours per node at each layer. The implementation uses the adjacency list directly:
+**For AI - GraphSAGE neighbour sampling.** GraphSAGE (Hamilton et al., 2017) samples a fixed number $k$ of neighbours per node at each layer. The implementation uses the adjacency list directly:
 
 ```python
 def sample_neighbors(adj, node, k):
@@ -730,7 +730,7 @@ $$\mathcal{E} = [(u_1, v_1), (u_2, v_2), \ldots, (u_m, v_m)]$$
 For a weighted graph:
 $$\mathcal{E} = [(u_1, v_1, w_1), \ldots, (u_m, v_m, w_m)]$$
 
-The edge list stores only what exists — no zero entries, no empty adjacency slots. It is the most compact representation for pure storage ($O(m)$ space) and the most natural format for file I/O.
+The edge list stores only what exists - no zero entries, no empty adjacency slots. It is the most compact representation for pure storage ($O(m)$ space) and the most natural format for file I/O.
 
 **Standard file formats using edge lists:**
 - **`.edges` / `.txt`:** One edge per line, space-separated (`u v` or `u v w`)
@@ -742,14 +742,14 @@ The edge list stores only what exists — no zero entries, no empty adjacency sl
 
 ### 5.2 COO Format
 
-**Definition (COO — Coordinate List Format).** The COO format represents a sparse matrix (and hence a graph) as three parallel arrays:
+**Definition (COO - Coordinate List Format).** The COO format represents a sparse matrix (and hence a graph) as three parallel arrays:
 
 $$\text{row}[k] = u_k, \quad \text{col}[k] = v_k, \quad \text{data}[k] = w_k$$
 
 for each edge $k = 0, \ldots, m-1$.
 
 ```text
-Graph:  0→1 (w=2.0),  0→3 (w=1.0),  1→2 (w=0.5),  2→3 (w=3.0)
+Graph:  0->1 (w=2.0),  0->3 (w=1.0),  1->2 (w=0.5),  2->3 (w=3.0)
 
 COO:
   row  = [0, 0, 1, 2]
@@ -776,7 +776,7 @@ $$\text{edge\_index} = \begin{pmatrix} u_1 & u_2 & \cdots & u_m \\ v_1 & v_2 & \
 Row 0 contains source nodes; row 1 contains destination nodes. Each column represents one directed edge $(u_k \to v_k)$.
 
 ```python
-# Diamond graph: 0-1, 0-2, 1-2, 1-3, 2-3 (undirected → bidirectional)
+# Diamond graph: 0-1, 0-2, 1-2, 1-3, 2-3 (undirected -> bidirectional)
 edge_index = torch.tensor([
     [0, 1, 0, 2, 1, 2, 1, 3, 2, 3],   # sources
     [1, 0, 2, 0, 2, 1, 3, 1, 3, 2]    # targets
@@ -793,8 +793,8 @@ edge_index = torch.tensor([
 
 ```python
 edge_attr = torch.tensor([
-    [2.0],  # weight of edge (0→1)
-    [1.0],  # weight of edge (0→3)
+    [2.0],  # weight of edge (0->1)
+    [1.0],  # weight of edge (0->3)
     ...
 ], dtype=torch.float)  # shape: (m, d_e)
 ```
@@ -807,11 +807,11 @@ PyG unifies all graph components into a `torch_geometric.data.Data` object:
 from torch_geometric.data import Data
 
 data = Data(
-    x          = node_features,    # shape: (n, d_v)   — node feature matrix
-    edge_index = edge_index,       # shape: (2, m)     — COO edge list
-    edge_attr  = edge_attr,        # shape: (m, d_e)   — edge features (optional)
-    y          = labels,           # shape: (n,) or (1,) — node or graph labels
-    pos        = positions,        # shape: (n, 3)     — spatial coordinates (optional)
+    x          = node_features,    # shape: (n, d_v)   - node feature matrix
+    edge_index = edge_index,       # shape: (2, m)     - COO edge list
+    edge_attr  = edge_attr,        # shape: (m, d_e)   - edge features (optional)
+    y          = labels,           # shape: (n,) or (1,) - node or graph labels
+    pos        = positions,        # shape: (n, 3)     - spatial coordinates (optional)
 )
 
 print(data.num_nodes)     # n
@@ -837,7 +837,7 @@ The choice of COO / `edge_index` over sparse matrix formats is motivated by GPU 
 **GPU memory hierarchy:**
 - L1 cache: ~32 KB per streaming multiprocessor (SM)
 - L2 cache: ~40 MB shared
-- Global memory: 24–80 GB, high bandwidth (900 GB/s on H100)
+- Global memory: 24-80 GB, high bandwidth (900 GB/s on H100)
 
 Sparse matrix-vector multiplication (SpMV) in CSR format requires **indirect memory access** (following row pointers then column indices), which causes cache misses. The `scatter_add` pattern used in PyG's message passing accesses `edge_index` sequentially, enabling prefetching and coalesced memory access.
 
@@ -855,7 +855,7 @@ Sparse matrix-vector multiplication (SpMV) in CSR format requires **indirect mem
 **Avoid when:**
 - You need fast neighbour enumeration (convert to CSR first)
 - You need edge existence queries (COO is $O(m)$; use adjacency matrix or set)
-- Memory is constrained and $m$ is large (COO has 2–3x overhead vs. CSR for large graphs)
+- Memory is constrained and $m$ is large (COO has 2-3x overhead vs. CSR for large graphs)
 
 ---
 
@@ -865,12 +865,12 @@ Sparse matrix-vector multiplication (SpMV) in CSR format requires **indirect mem
 
 A sparse matrix is one with "sufficiently many" zero entries that storing and operating on zeros wastes time and space. For graphs, the adjacency matrix $A$ has $n^2$ entries but only $2m$ non-zeros (for undirected). The *fill ratio* $\rho = 2m/n^2$ measures how non-sparse the matrix is.
 
-**Example — CiteSeer citation network:**
+**Example - CiteSeer citation network:**
 - $n = 3,327$ nodes, $m = 4,732$ edges
 - Dense adjacency: $3327^2 \approx 11.1M$ entries, ~88 MB (float32)
 - Non-zeros: $2 \times 4732 = 9,464$ entries
-- Fill ratio: $\rho \approx 0.00085$ — 99.9% of entries are zero
-- Sparse storage (CSR): ~76 KB — over 1000× smaller
+- Fill ratio: $\rho \approx 0.00085$ - 99.9% of entries are zero
+- Sparse storage (CSR): ~76 KB - over 1000\times smaller
 
 Sparse formats exploit this structure: they store only non-zero entries and their indices.
 
@@ -878,13 +878,13 @@ Sparse formats exploit this structure: they store only non-zero entries and thei
 
 CSR (Compressed Sparse Row) is the standard sparse matrix format for row-oriented operations. It uses three arrays:
 
-- `data[k]` — value of the $k$-th non-zero entry
-- `col_idx[k]` — column index of the $k$-th non-zero entry
-- `row_ptr[i]` — index in `data`/`col_idx` where row $i$ begins
+- `data[k]` - value of the $k$-th non-zero entry
+- `col_idx[k]` - column index of the $k$-th non-zero entry
+- `row_ptr[i]` - index in `data`/`col_idx` where row $i$ begins
 
 **Construction.** For row $i$, its non-zero entries are `data[row_ptr[i] : row_ptr[i+1]]` and their columns are `col_idx[row_ptr[i] : row_ptr[i+1]]`.
 
-**Worked example — diamond graph adjacency matrix:**
+**Worked example - diamond graph adjacency matrix:**
 
 $$A = \begin{pmatrix}
 0 & 1 & 1 & 0 \\
@@ -906,9 +906,9 @@ CSR:
   row_ptr = [0,     2,     5,     8,     10]
 ```
 
-Reading row 1: `data[row_ptr[1]:row_ptr[2]] = data[2:5] = [1, 1, 1]` at columns `col_idx[2:5] = [0, 2, 3]`. Correct: vertex 1 connects to 0, 2, 3. ✓
+Reading row 1: `data[row_ptr[1]:row_ptr[2]] = data[2:5] = [1, 1, 1]` at columns `col_idx[2:5] = [0, 2, 3]`. Correct: vertex 1 connects to 0, 2, 3. OK
 
-**Space:** $O(n + m)$ — specifically $n+1$ integers for `row_ptr`, $m$ integers for `col_idx`, and $m$ values for `data` (or absent for unweighted graphs).
+**Space:** $O(n + m)$ - specifically $n+1$ integers for `row_ptr`, $m$ integers for `col_idx`, and $m$ values for `data` (or absent for unweighted graphs).
 
 | CSR Operation | Complexity | Notes |
 |--------------|-----------|-------|
@@ -923,11 +923,11 @@ Reading row 1: `data[row_ptr[1]:row_ptr[2]] = data[2:5] = [1, 1, 1]` at columns 
 
 CSC (Compressed Sparse Column) is the column-oriented analogue of CSR:
 
-- `data[k]` — value of the $k$-th non-zero
-- `row_idx[k]` — row index of the $k$-th non-zero
-- `col_ptr[j]` — index where column $j$ begins
+- `data[k]` - value of the $k$-th non-zero
+- `row_idx[k]` - row index of the $k$-th non-zero
+- `col_ptr[j]` - index where column $j$ begins
 
-CSC excels at **column operations**: accessing all in-neighbours of vertex $j$ (i.e., all $i$ such that $(i \to j) \in E$) takes $O(\deg^-(j))$ — a single contiguous slice of `row_idx`.
+CSC excels at **column operations**: accessing all in-neighbours of vertex $j$ (i.e., all $i$ such that $(i \to j) \in E$) takes $O(\deg^-(j))$ - a single contiguous slice of `row_idx`.
 
 **CSC vs CSR for directed GNNs:** In message-passing GNNs, aggregating messages from in-neighbours of $v$ is the forward pass operation. CSC organises data by destination node, making this $O(\deg^-(v))$ per node. DGL internally uses a CSR/CSC pair for efficient forward and backward passes.
 
@@ -972,9 +972,9 @@ dok = {
 }
 ```
 
-**Advantages:** $O(1)$ entry access, insertion, and deletion — ideal for sparse updates and random access patterns.
+**Advantages:** $O(1)$ entry access, insertion, and deletion - ideal for sparse updates and random access patterns.
 
-**Disadvantages:** High memory overhead (Python dict stores hash, key, value per entry — ~200 bytes vs. ~8 bytes in CSR). Not suitable for large graphs.
+**Disadvantages:** High memory overhead (Python dict stores hash, key, value per entry - ~200 bytes vs. ~8 bytes in CSR). Not suitable for large graphs.
 
 **When to use DOK:** Constructing small sparse matrices with frequent random-access updates (e.g., building a proximity matrix from $k$-NN search results).
 
@@ -994,11 +994,11 @@ def spmv_csr(data, col_idx, row_ptr, x):
     return y
 ```
 
-Time: $O(m)$ — each non-zero contributes exactly one multiply-add.
+Time: $O(m)$ - each non-zero contributes exactly one multiply-add.
 
-**Worked trace of CSR SpMV — diamond graph, $\mathbf{x} = (1, 2, 3, 4)^\top$.**
+**Worked trace of CSR SpMV - diamond graph, $\mathbf{x} = (1, 2, 3, 4)^\top$.**
 
-CSR arrays (from §6.2):
+CSR arrays (from 6.2):
 ```
 data    = [1, 1,  1, 1, 1,  1, 1, 1,  1, 1]
 col_idx = [1, 2,  0, 2, 3,  0, 1, 3,  1, 2]
@@ -1010,31 +1010,31 @@ Algorithm trace:
 i=0: k in [0,2):
      k=0: y[0] += data[0]*x[col_idx[0]] = 1*x[1] = 1*2 = 2
      k=1: y[0] += data[1]*x[col_idx[1]] = 1*x[2] = 1*3 = 3
-     → y[0] = 5
+     -> y[0] = 5
 
 i=1: k in [2,5):
      k=2: y[1] += 1*x[0] = 1*1 = 1
      k=3: y[1] += 1*x[2] = 1*3 = 3
      k=4: y[1] += 1*x[3] = 1*4 = 4
-     → y[1] = 8
+     -> y[1] = 8
 
 i=2: k in [5,8):
      k=5: y[2] += 1*x[0] = 1
      k=6: y[2] += 1*x[1] = 2
      k=7: y[2] += 1*x[3] = 4
-     → y[2] = 7
+     -> y[2] = 7
 
 i=3: k in [8,10):
      k=8:  y[3] += 1*x[1] = 2
      k=9:  y[3] += 1*x[2] = 3
-     → y[3] = 5
+     -> y[3] = 5
 ```
 
 Result: $A\mathbf{x} = (5, 8, 7, 5)^\top$.
 
-**Verification:** Row 1 of $A$ is $[1, 0, 1, 1]$, so $(A\mathbf{x})_1 = 1\cdot1 + 0\cdot2 + 1\cdot3 + 1\cdot4 = 8$. ✓
+**Verification:** Row 1 of $A$ is $[1, 0, 1, 1]$, so $(A\mathbf{x})_1 = 1\cdot1 + 0\cdot2 + 1\cdot3 + 1\cdot4 = 8$. OK
 
-Equivalently, $(A\mathbf{x})_i = \sum_{j \in \mathcal{N}(i)} x_j$ — the SpMV computes the *sum of feature values over neighbours*. This is exactly the sum-aggregation in GNNs without normalisation. The GCN adds the normalisation weights $\hat{A}_{ij}$ as the `data` array entries (instead of 1s).
+Equivalently, $(A\mathbf{x})_i = \sum_{j \in \mathcal{N}(i)} x_j$ - the SpMV computes the *sum of feature values over neighbours*. This is exactly the sum-aggregation in GNNs without normalisation. The GCN adds the normalisation weights $\hat{A}_{ij}$ as the `data` array entries (instead of 1s).
 
 **GNN message passing as SpMV.** The GCN aggregation step $H' = \hat{A} H$ (where $\hat{A} \in \mathbb{R}^{n \times n}$ sparse, $H \in \mathbb{R}^{n \times d}$ dense) is a **sparse-dense matrix multiply (SpMM)**. It generalises SpMV from vectors to matrices:
 
@@ -1074,29 +1074,29 @@ eigenvalues, eigenvectors = eigsh(A_csr, k=6, which='SM')
 
 **Conversion cost summary:**
 
-| From → To | Cost | Method |
+| From -> To | Cost | Method |
 |-----------|------|--------|
-| COO → CSR | $O(m \log m)$ | `.tocsr()` |
-| CSR → COO | $O(m)$ | `.tocoo()` |
-| CSR → CSC | $O(m)$ | `.tocsc()` |
-| LIL → CSR | $O(m)$ | `.tocsr()` |
-| DOK → COO | $O(m)$ | `.tocoo()` |
+| COO -> CSR | $O(m \log m)$ | `.tocsr()` |
+| CSR -> COO | $O(m)$ | `.tocoo()` |
+| CSR -> CSC | $O(m)$ | `.tocsc()` |
+| LIL -> CSR | $O(m)$ | `.tocsr()` |
+| DOK -> COO | $O(m)$ | `.tocoo()` |
 
 ### 6.8 Format Comparison Table
 
 ```
 SPARSE FORMAT COMPARISON
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
  Format    Space      EdgeQuery   RowAccess   ColAccess   Insert  Best Use
- ─────────────────────────────────────────────────────────────────────────
+ -------------------------------------------------------------------------
  CSR       O(n+m)     O(deg)      O(deg)      O(m)        Slow    SpMV, GNN
  CSC       O(n+m)     O(deg)      O(m)        O(deg)      Slow    SpMM cols
  COO       O(m)       O(m)        O(m)        O(m)        O(1)    I/O, PyG
  LIL       O(n+m)     O(deg)      O(deg)      Slow        O(deg)  Build
  DOK       O(m)       O(1)avg     Slow        Slow        O(1)    Updates
- Dense     O(n²)      O(1)        O(n)        O(n)        O(1)    n≤10⁴
-════════════════════════════════════════════════════════════════════════
+ Dense     O(n^2)      O(1)        O(n)        O(n)        O(1)    n\leq10^4
+========================================================================
 ```
 
 ### 6.9 Benchmark: Real Memory Usage
@@ -1105,13 +1105,13 @@ To make the trade-offs concrete, consider a Cora-scale citation graph ($n = 2708
 
 | Format | Arrays stored | Memory (bytes) | Relative |
 |--------|--------------|----------------|---------|
-| Dense float32 $A$ | $n^2 = 7{,}333{,}264$ values | 29.3 MB | 1× |
-| Dense bool $A$ | $n^2 = 7{,}333{,}264$ bits | 0.92 MB | 0.031× |
-| CSR int32 (unweighted) | $n+1 + 2m = 13{,}567$ ints | 54 KB | 0.002× |
-| COO int32 | $2m = 10{,}858$ ints | 43 KB | 0.0015× |
-| PyG `edge_index` int64 | $2 \times 2m = 21{,}716$ ints | 174 KB | 0.006× |
+| Dense float32 $A$ | $n^2 = 7{,}333{,}264$ values | 29.3 MB | 1\times |
+| Dense bool $A$ | $n^2 = 7{,}333{,}264$ bits | 0.92 MB | 0.031\times |
+| CSR int32 (unweighted) | $n+1 + 2m = 13{,}567$ ints | 54 KB | 0.002\times |
+| COO int32 | $2m = 10{,}858$ ints | 43 KB | 0.0015\times |
+| PyG `edge_index` int64 | $2 \times 2m = 21{,}716$ ints | 174 KB | 0.006\times |
 
-CSR gives a **540× memory reduction** over dense float32. For billion-edge graphs (OGB-Papers100M: $n = 1.1 \times 10^8$, $m = 1.6 \times 10^9$), the dense matrix would require $\sim 10^{16}$ bytes — physically impossible — while CSR uses $\sim 13$ GB, fitting on a single high-memory node.
+CSR gives a **540\times memory reduction** over dense float32. For billion-edge graphs (OGB-Papers100M: $n = 1.1 \times 10^8$, $m = 1.6 \times 10^9$), the dense matrix would require $\sim 10^{16}$ bytes - physically impossible - while CSR uses $\sim 13$ GB, fitting on a single high-memory node.
 
 **Throughput comparison (SpMV, single CPU core, Cora graph):**
 
@@ -1121,7 +1121,7 @@ CSR gives a **540× memory reduction** over dense float32. For billion-edge grap
 | CSR (SciPy) | 0.04 | 0.27 |
 | COO (manual) | 0.05 | 0.22 |
 
-Dense SpMV wastes $\sim 99.9\%$ of operations on zero entries. CSR SpMV achieves 7× higher throughput by operating only on the $2m$ non-zeros.
+Dense SpMV wastes $\sim 99.9\%$ of operations on zero entries. CSR SpMV achieves 7\times higher throughput by operating only on the $2m$ non-zeros.
 
 ---
 
@@ -1129,20 +1129,20 @@ Dense SpMV wastes $\sim 99.9\%$ of operations on zero entries. CSR SpMV achieves
 
 ### 7.1 Definition and Properties
 
-**Definition (Incidence Matrix — Undirected).** For a graph $G = (V, E)$ with $n$ vertices and $m$ edges, the *incidence matrix* $B \in \{0,1\}^{n \times m}$ has:
+**Definition (Incidence Matrix - Undirected).** For a graph $G = (V, E)$ with $n$ vertices and $m$ edges, the *incidence matrix* $B \in \{0,1\}^{n \times m}$ has:
 
 $$B_{ve} = \begin{cases} 1 & \text{if vertex } v \text{ is an endpoint of edge } e \\ 0 & \text{otherwise} \end{cases}$$
 
 Rows are indexed by vertices, columns by edges. Each column has exactly two 1-entries (one per endpoint). Each row has as many 1-entries as the vertex's degree.
 
-**Worked example — path $P_4$:** Vertices $\{0,1,2,3\}$, edges $e_1 = \{0,1\}$, $e_2 = \{1,2\}$, $e_3 = \{2,3\}$.
+**Worked example - path $P_4$:** Vertices $\{0,1,2,3\}$, edges $e_1 = \{0,1\}$, $e_2 = \{1,2\}$, $e_3 = \{2,3\}$.
 
 $$B = \begin{pmatrix} 1 & 0 & 0 \\ 1 & 1 & 0 \\ 0 & 1 & 1 \\ 0 & 0 & 1 \end{pmatrix} \leftarrow \begin{array}{l} v_0 \\ v_1 \\ v_2 \\ v_3 \end{array}$$
 
 **Basic properties:**
 - Each column sums to 2: $\mathbf{1}^\top B_{:,e} = 2$ for all edges $e$
 - Row sum of $v$ = $\deg(v)$: $B_{v,:} \mathbf{1} = \deg(v)$
-- Space: $O(nm)$ — often worse than adjacency matrix for dense graphs, but informative for sparse hypergraphs
+- Space: $O(nm)$ - often worse than adjacency matrix for dense graphs, but informative for sparse hypergraphs
 
 ### 7.2 Directed Incidence Matrix
 
@@ -1153,12 +1153,12 @@ $$B_{ve} = \begin{cases} +1 & \text{if } v \text{ is the head (target) of } e \\
 The signed incidence matrix encodes edge direction. Each column still has exactly two non-zero entries: $+1$ at the head, $-1$ at the tail.
 
 **Curl and divergence on graphs.** The directed incidence matrix $B$ plays the role of the discrete gradient operator:
-- $B^\top \mathbf{x}$ gives the "difference" $x_v - x_u$ across each directed edge $(u \to v)$ — a discrete gradient
-- $B \mathbf{f}$ gives the net flow divergence at each vertex — the flow in minus flow out
+- $B^\top \mathbf{x}$ gives the "difference" $x_v - x_u$ across each directed edge $(u \to v)$ - a discrete gradient
+- $B \mathbf{f}$ gives the net flow divergence at each vertex - the flow in minus flow out
 
 This structure underlies discrete Hodge theory and graph signal processing.
 
-### 7.3 The Identity L = BB^⊤
+### 7.3 The Identity L = BB^^T
 
 **Theorem.** For an undirected graph with (unsigned) incidence matrix $B$:
 
@@ -1183,7 +1183,7 @@ For the directed incidence matrix $B_{\text{dir}}$: $L = B_{\text{dir}} B_{\text
 
 ### 7.4 Hypergraph Incidence Matrix
 
-The incidence matrix generalises naturally to **hypergraphs** — graphs where edges (hyperedges) can connect more than two vertices.
+The incidence matrix generalises naturally to **hypergraphs** - graphs where edges (hyperedges) can connect more than two vertices.
 
 **Definition (Hypergraph Incidence Matrix).** For a hypergraph $\mathcal{H} = (V, \mathcal{E})$ where each hyperedge $e \in \mathcal{E}$ is a subset of vertices:
 
@@ -1215,20 +1215,20 @@ Each column has $|e|$ ones (the size of the hyperedge). The ordinary graph incid
 
 ### 8.1 Conversion Complexity Table
 
-| From → To | Time | Space | Notes |
+| From -> To | Time | Space | Notes |
 |-----------|------|-------|-------|
-| Edge list → Adjacency matrix | $O(n^2 + m)$ | $O(n^2)$ | Allocate matrix, fill entries |
-| Edge list → Adjacency list | $O(n + m)$ | $O(n + m)$ | Hash each edge to its endpoints |
-| Edge list → COO | $O(m)$ | $O(m)$ | Repack into parallel arrays |
-| Edge list → CSR | $O(m \log m)$ | $O(n + m)$ | Sort by source, prefix-sum |
-| Adjacency matrix → Edge list | $O(n^2)$ | $O(m)$ | Scan for non-zeros |
-| Adjacency matrix → CSR | $O(n^2)$ | $O(n + m)$ | Scan row by row |
-| COO → CSR | $O(m \log m)$ | $O(n + m)$ | Sort rows, prefix-sum |
-| CSR → COO | $O(m)$ | $O(m)$ | Expand row_ptr |
-| CSR → CSC | $O(m)$ | $O(n + m)$ | Transpose |
-| CSR → Adjacency list | $O(n + m)$ | $O(n + m)$ | One list per row |
+| Edge list -> Adjacency matrix | $O(n^2 + m)$ | $O(n^2)$ | Allocate matrix, fill entries |
+| Edge list -> Adjacency list | $O(n + m)$ | $O(n + m)$ | Hash each edge to its endpoints |
+| Edge list -> COO | $O(m)$ | $O(m)$ | Repack into parallel arrays |
+| Edge list -> CSR | $O(m \log m)$ | $O(n + m)$ | Sort by source, prefix-sum |
+| Adjacency matrix -> Edge list | $O(n^2)$ | $O(m)$ | Scan for non-zeros |
+| Adjacency matrix -> CSR | $O(n^2)$ | $O(n + m)$ | Scan row by row |
+| COO -> CSR | $O(m \log m)$ | $O(n + m)$ | Sort rows, prefix-sum |
+| CSR -> COO | $O(m)$ | $O(m)$ | Expand row_ptr |
+| CSR -> CSC | $O(m)$ | $O(n + m)$ | Transpose |
+| CSR -> Adjacency list | $O(n + m)$ | $O(n + m)$ | One list per row |
 
-### 8.2 Edge List ↔ Adjacency Matrix
+### 8.2 Edge List <-> Adjacency Matrix
 
 ```python
 def edge_list_to_matrix(edges, n, directed=False, weighted=False):
@@ -1254,7 +1254,7 @@ def matrix_to_edge_list(A, directed=False, weighted=False):
     return edges
 ```
 
-### 8.3 Edge List ↔ Adjacency List
+### 8.3 Edge List <-> Adjacency List
 
 ```python
 def edge_list_to_adj_list(edges, n, directed=False):
@@ -1277,7 +1277,7 @@ def adj_list_to_edge_list(adj, directed=False):
     return list(edges)
 ```
 
-### 8.4 Adjacency Matrix ↔ CSR
+### 8.4 Adjacency Matrix <-> CSR
 
 ```python
 def matrix_to_csr(A):
@@ -1298,7 +1298,7 @@ A_csr = sp.csr_matrix(A_dense)
 A_dense_back = A_csr.toarray()
 ```
 
-### 8.5 COO ↔ CSR ↔ CSC
+### 8.5 COO <-> CSR <-> CSC
 
 ```python
 def coo_to_csr(row, col, data, n):
@@ -1319,10 +1319,10 @@ A_csc = A_csr.tocsc()   # O(m) transpose
 A_coo = A_csr.tocoo()   # O(m) expansion
 ```
 
-### 8.6 PyG ↔ NetworkX ↔ SciPy
+### 8.6 PyG <-> NetworkX <-> SciPy
 
 ```python
-# NetworkX → PyG edge_index
+# NetworkX -> PyG edge_index
 import networkx as nx
 import torch
 
@@ -1333,18 +1333,18 @@ def nx_to_edge_index(G):
         edges += [(v, u) for u, v in edges]
     return torch.tensor(edges, dtype=torch.long).t().contiguous()
 
-# PyG edge_index → NetworkX
+# PyG edge_index -> NetworkX
 def edge_index_to_nx(edge_index, directed=True):
     G = nx.DiGraph() if directed else nx.Graph()
     G.add_edges_from(edge_index.t().tolist())
     return G
 
-# SciPy CSR → PyG edge_index
+# SciPy CSR -> PyG edge_index
 def csr_to_edge_index(A_csr):
     coo = A_csr.tocoo()
     return torch.tensor([coo.row, coo.col], dtype=torch.long)
 
-# PyG edge_index → SciPy CSR
+# PyG edge_index -> SciPy CSR
 def edge_index_to_csr(edge_index, n):
     row, col = edge_index[0].numpy(), edge_index[1].numpy()
     data = np.ones(len(row))
@@ -1363,17 +1363,17 @@ $$G = (V, E, \phi, \psi)$$
 
 where $\phi: V \to \mathcal{T}_V$ assigns each vertex a **node type** and $\psi: E \to \mathcal{T}_E$ assigns each edge a **relation type**.
 
-**Example — academic knowledge graph:**
+**Example - academic knowledge graph:**
 - Node types: Author, Paper, Venue
-- Edge types: writes (Author→Paper), published_in (Paper→Venue), cites (Paper→Paper), co-author (Author↔Author)
+- Edge types: writes (Author->Paper), published_in (Paper->Venue), cites (Paper->Paper), co-author (Author<->Author)
 
 For each relation type $(s, r, t)$ (source type, relation, target type), we maintain a **separate adjacency matrix** or `edge_index` tensor:
 
 $$A^{(s,r,t)} \in \{0,1\}^{|V_s| \times |V_t|}$$
 
-With $|\mathcal{T}_V|$ node types and $|\mathcal{T}_E|$ relation types, we have at most $|\mathcal{T}_E|$ matrices — typically much smaller than the full graph.
+With $|\mathcal{T}_V|$ node types and $|\mathcal{T}_E|$ relation types, we have at most $|\mathcal{T}_E|$ matrices - typically much smaller than the full graph.
 
-**Knowledge graph triple format.** Knowledge graphs (Freebase, Wikidata, OGB-MAG) store relations as triples $(h, r, t)$ — head entity, relation, tail entity. This is an edge list over a heterogeneous graph:
+**Knowledge graph triple format.** Knowledge graphs (Freebase, Wikidata, OGB-MAG) store relations as triples $(h, r, t)$ - head entity, relation, tail entity. This is an edge list over a heterogeneous graph:
 
 ```python
 triples = [
@@ -1415,7 +1415,7 @@ A **dynamic graph** changes over time: edges and vertices are inserted or delete
 
 **Adjacency list** handles edge insertion in $O(1)$ and deletion in $O(\deg(u))$. It is the standard choice for dynamic graph algorithms.
 
-**CSR is static**: every insertion or deletion requires rebuilding the three arrays — $O(m)$ total. For high-frequency updates, CSR is inappropriate.
+**CSR is static**: every insertion or deletion requires rebuilding the three arrays - $O(m)$ total. For high-frequency updates, CSR is inappropriate.
 
 **Dynamic CSR alternatives:**
 - **Chunked CSR:** Divide the adjacency list into fixed-size chunks; insertions overflow into a "delta" structure
@@ -1437,7 +1437,7 @@ snapshots = [
 ]
 ```
 
-**For AI — temporal GNNs:**
+**For AI - temporal GNNs:**
 - **TGAT (Temporal Graph Attention, 2020):** Stores interactions as chronologically sorted edge lists with timestamp features; uses time-encoding functions as positional features
 - **DyRep (2019):** Maintains a dynamic adjacency list updated via temporal point processes
 - **TGN (Temporal Graph Networks, 2020):** Uses memory modules per node to summarise temporal history; edge list sorted by timestamp is the core data structure
@@ -1446,7 +1446,7 @@ The temporal edge list $(u, v, t, \text{feat})$ sorted by $t$ is the standard in
 
 ### 9.5 Bipartite Graph Representations
 
-Many real-world graphs are **bipartite**: vertices are split into two disjoint sets $U$ and $V$ with edges only between $U$ and $V$ — no edges within $U$ or within $V$.
+Many real-world graphs are **bipartite**: vertices are split into two disjoint sets $U$ and $V$ with edges only between $U$ and $V$ - no edges within $U$ or within $V$.
 
 **Examples:** User-item interactions (recommendation systems), author-paper graphs, word-document matrices, student-course enrollment.
 
@@ -1464,19 +1464,19 @@ Bipartite graphs require **rectangular adjacency matrices** $A \in \{0,1\}^{|U| 
 ```python
 data = Data(
     x=(x_u, x_v),          # node features for U and V separately
-    edge_index=edge_index,  # source ∈ [0,|U|), target ∈ [0,|V|)
+    edge_index=edge_index,  # source \in [0,|U|), target \in [0,|V|)
 )
 ```
 
-**For AI — collaborative filtering.** The matrix factorization model for recommendation can be viewed as operating on a bipartite user-item graph with adjacency $A \in \{0,1\}^{n_u \times n_i}$:
+**For AI - collaborative filtering.** The matrix factorization model for recommendation can be viewed as operating on a bipartite user-item graph with adjacency $A \in \{0,1\}^{n_u \times n_i}$:
 
 $$\hat{R}_{ui} = \mathbf{p}_u^\top \mathbf{q}_i$$
 
-where $\mathbf{p}_u$ and $\mathbf{q}_i$ are learned embeddings. LightGCN (He et al., 2020) applies GCN layers directly to this bipartite graph, propagating user embeddings through item nodes and vice versa. The core operation is two rectangular SpMM passes: $A \mathbf{Q}$ (aggregate items → users) and $A^\top \mathbf{P}$ (aggregate users → items).
+where $\mathbf{p}_u$ and $\mathbf{q}_i$ are learned embeddings. LightGCN (He et al., 2020) applies GCN layers directly to this bipartite graph, propagating user embeddings through item nodes and vice versa. The core operation is two rectangular SpMM passes: $A \mathbf{Q}$ (aggregate items -> users) and $A^\top \mathbf{P}$ (aggregate users -> items).
 
 ### 9.6 Multiplex and Signed Graphs
 
-**Multiplex graphs** have multiple layers of edges between the same vertex set — different edge types exist in parallel:
+**Multiplex graphs** have multiple layers of edges between the same vertex set - different edge types exist in parallel:
 
 $$G = (V, E_1, E_2, \ldots, E_k)$$
 
@@ -1484,7 +1484,7 @@ Each layer $E_r$ is a separate adjacency matrix $A^{(r)}$. The representation is
 
 **Applications:** Social networks with multiple relation types (follows, likes, messages), temporal layers (contacts at different time windows), transportation networks (road, rail, air in the same city).
 
-**Signed graphs** have edges with positive or negative weights — representing trust/distrust, attraction/repulsion, or cooperation/competition. The adjacency matrix $A$ has entries in $\{-1, 0, +1\}$ (or $\mathbb{R}$ for weighted signed graphs). Signed graph Laplacians have non-standard spectral properties; they are studied in signed spectral graph theory.
+**Signed graphs** have edges with positive or negative weights - representing trust/distrust, attraction/repulsion, or cooperation/competition. The adjacency matrix $A$ has entries in $\{-1, 0, +1\}$ (or $\mathbb{R}$ for weighted signed graphs). Signed graph Laplacians have non-standard spectral properties; they are studied in signed spectral graph theory.
 
 **For AI:** Signed graphs arise in:
 - **Sentiment analysis:** Stance graphs where edges are agree/disagree
@@ -1500,37 +1500,37 @@ Each layer $E_r$ is a separate adjacency matrix $A^{(r)}$. The representation is
 
 ```
 REPRESENTATION SELECTION FLOWCHART
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
                       START
-                        │
-              Is n ≤ 10,000 AND dense?
-              ┌─────────┴──────────┐
+                        |
+              Is n \leq 10,000 AND dense?
+              +---------+----------+
              YES                  NO
-              │                   │
+              |                   |
     Adjacency Matrix    Is graph dynamic (frequent updates)?
-                        ┌─────────┴──────────┐
+                        +---------+----------+
                        YES                  NO
-                        │                   │
+                        |                   |
               Adjacency List      Target GPU / PyG?
-                        ┌─────────┴──────────┐
+                        +---------+----------+
                        YES                  NO
-                        │                   │
+                        |                   |
                     edge_index          Need SpMV / eigenvalues?
-                    (COO/PyG)           ┌─────────┴──────────┐
+                    (COO/PyG)           +---------+----------+
                                        YES                  NO
-                                        │                   │
+                                        |                   |
                                       CSR            Adj. List or
                                 (scipy.sparse)       Edge List
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 10.2 By Graph Size and Density
 
 | Graph Size | Density $\rho$ | Recommended | Rationale |
 |-----------|---------------|-------------|-----------|
-| $n \leq 10^3$ | Any | Adjacency matrix | Simplest; $O(n^2) \leq 10^6$ — fine |
+| $n \leq 10^3$ | Any | Adjacency matrix | Simplest; $O(n^2) \leq 10^6$ - fine |
 | $n \leq 10^4$, dense | $\rho > 0.1$ | Adjacency matrix | Dense matmul is GPU-efficient |
 | $n \leq 10^6$, sparse | $m \leq 10n$ | CSR or adj. list | $O(n)$ memory |
 | $n > 10^6$ | Any | CSR + edge list | Billion-edge graphs need streaming |
@@ -1543,7 +1543,7 @@ REPRESENTATION SELECTION FLOWCHART
 | BFS / DFS | Adjacency list | Sequential neighbour access |
 | Dijkstra / Bellman-Ford | Adjacency list (sorted) | Priority queue needs fast neighbours |
 | PageRank / power iteration | CSR | Repeated SpMV |
-| Spectral clustering | CSR → `eigsh` | Laplacian eigenvectors via ARPACK |
+| Spectral clustering | CSR -> `eigsh` | Laplacian eigenvectors via ARPACK |
 | GCN / MPNN | COO / edge_index | GPU scatter operations |
 | Link prediction | Adjacency set | Fast edge existence queries |
 | Subgraph sampling | CSR | Row-slice for $k$-hop neighbourhood |
@@ -1612,15 +1612,15 @@ g = dgl.graph((src, dst), num_nodes=n)
 # Training time (3-layer GCN, epoch): ~0.3 s on A100 (faster due to CSR)
 ```
 
-The choice between PyG COO and DGL CSR is a 25% throughput difference at this scale — a significant factor in research iteration speed.
+The choice between PyG COO and DGL CSR is a 25% throughput difference at this scale - a significant factor in research iteration speed.
 
 ---
 
 ## 11. Preview: Algorithms and Spectral Methods
 
-### 11.1 How §03 Graph Algorithms Uses These Representations
+### 11.1 How 03 Graph Algorithms Uses These Representations
 
-Graph algorithms depend critically on the choice of representation. The asymptotic complexities in §03 are derived assuming specific representations:
+Graph algorithms depend critically on the choice of representation. The asymptotic complexities in 03 are derived assuming specific representations:
 
 | Algorithm | Representation | Complexity |
 |-----------|---------------|-----------|
@@ -1632,32 +1632,32 @@ Graph algorithms depend critically on the choice of representation. The asymptot
 | Floyd-Warshall | Adjacency matrix | $O(n^3)$ |
 | DFS-based SCC | Adjacency list | $O(n + m)$ |
 
-Using the wrong representation can change asymptotic complexity: Dijkstra with an adjacency matrix runs in $O(n^2)$ instead of $O((n+m)\log n)$ — a factor of $n/\log n$ slower for sparse graphs. Full algorithmic treatment: [§03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
+Using the wrong representation can change asymptotic complexity: Dijkstra with an adjacency matrix runs in $O(n^2)$ instead of $O((n+m)\log n)$ - a factor of $n/\log n$ slower for sparse graphs. Full algorithmic treatment: [03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
 
-### 11.2 How §04 Spectral Theory Uses the Laplacian
+### 11.2 How 04 Spectral Theory Uses the Laplacian
 
-The Laplacian $L = D - A$ defined in §3.4 is the central object of spectral graph theory. Its eigendecomposition $L = Q \Lambda Q^\top$ reveals:
+The Laplacian $L = D - A$ defined in 3.4 is the central object of spectral graph theory. Its eigendecomposition $L = Q \Lambda Q^\top$ reveals:
 
 - $\lambda_1 = 0$ always (graph has at least one component)
 - Number of $\lambda_i = 0$: number of connected components
 - $\lambda_2 > 0$ (Fiedler value): measures connectivity strength
 - Eigenvector $\mathbf{q}_2$ (Fiedler vector): partitions the graph for spectral clustering
 
-Computing the Fiedler vector requires `eigsh(L, k=2, which='SM')` — a sparse eigensolver that takes CSR format as input. The representation choice (CSR) directly enables the spectral analysis.
+Computing the Fiedler vector requires `eigsh(L, k=2, which='SM')` - a sparse eigensolver that takes CSR format as input. The representation choice (CSR) directly enables the spectral analysis.
 
-Full spectral treatment: [§04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md).
+Full spectral treatment: [04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md).
 
-### 11.3 How §05 GNNs Use edge_index and Sparse Adjacency
+### 11.3 How 05 GNNs Use edge_index and Sparse Adjacency
 
 The three core GNN architectures use the representations from this section differently:
 
 | Architecture | Representation Used | Core Operation |
 |-------------|--------------------|----|
-| GCN (Kipf & Welling, 2017) | Sparse $\hat{A}$ (CSR or COO) | $H' = \sigma(\hat{A} H W)$ — SpMM |
+| GCN (Kipf & Welling, 2017) | Sparse $\hat{A}$ (CSR or COO) | $H' = \sigma(\hat{A} H W)$ - SpMM |
 | GraphSAGE (Hamilton et al., 2017) | Adjacency list (neighbour sampling) | Sample $k$ neighbours per node |
-| GAT (Veličković et al., 2018) | `edge_index` (COO) | Attention per edge: $\alpha_{ij}$ computed and aggregated |
+| GAT (Velickovic et al., 2018) | `edge_index` (COO) | Attention per edge: $\alpha_{ij}$ computed and aggregated |
 
-Full GNN architectures, expressiveness theory, and training details: [§05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
+Full GNN architectures, expressiveness theory, and training details: [05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md).
 
 ---
 
@@ -1665,22 +1665,22 @@ Full GNN architectures, expressiveness theory, and training details: [§05 Graph
 
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|---------------|-----|
-| 1 | Using a dense adjacency matrix for a million-node graph | $O(n^2)$ space ≈ $10^{12}$ bytes for $n=10^6$ — physically impossible | Use CSR or `edge_index`; dense $A$ is only viable for $n \leq 10^4$ |
+| 1 | Using a dense adjacency matrix for a million-node graph | $O(n^2)$ space \approx $10^{12}$ bytes for $n=10^6$ - physically impossible | Use CSR or `edge_index`; dense $A$ is only viable for $n \leq 10^4$ |
 | 2 | Forgetting that `edge_index` is directed by default in PyG | Undirected edges require both $(u,v)$ and $(v,u)$ to appear; missing the reverse direction causes asymmetric message passing | Use `torch_geometric.utils.to_undirected(edge_index)` or add reverse edges explicitly |
-| 3 | Using $A^\top$ (transpose notation) instead of $A^\top$ (`\top`) for the transpose | Cosmetic but matters: in NOTATION_GUIDE, transpose is `^\top`, not `^T` — "$T$" looks like a variable name | Write $A^\top$ consistently |
+| 3 | Using $A^\top$ (transpose notation) instead of $A^\top$ (`\top`) for the transpose | Cosmetic but matters: in NOTATION_GUIDE, transpose is `^\top`, not `^T` - "$T$" looks like a variable name | Write $A^\top$ consistently |
 | 4 | Assuming the Laplacian is $A - D$ instead of $D - A$ | The sign matters: $L = D - A$ is positive semidefinite; $A - D$ is negative semidefinite. GCN derivations assume $L \succeq 0$ | Always write $L = D - A$ and verify $\mathbf{x}^\top L \mathbf{x} \geq 0$ |
 | 5 | Confusing CSR `row_ptr` length with $n$ (instead of $n+1$) | `row_ptr` has $n+1$ entries: `row_ptr[0] = 0`, `row_ptr[n] = m`. Indexing `row_ptr[n]` out-of-bounds crashes code | Always allocate `row_ptr = np.zeros(n+1)`; the extra entry is essential |
 | 6 | Adding self-loops before normalising in GCN | GCN normalisation is $\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}$ where $\tilde{A} = A + I$. If you add self-loops to $A$ first and then normalise with the original $D$, degrees are wrong | Apply self-loops and recompute degree before normalising |
-| 7 | Using adjacency matrix eigendecomposition when the graph is sparse and large | `np.linalg.eig(A)` is $O(n^3)$ — infeasible for $n > 10^4$ | Use `scipy.sparse.linalg.eigsh` with ARPACK for sparse matrices; it computes only $k$ eigenvalues in $O(k \cdot m)$ |
+| 7 | Using adjacency matrix eigendecomposition when the graph is sparse and large | `np.linalg.eig(A)` is $O(n^3)$ - infeasible for $n > 10^4$ | Use `scipy.sparse.linalg.eigsh` with ARPACK for sparse matrices; it computes only $k$ eigenvalues in $O(k \cdot m)$ |
 | 8 | Treating the incidence matrix as $n \times n$ instead of $n \times m$ | The incidence matrix has $n$ rows (vertices) and $m$ columns (edges). Confusing rows and columns leads to wrong shapes in $L = BB^\top$ | Verify: `B.shape == (n, m)`; `B @ B.T` gives $L \in \mathbb{R}^{n \times n}$ |
 | 9 | Storing undirected graphs as directed without both directions | If `adj[u]` contains `v` but `adj[v]` doesn't contain `u`, BFS/DFS will give wrong results and message passing will be asymmetric | Always add both `adj[u].append(v)` and `adj[v].append(u)` for undirected graphs |
-| 10 | Using COO format for large repeated SpMV | COO lacks row-pointer structure, so each SpMV must sort entries — $O(m \log m)$ per call. For PageRank or GNN training (many iterations), this is catastrophic | Convert COO to CSR once before the iteration loop; repeated SpMV on CSR is $O(m)$ per call |
+| 10 | Using COO format for large repeated SpMV | COO lacks row-pointer structure, so each SpMV must sort entries - $O(m \log m)$ per call. For PageRank or GNN training (many iterations), this is catastrophic | Convert COO to CSR once before the iteration loop; repeated SpMV on CSR is $O(m)$ per call |
 
 ---
 
 ## 13. Exercises
 
-**Exercise 1 ★ — Manual CSR Construction**
+**Exercise 1 * - Manual CSR Construction**
 
 Given the path graph $P_5$ with vertices $\{0,1,2,3,4\}$ and edges $\{0,1\}, \{1,2\}, \{2,3\}, \{3,4\}$:
 
@@ -1691,7 +1691,7 @@ Given the path graph $P_5$ with vertices $\{0,1,2,3,4\}$ and edges $\{0,1\}, \{1
 
 ---
 
-**Exercise 2 ★ — Space Complexity Comparison**
+**Exercise 2 * - Space Complexity Comparison**
 
 For a graph with $n = 10^5$ vertices and $m = 3 \times 10^5$ edges:
 
@@ -1702,7 +1702,7 @@ For a graph with $n = 10^5$ vertices and $m = 3 \times 10^5$ edges:
 
 ---
 
-**Exercise 3 ★ — Laplacian Derivation**
+**Exercise 3 * - Laplacian Derivation**
 
 For the star graph $S_4$ (centre vertex 0, leaves 1, 2, 3, 4):
 
@@ -1713,7 +1713,7 @@ For the star graph $S_4$ (centre vertex 0, leaves 1, 2, 3, 4):
 
 ---
 
-**Exercise 4 ★★ — Conversion Pipeline**
+**Exercise 4 ** - Conversion Pipeline**
 
 Implement the full conversion pipeline:
 
@@ -1725,7 +1725,7 @@ Implement the full conversion pipeline:
 
 ---
 
-**Exercise 5 ★★ — Normalised Adjacency**
+**Exercise 5 ** - Normalised Adjacency**
 
 For the cycle graph $C_5$:
 
@@ -1737,7 +1737,7 @@ For the cycle graph $C_5$:
 
 ---
 
-**Exercise 6 ★★ — Incidence Matrix and Laplacian**
+**Exercise 6 ** - Incidence Matrix and Laplacian**
 
 For the triangle graph $K_3$:
 
@@ -1749,7 +1749,7 @@ For the triangle graph $K_3$:
 
 ---
 
-**Exercise 7 ★★★ — PyG Data Object from Scratch**
+**Exercise 7 *** - PyG Data Object from Scratch**
 
 Without using PyG's built-in loaders, construct a `torch_geometric.data.Data` object from scratch for the karate club graph:
 
@@ -1761,7 +1761,7 @@ Without using PyG's built-in loaders, construct a `torch_geometric.data.Data` ob
 
 ---
 
-**Exercise 8 ★★★ — Heterogeneous Graph Representation**
+**Exercise 8 *** - Heterogeneous Graph Representation**
 
 Consider an academic graph with:
 - 100 authors, 200 papers, 20 venues
@@ -1785,7 +1785,7 @@ where $\mathcal{P}_a$ is the set of papers written by author $a$.
 | Normalised adjacency $\hat{A}$ | Core of GCN (Kipf & Welling, 2017): controls feature smoothing across neighbourhoods; symmetric normalisation prevents gradient explosion in deep GNNs |
 | Laplacian $L = D - A$ | Defines graph signal "frequency"; low-frequency signals (smooth) are aligned with small eigenvalues; over-smoothing in deep GNNs corresponds to projecting onto the null space of $L$ |
 | CSR / CSC formats | Enable $O(m)$ SpMM in all production GNN frameworks; DGL's CSR-based `DGLGraph` is the internal representation behind thousands of GNN papers |
-| PyG `edge_index` | The de-facto standard for GNN research (2017–present); shapes all of PyG's 80+ model implementations; enables batching, sampling, and differentiable graph operations |
+| PyG `edge_index` | The de-facto standard for GNN research (2017-present); shapes all of PyG's 80+ model implementations; enables batching, sampling, and differentiable graph operations |
 | Heterogeneous adjacency | RGCN, HAN, HGT, and knowledge graph embedding models (TransE, RotatE) all rely on per-relation adjacency; the 2024 OGB knowledge graph leaderboard is dominated by heterogeneous GNNs |
 | Temporal edge lists | TGN, CAWN, and GraphMixer use chronologically sorted edge lists; the OGB-Temporal benchmark measures dynamic link prediction on graphs with $10^7$ timed interactions |
 | Hypergraph incidence | HOGNNs (Higher-Order GNNs) operate on $k$-tuples stored as hyperedge incidence matrices; all $k$-WL expressiveness results are stated in terms of hypergraph structure |
@@ -1799,14 +1799,14 @@ where $\mathcal{P}_a$ is the set of papers written by author $a$.
 
 The history of GNN research shows that representation choices have directly enabled new research directions:
 
-- **2017:** `edge_index` (COO) in PyG enabled arbitrary graph structures — not just grid or sequence graphs — to be processed in a single framework. This unlocked the explosion of GNN variants.
+- **2017:** `edge_index` (COO) in PyG enabled arbitrary graph structures - not just grid or sequence graphs - to be processed in a single framework. This unlocked the explosion of GNN variants.
 - **2019:** DGL's CSR-based `DGLGraph` with heterogeneous support enabled the RGCN, HAN, and HGT architectures for knowledge graphs.
 - **2020:** The OGB benchmark's standardised edge list format enabled reproducible comparison across GNN architectures for the first time.
-- **2021:** Padded dense adjacency in Jraph/JAX enabled TPU-based GNN training, 10–40× faster than GPU for certain molecular property prediction tasks.
+- **2021:** Padded dense adjacency in Jraph/JAX enabled TPU-based GNN training, 10-40\times faster than GPU for certain molecular property prediction tasks.
 - **2022:** Block-sparse attention patterns (BigBird, LongFormer) showed that limiting the attention graph to a sparse `edge_index` (local window + global tokens) reduces transformer complexity from $O(n^2)$ to $O(n)$.
-- **2023–2024:** Graph transformers (GPS, NAGphormer, NodeFormer) use hybrid representations: sparse `edge_index` for local message passing + full dense adjacency for global attention, combining the strengths of both.
+- **2023-2024:** Graph transformers (GPS, NAGphormer, NodeFormer) use hybrid representations: sparse `edge_index` for local message passing + full dense adjacency for global attention, combining the strengths of both.
 
-The lesson: choosing, designing, or combining representations is itself a research contribution — not just an implementation detail.
+The lesson: choosing, designing, or combining representations is itself a research contribution - not just an implementation detail.
 
 ---
 
@@ -1814,65 +1814,65 @@ The lesson: choosing, designing, or combining representations is itself a resear
 
 ### Looking Back
 
-This section translates the abstract graph theory of §01 into concrete data structures. Every object defined in §01 — adjacency, degree, Laplacian — now has a precise computational form:
+This section translates the abstract graph theory of 01 into concrete data structures. Every object defined in 01 - adjacency, degree, Laplacian - now has a precise computational form:
 
-- **Adjacency** (§01, Definition 2.1) → **Adjacency matrix** $A$ (§3.1): the mathematical definition becomes a 2D array
-- **Degree** (§01, §3.1) → **Row sums of $A$** or `row_ptr[i+1] - row_ptr[i]` in CSR
-- **Handshaking lemma** (§01, §3.2): $\sum \deg = 2m$ → `data.sum() == 2 * num_edges` for CSR
-- **Graph Laplacian** (§01, preview) → **Full definition** $L = D - A$ (§3.4) with quadratic form, PSD proof, and connectivity interpretation
+- **Adjacency** (01, Definition 2.1) -> **Adjacency matrix** $A$ (3.1): the mathematical definition becomes a 2D array
+- **Degree** (01, 3.1) -> **Row sums of $A$** or `row_ptr[i+1] - row_ptr[i]` in CSR
+- **Handshaking lemma** (01, 3.2): $\sum \deg = 2m$ -> `data.sum() == 2 * num_edges` for CSR
+- **Graph Laplacian** (01, preview) -> **Full definition** $L = D - A$ (3.4) with quadratic form, PSD proof, and connectivity interpretation
 
-The connection to linear algebra (Ch. 02–03) is now explicit: every graph operation is a matrix operation, and the choice of sparse format determines whether that operation is feasible.
+The connection to linear algebra (Ch. 02-03) is now explicit: every graph operation is a matrix operation, and the choice of sparse format determines whether that operation is feasible.
 
 The section also establishes two "bridge" matrices that will recur throughout the rest of the chapter:
-1. **The Laplacian $L = D - A$** — defined here, eigendecomposed in §04, used in GCN derivation in §05
-2. **The normalised adjacency $\hat{A} = D^{-1/2} A D^{-1/2}$** — defined here, proved to be a spectral filter in §04, implemented as the GCN propagation rule in §05
+1. **The Laplacian $L = D - A$** - defined here, eigendecomposed in 04, used in GCN derivation in 05
+2. **The normalised adjacency $\hat{A} = D^{-1/2} A D^{-1/2}$** - defined here, proved to be a spectral filter in 04, implemented as the GCN propagation rule in 05
 
-Mastering these two matrices — their construction, their properties, and their computational representations — is the central payoff of this section.
+Mastering these two matrices - their construction, their properties, and their computational representations - is the central payoff of this section.
 
 ### Looking Forward
 
 The representations defined here are the input to every algorithm in the rest of the chapter:
 
-- **§03 Graph Algorithms** implements BFS, DFS, Dijkstra, Kruskal, and topological sort *on* these representations. The choice of adjacency list vs. matrix vs. CSR directly determines whether algorithms run in $O(n+m)$ or $O(n^2)$.
-- **§04 Spectral Graph Theory** eigendecomposes the Laplacian $L = D - A$ defined in §3.4. The `scipy.sparse.linalg.eigsh` interface takes CSR format as input, connecting the sparse representation to spectral analysis.
-- **§05 Graph Neural Networks** uses `edge_index` (COO) for PyG-based GNN implementations. Every GCN, GAT, and GraphSAGE layer operates on the normalised adjacency $\hat{A}$ (§3.5) or directly on `edge_index` via scatter operations.
-- **§06 Random Graphs** generates graphs via edge lists; analysing their degree distributions and connectivity requires converting to adjacency lists or CSR for efficient computation.
+- **03 Graph Algorithms** implements BFS, DFS, Dijkstra, Kruskal, and topological sort *on* these representations. The choice of adjacency list vs. matrix vs. CSR directly determines whether algorithms run in $O(n+m)$ or $O(n^2)$.
+- **04 Spectral Graph Theory** eigendecomposes the Laplacian $L = D - A$ defined in 3.4. The `scipy.sparse.linalg.eigsh` interface takes CSR format as input, connecting the sparse representation to spectral analysis.
+- **05 Graph Neural Networks** uses `edge_index` (COO) for PyG-based GNN implementations. Every GCN, GAT, and GraphSAGE layer operates on the normalised adjacency $\hat{A}$ (3.5) or directly on `edge_index` via scatter operations.
+- **06 Random Graphs** generates graphs via edge lists; analysing their degree distributions and connectivity requires converting to adjacency lists or CSR for efficient computation.
 
 ### The Big Picture
 
 ```
 GRAPH REPRESENTATIONS IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §01 Graph Basics          §02 Graph Representations
-  ─────────────────         ──────────────────────────
-  Abstract G=(V,E)    ──→   Concrete data structures
-  Adjacency concept   ──→   Adjacency matrix A, CSR, COO
-  Degree definition   ──→   Row sums, row_ptr differences
-  Laplacian preview   ──→   L = D - A (full definition)
-                            Normalised Â = D^{-1/2}AD^{-1/2}
+  01 Graph Basics          02 Graph Representations
+  -----------------         --------------------------
+  Abstract G=(V,E)    --->   Concrete data structures
+  Adjacency concept   --->   Adjacency matrix A, CSR, COO
+  Degree definition   --->   Row sums, row_ptr differences
+  Laplacian preview   --->   L = D - A (full definition)
+                            Normalised A = D^{-1/2}AD^{-1/2}
 
-                    ┌──────────────────────────────────────┐
-                    │         §02: THE BRIDGE              │
-                    │  Abstract ──→ Computational          │
-                    │  Theory   ──→ Implementation         │
-                    │  Proofs   ──→ Algorithms             │
-                    └──────┬────────────────┬─────────────┘
-                           │                │
-                    §03 Algorithms    §04 Spectral Theory
+                    +--------------------------------------+
+                    |         02: THE BRIDGE              |
+                    |  Abstract ---> Computational          |
+                    |  Theory   ---> Implementation         |
+                    |  Proofs   ---> Algorithms             |
+                    +------+----------------+-------------+
+                           |                |
+                    03 Algorithms    04 Spectral Theory
                     (use adj. list,   (use L, eigenvectors,
                      edge list, CSR)   CSR + ARPACK)
-                           │                │
-                           └──────┬─────────┘
-                                  ▼
-                           §05 Graph Neural Networks
-                           (edge_index, Â, message passing)
-                                  ▼
-                           §06 Random Graphs
+                           |                |
+                           +------+---------+
+                                  v
+                           05 Graph Neural Networks
+                           (edge_index, A, message passing)
+                                  v
+                           06 Random Graphs
                            (generate edge lists, analyse
                             degree distributions)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1885,18 +1885,18 @@ The following notation is used consistently throughout this section, following t
 
 | Symbol | Meaning | Section |
 |--------|---------|---------|
-| $G = (V, E)$ | Graph with vertex set $V$, edge set $E$ | §2.1 |
-| $n = \lvert V \rvert$ | Number of vertices | §2.2 |
-| $m = \lvert E \rvert$ | Number of edges | §2.2 |
-| $A \in \{0,1\}^{n \times n}$ | Adjacency matrix | §3.1 |
-| $D = \operatorname{diag}(A\mathbf{1})$ | Degree matrix | §3.4 |
-| $L = D - A$ | Graph Laplacian | §3.4 |
-| $\hat{A} = D^{-1/2} A D^{-1/2}$ | Symmetrically normalised adjacency | §3.5 |
-| $\tilde{A} = A + I$ | Adjacency with self-loops | §3.3 |
-| $P = D^{-1} A$ | Random walk transition matrix | §3.5 |
-| $B \in \{0,1\}^{n \times m}$ | Incidence matrix | §7.1 |
-| $\rho = 2m / n(n-1)$ | Fill ratio (sparsity measure) | §2.3 |
-| `edge_index` $\in \mathbb{Z}^{2 \times m}$ | PyG COO edge tensor | §5.3 |
+| $G = (V, E)$ | Graph with vertex set $V$, edge set $E$ | 2.1 |
+| $n = \lvert V \rvert$ | Number of vertices | 2.2 |
+| $m = \lvert E \rvert$ | Number of edges | 2.2 |
+| $A \in \{0,1\}^{n \times n}$ | Adjacency matrix | 3.1 |
+| $D = \operatorname{diag}(A\mathbf{1})$ | Degree matrix | 3.4 |
+| $L = D - A$ | Graph Laplacian | 3.4 |
+| $\hat{A} = D^{-1/2} A D^{-1/2}$ | Symmetrically normalised adjacency | 3.5 |
+| $\tilde{A} = A + I$ | Adjacency with self-loops | 3.3 |
+| $P = D^{-1} A$ | Random walk transition matrix | 3.5 |
+| $B \in \{0,1\}^{n \times m}$ | Incidence matrix | 7.1 |
+| $\rho = 2m / n(n-1)$ | Fill ratio (sparsity measure) | 2.3 |
+| `edge_index` $\in \mathbb{Z}^{2 \times m}$ | PyG COO edge tensor | 5.3 |
 
 ---
 
@@ -1917,13 +1917,13 @@ The following table consolidates the per-operation complexity for all six core r
 | COO | $O(m)$ | $O(m)$ | $O(m)$ | $O(m \log m)$ | $O(m)$ |
 | CSR | $O(n+m)$ | $O(\deg)$ | $O(\deg)$ | $O(m)$ | $O(m \log m)$ |
 | CSC | $O(n+m)$ | $O(\deg)$ | $O(\deg)$ | $O(m)$ | $O(m \log m)$ |
-| Incidence | $O(nm)$ | $O(\deg)$ | $O(\deg)$ | — | $O(nm)$ |
+| Incidence | $O(nm)$ | $O(\deg)$ | $O(\deg)$ | - | $O(nm)$ |
 
 ---
 
-[← Back to Graph Theory](../README.md) | [Previous: Graph Basics ←](../01-Graph-Basics/notes.md) | [Next: Graph Algorithms →](../03-Graph-Algorithms/notes.md)
+[<- Back to Graph Theory](../README.md) | [Previous: Graph Basics <-](../01-Graph-Basics/notes.md) | [Next: Graph Algorithms ->](../03-Graph-Algorithms/notes.md)
 
-<!-- End of §02 main content. See theory.ipynb for executable demonstrations and exercises.ipynb for graded practice. -->
+<!-- End of 02 main content. See theory.ipynb for executable demonstrations and exercises.ipynb for graded practice. -->
 
 ### B.2 Key Break-Even Points
 
@@ -1937,19 +1937,19 @@ The following table consolidates the per-operation complexity for all six core r
 
 ### B.3 Conversion Cost Summary
 
-All conversions assume the source representation is already built. The $O(m \log m)$ cost of COO → CSR comes from the sort step (can be reduced to $O(m + n)$ with counting sort when vertex IDs are bounded integers).
+All conversions assume the source representation is already built. The $O(m \log m)$ cost of COO -> CSR comes from the sort step (can be reduced to $O(m + n)$ with counting sort when vertex IDs are bounded integers).
 
 | Pipeline | Total cost | Bottleneck |
 |----------|-----------|-----------|
-| File → edge list → COO | $O(m)$ | File I/O |
-| File → edge list → CSR | $O(m \log m)$ | Sort by row |
-| CSR → PyG edge_index | $O(m)$ | Expand row_ptr |
-| NetworkX → PyG | $O(n + m)$ | Python dict iteration |
-| PyG → NetworkX | $O(n + m)$ | Edge list construction |
-| Dense $A$ → CSR | $O(n^2)$ | Dense scan |
-| CSR → Dense $A$ | $O(n^2 + m)$ | Matrix fill |
+| File -> edge list -> COO | $O(m)$ | File I/O |
+| File -> edge list -> CSR | $O(m \log m)$ | Sort by row |
+| CSR -> PyG edge_index | $O(m)$ | Expand row_ptr |
+| NetworkX -> PyG | $O(n + m)$ | Python dict iteration |
+| PyG -> NetworkX | $O(n + m)$ | Edge list construction |
+| Dense $A$ -> CSR | $O(n^2)$ | Dense scan |
+| CSR -> Dense $A$ | $O(n^2 + m)$ | Matrix fill |
 
-For large graphs ($m > 10^7$), the COO → CSR sort is the dominant cost. Use radix sort (available in CUDA via `thrust::sort_by_key`) for GPU-accelerated sorting in $O(m)$ expected time.
+For large graphs ($m > 10^7$), the COO -> CSR sort is the dominant cost. Use radix sort (available in CUDA via `thrust::sort_by_key`) for GPU-accelerated sorting in $O(m)$ expected time.
 
 
 ### B.4 Memory Footprint Formulas
@@ -1970,16 +1970,16 @@ For reference: 1 GB = $10^9$ bytes. A graph with $n = 10^6$ and $m = 5 \times 10
 - Dense: 4 TB (impossible on a single machine)
 - CSR int32: ~24 MB (fits in L3 cache of a modern server)
 
-This 170,000× difference explains why every large-scale graph ML system uses sparse representations exclusively.
+This 170,000\times difference explains why every large-scale graph ML system uses sparse representations exclusively.
 
 ---
 
-*End of §02 Graph Representations. Proceed to [§03 Graph Algorithms](../03-Graph-Algorithms/notes.md) to see these representations in action.*
+*End of 02 Graph Representations. Proceed to [03 Graph Algorithms](../03-Graph-Algorithms/notes.md) to see these representations in action.*
 
-<!-- ─────────────────────────────────────────────────────────────────────── -->
+<!-- ----------------------------------------------------------------------- -->
 <!-- Companion files: theory.ipynb (executable demos), exercises.ipynb (8 exercises) -->
 <!-- Next: ../03-Graph-Algorithms/notes.md -->
-<!-- ─────────────────────────────────────────────────────────────────────── -->
+<!-- ----------------------------------------------------------------------- -->
 
 
 

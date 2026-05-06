@@ -1,4 +1,4 @@
-[← Back to Advanced Linear Algebra](../README.md) | [← SVD](../02-Singular-Value-Decomposition/notes.md) | [Linear Transformations →](../04-Linear-Transformations/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- SVD](../02-Singular-Value-Decomposition/notes.md) | [Linear Transformations ->](../04-Linear-Transformations/notes.md)
 
 ---
 
@@ -8,18 +8,18 @@
 
 ## Overview
 
-Principal Component Analysis is the fundamental linear technique for understanding high-dimensional data. Given a dataset in $\mathbb{R}^d$, PCA finds a new coordinate system — the **principal components** — aligned with the directions of greatest variance. Projecting onto the top $k$ components gives the best possible rank-$k$ linear summary of the data, optimal in mean-squared reconstruction error.
+Principal Component Analysis is the fundamental linear technique for understanding high-dimensional data. Given a dataset in $\mathbb{R}^d$, PCA finds a new coordinate system - the **principal components** - aligned with the directions of greatest variance. Projecting onto the top $k$ components gives the best possible rank-$k$ linear summary of the data, optimal in mean-squared reconstruction error.
 
-PCA sits at the intersection of spectral theory, geometry, and statistics. Its derivation is an optimization problem (maximize projected variance) whose solution is an eigenvalue problem (diagonalize the covariance matrix) whose computation is best handled via the SVD. All three views — optimization, spectral, and computational — are essential for practitioners.
+PCA sits at the intersection of spectral theory, geometry, and statistics. Its derivation is an optimization problem (maximize projected variance) whose solution is an eigenvalue problem (diagonalize the covariance matrix) whose computation is best handled via the SVD. All three views - optimization, spectral, and computational - are essential for practitioners.
 
-In 2026, PCA remains indispensable. It reveals the intrinsic dimensionality of LLM token representations, drives mechanistic interpretability analyses of transformer residual streams, and motivates the low-rank hypothesis behind LoRA. Understanding PCA deeply means understanding why high-dimensional models often live near low-dimensional manifolds — a fact that shapes training dynamics, generalization, and efficiency.
+In 2026, PCA remains indispensable. It reveals the intrinsic dimensionality of LLM token representations, drives mechanistic interpretability analyses of transformer residual streams, and motivates the low-rank hypothesis behind LoRA. Understanding PCA deeply means understanding why high-dimensional models often live near low-dimensional manifolds - a fact that shapes training dynamics, generalization, and efficiency.
 
 ## Prerequisites
 
-- Eigenvalues, eigenvectors, and the spectral theorem for symmetric matrices ([§01-Eigenvalues-and-Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md))
-- SVD: $A = U\Sigma V^\top$ and the Eckart-Young theorem ([§02-Singular-Value-Decomposition](../02-Singular-Value-Decomposition/notes.md))
-- Covariance matrices and inner products ([02-Linear-Algebra-Basics §06](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md))
-- Matrix rank and null space ([02-Linear-Algebra-Basics §05](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md))
+- Eigenvalues, eigenvectors, and the spectral theorem for symmetric matrices ([01-Eigenvalues-and-Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md))
+- SVD: $A = U\Sigma V^\top$ and the Eckart-Young theorem ([02-Singular-Value-Decomposition](../02-Singular-Value-Decomposition/notes.md))
+- Covariance matrices and inner products ([02-Linear-Algebra-Basics 06](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md))
+- Matrix rank and null space ([02-Linear-Algebra-Basics 05](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md))
 
 ## Companion Notebooks
 
@@ -47,19 +47,19 @@ After completing this section, you will:
 ## Table of Contents
 
 - [1. Intuition](#1-intuition)
-  - [1.1 The Big Picture — Variance, Compression, and Geometry](#11-the-big-picture--variance-compression-and-geometry)
+  - [1.1 The Big Picture - Variance, Compression, and Geometry](#11-the-big-picture--variance-compression-and-geometry)
   - [1.2 Three Equivalent Views](#12-three-equivalent-views)
   - [1.3 Why PCA Matters for AI in 2026](#13-why-pca-matters-for-ai-in-2026)
   - [1.4 Historical Timeline](#14-historical-timeline)
 - [2. Formal Definitions](#2-formal-definitions)
   - [2.1 Setup: Centered Data and the Covariance Matrix](#21-setup-centered-data-and-the-covariance-matrix)
-  - [2.2 Variance Maximization — The Optimization Problem](#22-variance-maximization--the-optimization-problem)
+  - [2.2 Variance Maximization - The Optimization Problem](#22-variance-maximization--the-optimization-problem)
   - [2.3 The Eigenvalue Equation and Principal Components](#23-the-eigenvalue-equation-and-principal-components)
   - [2.4 Projection and Reconstruction](#24-projection-and-reconstruction)
-  - [2.5 PCA via SVD — The Preferred Route](#25-pca-via-svd--the-preferred-route)
+  - [2.5 PCA via SVD - The Preferred Route](#25-pca-via-svd--the-preferred-route)
 - [3. Properties of PCA](#3-properties-of-pca)
   - [3.1 Decorrelation: Diagonalizing the Covariance Matrix](#31-decorrelation-diagonalizing-the-covariance-matrix)
-  - [3.2 Optimality — The Eckart-Young Connection](#32-optimality--the-eckart-young-connection)
+  - [3.2 Optimality - The Eckart-Young Connection](#32-optimality--the-eckart-young-connection)
   - [3.3 Sign Ambiguity and Uniqueness](#33-sign-ambiguity-and-uniqueness)
   - [3.4 Scale Sensitivity and Standardization](#34-scale-sensitivity-and-standardization)
 - [4. Explained Variance and Component Selection](#4-explained-variance-and-component-selection)
@@ -78,14 +78,14 @@ After completing this section, you will:
   - [6.3 Handling Missing Data via EM](#63-handling-missing-data-via-em)
   - [6.4 Mixture of PPCA](#64-mixture-of-ppca)
 - [7. Kernel PCA](#7-kernel-pca)
-  - [7.1 Motivation — When Linear PCA Fails](#71-motivation--when-linear-pca-fails)
+  - [7.1 Motivation - When Linear PCA Fails](#71-motivation--when-linear-pca-fails)
   - [7.2 The Kernel Trick and Feature-Space PCA](#72-the-kernel-trick-and-feature-space-pca)
   - [7.3 Centering the Kernel Matrix](#73-centering-the-kernel-matrix)
   - [7.4 Common Kernels and Their Geometric Effects](#74-common-kernels-and-their-geometric-effects)
   - [7.5 Limitations and Out-of-Sample Extension](#75-limitations-and-out-of-sample-extension)
 - [8. PCA Variants](#8-pca-variants)
-  - [8.1 Sparse PCA — Interpretable Loadings](#81-sparse-pca--interpretable-loadings)
-  - [8.2 Robust PCA — Low-Rank + Sparse Decomposition](#82-robust-pca--low-rank--sparse-decomposition)
+  - [8.1 Sparse PCA - Interpretable Loadings](#81-sparse-pca--interpretable-loadings)
+  - [8.2 Robust PCA - Low-Rank + Sparse Decomposition](#82-robust-pca--low-rank--sparse-decomposition)
   - [8.3 Incremental and Randomized PCA](#83-incremental-and-randomized-pca)
 - [9. Applications in Machine Learning and AI](#9-applications-in-machine-learning-and-ai)
   - [9.1 Eigenfaces and Image Compression](#91-eigenfaces-and-image-compression)
@@ -103,41 +103,41 @@ After completing this section, you will:
 
 ## 1. Intuition
 
-### 1.1 The Big Picture — Variance, Compression, and Geometry
+### 1.1 The Big Picture - Variance, Compression, and Geometry
 
-Imagine measuring 1,000 features on each of 10,000 patients. Most of those features are correlated — height and weight move together, blood pressure readings at different times are similar, gene expression patterns cluster. The data occupies a $10{,}000 \times 1{,}000$ matrix, but the effective "information content" may be much lower. PCA finds that smaller set of independent directions.
+Imagine measuring 1,000 features on each of 10,000 patients. Most of those features are correlated - height and weight move together, blood pressure readings at different times are similar, gene expression patterns cluster. The data occupies a $10{,}000 \times 1{,}000$ matrix, but the effective "information content" may be much lower. PCA finds that smaller set of independent directions.
 
-The key geometric idea: data in $\mathbb{R}^d$ typically doesn't spread equally in all directions. It has a shape — an ellipsoid — with a longest axis, a second-longest axis orthogonal to the first, and so on. PCA finds those axes, in order of length (variance). Projecting onto the first $k$ axes keeps the longest dimensions and discards the short ones, where variation is small and likely noise.
+The key geometric idea: data in $\mathbb{R}^d$ typically doesn't spread equally in all directions. It has a shape - an ellipsoid - with a longest axis, a second-longest axis orthogonal to the first, and so on. PCA finds those axes, in order of length (variance). Projecting onto the first $k$ axes keeps the longest dimensions and discards the short ones, where variation is small and likely noise.
 
 ```
 PCA AS AXIS ALIGNMENT
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Original frame          After PCA rotation
-  (arbitrary x₁,x₂)      (aligned to data structure)
+  (arbitrary x_1,x_2)      (aligned to data structure)
 
-        x₂                         PC2 (low variance)
-        │                            ↑
-      • │•                           │ ·
-    •   │ •  •                  ·   │  ·
-   •    │   •           →     ·    │    ·
-  •     │    •                ·    │     ·
- •      │     •             ·      │      ·
-────────┼────── x₁        ──────────────────→ PC1 (high variance)
+        x_2                         PC2 (low variance)
+        |                            up
+      - |-                           | *
+    -   | -  -                  *   |  *
+   -    |   -           ->     *    |    *
+  -     |    -                *    |     *
+ -      |     -             *      |      *
+--------+------ x_1        -------------------> PC1 (high variance)
 
   The covariance ellipse    PC1 = major axis = max variance direction
-  is tilted in (x₁,x₂)     PC2 = minor axis = min variance direction
+  is tilted in (x_1,x_2)     PC2 = minor axis = min variance direction
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **What PCA does, step by step:**
-1. **Center** the data (subtract the mean) — PCA measures variance around the centroid.
+1. **Center** the data (subtract the mean) - PCA measures variance around the centroid.
 2. **Find the longest axis** of the resulting cloud (PC1). This is the direction $\mathbf{v}_1$ maximizing $\operatorname{Var}(\mathbf{X}\mathbf{v}_1)$.
-3. **Find the next longest axis** orthogonal to PC1 (PC2). Repeat for PC3, PC4, …, PC_d.
+3. **Find the next longest axis** orthogonal to PC1 (PC2). Repeat for PC3, PC4, ..., PC_d.
 4. **Project** onto the top $k$ axes to get a $k$-dimensional representation that preserves as much variance as possible.
 
-**For AI:** A transformer with $d_{\mathrm{model}} = 4096$ has token representations in $\mathbb{R}^{4096}$. PCA of these representations typically shows that 50–200 components explain 90%+ of the variance — the model has learned a much lower-dimensional structure than its nominal dimension suggests. This is the empirical foundation of the _intrinsic dimensionality_ hypothesis.
+**For AI:** A transformer with $d_{\mathrm{model}} = 4096$ has token representations in $\mathbb{R}^{4096}$. PCA of these representations typically shows that 50-200 components explain 90%+ of the variance - the model has learned a much lower-dimensional structure than its nominal dimension suggests. This is the empirical foundation of the _intrinsic dimensionality_ hypothesis.
 
 ### 1.2 Three Equivalent Views
 
@@ -145,34 +145,34 @@ The same PCA solution arises from three completely different starting points. Un
 
 ```
 THREE EQUIVALENT VIEWS OF PCA
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   View 1: VARIANCE MAXIMIZATION
-  ─────────────────────────────
-  Find the unit vector v that maximizes Var(Xv) = vᵀCv
-  where C = XᵀX/(n-1) is the sample covariance matrix.
+  -----------------------------
+  Find the unit vector v that maximizes Var(Xv) = v^TCv
+  where C = X^TX/(n-1) is the sample covariance matrix.
 
-  Solution: v₁ = top eigenvector of C.
+  Solution: v_1 = top eigenvector of C.
   Intuition: look in the direction where the data spreads most.
 
   View 2: RECONSTRUCTION MINIMIZATION
-  ─────────────────────────────────────
+  -------------------------------------
   Find the k-dimensional subspace S minimizing mean reconstruction error:
-      min_{S, dim(S)=k}  (1/n) Σᵢ ‖xᵢ - projₛ(xᵢ)‖²
+      min_{S, dim(S)=k}  (1/n) \Sigma^i ||x^i - proj_s(x^i)||^2
 
-  Solution: S = span{v₁, ..., vₖ} (top k eigenvectors of C).
+  Solution: S = span{v_1, ..., v_k} (top k eigenvectors of C).
   Intuition: project onto the flat that keeps points closest to original.
 
   View 3: COVARIANCE DIAGONALIZATION
-  ───────────────────────────────────
-  Find orthogonal Q such that QᵀCQ = Λ is diagonal.
+  -----------------------------------
+  Find orthogonal Q such that Q^TCQ = \Lambda is diagonal.
 
-  Solution: Q = eigenvector matrix of C; Λ = eigenvalue matrix.
+  Solution: Q = eigenvector matrix of C; \Lambda = eigenvalue matrix.
   Intuition: find a rotation that makes all features independent.
 
-  All three yield the same Q = [v₁ | v₂ | ... | vₐ] ← SAME ANSWER.
+  All three yield the same Q = [v_1 | v_2 | ... | v_a] <- SAME ANSWER.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 | View | Objective | Mathematical form | Who uses it |
@@ -181,21 +181,21 @@ THREE EQUIVALENT VIEWS OF PCA
 | Reconstruction | Best low-rank approximation | $\min_{\operatorname{rank}(M)=k}\lVert X - M\rVert_F^2$ | Compression, denoising |
 | Decorrelation | Diagonalize the covariance | $Q^\top C Q = \Lambda$ | Statistics, ICA preprocessing |
 
-The equivalence of views 1 and 2 is not obvious — it is proved by the Eckart-Young theorem (see [§02-SVD](../02-Singular-Value-Decomposition/notes.md)). The equivalence of views 1 and 3 follows directly from the spectral theorem for symmetric matrices (see [§01-Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)).
+The equivalence of views 1 and 2 is not obvious - it is proved by the Eckart-Young theorem (see [02-SVD](../02-Singular-Value-Decomposition/notes.md)). The equivalence of views 1 and 3 follows directly from the spectral theorem for symmetric matrices (see [01-Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)).
 
 ### 1.3 Why PCA Matters for AI in 2026
 
-PCA is not merely a classical preprocessing step — it is embedded in the mathematical foundations of modern deep learning:
+PCA is not merely a classical preprocessing step - it is embedded in the mathematical foundations of modern deep learning:
 
 **Intrinsic dimensionality of representations.** LLM token embeddings, despite living in $\mathbb{R}^{4096}$ or larger, occupy a low-dimensional effective subspace. Studies of GPT-2 through GPT-4-class models consistently find that PCA explains 90% of embedding variance with far fewer components than the nominal dimension. This matters for compression, distillation, and understanding generalization.
 
 **Mechanistic interpretability.** Researchers apply PCA to the residual stream of transformer layers to identify "directions" that encode specific features (sentiment, position, subject-verb agreement). Each interpretable direction is a principal component of the activations. The technique, used by Anthropic, DeepMind, and EleutherAI, depends entirely on PCA as a lens.
 
-**LoRA and low-rank adaptation.** The LoRA paper (Hu et al., 2021) hypothesizes that fine-tuning weight updates have low intrinsic rank — i.e., the gradient matrix $\Delta W$ is well-approximated by a rank-$r$ matrix with $r \ll d$. PCA of $\Delta W$ is the theoretical grounding. DoRA, GaLore, and Flora extend this to gradient-space PCA.
+**LoRA and low-rank adaptation.** The LoRA paper (Hu et al., 2021) hypothesizes that fine-tuning weight updates have low intrinsic rank - i.e., the gradient matrix $\Delta W$ is well-approximated by a rank-$r$ matrix with $r \ll d$. PCA of $\Delta W$ is the theoretical grounding. DoRA, GaLore, and Flora extend this to gradient-space PCA.
 
 **Loss landscape analysis.** Goodfellow et al. showed that the loss landscape along random directions is complex, but along the top PCA directions of gradient trajectories, it is nearly one-dimensional. Li et al.'s filter normalization visualization uses PCA of parameter trajectories.
 
-**Eigenfaces and foundation models.** Turk & Pentland (1991) showed that faces lie near a low-dimensional linear subspace — the "face space" spanned by eigenfaces, which are PCA components of face images. Modern vision transformers implicitly learn analogous patch-level PCA components in their first layers.
+**Eigenfaces and foundation models.** Turk & Pentland (1991) showed that faces lie near a low-dimensional linear subspace - the "face space" spanned by eigenfaces, which are PCA components of face images. Modern vision transformers implicitly learn analogous patch-level PCA components in their first layers.
 
 ### 1.4 Historical Timeline
 
@@ -206,11 +206,11 @@ PCA is not merely a classical preprocessing step — it is embedded in the mathe
 | 1936 | Fisher | Discriminant analysis (supervised analog) |
 | 1963 | Eckart & Young | Best low-rank approximation theorem (published 1936, recognized 1963) |
 | 1978 | Tipping & Bishop | Probabilistic PCA as a latent variable model |
-| 1998 | Schölkopf et al. | Kernel PCA — non-linear extension via RKHS |
-| 2003 | Candès & Recht | Robust PCA (nuclear norm minimization) |
+| 1998 | Scholkopf et al. | Kernel PCA - non-linear extension via RKHS |
+| 2003 | Candes & Recht | Robust PCA (nuclear norm minimization) |
 | 2009 | Halko et al. | Randomized SVD for large-scale PCA |
 | 2021 | Hu et al. | LoRA: low-rank adaptation hypothesis connects PCA to fine-tuning |
-| 2022–26 | Many authors | PCA of LLM residual streams as mechanistic interpretability tool |
+| 2022-26 | Many authors | PCA of LLM residual streams as mechanistic interpretability tool |
 
 ---
 
@@ -226,7 +226,7 @@ $$\bar{\mathbf{x}} = \frac{1}{n}\sum_{i=1}^n \mathbf{x}^{(i)}$$
 The **centered data matrix** is:
 $$\tilde{X} = X - \mathbf{1}\bar{\mathbf{x}}^\top$$
 
-where $\mathbf{1} \in \mathbb{R}^n$ is the all-ones vector. After centering, $\tilde{X}$ has zero column means. PCA is always applied to centered data — failing to center is the most common mistake.
+where $\mathbf{1} \in \mathbb{R}^n$ is the all-ones vector. After centering, $\tilde{X}$ has zero column means. PCA is always applied to centered data - failing to center is the most common mistake.
 
 **Sample covariance matrix.** The covariance matrix $C \in \mathbb{R}^{d \times d}$ is:
 $$C = \frac{1}{n-1}\tilde{X}^\top \tilde{X}$$
@@ -243,9 +243,9 @@ $$C_{ij} = \frac{1}{n-1}\sum_{k=1}^n (\tilde{X}_{ki})(\tilde{X}_{kj})$$
 
 Because $C$ is real symmetric and PSD, the **spectral theorem** guarantees a full orthonormal eigenbasis with non-negative eigenvalues. This is the structural fact that makes PCA possible.
 
-> **Recall (Spectral Theorem):** Every real symmetric matrix $C$ admits $C = Q\Lambda Q^\top$ where $Q$ is orthogonal and $\Lambda = \operatorname{diag}(\lambda_1, \ldots, \lambda_d)$ with $\lambda_1 \geq \cdots \geq \lambda_d \geq 0$. Full treatment: [§01-Eigenvalues-and-Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md).
+> **Recall (Spectral Theorem):** Every real symmetric matrix $C$ admits $C = Q\Lambda Q^\top$ where $Q$ is orthogonal and $\Lambda = \operatorname{diag}(\lambda_1, \ldots, \lambda_d)$ with $\lambda_1 \geq \cdots \geq \lambda_d \geq 0$. Full treatment: [01-Eigenvalues-and-Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md).
 
-### 2.2 Variance Maximization — The Optimization Problem
+### 2.2 Variance Maximization - The Optimization Problem
 
 **What we want:** a unit vector $\mathbf{v} \in \mathbb{R}^d$ such that the projected data $\tilde{X}\mathbf{v} \in \mathbb{R}^n$ has maximum variance.
 
@@ -290,7 +290,7 @@ $$Z = \tilde{X} V \in \mathbb{R}^{n \times d}$$
 
 $Z_{ij}$ is the coordinate of point $i$ along PC direction $j$. The columns of $Z$ are uncorrelated and have variances $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_d$.
 
-**Rank-$k$ approximation.** Keep only the top $k$ components — define $V_k = [\mathbf{v}_1 \mid \cdots \mid \mathbf{v}_k] \in \mathbb{R}^{d \times k}$:
+**Rank-$k$ approximation.** Keep only the top $k$ components - define $V_k = [\mathbf{v}_1 \mid \cdots \mid \mathbf{v}_k] \in \mathbb{R}^{d \times k}$:
 $$Z_k = \tilde{X} V_k \in \mathbb{R}^{n \times k} \quad \text{(scores / embedding)}$$
 
 $Z_k$ is the low-dimensional representation. Each row $\mathbf{z}_k^{(i)} \in \mathbb{R}^k$ is the PCA embedding of data point $i$.
@@ -303,7 +303,7 @@ $$\lVert \tilde{X} - Z_k V_k^\top \rVert_F^2 = \sum_{i=k+1}^d \lambda_i = \sum_{
 
 That is, the error equals the sum of discarded eigenvalues (= discarded singular values squared, normalized). Retaining more components reduces error monotonically.
 
-### 2.5 PCA via SVD — The Preferred Route
+### 2.5 PCA via SVD - The Preferred Route
 
 In practice, computing the covariance $C = \tilde{X}^\top\tilde{X}/(n-1)$ explicitly is numerically inferior. The SVD of $\tilde{X}$ directly gives all PCA quantities with better numerical stability.
 
@@ -312,12 +312,12 @@ $$\tilde{X} = U\Sigma V^\top, \quad U \in \mathbb{R}^{n \times n},\; \Sigma \in 
 
 where $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{\min(n,d)} \geq 0$ are the singular values.
 
-> **Recall (SVD):** For the full treatment of the SVD, its geometric meaning, and the Eckart-Young theorem, see [§02-Singular-Value-Decomposition](../02-Singular-Value-Decomposition/notes.md).
+> **Recall (SVD):** For the full treatment of the SVD, its geometric meaning, and the Eckart-Young theorem, see [02-Singular-Value-Decomposition](../02-Singular-Value-Decomposition/notes.md).
 
 **The connection:**
 $$C = \frac{\tilde{X}^\top\tilde{X}}{n-1} = \frac{(U\Sigma V^\top)^\top(U\Sigma V^\top)}{n-1} = V \frac{\Sigma^\top\Sigma}{n-1} V^\top = V \operatorname{diag}\!\left(\frac{\sigma_1^2}{n-1}, \ldots\right) V^\top$$
 
-This is exactly the eigendecomposition of $C$ — the columns of $V$ are the principal components and $\lambda_i = \sigma_i^2/(n-1)$.
+This is exactly the eigendecomposition of $C$ - the columns of $V$ are the principal components and $\lambda_i = \sigma_i^2/(n-1)$.
 
 **Complete PCA quantities from SVD:**
 
@@ -333,7 +333,7 @@ This is exactly the eigendecomposition of $C$ — the columns of $V$ are the pri
 
 | Issue | Covariance + Eigen | SVD |
 |---|---|---|
-| Forming $\tilde{X}^\top\tilde{X}$ | Squares condition number: $\kappa(C) = \kappa(\tilde{X})^2$ | Avoids squaring — works on $\tilde{X}$ directly |
+| Forming $\tilde{X}^\top\tilde{X}$ | Squares condition number: $\kappa(C) = \kappa(\tilde{X})^2$ | Avoids squaring - works on $\tilde{X}$ directly |
 | Memory | $O(d^2)$ for $C$ | $O(nd)$ for $\tilde{X}$ |
 | When $n < d$ | $C$ is rank-deficient, unstable | Thin SVD is efficient |
 | Complex eigenvalues | Possible for `np.linalg.eig` | Never (singular values always real) |
@@ -344,7 +344,7 @@ This is exactly the eigendecomposition of $C$ — the columns of $V$ are the pri
 import numpy as np
 
 def pca_svd(X, k=None):
-    """PCA via SVD — the numerically stable route."""
+    """PCA via SVD - the numerically stable route."""
     n, d = X.shape
     k = k or d
 
@@ -365,8 +365,8 @@ def pca_svd(X, k=None):
     cumvar = np.cumsum(var_ratio)
 
     return {
-        'scores': Z_k,           # (n, k) — low-dim representation
-        'components': V_k,       # (d, k) — principal directions
+        'scores': Z_k,           # (n, k) - low-dim representation
+        'components': V_k,       # (d, k) - principal directions
         'explained_var': lambdas[:k],
         'explained_var_ratio': var_ratio,
         'cumulative_var': cumvar,
@@ -384,17 +384,17 @@ The most important algebraic property of PCA is that the projected scores are **
 
 $$\operatorname{Cov}(Z) = \frac{Z^\top Z}{n-1} = \frac{V^\top \tilde{X}^\top \tilde{X} V}{n-1} = V^\top C V = V^\top (V\Lambda V^\top) V = \Lambda$$
 
-The covariance matrix of the PCA scores is diagonal — equal to $\Lambda = \operatorname{diag}(\lambda_1, \ldots, \lambda_d)$. This means:
+The covariance matrix of the PCA scores is diagonal - equal to $\Lambda = \operatorname{diag}(\lambda_1, \ldots, \lambda_d)$. This means:
 
 - **All pairs of PCA scores are uncorrelated**: $\operatorname{Cov}(Z_{:,i}, Z_{:,j}) = 0$ for $i \neq j$
 - **Each score's variance equals the corresponding eigenvalue**: $\operatorname{Var}(Z_{:,i}) = \lambda_i$
 - **Total variance is preserved**: $\sum_i \lambda_i = \operatorname{tr}(C) = \sum_i C_{ii}$
 
-This is precisely view 3 from §1.2 — PCA performs a rotation that diagonalizes the covariance matrix. After PCA, each component carries independent information (in the linear sense; they are not necessarily statistically independent, only uncorrelated — independence requires a distributional assumption like Gaussianity).
+This is precisely view 3 from 1.2 - PCA performs a rotation that diagonalizes the covariance matrix. After PCA, each component carries independent information (in the linear sense; they are not necessarily statistically independent, only uncorrelated - independence requires a distributional assumption like Gaussianity).
 
 **Contrast with ICA:** Independent Component Analysis (ICA) finds directions of statistical independence, not just decorrelation. PCA decorrelation is a necessary but not sufficient condition for independence.
 
-### 3.2 Optimality — The Eckart-Young Connection
+### 3.2 Optimality - The Eckart-Young Connection
 
 PCA achieves two distinct optimality guarantees, both following from the Eckart-Young-Mirsky theorem:
 
@@ -403,7 +403,7 @@ $$\min_{\text{orthonormal } V_k \in \mathbb{R}^{d\times k}} \lVert \tilde{X} - \
 
 The minimum is achieved by taking $V_k$ = first $k$ right singular vectors of $\tilde{X}$ = first $k$ eigenvectors of $C$.
 
-> **Proof:** This is a direct consequence of the Eckart-Young theorem applied to $\tilde{X}$. See [§02-SVD §4.2](../02-Singular-Value-Decomposition/notes.md) for the complete proof.
+> **Proof:** This is a direct consequence of the Eckart-Young theorem applied to $\tilde{X}$. See [02-SVD 4.2](../02-Singular-Value-Decomposition/notes.md) for the complete proof.
 
 **Two sides of the same coin:**
 
@@ -414,7 +414,7 @@ The minimum is achieved by taking $V_k$ = first $k$ right singular vectors of $\
 
 These are equivalent: maximizing captured variance = minimizing discarded variance = minimizing reconstruction error. The optimal solution is the same in both cases.
 
-**Implication for choosing $k$:** Setting a reconstruction error budget $\epsilon$ directly determines $k$ — find the smallest $k$ such that $\sum_{i>k}\sigma_i^2 \leq \epsilon \cdot \sum_i \sigma_i^2$ (i.e., keep the fraction $1-\epsilon$ of total variance).
+**Implication for choosing $k$:** Setting a reconstruction error budget $\epsilon$ directly determines $k$ - find the smallest $k$ such that $\sum_{i>k}\sigma_i^2 \leq \epsilon \cdot \sum_i \sigma_i^2$ (i.e., keep the fraction $1-\epsilon$ of total variance).
 
 ### 3.3 Sign Ambiguity and Uniqueness
 
@@ -422,12 +422,12 @@ These are equivalent: maximizing captured variance = minimizing discarded varian
 
 **Consequence:** Two PCA implementations may return $\mathbf{v}_i$ and $-\mathbf{v}_i$ for the same data. Always compare directions via $|\langle\mathbf{u}, \mathbf{v}\rangle|$ or $\cos^2\theta$, not the raw dot product.
 
-**Uniqueness of the subspace.** While individual directions are sign-ambiguous, the **subspace** $\operatorname{span}\{\mathbf{v}_1, \ldots, \mathbf{v}_k\}$ is unique — as long as the eigenvalues are distinct ($\lambda_k > \lambda_{k+1}$). If there is an eigenvalue tie ($\lambda_k = \lambda_{k+1}$), any orthonormal basis for the corresponding eigenspace is a valid solution. This is not a flaw but a genuine mathematical degeneracy: all directions in that eigenspace explain equal variance.
+**Uniqueness of the subspace.** While individual directions are sign-ambiguous, the **subspace** $\operatorname{span}\{\mathbf{v}_1, \ldots, \mathbf{v}_k\}$ is unique - as long as the eigenvalues are distinct ($\lambda_k > \lambda_{k+1}$). If there is an eigenvalue tie ($\lambda_k = \lambda_{k+1}$), any orthonormal basis for the corresponding eigenspace is a valid solution. This is not a flaw but a genuine mathematical degeneracy: all directions in that eigenspace explain equal variance.
 
 **When uniqueness fails:**
-- Perfectly spherical data: $C = \sigma^2 I$ → every direction is a PC, problem is entirely degenerate
+- Perfectly spherical data: $C = \sigma^2 I$ -> every direction is a PC, problem is entirely degenerate
 - Repeated eigenvalues: the corresponding eigenspace can be any rotation
-- Near-equal eigenvalues: direction is numerically unstable — small data perturbations change it dramatically
+- Near-equal eigenvalues: direction is numerically unstable - small data perturbations change it dramatically
 
 **Practical fix for sign ambiguity** (sklearn convention): flip $\mathbf{v}_i$ so that the entry with the largest absolute value is positive:
 ```python
@@ -439,7 +439,7 @@ Vt = Vt * signs[:, None]
 
 PCA is **not scale-invariant**: multiplying a feature by a constant changes its variance and therefore its contribution to the PCA solution.
 
-**Example:** Suppose feature 1 is height in centimetres (range 150–190) and feature 2 is weight in kilograms (range 50–100). The variance of feature 1 is ~$170^2 / 12 \approx 240$ and of feature 2 is ~$75^2 / 12 \approx 469$. But if we rescale height to metres (divide by 100), variance drops to $\approx 0.024$ — and PC1 now points almost entirely in the weight direction.
+**Example:** Suppose feature 1 is height in centimetres (range 150-190) and feature 2 is weight in kilograms (range 50-100). The variance of feature 1 is ~$170^2 / 12 \approx 240$ and of feature 2 is ~$75^2 / 12 \approx 469$. But if we rescale height to metres (divide by 100), variance drops to $\approx 0.024$ - and PC1 now points almost entirely in the weight direction.
 
 **Decision guide for standardization:**
 
@@ -456,7 +456,7 @@ $$x_{\text{std}} = \frac{x - \hat{\mu}}{\hat{\sigma}}, \qquad \hat{\mu} = \text{
 
 After standardizing, $C$ becomes the **sample correlation matrix** $R_{ij} = C_{ij}/\sqrt{C_{ii}C_{jj}}$, and PCA on standardized data is equivalent to PCA on the correlation matrix.
 
-**Important:** Standardization parameters ($\hat{\mu}$, $\hat{\sigma}$) must be computed on training data only, then applied to test data. Never fit these on test data — this constitutes data leakage and inflates performance estimates.
+**Important:** Standardization parameters ($\hat{\mu}$, $\hat{\sigma}$) must be computed on training data only, then applied to test data. Never fit these on test data - this constitutes data leakage and inflates performance estimates.
 
 ---
 
@@ -492,29 +492,29 @@ A **scree plot** (from geology: the rubble at the base of a cliff) shows the eig
 
 ```
 SCREE PLOT ANATOMY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  λᵢ                      Individual eigenvalues
-  │
-  5.2 ─ ●
-  │
-  3.1 ─   ●                 Cumulative EVR
-  │         ●               100%│              ─────────
-  1.8 ─       ●              90%│         ────
-  │             ●  ●  ●  ●   80%│      ───
-  0.2 ─             ───────   70%│   ───
-  └──────────────────── i      60%│───
+  \lambda^i                      Individual eigenvalues
+  |
+  5.2 - *
+  |
+  3.1 -   *                 Cumulative EVR
+  |         *               100%|              ---------
+  1.8 -       *              90%|         ----
+  |             *  *  *  *   80%|      ---
+  0.2 -             -------   70%|   ---
+  +-------------------- i      60%|---
       1  2  3  4  5  6  7      0  1  2  3  4  5  6
 
   "Elbow" at i=3: eigenvalues      Choose k at the "knee" of
   level off after here             the cumulative curve
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Reading the scree plot:**
 - A sharp drop followed by a "floor" of small eigenvalues indicates a clear intrinsic dimension
-- The **elbow** (knee) is the bend where eigenvalues stop decreasing steeply — a heuristic for the number of meaningful components
+- The **elbow** (knee) is the bend where eigenvalues stop decreasing steeply - a heuristic for the number of meaningful components
 - No elbow: data may genuinely be spread across many dimensions, or may need more samples
 
 **Limitations of the elbow heuristic:** Subjective; different analysts may pick different elbows; fails when the spectrum decays smoothly (e.g., power-law decay). Cross-validation or parallel analysis is more rigorous.
@@ -548,11 +548,11 @@ def components_for_threshold(s, tau=0.95):
 
 For **standardized data** (each feature has variance 1), the total variance equals $d$ (the number of features), and each eigenvalue $\lambda_i$ measures how many "original features" that component explains.
 
-**Kaiser criterion:** Keep components with $\lambda_i > 1$ — components that explain more variance than a single original feature.
+**Kaiser criterion:** Keep components with $\lambda_i > 1$ - components that explain more variance than a single original feature.
 
 $$k_{\text{Kaiser}} = \#\{i : \lambda_i > 1\}$$
 
-This is the default in many statistics packages. It works specifically because standardized data makes the threshold $\lambda = 1$ meaningful — without standardization, the threshold has no natural interpretation.
+This is the default in many statistics packages. It works specifically because standardized data makes the threshold $\lambda = 1$ meaningful - without standardization, the threshold has no natural interpretation.
 
 **When Kaiser fails:**
 - Over-extraction (too many components) when $d$ is large relative to $n$
@@ -595,12 +595,12 @@ def find_k_cv(X, y, k_values, cv=5):
 
 ### 5.1 What Whitening Achieves
 
-Standard PCA projects data onto principal components and produces scores with variances $\lambda_1 \geq \cdots \geq \lambda_k$ — the components are uncorrelated but have different magnitudes. **Whitening** goes one step further: it rescales each component to unit variance, producing data with covariance $I_k$.
+Standard PCA projects data onto principal components and produces scores with variances $\lambda_1 \geq \cdots \geq \lambda_k$ - the components are uncorrelated but have different magnitudes. **Whitening** goes one step further: it rescales each component to unit variance, producing data with covariance $I_k$.
 
 A dataset $Z_{\text{white}}$ is called **white** (or **spherical**) if:
 $$\operatorname{Cov}(Z_{\text{white}}) = I$$
 
-Geometrically, whitening maps the data ellipsoid to a hypersphere — every direction has equal variance.
+Geometrically, whitening maps the data ellipsoid to a hypersphere - every direction has equal variance.
 
 **PCA whitening transform:**
 
@@ -622,7 +622,7 @@ $$\operatorname{Cov}(Z_{\text{white}}) = \frac{Z_{\text{white}}^\top Z_{\text{wh
 
 **PCA whitening** rotates to the PC axes first, then scales:
 $$Z_{\text{PCA-white}} = \tilde{X} V_k \Lambda_k^{-1/2}$$
-The result is in a different coordinate system than the original data — the axes are the principal components.
+The result is in a different coordinate system than the original data - the axes are the principal components.
 
 **ZCA whitening** (Zero-phase Component Analysis) applies a further rotation to bring the data back to the original feature space:
 $$Z_{\text{ZCA}} = \tilde{X} V_k \Lambda_k^{-1/2} V_k^\top = \tilde{X} C^{-1/2}$$
@@ -630,24 +630,24 @@ where $C^{-1/2} = V\Lambda^{-1/2}V^\top$ is the symmetric square root of $C^{-1}
 
 ```
 ZCA vs PCA WHITENING
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Original data:              PCA-white:               ZCA-white:
   correlated ellipse          decorrelated sphere       sphere in orig frame
                               (rotated)                 (NOT rotated)
 
-       •• •                        •  •                    • •
-      •   •                       •    •                  •   •
-     •     •         →           •      •        →       •     •
-      •   •                       •    •                  •   •
-       •• •                        •  •                    • •
+       -- -                        -  -                    - -
+      -   -                       -    -                  -   -
+     -     -         ->           -      -        ->       -     -
+      -   -                       -    -                  -   -
+       -- -                        -  -                    - -
 
-  ×── features ──→          ×─── PCs ────→           ×── features ──→
+  \times-- features --->          \times--- PCs ----->           \times-- features --->
 
   Best for images: ZCA preserves spatial locality.
   Best for ICA: PCA-white, since ICA works in PC space.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 | Property | PCA whitening | ZCA whitening |
@@ -674,7 +674,7 @@ ZCA vs PCA WHITENING
 
 ### 6.1 The Generative Model
 
-Standard PCA is a geometric algorithm — it finds optimal directions but provides no probabilistic model. Probabilistic PCA (PPCA), introduced by Tipping & Bishop (1999), embeds PCA in a latent variable model that enables likelihood-based model selection, missing data handling, and Bayesian extensions.
+Standard PCA is a geometric algorithm - it finds optimal directions but provides no probabilistic model. Probabilistic PCA (PPCA), introduced by Tipping & Bishop (1999), embeds PCA in a latent variable model that enables likelihood-based model selection, missing data handling, and Bayesian extensions.
 
 **The PPCA generative model:**
 $$\mathbf{z} \sim \mathcal{N}(\mathbf{0}, I_k)$$
@@ -700,7 +700,7 @@ The key parameters to learn from data are $W$, $\boldsymbol{\mu}$, and $\sigma^2
 | Model selection | Heuristic ($k$ via scree) | Likelihood-based (BIC/AIC) |
 | Missing data | Not directly handled | EM handles naturally |
 | Uncertainty | None | Posterior over $\mathbf{z}$ |
-| Limit $\sigma^2 \to 0$ | Recovers standard PCA | ✓ |
+| Limit $\sigma^2 \to 0$ | Recovers standard PCA | OK |
 
 ### 6.2 MLE Solution and Connection to Standard PCA
 
@@ -710,7 +710,7 @@ The MLE for the PPCA model has a closed-form solution. Let $C$ be the sample cov
 
 **MLE for $\sigma^2$:**
 $$\hat{\sigma}^2 = \frac{1}{d-k}\sum_{i=k+1}^d \lambda_i$$
-This is the average variance of the discarded components — the isotropic noise level.
+This is the average variance of the discarded components - the isotropic noise level.
 
 **MLE for $W$:**
 $$\hat{W} = V_k (\Lambda_k - \hat{\sigma}^2 I_k)^{1/2} R$$
@@ -732,9 +732,9 @@ where $M = W_{\text{obs}}^\top W_{\text{obs}} + \sigma^2 I$ and subscript "obs" 
 
 **M-step:** Update $W$, $\boldsymbol{\mu}$, $\sigma^2$ using the expected sufficient statistics from the E-step.
 
-The EM converges to the MLE. For the complete-data case, EM recovers the exact closed-form MLE. For missing data, it provides principled imputation — predicting missing entries via the posterior mean.
+The EM converges to the MLE. For the complete-data case, EM recovers the exact closed-form MLE. For missing data, it provides principled imputation - predicting missing entries via the posterior mean.
 
-**For AI:** Masked autoencoding (MAE, BERT) is conceptually related — learn representations that can reconstruct masked/missing inputs, which is a non-linear deep-learning analog of the PPCA EM algorithm.
+**For AI:** Masked autoencoding (MAE, BERT) is conceptually related - learn representations that can reconstruct masked/missing inputs, which is a non-linear deep-learning analog of the PPCA EM algorithm.
 
 ### 6.4 Mixture of PPCA
 
@@ -752,37 +752,37 @@ This is a smooth, probabilistic generalization of K-means + PCA per cluster. It 
 
 ## 7. Kernel PCA
 
-### 7.1 Motivation — When Linear PCA Fails
+### 7.1 Motivation - When Linear PCA Fails
 
-Standard PCA finds **linear** structure in data. If the meaningful variation lies along a non-linear manifold, PCA will fail to capture it — the top PCs will not align with the manifold's intrinsic directions.
+Standard PCA finds **linear** structure in data. If the meaningful variation lies along a non-linear manifold, PCA will fail to capture it - the top PCs will not align with the manifold's intrinsic directions.
 
 ```
 WHEN LINEAR PCA FAILS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Two-moons data:                Swiss roll:
 
-      ●●●                        (3D spiral surface)
-    ●●   ●●                      PCA finds the 3D extent.
-   ●●     ●●       ←PCA→        Kernel PCA (RBF) unfolds the
-   ●●     ●●      collapses      roll into a 2D plane.
-    ●●   ●●       the two
-      ●●●         moons!
+      ***                        (3D spiral surface)
+    **   **                      PCA finds the 3D extent.
+   **     **       <-PCA->        Kernel PCA (RBF) unfolds the
+   **     **      collapses      roll into a 2D plane.
+    **   **       the two
+      ***         moons!
 
   PCA sees two overlapping         Kernel PCA extracts
   blobs, not two crescents.        intrinsic 2D structure.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Kernel PCA** (Schölkopf, Smola, Müller, 1998) solves this by implicitly mapping data to a high-dimensional feature space $\mathcal{H}$ where the non-linear structure becomes linear, then applying standard PCA there.
+**Kernel PCA** (Scholkopf, Smola, Muller, 1998) solves this by implicitly mapping data to a high-dimensional feature space $\mathcal{H}$ where the non-linear structure becomes linear, then applying standard PCA there.
 
 ### 7.2 The Kernel Trick and Feature-Space PCA
 
 **Feature map.** Let $\phi: \mathbb{R}^d \to \mathcal{H}$ be a (possibly infinite-dimensional) feature map. The feature-space covariance is:
 $$C_\phi = \frac{1}{n}\sum_{i=1}^n \phi(\mathbf{x}^{(i)})\phi(\mathbf{x}^{(i)})^\top$$
 
-We want the eigenvectors of $C_\phi$, but $\mathcal{H}$ may be infinite-dimensional — we can never compute $C_\phi$ explicitly.
+We want the eigenvectors of $C_\phi$, but $\mathcal{H}$ may be infinite-dimensional - we can never compute $C_\phi$ explicitly.
 
 **Key insight.** Every eigenvector $\mathbf{v}$ of $C_\phi$ lies in the span of $\{\phi(\mathbf{x}^{(1)}), \ldots, \phi(\mathbf{x}^{(n)})\}$:
 $$\mathbf{v} = \sum_{i=1}^n \alpha_i \phi(\mathbf{x}^{(i)})$$
@@ -796,15 +796,15 @@ where $K_{ij} = \langle\phi(\mathbf{x}^{(i)}), \phi(\mathbf{x}^{(j)})\rangle_\ma
 
 **Kernel PCA algorithm:**
 1. Compute $n \times n$ kernel matrix $K$ with $K_{ij} = k(\mathbf{x}^{(i)}, \mathbf{x}^{(j)})$
-2. Center the kernel matrix (see §7.3)
+2. Center the kernel matrix (see 7.3)
 3. Eigendecompose $\tilde{K} = \Phi D \Phi^\top$ (or use SVD)
 4. Extract top $k$ eigenvectors $\boldsymbol{\alpha}^{(1)}, \ldots, \boldsymbol{\alpha}^{(k)}$, normalized: $\lVert\boldsymbol{\alpha}^{(i)}\rVert = 1/\sqrt{d_i}$
 5. Project new point $\mathbf{x}$: compute $k_i = k(\mathbf{x}^{(i)}, \mathbf{x})$ for all $i$, then scores $= \Phi^\top \mathbf{k}$
 
 **Computational cost:**
-- Building $K$: $O(n^2 d)$ — expensive for large $n$
-- Eigendecomposition: $O(n^3)$ — bottleneck
-- For large $n$: use Nyström approximation or random features
+- Building $K$: $O(n^2 d)$ - expensive for large $n$
+- Eigendecomposition: $O(n^3)$ - bottleneck
+- For large $n$: use Nystrom approximation or random features
 
 ### 7.3 Centering the Kernel Matrix
 
@@ -819,7 +819,7 @@ where $\mathbf{1}_n = \frac{1}{n}\mathbf{1}\mathbf{1}^\top \in \mathbb{R}^{n \ti
 In code:
 ```python
 def center_kernel(K):
-    """Center the n×n kernel matrix."""
+    """Center the n\timesn kernel matrix."""
     n = K.shape[0]
     one_n = np.ones((n, n)) / n
     return K - one_n @ K - K @ one_n + one_n @ K @ one_n
@@ -841,17 +841,17 @@ Failing to center new-point kernels is a common implementation error.
 | **Laplacian** | $\exp(-\lVert\mathbf{x}-\mathbf{y}\rVert_1/\sigma)$ | Infinite-dimensional | Robust to outliers |
 
 **RBF kernel bandwidth $\sigma$:**
-- Small $\sigma$: each point forms its own neighborhood — overfitting
-- Large $\sigma$: kernel approaches constant — loses discriminative power
+- Small $\sigma$: each point forms its own neighborhood - overfitting
+- Large $\sigma$: kernel approaches constant - loses discriminative power
 - Rule of thumb: set $\sigma$ to the median pairwise distance (the "median heuristic")
 
-**For AI:** The NTK (Neural Tangent Kernel) is the kernel induced by an infinitely wide neural network. Kernel PCA with the NTK is equivalent to PCA on neural network features at initialization — a theoretical tool for analyzing early training dynamics.
+**For AI:** The NTK (Neural Tangent Kernel) is the kernel induced by an infinitely wide neural network. Kernel PCA with the NTK is equivalent to PCA on neural network features at initialization - a theoretical tool for analyzing early training dynamics.
 
 ### 7.5 Limitations and Out-of-Sample Extension
 
 **Limitations of kernel PCA:**
 
-1. **No out-of-sample formula.** Unlike standard PCA (where new $\mathbf{x}$ maps to $V_k^\top(\mathbf{x}-\bar{\mathbf{x}})$), kernel PCA requires the kernel vector against all training points — inference cost is $O(n)$ per new point.
+1. **No out-of-sample formula.** Unlike standard PCA (where new $\mathbf{x}$ maps to $V_k^\top(\mathbf{x}-\bar{\mathbf{x}})$), kernel PCA requires the kernel vector against all training points - inference cost is $O(n)$ per new point.
 
 2. **Scalability.** $O(n^2)$ memory and $O(n^3)$ compute. For $n > 10{,}000$, need approximations.
 
@@ -864,7 +864,7 @@ $$z_j(\mathbf{x}) = \frac{1}{d_j}\sum_{i=1}^n \alpha_j^{(i)} \tilde{k}(\mathbf{x
 
 where $d_j$ is the $j$-th eigenvalue and $\tilde{k}$ denotes the centered kernel. This gives $O(n)$ inference.
 
-**Nyström approximation.** Approximate $K$ using a random subset of $m \ll n$ landmark points:
+**Nystrom approximation.** Approximate $K$ using a random subset of $m \ll n$ landmark points:
 $$K \approx K_{nm} K_{mm}^{-1} K_{mn}$$
 Reduces cost to $O(nm^2)$ while preserving the top eigenspectrum approximately.
 
@@ -872,18 +872,18 @@ Reduces cost to $O(nm^2)$ while preserving the top eigenspectrum approximately.
 
 ## 8. PCA Variants
 
-### 8.1 Sparse PCA — Interpretable Loadings
+### 8.1 Sparse PCA - Interpretable Loadings
 
-Standard PCA components are generally dense — each PC is a linear combination of **all** original features. This makes interpretation difficult: "PC1 is 0.12·feature1 + 0.31·feature2 − 0.07·feature3 + ..." is hard to understand.
+Standard PCA components are generally dense - each PC is a linear combination of **all** original features. This makes interpretation difficult: "PC1 is 0.12*feature1 + 0.31*feature2 - 0.07*feature3 + ..." is hard to understand.
 
 **Sparse PCA** constrains components to use only a few original features, trading reconstruction optimality for interpretability.
 
 **Formulation (LASSO-regularized):**
 $$\min_{V, Z} \lVert \tilde{X} - ZV^\top \rVert_F^2 + \lambda\lVert V \rVert_1 \quad \text{subject to} \quad Z^\top Z = I$$
 
-The $\ell_1$ penalty on $V$ forces most loadings to zero. The result: each PC depends on only a handful of original features — interpretable as a "factor" in the original variable space.
+The $\ell_1$ penalty on $V$ forces most loadings to zero. The result: each PC depends on only a handful of original features - interpretable as a "factor" in the original variable space.
 
-**Algorithm (Zou, Hastie, Tibshirani, 2006 — Elastic Net formulation):**
+**Algorithm (Zou, Hastie, Tibshirani, 2006 - Elastic Net formulation):**
 - Fix $Z$: solve Lasso for each column of $V$
 - Fix $V$: solve for $Z$ via SVD of $\tilde{X}V$
 - Iterate until convergence
@@ -893,23 +893,23 @@ from sklearn.decomposition import SparsePCA
 
 spca = SparsePCA(n_components=5, alpha=0.1)  # alpha = L1 regularization
 Z_sparse = spca.fit_transform(X)
-# spca.components_ has many zeros — interpretable loadings
+# spca.components_ has many zeros - interpretable loadings
 ```
 
 **Applications:** Gene expression analysis (each PC = a small gene module), finance (each PC = a sector factor), neuroscience (each PC = a brain region pattern).
 
-### 8.2 Robust PCA — Low-Rank + Sparse Decomposition
+### 8.2 Robust PCA - Low-Rank + Sparse Decomposition
 
 Standard PCA is sensitive to outliers: a single corrupted data point can completely distort the principal components (because PCA minimizes squared Frobenius norm, and outliers contribute quadratically).
 
-**Robust PCA** (Candès, Li, Ma, Wright, 2011) decomposes a matrix $M$ into:
+**Robust PCA** (Candes, Li, Ma, Wright, 2011) decomposes a matrix $M$ into:
 $$M = L + S$$
 where $L$ is **low-rank** (the "clean" signal) and $S$ is **sparse** (the outliers or corruptions).
 
 **Formulation (Principal Component Pursuit):**
 $$\min_{L, S} \lVert L \rVert_* + \mu \lVert S \rVert_1 \quad \text{subject to} \quad L + S = M$$
 
-where $\lVert L\rVert_*$ is the nuclear norm (sum of singular values — convex surrogate for rank) and $\lVert S\rVert_1$ is the element-wise $\ell_1$ norm (convex surrogate for sparsity).
+where $\lVert L\rVert_*$ is the nuclear norm (sum of singular values - convex surrogate for rank) and $\lVert S\rVert_1$ is the element-wise $\ell_1$ norm (convex surrogate for sparsity).
 
 **Exact recovery theorem:** Under mild conditions (incoherence conditions on $L$ and random support for $S$), the optimization exactly recovers $(L, S)$ even when the sparse component has a constant fraction of corrupted entries.
 
@@ -937,12 +937,12 @@ The algorithm maintains running estimates of the covariance matrix eigenvectors,
 **Randomized SVD** (Halko, Martinsson, Tropp, 2011) computes an approximate truncated SVD much faster than the full SVD when $k \ll \min(n,d)$:
 
 1. Generate random Gaussian matrix $\Omega \in \mathbb{R}^{d \times (k+p)}$ (oversampling with $p \approx 10$)
-2. Compute $Y = \tilde{X}\Omega \in \mathbb{R}^{n \times (k+p)}$ — projects data to random subspace
+2. Compute $Y = \tilde{X}\Omega \in \mathbb{R}^{n \times (k+p)}$ - projects data to random subspace
 3. QR-decompose $Y = QR$ to get orthonormal basis $Q$
-4. Compute $B = Q^\top \tilde{X} \in \mathbb{R}^{(k+p) \times d}$ — small matrix
+4. Compute $B = Q^\top \tilde{X} \in \mathbb{R}^{(k+p) \times d}$ - small matrix
 5. SVD of $B = \hat{U}\Sigma V^\top$; then $U = Q\hat{U}$
 
-**Cost:** $O(ndk)$ instead of $O(nd\min(n,d))$ — a factor of $\min(n,d)/k$ speedup.
+**Cost:** $O(ndk)$ instead of $O(nd\min(n,d))$ - a factor of $\min(n,d)/k$ speedup.
 
 ```python
 from sklearn.utils.extmath import randomized_svd
@@ -963,7 +963,7 @@ The classic application of PCA to images (Turk & Pentland, 1991) demonstrates th
 
 **Setup:** $n$ face images of size $h \times w$ pixels, each flattened to a vector in $\mathbb{R}^{hw}$. Form the data matrix $X \in \mathbb{R}^{n \times hw}$.
 
-**Eigenfaces:** The principal components $\mathbf{v}_1, \ldots, \mathbf{v}_k$ can be reshaped back to $h \times w$ images — these are the "eigenfaces," the most important face patterns in the dataset.
+**Eigenfaces:** The principal components $\mathbf{v}_1, \ldots, \mathbf{v}_k$ can be reshaped back to $h \times w$ images - these are the "eigenfaces," the most important face patterns in the dataset.
 
 ```python
 def compute_eigenfaces(face_images, k=50):
@@ -979,12 +979,12 @@ def compute_eigenfaces(face_images, k=50):
 
     U, s, Vt = np.linalg.svd(X_c, full_matrices=False)
     eigenfaces = Vt[:k].reshape(k, h, w)
-    scores = U[:, :k] * s[:k]    # (n, k) — PCA coordinates
+    scores = U[:, :k] * s[:k]    # (n, k) - PCA coordinates
 
     return eigenfaces, mean_face.reshape(h, w), scores
 ```
 
-**Compression ratio:** Storing $k$ eigenfaces ($k \cdot hw$ values) and $n$ score vectors ($n \cdot k$ values) vs. the original $n \cdot hw$ values. For $k = 50$, $n = 1000$, $hw = 4096$: compression from 4M to 255K values — a 16× reduction.
+**Compression ratio:** Storing $k$ eigenfaces ($k \cdot hw$ values) and $n$ score vectors ($n \cdot k$ values) vs. the original $n \cdot hw$ values. For $k = 50$, $n = 1000$, $hw = 4096$: compression from 4M to 255K values - a 16\times reduction.
 
 **For AI:** ViT (Vision Transformers) learn patch embeddings that, in early layers, closely resemble the top PCA components of image patches. The first self-attention heads often perform a form of learned PCA on the patch token space.
 
@@ -1003,7 +1003,7 @@ A fundamental empirical question in LLM research: "how many dimensions does a la
 - The effective dimension grows with layer depth and shrinks in final layers
 - Instruction-tuned models tend to have lower intrinsic dimension than base models
 
-**Participation ratio** — a continuous intrinsic dimensionality measure:
+**Participation ratio** - a continuous intrinsic dimensionality measure:
 $$d_{\text{PR}} = \frac{(\sum_i \lambda_i)^2}{\sum_i \lambda_i^2}$$
 
 Equals $d$ when all eigenvalues are equal (maximum dimensionality); equals 1 when one eigenvalue dominates.
@@ -1044,9 +1044,9 @@ $$\Delta W = BA, \quad B \in \mathbb{R}^{d_{\mathrm{out}} \times r},\; A \in \ma
 
 The modified forward pass: $\mathbf{h} = W\mathbf{x} + \Delta W\mathbf{x} = W\mathbf{x} + BA\mathbf{x}$.
 
-**Parameter savings:** Original $\Delta W$ has $d_{\mathrm{out}} \cdot d_{\mathrm{in}}$ parameters; LoRA uses $r(d_{\mathrm{out}} + d_{\mathrm{in}})$ — a ratio of $r/d$ savings (often $r = 4$--$64$ vs $d = 4096$).
+**Parameter savings:** Original $\Delta W$ has $d_{\mathrm{out}} \cdot d_{\mathrm{in}}$ parameters; LoRA uses $r(d_{\mathrm{out}} + d_{\mathrm{in}})$ - a ratio of $r/d$ savings (often $r = 4$--$64$ vs $d = 4096$).
 
-**Empirical validation:** Aghajanyan et al. (2020) measured the intrinsic dimensionality of fine-tuning loss landscapes and found most models can be fine-tuned with $r < 200$ free parameters in a random low-dimensional subspace — validating the hypothesis empirically.
+**Empirical validation:** Aghajanyan et al. (2020) measured the intrinsic dimensionality of fine-tuning loss landscapes and found most models can be fine-tuned with $r < 200$ free parameters in a random low-dimensional subspace - validating the hypothesis empirically.
 
 **Extensions:**
 - **DoRA** (Weight Decomposed LoRA): decomposes weight update into magnitude and direction components
@@ -1057,7 +1057,7 @@ The modified forward pass: $\mathbf{h} = W\mathbf{x} + \Delta W\mathbf{x} = W\ma
 
 PCA of gradient trajectories and weight perturbations reveals the geometry of the loss landscape.
 
-**Li et al. (2018) — Filter normalization visualization:**
+**Li et al. (2018) - Filter normalization visualization:**
 1. Train a model, record the final weights $\boldsymbol{\theta}^*$
 2. Sample $n$ perturbation directions; collect weights along training trajectory $\boldsymbol{\theta}_t$
 3. Apply PCA to the trajectory matrix: find the 2 principal directions $\mathbf{d}_1, \mathbf{d}_2$
@@ -1079,11 +1079,11 @@ When reducing to 2D/3D for visualization, practitioners must choose between line
 
 **Key differences:**
 - PCA: distances in 2D PCA plot are meaningful; axes have units (variance explained)
-- t-SNE/UMAP: cluster shapes and inter-cluster distances are **NOT** preserved — only within-cluster topology
+- t-SNE/UMAP: cluster shapes and inter-cluster distances are **NOT** preserved - only within-cluster topology
 - PCA is reproducible; t-SNE/UMAP have random initialization (seed for reproducibility)
 - For LLM embedding visualization: PCA first (to ~50 dims), then t-SNE/UMAP on PCA scores is standard practice (PCA removes noise, t-SNE reveals cluster fine structure)
 
-**Common mistake:** Interpreting t-SNE distances between clusters as meaningful. They are not — t-SNE cluster sizes and inter-cluster distances are artifacts of the perplexity parameter and optimization.
+**Common mistake:** Interpreting t-SNE distances between clusters as meaningful. They are not - t-SNE cluster sizes and inter-cluster distances are artifacts of the perplexity parameter and optimization.
 
 ---
 
@@ -1108,7 +1108,7 @@ When reducing to 2D/3D for visualization, practitioners must choose between line
 
 ## 11. Exercises
 
-**Exercise 1 ★** — Derivation from first principles
+**Exercise 1 *** - Derivation from first principles
 
 Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. Without using `np.linalg.svd` or `np.linalg.eigh` directly on $C$:
 
@@ -1122,7 +1122,7 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (e) Project the data onto the first 2 PCs and verify that the reconstruction error equals $\lambda_3$.
 
-**Exercise 2 ★** — PCA via SVD and numerical equivalence
+**Exercise 2 *** - PCA via SVD and numerical equivalence
 
 (a) Implement PCA using the covariance eigendecomposition (`np.linalg.eigh`).
 
@@ -1134,7 +1134,7 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (e) Explain why `eigh` (symmetric eigenvalue solver) is better than `eig` for covariance matrices, and why `svd` on $\tilde{X}$ is better than both.
 
-**Exercise 3 ★** — Explained variance and component selection
+**Exercise 3 *** - Explained variance and component selection
 
 (a) Generate a correlated multivariate Gaussian dataset in $\mathbb{R}^{20}$ with a covariance matrix that has a spectrum decaying as $\lambda_i \propto 1/i$.
 
@@ -1146,7 +1146,7 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (e) Fit a linear regression on the raw features vs. PCA scores with 90% variance retained. Which gives better cross-validated $R^2$? Explain.
 
-**Exercise 4 ★★** — Whitening and its effects
+**Exercise 4 **** - Whitening and its effects
 
 (a) Generate a 2D dataset with covariance $\Sigma = \begin{pmatrix}9 & 6 \\ 6 & 5\end{pmatrix}$. Verify numerically.
 
@@ -1156,9 +1156,9 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (d) Plot both whitened versions alongside the original. Describe geometrically what each transformation does.
 
-(e) Time the convergence of gradient descent on a simple quadratic $f(\mathbf{x}) = \frac{1}{2}\mathbf{x}^\top\Sigma\mathbf{x}$ starting from $(1,1)$ — first with raw data, then with whitened inputs. Report the number of steps to reach $f < 10^{-4}$.
+(e) Time the convergence of gradient descent on a simple quadratic $f(\mathbf{x}) = \frac{1}{2}\mathbf{x}^\top\Sigma\mathbf{x}$ starting from $(1,1)$ - first with raw data, then with whitened inputs. Report the number of steps to reach $f < 10^{-4}$.
 
-**Exercise 5 ★★** — Probabilistic PCA
+**Exercise 5 **** - Probabilistic PCA
 
 (a) Implement PPCA via the closed-form MLE. Inputs: centered data $\tilde{X}$, number of components $k$. Outputs: $\hat{W}$, $\hat{\sigma}^2$, log-likelihood.
 
@@ -1170,7 +1170,7 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (e) Compare the PPCA reconstruction (posterior mean $\hat{\mathbf{x}} = \hat{W}\hat{\mathbf{z}} + \hat{\boldsymbol{\mu}}$) with standard PCA reconstruction on 20% of randomly masked features.
 
-**Exercise 6 ★★** — Kernel PCA
+**Exercise 6 **** - Kernel PCA
 
 (a) Generate the two-moons dataset (`sklearn.datasets.make_moons`). Show that linear PCA fails to separate the classes in 2D.
 
@@ -1182,7 +1182,7 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (e) Compare kernel PCA with t-SNE and UMAP (from `sklearn` and `umap-learn`) on the same two-moons data. Discuss the qualitative and quantitative differences.
 
-**Exercise 7 ★★★** — LoRA and the low-rank hypothesis
+**Exercise 7 ***** - LoRA and the low-rank hypothesis
 
 (a) Generate a "weight matrix" $W \in \mathbb{R}^{100 \times 80}$ with a known low-rank structure: $W = W_0 + UV^\top$ where $U \in \mathbb{R}^{100 \times 5}$, $V \in \mathbb{R}^{80 \times 5}$ are random, $W_0$ is small random noise.
 
@@ -1194,7 +1194,7 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 (e) Explain why $r = 5$ should achieve near-zero error here, and compute the compression ratio for each $r$ vs. storing $\Delta W$ directly.
 
-**Exercise 8 ★★★** — Intrinsic dimensionality of representations
+**Exercise 8 ***** - Intrinsic dimensionality of representations
 
 (a) Generate synthetic "LLM activations" by: (i) sample $n = 500$ points in $\mathbb{R}^{200}$ from a Gaussian with covariance $\Sigma = Q\Lambda Q^\top$ where $\Lambda$ has eigenvalues $\lambda_i = e^{-i/20}$.
 
@@ -1216,11 +1216,11 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 | Eckart-Young theorem | Justifies low-rank approximation everywhere | LoRA: $\Delta W = BA$, rank $r = 4$--$64$ recovers most fine-tuning capability |
 | Intrinsic dimensionality | Characterizes "how much information" a model layer uses | GPT-4 class models: 90% EVR at ~200 dims in $\mathbb{R}^{8192}$ |
 | PCA of residual stream | Mechanistic interpretability | Anthropic's "linear representation hypothesis": features are directions in residual stream |
-| PPCA / missing data | Masked language modelling as probabilistic inference | BERT's MLM objective ≈ EM for missing tokens in a PPCA-like model |
+| PPCA / missing data | Masked language modelling as probabilistic inference | BERT's MLM objective \approx EM for missing tokens in a PPCA-like model |
 | Kernel PCA | Attention as implicit feature-space PCA | NTK theory: infinite-width networks perform kernel regression |
 | Sparse PCA | Interpretable features in transformers | Superposition hypothesis: polysemantic neurons are superposed sparse features |
 | Randomized SVD | Efficient computation on billion-parameter models | GaLore projects gradients to dominant right-singular-vector subspace |
-| Whitening / decorrelation | Normalization layers | Batch Norm ≈ approximate feature whitening per layer |
+| Whitening / decorrelation | Normalization layers | Batch Norm \approx approximate feature whitening per layer |
 | PCA of attention heads | Understanding head specialization | PCA of $QK^\top$ matrices reveals head function (positional, syntactic, semantic) |
 | Loss landscape PCA | Visualization of optimization dynamics | Filter-normalized loss landscape shows flat minima for residual networks |
 | Robust PCA | Denoising corrupted activations | Separating adversarial perturbations (sparse) from clean representations (low-rank) |
@@ -1229,51 +1229,51 @@ Consider centered data $\tilde{X} \in \mathbb{R}^{3 \times 3}$ given below. With
 
 ## 13. Conceptual Bridge
 
-**Where we came from.** This section builds directly on two prior foundations. From [§01-Eigenvalues-and-Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md), we take the spectral theorem for symmetric matrices: every real symmetric positive semidefinite matrix $C$ diagonalizes as $C = Q\Lambda Q^\top$ with real non-negative eigenvalues. PCA is precisely the application of this theorem to the sample covariance matrix. From [§02-Singular-Value-Decomposition](../02-Singular-Value-Decomposition/notes.md), we take the Eckart-Young theorem and the SVD computation: PCA is most efficiently and stably computed by taking the SVD of the centered data matrix $\tilde{X}$ rather than computing $C$ explicitly.
+**Where we came from.** This section builds directly on two prior foundations. From [01-Eigenvalues-and-Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md), we take the spectral theorem for symmetric matrices: every real symmetric positive semidefinite matrix $C$ diagonalizes as $C = Q\Lambda Q^\top$ with real non-negative eigenvalues. PCA is precisely the application of this theorem to the sample covariance matrix. From [02-Singular-Value-Decomposition](../02-Singular-Value-Decomposition/notes.md), we take the Eckart-Young theorem and the SVD computation: PCA is most efficiently and stably computed by taking the SVD of the centered data matrix $\tilde{X}$ rather than computing $C$ explicitly.
 
-**What PCA adds to the story.** The eigendecomposition and SVD are algebraic facts about matrices. PCA gives them statistical meaning: the data matrix $\tilde{X}$ is not arbitrary — it is a sample from an unknown distribution, and the covariance matrix $C$ is an estimate of that distribution's second moment. Maximizing projected variance, minimizing reconstruction error, and diagonalizing the covariance are all expressions of the same statistical goal: find the coordinate system in which the data is most "efficiently" described. This is PCA's unique contribution — it marries linear algebra with statistical estimation.
+**What PCA adds to the story.** The eigendecomposition and SVD are algebraic facts about matrices. PCA gives them statistical meaning: the data matrix $\tilde{X}$ is not arbitrary - it is a sample from an unknown distribution, and the covariance matrix $C$ is an estimate of that distribution's second moment. Maximizing projected variance, minimizing reconstruction error, and diagonalizing the covariance are all expressions of the same statistical goal: find the coordinate system in which the data is most "efficiently" described. This is PCA's unique contribution - it marries linear algebra with statistical estimation.
 
-**Forward to Linear Transformations.** The next section, [§04-Linear-Transformations](../04-Linear-Transformations/notes.md), develops the abstract theory of linear maps between vector spaces. PCA can be understood in this language: the PCA projection $\mathbf{x} \mapsto V_k^\top \mathbf{x}$ is a linear map from $\mathbb{R}^d$ to $\mathbb{R}^k$, and the reconstruction $\mathbf{z} \mapsto V_k\mathbf{z}$ is its "almost-inverse" (a pseudoinverse). The kernel of the projection is the span of the discarded components $\{\mathbf{v}_{k+1}, \ldots, \mathbf{v}_d\}$ — the null space of the PCA transform. This connection between PCA and kernel/image theory is explored in §04.
+**Forward to Linear Transformations.** The next section, [04-Linear-Transformations](../04-Linear-Transformations/notes.md), develops the abstract theory of linear maps between vector spaces. PCA can be understood in this language: the PCA projection $\mathbf{x} \mapsto V_k^\top \mathbf{x}$ is a linear map from $\mathbb{R}^d$ to $\mathbb{R}^k$, and the reconstruction $\mathbf{z} \mapsto V_k\mathbf{z}$ is its "almost-inverse" (a pseudoinverse). The kernel of the projection is the span of the discarded components $\{\mathbf{v}_{k+1}, \ldots, \mathbf{v}_d\}$ - the null space of the PCA transform. This connection between PCA and kernel/image theory is explored in 04.
 
-**Forward to Orthogonality.** [§05-Orthogonality-and-Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md) develops the Gram-Schmidt algorithm for constructing orthonormal bases, which is closely related to PCA (both find orthonormal bases, but PCA optimizes which basis is chosen). The QR decomposition studied there is also the computational backbone of many iterative eigenvalue algorithms used in large-scale PCA.
+**Forward to Orthogonality.** [05-Orthogonality-and-Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md) develops the Gram-Schmidt algorithm for constructing orthonormal bases, which is closely related to PCA (both find orthonormal bases, but PCA optimizes which basis is chosen). The QR decomposition studied there is also the computational backbone of many iterative eigenvalue algorithms used in large-scale PCA.
 
 ```
 PCA IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §01 Eigenvalues          §02 SVD
-  ─────────────────        ───────────────
-  Spectral theorem    ──►  Eckart-Young
-  Covariance matrix   ──►  Singular values
-  Eigenvectors        ──►  Right singular vectors
-          │                      │
-          └──────────┬───────────┘
-                     ▼
-            §03 PCA  ◄── THIS SECTION
-            ─────────────────────────────
-            • Variance maximization
-            • Explained variance
-            • Whitening
-            • Probabilistic PCA
-            • Kernel PCA
-            • AI applications
-                     │
-          ┌──────────┴───────────┐
-          ▼                      ▼
-  §04 Linear              §05 Orthogonality
-  Transformations         ─────────────────
-  ───────────────         Gram-Schmidt
+  01 Eigenvalues          02 SVD
+  -----------------        ---------------
+  Spectral theorem    -->  Eckart-Young
+  Covariance matrix   -->  Singular values
+  Eigenvectors        -->  Right singular vectors
+          |                      |
+          +----------+-----------+
+                     v
+            03 PCA  <-- THIS SECTION
+            -----------------------------
+            - Variance maximization
+            - Explained variance
+            - Whitening
+            - Probabilistic PCA
+            - Kernel PCA
+            - AI applications
+                     |
+          +----------+-----------+
+          v                      v
+  04 Linear              05 Orthogonality
+  Transformations         -----------------
+  ---------------         Gram-Schmidt
   Kernel of PCA proj      QR decomposition
   Image = PC subspace     Orthogonal bases
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**The deeper pattern.** PCA is the first section in this curriculum where algebra, geometry, optimization, and statistics come together in one algorithm. Every major dimension-reduction technique in modern AI — LoRA, attention head analysis, representation geometry, loss landscape visualization — is a variation on the PCA theme: find a low-dimensional linear subspace that captures the essential structure of high-dimensional data. Mastering PCA is mastering the mathematical language in which most of AI's structural properties are expressed.
+**The deeper pattern.** PCA is the first section in this curriculum where algebra, geometry, optimization, and statistics come together in one algorithm. Every major dimension-reduction technique in modern AI - LoRA, attention head analysis, representation geometry, loss landscape visualization - is a variation on the PCA theme: find a low-dimensional linear subspace that captures the essential structure of high-dimensional data. Mastering PCA is mastering the mathematical language in which most of AI's structural properties are expressed.
 
 ---
 
-[← Back to Advanced Linear Algebra](../README.md) | [← SVD](../02-Singular-Value-Decomposition/notes.md) | [Linear Transformations →](../04-Linear-Transformations/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- SVD](../02-Singular-Value-Decomposition/notes.md) | [Linear Transformations ->](../04-Linear-Transformations/notes.md)
 
 ---
 
@@ -1283,48 +1283,48 @@ PCA IN THE CURRICULUM
 
 ```
 ALGORITHM: Principal Component Analysis
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
 INPUT:
-  X ∈ ℝ^{n×d}   Data matrix (n samples, d features)
-  k              Number of components (1 ≤ k ≤ min(n,d))
+  X \in \mathbb{R}^{n\timesd}   Data matrix (n samples, d features)
+  k              Number of components (1 \leq k \leq min(n,d))
   standardize    Boolean: whether to z-score normalize (default: False)
 
 PREPROCESSING:
-  1. Compute mean: μ = (1/n) Xᵀ 1  ∈ ℝ^d
-  2. Center data: X̃ = X - 1μᵀ
+  1. Compute mean: \mu = (1/n) X^T 1  \in \mathbb{R}^d
+  2. Center data: X = X - 1\mu^T
   3. If standardize:
-       σ = std(X̃, axis=0)        ∈ ℝ^d   (per-feature std)
-       X̃ = X̃ / σ                           (in-place normalize)
+       \sigma = std(X, axis=0)        \in \mathbb{R}^d   (per-feature std)
+       X = X / \sigma                           (in-place normalize)
      Else:
-       σ = 1  (no-op)
+       \sigma = 1  (no-op)
 
 CORE COMPUTATION (via thin SVD):
-  4. Compute thin SVD: X̃ = UΣVᵀ
-       U ∈ ℝ^{n×r},  Σ = diag(σ₁,...,σᵣ),  V ∈ ℝ^{d×r}
-       r = min(n, d),  σ₁ ≥ σ₂ ≥ ... ≥ σᵣ ≥ 0
+  4. Compute thin SVD: X = U\SigmaV^T
+       U \in \mathbb{R}^{n\timesr},  \Sigma = diag(\sigma_1,...,\sigma^r),  V \in \mathbb{R}^{d\timesr}
+       r = min(n, d),  \sigma_1 \geq \sigma_2 \geq ... \geq \sigma^r \geq 0
   5. Select top k columns:
-       Vₖ = V[:, :k] ∈ ℝ^{d×k}   (principal component directions)
-       Uₖ = U[:, :k] ∈ ℝ^{n×k}
-       sₖ = σ[:k]    ∈ ℝ^k
+       V_k = V[:, :k] \in \mathbb{R}^{d\timesk}   (principal component directions)
+       U_k = U[:, :k] \in \mathbb{R}^{n\timesk}
+       s_k = \sigma[:k]    \in \mathbb{R}^k
 
 OUTPUT COMPUTATION:
-  6. Scores (low-dim representation): Z = Uₖ · diag(sₖ) ∈ ℝ^{n×k}
-       Equivalently: Z = X̃ Vₖ
-  7. Explained variances: λᵢ = σᵢ² / (n-1)   for i = 1,...,k
-  8. Variance ratios: ρᵢ = λᵢ / Σⱼ λⱼ
-  9. Cumulative EVR: CEV(k) = Σᵢ₌₁ᵏ ρᵢ
+  6. Scores (low-dim representation): Z = U_k * diag(s_k) \in \mathbb{R}^{n\timesk}
+       Equivalently: Z = X V_k
+  7. Explained variances: \lambda^i = \sigma^i^2 / (n-1)   for i = 1,...,k
+  8. Variance ratios: \rho^i = \lambda^i / \Sigma_j \lambda_j
+  9. Cumulative EVR: CEV(k) = \Sigma^i_=_1^k \rho^i
 
 RECONSTRUCTION (optional):
-  10. X̂ = Z Vₖᵀ · diag(σ) + 1μᵀ    (undo standardization and centering)
-  11. Reconstruction error = Σᵢ₌ₖ₊₁ʳ σᵢ²
+  10. X = Z V_k^T * diag(\sigma) + 1\mu^T    (undo standardization and centering)
+  11. Reconstruction error = \Sigma^i_=_k_+_1^r \sigma^i^2
 
 NEW-SAMPLE PROJECTION:
-  Given x_new ∈ ℝ^d:
-  12. x̃_new = (x_new - μ) / σ        (use TRAINING μ, σ)
-  13. z_new = Vₖᵀ x̃_new ∈ ℝ^k
+  Given x_new \in \mathbb{R}^d:
+  12. x_new = (x_new - \mu) / \sigma        (use TRAINING \mu, \sigma)
+  13. z_new = V_k^T x_new \in \mathbb{R}^k
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### A.2 Time and Space Complexity
@@ -1356,7 +1356,7 @@ NEW-SAMPLE PROJECTION:
 
 - Data with $\kappa(\tilde{X}) = 10^4$: SVD of $\tilde{X}$ stable in double precision ($\epsilon \approx 10^{-16}$)
 - But covariance $C$ has $\kappa(C) = 10^8$: eigenvalue computation loses $8$ digits of precision
-- Near-zero eigenvalues of $C$ may become negative due to rounding — `np.linalg.eig` may return complex values
+- Near-zero eigenvalues of $C$ may become negative due to rounding - `np.linalg.eig` may return complex values
 
 **Regularization for ill-conditioned covariance.** Add a small diagonal:
 $$C_\epsilon = C + \epsilon I, \quad \epsilon = \delta \cdot \operatorname{tr}(C)/d$$
@@ -1384,36 +1384,36 @@ def pca_regularized(X, k, delta=1e-5):
 
 ```
 PCA DECISION FLOWCHART
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   START: I need to reduce dimensionality
-          │
-          ▼
+          |
+          v
   Is the relationship between variables LINEAR?
-  ├── YES → Standard PCA (§2-§4)
-  └── NO  → Is n manageable (< 50,000)?
-             ├── YES → Kernel PCA with RBF (§7)
-             └── NO  → Autoencoder or UMAP
+  +-- YES -> Standard PCA (2-4)
+  +-- NO  -> Is n manageable (< 50,000)?
+             +-- YES -> Kernel PCA with RBF (7)
+             +-- NO  -> Autoencoder or UMAP
 
   Chosen PCA. Should I STANDARDIZE?
-  ├── Features on same scale, units meaningful → Center only
-  └── Different scales or units → Standardize (z-score)
+  +-- Features on same scale, units meaningful -> Center only
+  +-- Different scales or units -> Standardize (z-score)
 
   How to choose k?
-  ├── Exploratory / visualization → Scree plot elbow + 90% EVR
-  ├── Preprocessing for classifier → Cross-validate downstream metric
-  ├── Compression → Set reconstruction error budget
-  └── Statistical test needed → Parallel analysis (Horn's method)
+  +-- Exploratory / visualization -> Scree plot elbow + 90% EVR
+  +-- Preprocessing for classifier -> Cross-validate downstream metric
+  +-- Compression -> Set reconstruction error budget
+  +-- Statistical test needed -> Parallel analysis (Horn's method)
 
   Large dataset? (n > 10,000 or d > 10,000)
-  ├── n >> d → Incremental PCA (mini-batch)
-  ├── k << min(n,d) → Randomized SVD
-  └── Data has outliers → Robust PCA first, then PCA on low-rank part
+  +-- n >> d -> Incremental PCA (mini-batch)
+  +-- k << min(n,d) -> Randomized SVD
+  +-- Data has outliers -> Robust PCA first, then PCA on low-rank part
 
   Need uncertainty / missing data handling?
-  └── YES → Probabilistic PCA (§6) with EM
+  +-- YES -> Probabilistic PCA (6) with EM
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1431,22 +1431,22 @@ PCA DECISION FLOWCHART
 | Reconstruction | $\hat{X} = ZV_k^\top + \bar{x}$ | `Z @ Vt[:k] + mean` |
 | Recon error | $\sum_{i>k}\sigma_i^2$ | `(s[k:]**2).sum()` |
 | PCA whitening | $Z_w = Z\Lambda_k^{-1/2}$ | `Z / np.sqrt(lambdas)` |
-| ZCA whitening | $Z_w = \tilde{X}V_k\Lambda_k^{-1/2}V_k^\top$ | See §5.2 |
-| Participation ratio | $(\sum\lambda_i)^2 / \sum\lambda_i^2$ | Custom (§9.2) |
-| Centered kernel | $\tilde{K} = K - \mathbf{1}_nK - K\mathbf{1}_n + \mathbf{1}_nK\mathbf{1}_n$ | See §7.3 |
-| PPCA noise | $\hat{\sigma}^2 = \sum_{i>k}\lambda_i/(d-k)$ | See §6.2 |
+| ZCA whitening | $Z_w = \tilde{X}V_k\Lambda_k^{-1/2}V_k^\top$ | See 5.2 |
+| Participation ratio | $(\sum\lambda_i)^2 / \sum\lambda_i^2$ | Custom (9.2) |
+| Centered kernel | $\tilde{K} = K - \mathbf{1}_nK - K\mathbf{1}_n + \mathbf{1}_nK\mathbf{1}_n$ | See 7.3 |
+| PPCA noise | $\hat{\sigma}^2 = \sum_{i>k}\lambda_i/(d-k)$ | See 6.2 |
 
 ---
 
 ---
 
-## Appendix D: Worked Example — Complete PCA from Scratch
+## Appendix D: Worked Example - Complete PCA from Scratch
 
 This section walks through a complete PCA computation on a small dataset, showing every intermediate result.
 
 ### D.1 Setup
 
-Consider a dataset of $n=5$ samples and $d=3$ features — temperature, humidity, and pressure readings from a weather station:
+Consider a dataset of $n=5$ samples and $d=3$ features - temperature, humidity, and pressure readings from a weather station:
 
 $$X = \begin{pmatrix}23 & 65 & 1013 \\ 27 & 72 & 1008 \\ 19 & 58 & 1020 \\ 25 & 68 & 1015 \\ 21 & 61 & 1018\end{pmatrix}$$
 
@@ -1455,7 +1455,7 @@ $$X = \begin{pmatrix}23 & 65 & 1013 \\ 27 & 72 & 1008 \\ 19 & 58 & 1020 \\ 25 & 
 Sample mean:
 $$\bar{\mathbf{x}} = (23, 65, 1013)^\top + \frac{1}{5}\begin{pmatrix}4\\7\\-5\\2\\-2\\-3\\3\\8\\2\\-2\end{pmatrix} \approx (23, 64.8, 1014.8)^\top$$
 
-After centering: $\tilde{X} = X - \mathbf{1}\bar{\mathbf{x}}^\top$. Note the scale difference — pressure values are ~1000× larger than temperature values. This illustrates why standardization is critical.
+After centering: $\tilde{X} = X - \mathbf{1}\bar{\mathbf{x}}^\top$. Note the scale difference - pressure values are ~1000\times larger than temperature values. This illustrates why standardization is critical.
 
 ### D.3 Step 2: Effect of Scale
 
@@ -1496,19 +1496,19 @@ print(np.round(C_std, 3))
 ```python
 U, s, Vt = np.linalg.svd(X_std, full_matrices=False)
 
-# Singular values → explained variance ratios
+# Singular values -> explained variance ratios
 var_ratio = s**2 / (s**2).sum()
 print("Explained variance ratios:", np.round(var_ratio, 4))
 # [0.9986, 0.0013, 0.0001]
-# → PC1 explains 99.86% of variance!
+# -> PC1 explains 99.86% of variance!
 
 print("PC1 direction:", np.round(Vt[0], 3))
-# [ 0.577  0.579 -0.577] ← equal weights on all three
+# [ 0.577  0.579 -0.577] <- equal weights on all three
 # Temperature and humidity load positively, pressure negatively
-# → PC1 is a "warm-humid-low-pressure" index
+# -> PC1 is a "warm-humid-low-pressure" index
 ```
 
-**Interpretation:** PC1 = $(0.577, 0.579, -0.577)^\top$ — a linear combination that increases with temperature and humidity and decreases with pressure. This is physically the "storm index." PC2 and PC3 explain only 0.14% of variance combined — essentially noise.
+**Interpretation:** PC1 = $(0.577, 0.579, -0.577)^\top$ - a linear combination that increases with temperature and humidity and decreases with pressure. This is physically the "storm index." PC2 and PC3 explain only 0.14% of variance combined - essentially noise.
 
 ### D.5 Step 4: Reconstruction
 
@@ -1520,7 +1520,7 @@ X_reconstructed = Z_k @ Vt[:k] + X_std.mean(axis=0)
 recon_error = np.linalg.norm(X_std - Z_k @ Vt[:k])**2
 print(f"Reconstruction error (k=1): {recon_error:.6f}")
 print(f"Expected (discarded variance): {(s[1:]**2).sum():.6f}")
-# Both ~0.0014 — matches Eckart-Young
+# Both ~0.0014 - matches Eckart-Young
 ```
 
 ---
@@ -1531,7 +1531,7 @@ print(f"Expected (discarded variance): {(s[1:]**2).sum():.6f}")
 
 If the data is Gaussian, $\mathbf{x}^{(i)} \sim \mathcal{N}(\boldsymbol{\mu}, \Sigma)$, then the sample covariance $C$ is the maximum likelihood estimator of $\Sigma$. PCA on $C$ finds the directions of greatest information concentration under the Gaussian assumption.
 
-Under this model, the PCA projection scores $Z = \tilde{X}V_k$ are also Gaussian: $Z_{:,i} \sim \mathcal{N}(0, \lambda_i)$. The optimal Bayesian compression of a Gaussian random vector to $k$ dimensions is exactly the PCA projection — PCA is the optimal linear encoder under squared loss and Gaussian data.
+Under this model, the PCA projection scores $Z = \tilde{X}V_k$ are also Gaussian: $Z_{:,i} \sim \mathcal{N}(0, \lambda_i)$. The optimal Bayesian compression of a Gaussian random vector to $k$ dimensions is exactly the PCA projection - PCA is the optimal linear encoder under squared loss and Gaussian data.
 
 **Non-Gaussian data.** For non-Gaussian distributions, PCA minimizes reconstruction error but may not capture the most "interesting" structure. Alternative approaches:
 - ICA: maximize statistical independence (not just decorrelation)
@@ -1541,9 +1541,9 @@ Under this model, the PCA projection scores $Z = \tilde{X}V_k$ are also Gaussian
 
 ### E.2 Information-Geometric View
 
-The set of all $d \times d$ positive definite matrices forms a Riemannian manifold $(\mathbb{S}^d_{++}, g)$ with the Fisher information metric. The MLE $C$ is the Fréchet mean on this manifold.
+The set of all $d \times d$ positive definite matrices forms a Riemannian manifold $(\mathbb{S}^d_{++}, g)$ with the Fisher information metric. The MLE $C$ is the Frechet mean on this manifold.
 
-The PCA truncation $C \to V_k\Lambda_k V_k^\top + \hat{\sigma}^2(I - V_kV_k^\top)$ (the PPCA approximation) is the projection of $C$ onto the set of matrices with at most $k$ large eigenvalues — the PPCA manifold. This gives information-geometric meaning to choosing $k$: it is the number of "directions" the data needs to distinguish itself from noise.
+The PCA truncation $C \to V_k\Lambda_k V_k^\top + \hat{\sigma}^2(I - V_kV_k^\top)$ (the PPCA approximation) is the projection of $C$ onto the set of matrices with at most $k$ large eigenvalues - the PPCA manifold. This gives information-geometric meaning to choosing $k$: it is the number of "directions" the data needs to distinguish itself from noise.
 
 ### E.3 PCA as a Linear Autoencoder
 
@@ -1554,7 +1554,7 @@ A linear autoencoder with bottleneck dimension $k$ consists of:
 
 **Theorem.** The global minimum of the linear autoencoder loss is achieved when $\operatorname{col}(W_d) = \operatorname{span}\{\mathbf{v}_1, \ldots, \mathbf{v}_k\}$ (the PCA subspace). The optimal reconstruction equals the PCA reconstruction.
 
-**Important caveat:** The optimal $W_e$ and $W_d$ need not equal $V_k^\top$ and $V_k$ individually — any rotation $R$ works: $W_d = V_k R$, $W_e = R^\top V_k^\top$. The autoencoder can discover any orthogonal basis for the PCA subspace — it is unique as a subspace, not as specific directions.
+**Important caveat:** The optimal $W_e$ and $W_d$ need not equal $V_k^\top$ and $V_k$ individually - any rotation $R$ works: $W_d = V_k R$, $W_e = R^\top V_k^\top$. The autoencoder can discover any orthogonal basis for the PCA subspace - it is unique as a subspace, not as specific directions.
 
 **Contrast with non-linear autoencoders:** A neural autoencoder with non-linear activations can learn non-linear manifolds, capturing curvature that linear PCA misses. But for linear data, the two are equivalent, and the non-linear version is strictly harder to optimize.
 
@@ -1574,7 +1574,7 @@ pca = PCA(n_components=0.95)    # keep 95% variance
 pca.fit(X_train)
 Z_train = pca.transform(X_train)
 Z_test = pca.transform(X_test)  # uses training mean/components
-print(f"Shape: {X_train.shape} → {Z_train.shape}")
+print(f"Shape: {X_train.shape} -> {Z_train.shape}")
 print(f"Components: {pca.n_components_}")
 print(f"Explained var: {pca.explained_variance_ratio_.cumsum()[-1]:.3f}")
 
@@ -1610,9 +1610,9 @@ import scipy.linalg as la
 # Full SVD
 U, s, Vt = np.linalg.svd(X_c, full_matrices=False)
 
-# Symmetric eigendecomposition (for SPD matrices — better than eig)
+# Symmetric eigendecomposition (for SPD matrices - better than eig)
 lambdas, Q = np.linalg.eigh(C)    # returns ascending order
-lambdas = lambdas[::-1]; Q = Q[:, ::-1]  # → descending
+lambdas = lambdas[::-1]; Q = Q[:, ::-1]  # -> descending
 
 # Truncated SVD via ARPACK (for sparse matrices, large k)
 from scipy.sparse.linalg import svds
@@ -1656,7 +1656,7 @@ where $\Lambda \in \mathbb{R}^{d \times k}$ is the loading matrix, $\mathbf{f}$ 
 
 The observed covariance is: $\Sigma = \Lambda\Lambda^\top + \Psi$
 
-**Key difference from PPCA:** In PPCA, $\Psi = \sigma^2 I$ (isotropic noise — same noise in every direction). In FA, $\Psi$ is diagonal but arbitrary — each feature has its own noise level. This makes FA more flexible but harder to fit (requires EM or iterative estimation).
+**Key difference from PPCA:** In PPCA, $\Psi = \sigma^2 I$ (isotropic noise - same noise in every direction). In FA, $\Psi$ is diagonal but arbitrary - each feature has its own noise level. This makes FA more flexible but harder to fit (requires EM or iterative estimation).
 
 ### G.2 Comparison Table
 
@@ -1700,24 +1700,24 @@ In 2D, the data cloud is an ellipse. The two principal components are the major 
 
 ```
 2D DATA ELLIPSE AND PRINCIPAL COMPONENTS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-          x₂
-          │       . . .
-          │    .         .           v₁ = major axis = PC1
-          │  .      ↗     .          λ₁ = half-length² (variance)
-          │ .    v₁       .
-          │.  ↑v₂          .         v₂ = minor axis = PC2
-          │ .              .          λ₂ = half-length² (variance)
-          │  .            .
-          │    .         .
-          │       . . .
-          └──────────────────── x₁
+          x_2
+          |       . . .
+          |    .         .           v_1 = major axis = PC1
+          |  .      up-right     .          \lambda_1 = half-length^2 (variance)
+          | .    v_1       .
+          |.  upv_2          .         v_2 = minor axis = PC2
+          | .              .          \lambda_2 = half-length^2 (variance)
+          |  .            .
+          |    .         .
+          |       . . .
+          +-------------------- x_1
 
-  PC1 direction: angle θ where tan(2θ) = 2C₁₂/(C₁₁ - C₂₂)
-  (from characteristic polynomial of 2×2 covariance)
+  PC1 direction: angle \theta where tan(2\theta) = 2C_1_2/(C_1_1 - C_2_2)
+  (from characteristic polynomial of 2\times2 covariance)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 For 2D Gaussian data with covariance $C = \begin{pmatrix}a & b \\ b & c\end{pmatrix}$:
@@ -1746,11 +1746,11 @@ $$p(\lambda) = \frac{\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)}}{2\pi\gam
 
 where $\lambda_\pm = (1 \pm \sqrt{\gamma})^2$.
 
-**Critical implication:** When eigenvalues from PCA fall within the Marchenko-Pastur bulk $[\lambda_-, \lambda_+]$, they correspond to pure noise — keeping these components adds noise, not signal. Only eigenvalues **above** $\lambda_+$ are genuine signal components.
+**Critical implication:** When eigenvalues from PCA fall within the Marchenko-Pastur bulk $[\lambda_-, \lambda_+]$, they correspond to pure noise - keeping these components adds noise, not signal. Only eigenvalues **above** $\lambda_+$ are genuine signal components.
 
 This provides a rigorous threshold for component selection:
 - Parallel analysis (Horn's method) approximates this empirically
-- For standardized data with $n = 500$, $d = 100$ ($\gamma = 0.2$): $\lambda_+ = (1+\sqrt{0.2})^2 \approx 1.99$ — keep only PCs with $\lambda > 1.99$, not just $\lambda > 1$ (Kaiser criterion is too lenient here)
+- For standardized data with $n = 500$, $d = 100$ ($\gamma = 0.2$): $\lambda_+ = (1+\sqrt{0.2})^2 \approx 1.99$ - keep only PCs with $\lambda > 1.99$, not just $\lambda > 1$ (Kaiser criterion is too lenient here)
 
 ---
 
@@ -1787,26 +1787,26 @@ Before moving to the next section, verify you can answer these questions:
 
 ## Appendix J: PCA and the Four Fundamental Subspaces
 
-The connection between PCA and the four fundamental subspaces (see [§02-Linear-Algebra-Basics §05](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md)) is illuminating.
+The connection between PCA and the four fundamental subspaces (see [02-Linear-Algebra-Basics 05](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md)) is illuminating.
 
 For the centered data matrix $\tilde{X} \in \mathbb{R}^{n \times d}$ with rank $r = \min(n,d)$ (assuming generic position):
 
 | Subspace | For $\tilde{X}$ | PCA interpretation |
 |---|---|---|
 | Column space $\mathcal{C}(\tilde{X})$ | Span of columns $= $ span of $U$ | Space of all possible score vectors |
-| Row space $\mathcal{C}(\tilde{X}^\top)$ | Span of rows $=$ span of $V$ | The PCA subspace — span of principal components |
-| Null space $\mathcal{N}(\tilde{X})$ | Vectors $\mathbf{v}$ with $\tilde{X}\mathbf{v}=\mathbf{0}$ | Discarded directions — zero-variance PCs |
+| Row space $\mathcal{C}(\tilde{X}^\top)$ | Span of rows $=$ span of $V$ | The PCA subspace - span of principal components |
+| Null space $\mathcal{N}(\tilde{X})$ | Vectors $\mathbf{v}$ with $\tilde{X}\mathbf{v}=\mathbf{0}$ | Discarded directions - zero-variance PCs |
 | Left null space $\mathcal{N}(\tilde{X}^\top)$ | Vectors $\mathbf{u}$ with $\tilde{X}^\top\mathbf{u}=\mathbf{0}$ | Directions in sample space with no data |
 
 **PCA projection in subspace language:**
 - The PCA encoder $\mathbf{x} \mapsto V_k^\top\mathbf{x}$ is an orthogonal projection onto the row space of $\tilde{X}$
 - The discarded components $\{\mathbf{v}_{k+1},\ldots,\mathbf{v}_d\}$ span the part of the row space that is "noisy" or irrelevant
-- If $n < d$, then $\tilde{X}$ has a null space of dimension $d - r$ — these directions have zero variance and are automatically discarded
+- If $n < d$, then $\tilde{X}$ has a null space of dimension $d - r$ - these directions have zero variance and are automatically discarded
 
 **Dimension counting:**
 $$d = k_{\text{signal}} + k_{\text{noise}} + \dim\mathcal{N}(\tilde{X})$$
 
-For $n > d$ (more samples than features): $\dim\mathcal{N}(\tilde{X}) = 0$, all variance is captured. For $n < d$: $\dim\mathcal{N}(\tilde{X}) = d - n$ — the data cannot fill the feature space, and PCA automatically collapses those directions.
+For $n > d$ (more samples than features): $\dim\mathcal{N}(\tilde{X}) = 0$, all variance is captured. For $n < d$: $\dim\mathcal{N}(\tilde{X}) = d - n$ - the data cannot fill the feature space, and PCA automatically collapses those directions.
 
 ---
 
@@ -1814,43 +1814,43 @@ For $n > d$ (more samples than features): $\dim\mathcal{N}(\tilde{X}) = 0$, all 
 
 ### Primary References
 
-1. **Pearson, K. (1901).** "On Lines and Planes of Closest Fit to Systems of Points in Space." *Philosophical Magazine*, 2(11), 559–572. — The original PCA paper.
+1. **Pearson, K. (1901).** "On Lines and Planes of Closest Fit to Systems of Points in Space." *Philosophical Magazine*, 2(11), 559-572. - The original PCA paper.
 
-2. **Hotelling, H. (1933).** "Analysis of a Complex of Statistical Variables into Principal Components." *Journal of Educational Psychology*, 24(6), 417–441. — Named "principal components" and gave the Lagrange-multiplier derivation.
+2. **Hotelling, H. (1933).** "Analysis of a Complex of Statistical Variables into Principal Components." *Journal of Educational Psychology*, 24(6), 417-441. - Named "principal components" and gave the Lagrange-multiplier derivation.
 
-3. **Tipping, M.E. & Bishop, C.M. (1999).** "Probabilistic Principal Component Analysis." *Journal of the Royal Statistical Society B*, 61(3), 611–622. — PPCA: the generative model and MLE.
+3. **Tipping, M.E. & Bishop, C.M. (1999).** "Probabilistic Principal Component Analysis." *Journal of the Royal Statistical Society B*, 61(3), 611-622. - PPCA: the generative model and MLE.
 
-4. **Schölkopf, B., Smola, A., & Müller, K.-R. (1998).** "Nonlinear Component Analysis as a Kernel Eigenvalue Problem." *Neural Computation*, 10(5), 1299–1319. — Kernel PCA.
+4. **Scholkopf, B., Smola, A., & Muller, K.-R. (1998).** "Nonlinear Component Analysis as a Kernel Eigenvalue Problem." *Neural Computation*, 10(5), 1299-1319. - Kernel PCA.
 
-5. **Candès, E.J., Li, X., Ma, Y., & Wright, J. (2011).** "Robust Principal Component Analysis?" *Journal of the ACM*, 58(3), 1–37. — Robust PCA via nuclear norm minimization.
+5. **Candes, E.J., Li, X., Ma, Y., & Wright, J. (2011).** "Robust Principal Component Analysis?" *Journal of the ACM*, 58(3), 1-37. - Robust PCA via nuclear norm minimization.
 
-6. **Halko, N., Martinsson, P.-G., & Tropp, J.A. (2011).** "Finding Structure with Randomness: Probabilistic Algorithms for Constructing Approximate Matrix Decompositions." *SIAM Review*, 53(2), 217–288. — Randomized SVD.
+6. **Halko, N., Martinsson, P.-G., & Tropp, J.A. (2011).** "Finding Structure with Randomness: Probabilistic Algorithms for Constructing Approximate Matrix Decompositions." *SIAM Review*, 53(2), 217-288. - Randomized SVD.
 
 ### AI/ML Applications
 
-7. **Hu, E.J. et al. (2021).** "LoRA: Low-Rank Adaptation of Large Language Models." *ICLR 2022*. — The LoRA paper; low-rank hypothesis.
+7. **Hu, E.J. et al. (2021).** "LoRA: Low-Rank Adaptation of Large Language Models." *ICLR 2022*. - The LoRA paper; low-rank hypothesis.
 
-8. **Li, H. et al. (2018).** "Visualizing the Loss Landscape of Neural Nets." *NeurIPS 2018*. — PCA of gradient trajectories for loss landscape visualization.
+8. **Li, H. et al. (2018).** "Visualizing the Loss Landscape of Neural Nets." *NeurIPS 2018*. - PCA of gradient trajectories for loss landscape visualization.
 
-9. **Aghajanyan, A. et al. (2020).** "Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning." *ACL 2021*. — Measuring intrinsic dimensionality of fine-tuning.
+9. **Aghajanyan, A. et al. (2020).** "Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning." *ACL 2021*. - Measuring intrinsic dimensionality of fine-tuning.
 
-10. **Elhage, N. et al. (2022).** "Toy Models of Superposition." *Anthropic Research*. — PCA and sparse representations in transformer models.
+10. **Elhage, N. et al. (2022).** "Toy Models of Superposition." *Anthropic Research*. - PCA and sparse representations in transformer models.
 
 ### Textbooks
 
-11. **Jolliffe, I.T. (2002).** *Principal Component Analysis* (2nd ed.). Springer. — The definitive reference.
+11. **Jolliffe, I.T. (2002).** *Principal Component Analysis* (2nd ed.). Springer. - The definitive reference.
 
-12. **Bishop, C.M. (2006).** *Pattern Recognition and Machine Learning*. Springer. — Chapter 12: PPCA, mixtures, probabilistic view.
+12. **Bishop, C.M. (2006).** *Pattern Recognition and Machine Learning*. Springer. - Chapter 12: PPCA, mixtures, probabilistic view.
 
-13. **Murphy, K.P. (2022).** *Probabilistic Machine Learning: An Introduction*. MIT Press. — Chapter 20: low-rank models, PCA, factor analysis.
+13. **Murphy, K.P. (2022).** *Probabilistic Machine Learning: An Introduction*. MIT Press. - Chapter 20: low-rank models, PCA, factor analysis.
 
-14. **Hastie, T., Tibshirani, R., & Friedman, J. (2009).** *The Elements of Statistical Learning* (2nd ed.). Springer. — Chapter 14: unsupervised learning, PCA, kernel PCA.
-
----
+14. **Hastie, T., Tibshirani, R., & Friedman, J. (2009).** *The Elements of Statistical Learning* (2nd ed.). Springer. - Chapter 14: unsupervised learning, PCA, kernel PCA.
 
 ---
 
-## Appendix L: PCA in Practice — Common Workflows
+---
+
+## Appendix L: PCA in Practice - Common Workflows
 
 ### L.1 Preprocessing Pipeline for Supervised Learning
 
@@ -1861,7 +1861,7 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 
-# Full pipeline: scale → PCA → classifier
+# Full pipeline: scale -> PCA -> classifier
 pipe = Pipeline([
     ('scaler', StandardScaler()),
     ('pca', PCA()),
@@ -1898,7 +1898,7 @@ pca = PCA(n_components=50, random_state=42)
 X_pca50 = pca.fit_transform(StandardScaler().fit_transform(X))
 print(f"50-dim PCA captures {pca.explained_variance_ratio_.sum():.1%} variance")
 
-# Step 2: t-SNE on PCA output (not raw data — faster, more stable)
+# Step 2: t-SNE on PCA output (not raw data - faster, more stable)
 tsne = TSNE(n_components=2, perplexity=30, random_state=42, n_iter=1000)
 X_2d = tsne.fit_transform(X_pca50)
 
@@ -1966,7 +1966,7 @@ PCA scores can detect dataset drift between training and production:
 def check_distribution_shift(X_train, X_prod, k=10, alpha=0.05):
     """
     Check if production data has drifted from training distribution.
-    Uses Hotelling's T² test on PCA scores.
+    Uses Hotelling's T^2 test on PCA scores.
     """
     from scipy import stats
 
@@ -1993,40 +1993,40 @@ def check_distribution_shift(X_train, X_prod, k=10, alpha=0.05):
     return drifted
 ```
 
-**For AI:** Production monitoring of LLM inputs and outputs often uses PCA of embeddings. If the PCA score distribution of production inputs drifts from training, it signals distribution shift — triggering retraining or alerts.
+**For AI:** Production monitoring of LLM inputs and outputs often uses PCA of embeddings. If the PCA score distribution of production inputs drifts from training, it signals distribution shift - triggering retraining or alerts.
 
 ### L.5 Summary of Key Implementation Choices
 
 ```
 IMPLEMENTATION DECISION TREE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Dataset size?
-  ┌─── Small (n,d < 10k) ───────────────────────────────────────────┐
-  │  np.linalg.svd(X_c, full_matrices=False)  → exact, fast        │
-  └─────────────────────────────────────────────────────────────────┘
-  ┌─── Large, small k ──────────────────────────────────────────────┐
-  │  sklearn.utils.extmath.randomized_svd(k, n_iter=5)             │
-  │  → ~10x faster than full SVD                                   │
-  └─────────────────────────────────────────────────────────────────┘
-  ┌─── Streaming / memory-constrained ──────────────────────────────┐
-  │  sklearn.decomposition.IncrementalPCA(batch_size=B)             │
-  │  → processes data in batches of size B                         │
-  └─────────────────────────────────────────────────────────────────┘
-  ┌─── Sparse data ─────────────────────────────────────────────────┐
-  │  scipy.sparse.linalg.svds(X_sparse, k=k)                       │
-  │  → never forms dense matrices                                  │
-  └─────────────────────────────────────────────────────────────────┘
-  ┌─── GPU / large-scale ───────────────────────────────────────────┐
-  │  torch.svd_lowrank(X_tensor, q=k, niter=4)                     │
-  │  → GPU-accelerated randomized SVD                              │
-  └─────────────────────────────────────────────────────────────────┘
-  ┌─── Outliers present ────────────────────────────────────────────┐
-  │  sklearn.decomposition.MiniBatchSparsePCA or Robust PCA        │
-  │  → decompose X = L + S first, then PCA on L                   │
-  └─────────────────────────────────────────────────────────────────┘
+  +--- Small (n,d < 10k) -------------------------------------------+
+  |  np.linalg.svd(X_c, full_matrices=False)  -> exact, fast        |
+  +-----------------------------------------------------------------+
+  +--- Large, small k ----------------------------------------------+
+  |  sklearn.utils.extmath.randomized_svd(k, n_iter=5)             |
+  |  -> ~10x faster than full SVD                                   |
+  +-----------------------------------------------------------------+
+  +--- Streaming / memory-constrained ------------------------------+
+  |  sklearn.decomposition.IncrementalPCA(batch_size=B)             |
+  |  -> processes data in batches of size B                         |
+  +-----------------------------------------------------------------+
+  +--- Sparse data -------------------------------------------------+
+  |  scipy.sparse.linalg.svds(X_sparse, k=k)                       |
+  |  -> never forms dense matrices                                  |
+  +-----------------------------------------------------------------+
+  +--- GPU / large-scale -------------------------------------------+
+  |  torch.svd_lowrank(X_tensor, q=k, niter=4)                     |
+  |  -> GPU-accelerated randomized SVD                              |
+  +-----------------------------------------------------------------+
+  +--- Outliers present --------------------------------------------+
+  |  sklearn.decomposition.MiniBatchSparsePCA or Robust PCA        |
+  |  -> decompose X = L + S first, then PCA on L                   |
+  +-----------------------------------------------------------------+
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---

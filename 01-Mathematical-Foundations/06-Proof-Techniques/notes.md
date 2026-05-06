@@ -1,16 +1,16 @@
-[← Previous: 05-Einstein-Summation-and-Index-Notation](../05-Einstein-Summation-and-Index-Notation/notes.md) | [Home](../../README.md)
+[<- Previous: 05-Einstein-Summation-and-Index-Notation](../05-Einstein-Summation-and-Index-Notation/notes.md) | [Home](../../README.md)
 
 ---
 
 # Proof Techniques
 
-> _"A proof is a finite sequence of logical steps that establishes a truth beyond any possible doubt. Unlike experiments, which can always be overturned by a new observation, a mathematical proof is eternal — valid for all cases, for all time."_
+> _"A proof is a finite sequence of logical steps that establishes a truth beyond any possible doubt. Unlike experiments, which can always be overturned by a new observation, a mathematical proof is eternal - valid for all cases, for all time."_
 
 ## Overview
 
-A proof technique is a general strategy for establishing that a mathematical statement is true — not probably true, not true in every case we checked, but **necessarily** true as a consequence of axioms, definitions, and previously established results. Proof techniques are the algorithms of mathematical reasoning: given a goal, which technique do you apply? Given a structure, which argument do you use?
+A proof technique is a general strategy for establishing that a mathematical statement is true - not probably true, not true in every case we checked, but **necessarily** true as a consequence of axioms, definitions, and previously established results. Proof techniques are the algorithms of mathematical reasoning: given a goal, which technique do you apply? Given a structure, which argument do you use?
 
-For AI practitioners, proof techniques are not optional academic exercises. Every convergence theorem for gradient descent, every generalisation bound in PAC learning, every correctness argument for attention mechanisms, every hardness result in complexity theory — all rest on specific proof strategies. Without fluency in these strategies, theoretical machine learning papers are inaccessible, and the foundations of why models work (or fail) remain opaque.
+For AI practitioners, proof techniques are not optional academic exercises. Every convergence theorem for gradient descent, every generalisation bound in PAC learning, every correctness argument for attention mechanisms, every hardness result in complexity theory - all rest on specific proof strategies. Without fluency in these strategies, theoretical machine learning papers are inaccessible, and the foundations of why models work (or fail) remain opaque.
 
 This chapter covers the complete landscape of proof techniques, from elementary direct proofs through probabilistic existence arguments and analytic convergence proofs, with emphasis on the patterns that recur throughout ML theory.
 
@@ -38,7 +38,7 @@ After completing this section, you will:
 - Master mathematical induction (ordinary, strong, and structural)
 - Understand and apply the probabilistic method for existence proofs
 - Use counting arguments, pigeonhole principle, and double counting
-- Write ε-δ proofs for limits, continuity, and convergence
+- Write \epsilon-\delta proofs for limits, continuity, and convergence
 - Recognise and apply standard ML proof patterns: union bound, concentration inequalities, PAC learning, reduction proofs
 - Identify common proof errors and evaluate the validity of AI-generated proofs
 - Read and understand proofs in theoretical ML papers
@@ -63,80 +63,80 @@ After completing this section, you will:
   - [2. Direct Proof](#2-direct-proof)
     - [2.1 The Strategy](#21-the-strategy)
     - [2.2 Template](#22-template)
-    - [2.3 Worked Example — Even Times Even Is Even](#23-worked-example--even-times-even-is-even)
-    - [2.4 Worked Example — If n² Is Even Then n Is Even](#24-worked-example--if-n²-is-even-then-n-is-even)
-    - [2.5 Worked Example — Sum of Continuous Functions](#25-worked-example--sum-of-continuous-functions)
+    - [2.3 Worked Example - Even Times Even Is Even](#23-worked-example--even-times-even-is-even)
+    - [2.4 Worked Example - If n^2 Is Even Then n Is Even](#24-worked-example--if-n^2-is-even-then-n-is-even)
+    - [2.5 Worked Example - Sum of Continuous Functions](#25-worked-example--sum-of-continuous-functions)
     - [2.6 Direct Proof in AI Contexts](#26-direct-proof-in-ai-contexts)
   - [3. Proof by Construction](#3-proof-by-construction)
     - [3.1 The Strategy](#31-the-strategy)
     - [3.2 Template](#32-template)
-    - [3.3 Worked Example — Prime Between n and 2n](#33-worked-example--prime-between-n-and-2n)
-    - [3.4 Worked Example — Constructing a Bijection](#34-worked-example--constructing-a-bijection)
-    - [3.5 Worked Example — Neural Network Approximation](#35-worked-example--neural-network-approximation)
+    - [3.3 Worked Example - Prime Between n and 2n](#33-worked-example--prime-between-n-and-2n)
+    - [3.4 Worked Example - Constructing a Bijection](#34-worked-example--constructing-a-bijection)
+    - [3.5 Worked Example - Neural Network Approximation](#35-worked-example--neural-network-approximation)
     - [3.6 Constructive vs Non-Constructive](#36-constructive-vs-non-constructive)
   - [4. Proof by Contrapositive](#4-proof-by-contrapositive)
     - [4.1 The Strategy](#41-the-strategy)
     - [4.2 Template](#42-template)
-    - [4.3 Worked Example — If n² Is Even Then n Is Even](#43-worked-example--if-n²-is-even-then-n-is-even)
-    - [4.4 Worked Example — Irrational Product](#44-worked-example--irrational-product)
+    - [4.3 Worked Example - If n^2 Is Even Then n Is Even](#43-worked-example--if-n^2-is-even-then-n-is-even)
+    - [4.4 Worked Example - Irrational Product](#44-worked-example--irrational-product)
     - [4.5 Contrapositive in AI Contexts](#45-contrapositive-in-ai-contexts)
     - [4.6 Recognising When to Use Contrapositive](#46-recognising-when-to-use-contrapositive)
   - [5. Proof by Contradiction](#5-proof-by-contradiction)
     - [5.1 The Strategy](#51-the-strategy)
     - [5.2 Template](#52-template)
-    - [5.3 Worked Example — √2 Is Irrational](#53-worked-example--2-is-irrational)
-    - [5.4 Worked Example — Infinitely Many Primes](#54-worked-example--infinitely-many-primes)
-    - [5.5 Worked Example — No Largest Real Number](#55-worked-example--no-largest-real-number)
+    - [5.3 Worked Example - \sqrt2 Is Irrational](#53-worked-example--2-is-irrational)
+    - [5.4 Worked Example - Infinitely Many Primes](#54-worked-example--infinitely-many-primes)
+    - [5.5 Worked Example - No Largest Real Number](#55-worked-example--no-largest-real-number)
     - [5.6 Non-Constructive Existence via Contradiction](#56-non-constructive-existence-via-contradiction)
     - [5.7 Contradiction vs Contrapositive](#57-contradiction-vs-contrapositive)
     - [5.8 Contradiction in AI Contexts](#58-contradiction-in-ai-contexts)
   - [6. Proof by Cases](#6-proof-by-cases)
     - [6.1 The Strategy](#61-the-strategy)
     - [6.2 Template](#62-template)
-    - [6.3 Worked Example — |xy| = |x||y|](#63-worked-example--xy--xy)
-    - [6.4 Worked Example — ReLU Gradient](#64-worked-example--relu-gradient)
-    - [6.5 Worked Example — Parity Argument](#65-worked-example--parity-argument)
+    - [6.3 Worked Example - |xy| = |x||y|](#63-worked-example--xy--xy)
+    - [6.4 Worked Example - ReLU Gradient](#64-worked-example--relu-gradient)
+    - [6.5 Worked Example - Parity Argument](#65-worked-example--parity-argument)
     - [6.6 Proof by Exhaustion](#66-proof-by-exhaustion)
     - [6.7 Case Analysis in AI](#67-case-analysis-in-ai)
   - [7. Mathematical Induction](#7-mathematical-induction)
     - [7.1 The Strategy](#71-the-strategy)
     - [7.2 Why Induction Works](#72-why-induction-works)
     - [7.3 Template](#73-template)
-    - [7.4 Worked Example — Sum Formula](#74-worked-example--sum-formula)
-    - [7.5 Worked Example — Geometric Series](#75-worked-example--geometric-series)
-    - [7.6 Worked Example — Power of 2 Bound](#76-worked-example--power-of-2-bound)
+    - [7.4 Worked Example - Sum Formula](#74-worked-example--sum-formula)
+    - [7.5 Worked Example - Geometric Series](#75-worked-example--geometric-series)
+    - [7.6 Worked Example - Power of 2 Bound](#76-worked-example--power-of-2-bound)
     - [7.7 Common Mistakes in Induction](#77-common-mistakes-in-induction)
   - [8. Strong Induction](#8-strong-induction)
     - [8.1 The Strategy](#81-the-strategy)
     - [8.2 Template](#82-template)
-    - [8.3 Worked Example — Prime Factorisation](#83-worked-example--prime-factorisation)
-    - [8.4 Worked Example — Fibonacci Bound](#84-worked-example--fibonacci-bound)
+    - [8.3 Worked Example - Prime Factorisation](#83-worked-example--prime-factorisation)
+    - [8.4 Worked Example - Fibonacci Bound](#84-worked-example--fibonacci-bound)
     - [8.5 Strong Induction in AI Analysis](#85-strong-induction-in-ai-analysis)
   - [9. Structural Induction](#9-structural-induction)
     - [9.1 The Strategy](#91-the-strategy)
     - [9.2 Common Structures](#92-common-structures)
-    - [9.3 Worked Example — Tree Node Count](#93-worked-example--tree-node-count)
-    - [9.4 Worked Example — Formula Length](#94-worked-example--formula-length)
+    - [9.3 Worked Example - Tree Node Count](#93-worked-example--tree-node-count)
+    - [9.4 Worked Example - Formula Length](#94-worked-example--formula-length)
     - [9.5 Structural Induction in AI](#95-structural-induction-in-ai)
   - [10. The Probabilistic Method](#10-the-probabilistic-method)
     - [10.1 The Strategy](#101-the-strategy)
     - [10.2 Template](#102-template)
-    - [10.3 Worked Example — Tournament](#103-worked-example--tournament)
-    - [10.4 Worked Example — Bipartite Subgraph](#104-worked-example--bipartite-subgraph)
-    - [10.5 Lovász Local Lemma](#105-lovász-local-lemma)
+    - [10.3 Worked Example - Tournament](#103-worked-example--tournament)
+    - [10.4 Worked Example - Bipartite Subgraph](#104-worked-example--bipartite-subgraph)
+    - [10.5 Lovasz Local Lemma](#105-lovasz-local-lemma)
     - [10.6 Expectation Argument](#106-expectation-argument)
     - [10.7 Probabilistic Method in AI](#107-probabilistic-method-in-ai)
   - [11. Counting Arguments](#11-counting-arguments)
     - [11.1 Double Counting](#111-double-counting)
-    - [11.2 Worked Example — Sum of Degrees](#112-worked-example--sum-of-degrees)
-    - [11.3 Worked Example — Vandermonde Identity](#113-worked-example--vandermonde-identity)
+    - [11.2 Worked Example - Sum of Degrees](#112-worked-example--sum-of-degrees)
+    - [11.3 Worked Example - Vandermonde Identity](#113-worked-example--vandermonde-identity)
     - [11.4 Bijection Arguments](#114-bijection-arguments)
     - [11.5 Pigeonhole Principle](#115-pigeonhole-principle)
     - [11.6 Inclusion-Exclusion](#116-inclusion-exclusion)
   - [12. Epsilon-Delta and Analytic Arguments](#12-epsilon-delta-and-analytic-arguments)
-    - [12.1 The ε-δ Framework](#121-the-ε-δ-framework)
+    - [12.1 The \epsilon-\delta Framework](#121-the-\epsilon-\delta-framework)
     - [12.2 Template for Continuity Proof](#122-template-for-continuity-proof)
-    - [12.3 Worked Example — Continuity of x²](#123-worked-example--continuity-of-x²)
+    - [12.3 Worked Example - Continuity of x^2](#123-worked-example--continuity-of-x^2)
     - [12.4 Sequence Convergence](#124-sequence-convergence)
     - [12.5 Gradient Descent Convergence](#125-gradient-descent-convergence)
     - [12.6 Compactness Arguments](#126-compactness-arguments)
@@ -160,7 +160,7 @@ After completing this section, you will:
 
 ### 1.1 What Are Proof Techniques?
 
-A proof technique is a general strategy for establishing that a mathematical statement is true beyond any possible doubt. Unlike empirical evidence (which can always be overturned by a new counterexample) or intuition (which is frequently wrong), a mathematical proof is an **absolute guarantee** — valid for all cases, for all time.
+A proof technique is a general strategy for establishing that a mathematical statement is true beyond any possible doubt. Unlike empirical evidence (which can always be overturned by a new counterexample) or intuition (which is frequently wrong), a mathematical proof is an **absolute guarantee** - valid for all cases, for all time.
 
 Proof techniques are the **algorithms of mathematical reasoning**: given a goal, which technique do you apply? Given a structure, which argument do you use? Mastering proof techniques means mastering the ability to move from "I believe this is true" to "I can **prove** this is true and explain exactly why."
 
@@ -170,7 +170,7 @@ For AI: proofs establish correctness of algorithms, validity of bounds, converge
 
 | AI Domain | Proof Technique Required | Example |
 |-----------|-------------------------|---------|
-| **Convergence proofs** | Telescoping, induction, ε-δ | Proving gradient descent converges to a stationary point |
+| **Convergence proofs** | Telescoping, induction, \epsilon-\delta | Proving gradient descent converges to a stationary point |
 | **Generalisation bounds** | Probabilistic method, union bound | PAC learning, VC dimension, Rademacher complexity |
 | **Algorithm correctness** | Direct proof, induction | Proving BPE terminates; proving softmax is well-defined |
 | **Complexity theory** | Reduction proofs, contradiction | Showing neural network verification is NP-hard |
@@ -180,41 +180,41 @@ For AI: proofs establish correctness of algorithms, validity of bounds, converge
 ### 1.3 The Landscape of Proof Techniques
 
 ```
-╔══════════════════════════════════════════════════════════════╗
-║                    PROOF TECHNIQUES                          ║
-╠══════════════════════════════════════════════════════════════╣
-║                                                              ║
-║  Direct Methods                                              ║
-║  ├── Direct proof (assume P; derive Q)                       ║
-║  ├── Proof by construction (exhibit the object)              ║
-║  └── Proof by exhaustion (check all cases)                   ║
-║                                                              ║
-║  Indirect Methods                                            ║
-║  ├── Contrapositive (prove ¬Q → ¬P instead of P → Q)        ║
-║  ├── Contradiction (assume ¬P; derive ⊥)                    ║
-║  └── Proof by cases (partition; prove each)                  ║
-║                                                              ║
-║  Inductive Methods                                           ║
-║  ├── Mathematical induction (base + step)                    ║
-║  ├── Strong induction (use all previous cases)               ║
-║  └── Structural induction (induct on recursive structure)    ║
-║                                                              ║
-║  Probabilistic Methods                                       ║
-║  ├── Probabilistic method (show Pr[property] > 0)            ║
-║  ├── Expectation argument (E[X] implies existence)           ║
-║  └── Lovász Local Lemma (avoid rare bad events)              ║
-║                                                              ║
-║  Algebraic Methods                                           ║
-║  ├── Counting arguments (double counting; bijection)         ║
-║  ├── Pigeonhole principle (n+1 items in n bins)              ║
-║  └── Generating functions (encode combinatorics)             ║
-║                                                              ║
-║  Analytic Methods                                            ║
-║  ├── ε-δ arguments (limits; continuity; convergence)         ║
-║  ├── Compactness arguments (Heine-Borel; sequential)         ║
-║  └── Fixed point arguments (Banach; Brouwer; Kakutani)       ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
++==============================================================+
+|                    PROOF TECHNIQUES                          |
++==============================================================+
+|                                                              |
+|  Direct Methods                                              |
+|  +-- Direct proof (assume P; derive Q)                       |
+|  +-- Proof by construction (exhibit the object)              |
+|  +-- Proof by exhaustion (check all cases)                   |
+|                                                              |
+|  Indirect Methods                                            |
+|  +-- Contrapositive (prove \negQ -> \negP instead of P -> Q)        |
+|  +-- Contradiction (assume \negP; derive \perp)                    |
+|  +-- Proof by cases (partition; prove each)                  |
+|                                                              |
+|  Inductive Methods                                           |
+|  +-- Mathematical induction (base + step)                    |
+|  +-- Strong induction (use all previous cases)               |
+|  +-- Structural induction (induct on recursive structure)    |
+|                                                              |
+|  Probabilistic Methods                                       |
+|  +-- Probabilistic method (show Pr[property] > 0)            |
+|  +-- Expectation argument (E[X] implies existence)           |
+|  +-- Lovasz Local Lemma (avoid rare bad events)              |
+|                                                              |
+|  Algebraic Methods                                           |
+|  +-- Counting arguments (double counting; bijection)         |
+|  +-- Pigeonhole principle (n+1 items in n bins)              |
+|  +-- Generating functions (encode combinatorics)             |
+|                                                              |
+|  Analytic Methods                                            |
+|  +-- \epsilon-\delta arguments (limits; continuity; convergence)         |
+|  +-- Compactness arguments (Heine-Borel; sequential)         |
+|  +-- Fixed point arguments (Banach; Brouwer; Kakutani)       |
+|                                                              |
++==============================================================+
 ```
 
 ### 1.4 The Structure of a Mathematical Statement
@@ -231,46 +231,46 @@ A proof is a finite sequence of logically valid steps from hypotheses to conclus
 **Key skill**: identifying what you are allowed to **assume** and what you must **derive**.
 
 ```
-╔═══════════════════════════════════════════════════╗
-║          ANATOMY OF A THEOREM                     ║
-╠═══════════════════════════════════════════════════╣
-║                                                   ║
-║  "If  n is even,  then  n² is even"              ║
-║       ─────────        ──────────                 ║
-║       hypothesis       conclusion                 ║
-║       (assume this)    (derive this)              ║
-║                                                   ║
-║  Proof = chain of valid steps:                    ║
-║                                                   ║
-║  Assume n is even                                 ║
-║    → n = 2k for some integer k      (definition)  ║
-║    → n² = (2k)² = 4k²              (algebra)     ║
-║    → n² = 2(2k²)                   (factor)      ║
-║    → n² is even                     (definition)  ║
-║                                                   ║
-║  Each arrow: justified by a named rule.           ║
-║                                                   ║
-╚═══════════════════════════════════════════════════╝
++===================================================+
+|          ANATOMY OF A THEOREM                     |
++===================================================+
+|                                                   |
+|  "If  n is even,  then  n^2 is even"              |
+|       ---------        ----------                 |
+|       hypothesis       conclusion                 |
+|       (assume this)    (derive this)              |
+|                                                   |
+|  Proof = chain of valid steps:                    |
+|                                                   |
+|  Assume n is even                                 |
+|    -> n = 2k for some integer k      (definition)  |
+|    -> n^2 = (2k)^2 = 4k^2              (algebra)     |
+|    -> n^2 = 2(2k^2)                   (factor)      |
+|    -> n^2 is even                     (definition)  |
+|                                                   |
+|  Each arrow: justified by a named rule.           |
+|                                                   |
++===================================================+
 ```
 
 ### 1.5 Reading and Writing Proofs
 
-**Reading a proof**: identify hypotheses → identify conclusion → trace each step → check each logical inference → verify completeness.
+**Reading a proof**: identify hypotheses -> identify conclusion -> trace each step -> check each logical inference -> verify completeness.
 
-**Writing a proof**: state what you are proving → state your strategy → execute strategy → end with explicit conclusion.
+**Writing a proof**: state what you are proving -> state your strategy -> execute strategy -> end with explicit conclusion.
 
 Common proof structure markers:
 
 | Marker | Purpose |
 |--------|---------|
-| "Assume…" / "Suppose…" | Introduce hypothesis or assumption |
-| "Let…" | Introduce a variable or object |
-| "Since…" / "Because…" / "By…" | Justify a step |
-| "Therefore…" / "Thus…" / "Hence…" | Conclude a step |
-| "We have shown…" / "This completes the proof" | Explicit closure |
-| "QED" / "□" / "∎" | End of proof |
-| "Case 1: … Case 2: …" | Proof by cases |
-| "Base case: … Inductive step: …" | Induction |
+| "Assume..." / "Suppose..." | Introduce hypothesis or assumption |
+| "Let..." | Introduce a variable or object |
+| "Since..." / "Because..." / "By..." | Justify a step |
+| "Therefore..." / "Thus..." / "Hence..." | Conclude a step |
+| "We have shown..." / "This completes the proof" | Explicit closure |
+| "QED" / "[]" / "QED" | End of proof |
+| "Case 1: ... Case 2: ..." | Proof by cases |
+| "Base case: ... Inductive step: ..." | Induction |
 
 ### 1.6 Historical Timeline
 
@@ -278,16 +278,16 @@ Common proof structure markers:
 |------|-----------|-------------|
 | ~300 BCE | Euclid's *Elements* | First systematic proofs; 467 propositions from 5 axioms |
 | ~250 BCE | Archimedes | Method of exhaustion; proto-integration |
-| 9th–13th c. | Arab mathematicians | Algebraic proofs; al-Khwarizmi |
-| 1821 | Cauchy | Rigorous ε-δ definitions of limits |
+| 9th-13th c. | Arab mathematicians | Algebraic proofs; al-Khwarizmi |
+| 1821 | Cauchy | Rigorous \epsilon-\delta definitions of limits |
 | 1860s | Weierstrass | Formal epsilon-delta proofs |
-| 1874 | Cantor | Diagonal argument; ℝ is uncountable |
+| 1874 | Cantor | Diagonal argument; \mathbb{R} is uncountable |
 | 1900 | Hilbert | Programme to formalise all mathematics |
 | 1901 | Russell | Paradox via self-reference |
-| 1931 | Gödel | Incompleteness; limits of formal systems |
+| 1931 | Godel | Incompleteness; limits of formal systems |
 | 1976 | Appel & Haken | Four-colour theorem; computer-assisted proof |
 | 1995 | Wiles | Fermat's Last Theorem; 129-page proof |
-| 2000s– | Coq, Lean, Isabelle | Machine-verified proofs |
+| 2000s- | Coq, Lean, Isabelle | Machine-verified proofs |
 | 2024 | AlphaProof (DeepMind) | LLM + Lean; silver medal at IMO 2024 |
 
 ---
@@ -299,7 +299,7 @@ Common proof structure markers:
 To prove $P \to Q$:
 
 1. **Assume** $P$ is true
-2. Through a sequence of logical steps — each justified by definitions, axioms, or previously proved results — **derive** $Q$
+2. Through a sequence of logical steps - each justified by definitions, axioms, or previously proved results - **derive** $Q$
 3. **Conclude** $Q$ follows from $P$
 
 This is the most natural proof technique. Try it first for any implication. It works best when the hypothesis gives you something concrete to work with and the conclusion has a clear definition to aim for.
@@ -307,22 +307,22 @@ This is the most natural proof technique. Try it first for any implication. It w
 ### 2.2 Template
 
 ```
-╔══════════════════════════════════════════════╗
-║          DIRECT PROOF TEMPLATE               ║
-╠══════════════════════════════════════════════╣
-║                                              ║
-║  Proof:                                      ║
-║    Assume [P].                               ║
-║    [Step 1: apply definition/theorem]        ║
-║    [Step 2: algebraic or logical step]       ║
-║    ...                                       ║
-║    [Final step: arrive at Q]                 ║
-║    Therefore [Q].  □                         ║
-║                                              ║
-╚══════════════════════════════════════════════╝
++==============================================+
+|          DIRECT PROOF TEMPLATE               |
++==============================================+
+|                                              |
+|  Proof:                                      |
+|    Assume [P].                               |
+|    [Step 1: apply definition/theorem]        |
+|    [Step 2: algebraic or logical step]       |
+|    ...                                       |
+|    [Final step: arrive at Q]                 |
+|    Therefore [Q].  []                         |
+|                                              |
++==============================================+
 ```
 
-### 2.3 Worked Example — Even Times Even Is Even
+### 2.3 Worked Example - Even Times Even Is Even
 
 **Theorem.** If $m$ and $n$ are both even integers, then $mn$ is even.
 
@@ -340,9 +340,9 @@ Since $2jk \in \mathbb{Z}$, $mn$ is of the form $2 \times (\text{integer})$.
 
 Therefore $mn$ is even. $\square$
 
-**Dissection:** Every step names its justification — definition of even, integer closure under multiplication, definition of even again. No hand-waving.
+**Dissection:** Every step names its justification - definition of even, integer closure under multiplication, definition of even again. No hand-waving.
 
-### 2.4 Worked Example — If n² Is Even Then n Is Even (Direct Proof Fails)
+### 2.4 Worked Example - If n^2 Is Even Then n Is Even (Direct Proof Fails)
 
 **Theorem.** If $n^2$ is even, then $n$ is even.
 
@@ -350,7 +350,7 @@ Therefore $mn$ is even. $\square$
 
 **Lesson:** When direct proof stalls, switch technique. This theorem is proved cleanly by contrapositive (Section 4).
 
-### 2.5 Worked Example — Sum of Continuous Functions Is Continuous
+### 2.5 Worked Example - Sum of Continuous Functions Is Continuous
 
 **Theorem.** If $f$ and $g$ are continuous at $a$, then $f + g$ is continuous at $a$.
 
@@ -411,33 +411,33 @@ Therefore $L$ is convex. $\square$
 
 To prove $\exists x\, P(x)$: **exhibit** a specific $x$ and **verify** that $P(x)$ holds.
 
-A constructive proof provides an algorithm — the proof itself tells you **how to find** the object. This stands in contrast to non-constructive existence proofs (Section 5), which prove something exists without showing you how to find it.
+A constructive proof provides an algorithm - the proof itself tells you **how to find** the object. This stands in contrast to non-constructive existence proofs (Section 5), which prove something exists without showing you how to find it.
 
 Constructive proofs are strictly more informative: they tell you not just *that* something exists, but *what* it is.
 
 ### 3.2 Template
 
 ```
-╔══════════════════════════════════════════════╗
-║        CONSTRUCTIVE PROOF TEMPLATE           ║
-╠══════════════════════════════════════════════╣
-║                                              ║
-║  Proof:                                      ║
-║    [Define or describe object x explicitly]  ║
-║    We claim x satisfies [P].                 ║
-║    [Verify each required property of x]      ║
-║    Therefore ∃x satisfying P.  □             ║
-║                                              ║
-╚══════════════════════════════════════════════╝
++==============================================+
+|        CONSTRUCTIVE PROOF TEMPLATE           |
++==============================================+
+|                                              |
+|  Proof:                                      |
+|    [Define or describe object x explicitly]  |
+|    We claim x satisfies [P].                 |
+|    [Verify each required property of x]      |
+|    Therefore \existsx satisfying P.  []             |
+|                                              |
++==============================================+
 ```
 
-### 3.3 Worked Example — Prime Between n and 2n
+### 3.3 Worked Example - Prime Between n and 2n
 
 **Theorem** (Bertrand's Postulate). For every $n \geq 1$, there exists a prime $p$ with $n < p \leq 2n$.
 
-This is proved by careful counting (Chebyshev's and later Erdős's proof): one bounds the central binomial coefficient $\binom{2n}{n}$ from above and below, showing that a prime in $(n, 2n]$ must exist. The key is that the proof is constructive in principle — it establishes existence by showing the alternative (no prime in the range) leads to a bound violation.
+This is proved by careful counting (Chebyshev's and later Erdos's proof): one bounds the central binomial coefficient $\binom{2n}{n}$ from above and below, showing that a prime in $(n, 2n]$ must exist. The key is that the proof is constructive in principle - it establishes existence by showing the alternative (no prime in the range) leads to a bound violation.
 
-### 3.4 Worked Example — Constructing a Bijection
+### 3.4 Worked Example - Constructing a Bijection
 
 **Theorem.** $|\mathbb{Z}| = |\mathbb{N}|$ (the integers and natural numbers have the same cardinality).
 
@@ -450,13 +450,13 @@ This maps: $0 \mapsto 0,\; 1 \mapsto 1,\; 2 \mapsto -1,\; 3 \mapsto 2,\; 4 \maps
 **Verify injective:** Different natural numbers map to different integers (each integer appears exactly once in the sequence above).
 
 **Verify surjective:** Every integer $z \in \mathbb{Z}$ is hit:
-- $z = 0$: $f(0) = 0$ ✓
-- $z > 0$: $f(2z - 1) = z$ ✓
-- $z < 0$: $f(2|z|) = z$ ✓
+- $z = 0$: $f(0) = 0$ OK
+- $z > 0$: $f(2z - 1) = z$ OK
+- $z < 0$: $f(2|z|) = z$ OK
 
 Therefore $f$ is a bijection; $|\mathbb{Z}| = |\mathbb{N}|$. $\square$
 
-### 3.5 Worked Example — Neural Network Approximation
+### 3.5 Worked Example - Neural Network Approximation
 
 **Theorem.** For the target function $f(x) = \mathbb{1}[x > 0.5]$, there exists a 1-hidden-layer ReLU network approximating $f$ to within $\varepsilon = 0.01$ on $[0, 1] \setminus (0.49, 0.51)$.
 
@@ -470,7 +470,7 @@ for a parameter $M > 0$. This is a single-neuron ReLU network with:
 - $W_1 = [M]$, $b_1 = [-M/2]$, $W_2 = [1/M]$, $b_2 = 0$
 
 **Behaviour:**
-- For $x \leq 0.5$: $Mx - M/2 \leq 0$, so $\text{ReLU}(\cdot) = 0$, so $h(x) = 0 = f(x)$ ✓
+- For $x \leq 0.5$: $Mx - M/2 \leq 0$, so $\text{ReLU}(\cdot) = 0$, so $h(x) = 0 = f(x)$ OK
 - For $x > 0.5$: $h(x) = (Mx - M/2)/M = x - 0.5$
   - At $x = 0.51$: $h(0.51) = 0.01$; $f(0.51) = 1$; error $= 0.99$ (transition zone)
   - At $x = 0.5 + 1/M$: $h = 1/M$; for $M = 100$: $h(0.51) = 0.01$
@@ -481,17 +481,17 @@ $$g(x) = \text{ReLU}(M(x - 0.5)) - \text{ReLU}(M(x - 0.5) - 1)$$
 
 This clips to $[0, 1]$ and approximates the step function with transition width $1/M$. For $M = 100$, the approximation error is $< 0.01$ outside $(0.49, 0.51)$. $\square$
 
-### 3.6 Constructive vs Non-Constructive — A Key Distinction
+### 3.6 Constructive vs Non-Constructive - A Key Distinction
 
 | | Constructive | Non-Constructive |
 |---|---|---|
 | **What it gives** | The object itself | Proof that it exists |
-| **Algorithm?** | Yes — the proof is the algorithm | No — existence without method |
+| **Algorithm?** | Yes - the proof is the algorithm | No - existence without method |
 | **Informativeness** | Very high | Moderate |
 | **Typical technique** | Direct construction | Contradiction, probabilistic method |
 | **AI relevance** | Algorithms, architectures | Performance bounds, impossibility results |
 
-**Example — Normal Numbers:**
+**Example - Normal Numbers:**
 - Constructive: "Let $x = 0.123456789101112\dots$" (Champernowne's constant). This is provably normal in base 10 by construction.
 - Non-constructive: "A normal number must exist because the set of non-normal numbers has Lebesgue measure zero." Proves existence without exhibiting the number.
 
@@ -514,20 +514,20 @@ When to use: when the negation of $Q$ gives more useful information than $P$ its
 ### 4.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║         CONTRAPOSITIVE PROOF TEMPLATE                ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by contrapositive):                          ║
-║    We prove the contrapositive: assume ¬Q.           ║
-║    [Derive ¬P through logical steps]                 ║
-║    Therefore ¬P.                                     ║
-║    By contrapositive equivalence, P → Q.  □          ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|         CONTRAPOSITIVE PROOF TEMPLATE                |
++======================================================+
+|                                                      |
+|  Proof (by contrapositive):                          |
+|    We prove the contrapositive: assume \negQ.           |
+|    [Derive \negP through logical steps]                 |
+|    Therefore \negP.                                     |
+|    By contrapositive equivalence, P -> Q.  []          |
+|                                                      |
++======================================================+
 ```
 
-### 4.3 Worked Example — If n² Is Even Then n Is Even
+### 4.3 Worked Example - If n^2 Is Even Then n Is Even
 
 **Theorem.** For $n \in \mathbb{Z}$, if $n^2$ is even then $n$ is even.
 
@@ -543,9 +543,9 @@ Since $2k^2 + 2k \in \mathbb{Z}$, $n^2$ is of the form $2m + 1$; therefore $n^2$
 
 By contrapositive equivalence: if $n^2$ is even, then $n$ is even. $\square$
 
-**Compare with Section 2.4:** The direct proof got stuck at $n = \sqrt{2k}$. The contrapositive transforms "even → even" (hard direction) into "odd → odd" (easy direction with concrete algebraic manipulation).
+**Compare with Section 2.4:** The direct proof got stuck at $n = \sqrt{2k}$. The contrapositive transforms "even -> even" (hard direction) into "odd -> odd" (easy direction with concrete algebraic manipulation).
 
-### 4.4 Worked Example — Irrational Product
+### 4.4 Worked Example - Irrational Product
 
 **Theorem.** If $xy$ is rational and $x$ is irrational, then $y = 0$.
 
@@ -553,9 +553,9 @@ By contrapositive equivalence: if $n^2$ is even, then $n$ is even. $\square$
 
 **Proof (by contrapositive).**
 
-Assume $y \neq 0$ and $x$ is irrational. Suppose for contradiction that $xy$ is rational: $xy = p/q$ with $q \neq 0$. Then $x = p/(qy)$. If $y$ is rational, $y = r/s$, then $x = ps/(qr)$, which is rational — contradicting $x$ irrational. So either $y$ is irrational (and we are in the case where $xy$ could still be irrational) or we get the contradiction.
+Assume $y \neq 0$ and $x$ is irrational. Suppose for contradiction that $xy$ is rational: $xy = p/q$ with $q \neq 0$. Then $x = p/(qy)$. If $y$ is rational, $y = r/s$, then $x = ps/(qr)$, which is rational - contradicting $x$ irrational. So either $y$ is irrational (and we are in the case where $xy$ could still be irrational) or we get the contradiction.
 
-Actually, this theorem is more naturally proved by contradiction — showing that technique selection requires judgment. The contrapositive reformulation doesn't simplify the argument. **Not every theorem is best proved by contrapositive.**
+Actually, this theorem is more naturally proved by contradiction - showing that technique selection requires judgment. The contrapositive reformulation doesn't simplify the argument. **Not every theorem is best proved by contrapositive.**
 
 ### 4.5 Contrapositive in AI Contexts
 
@@ -575,7 +575,7 @@ This is the standard necessary condition for optimality, and the contrapositive 
 
 | Sign | Explanation |
 |------|-------------|
-| Conclusion $Q$ involves a **negation** | "x is not…", "cannot be…", "there is no…" |
+| Conclusion $Q$ involves a **negation** | "x is not...", "cannot be...", "there is no..." |
 | Negating $Q$ gives **concrete structure** | $\lnot Q$ hands you an object to work with |
 | Direct proof **gets stuck** | Reformulating as $\lnot Q \to \lnot P$ opens new paths |
 | Hypothesis $P$ has **existential** content | $\lnot P$ may be simpler than $P$ |
@@ -588,7 +588,7 @@ This is the standard necessary condition for optimality, and the contrapositive 
 
 ### 5.1 The Strategy
 
-To prove $P$: assume $\lnot P$; derive a **contradiction** — a statement known to be false, or both a statement $C$ and its negation $\lnot C$ simultaneously.
+To prove $P$: assume $\lnot P$; derive a **contradiction** - a statement known to be false, or both a statement $C$ and its negation $\lnot C$ simultaneously.
 
 Valid by the **law of excluded middle**: $P \lor \lnot P$. If $\lnot P$ leads to a contradiction $\bot$, then $P$ must hold.
 
@@ -597,21 +597,21 @@ When to use: when $P$ has the form "X does not exist" or "X is impossible"; when
 ### 5.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║         CONTRADICTION PROOF TEMPLATE                 ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by contradiction):                           ║
-║    Assume for contradiction that ¬P.                 ║
-║    [Derive consequences of ¬P]                       ║
-║    [Arrive at statement C and ¬C simultaneously]     ║
-║    This is a contradiction.                          ║
-║    Therefore P must hold.  □                         ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|         CONTRADICTION PROOF TEMPLATE                 |
++======================================================+
+|                                                      |
+|  Proof (by contradiction):                           |
+|    Assume for contradiction that \negP.                 |
+|    [Derive consequences of \negP]                       |
+|    [Arrive at statement C and \negC simultaneously]     |
+|    This is a contradiction.                          |
+|    Therefore P must hold.  []                         |
+|                                                      |
++======================================================+
 ```
 
-### 5.3 Worked Example — √2 Is Irrational
+### 5.3 Worked Example - \sqrt2 Is Irrational
 
 **Theorem.** $\sqrt{2} \notin \mathbb{Q}$.
 
@@ -633,9 +633,9 @@ But both $p$ and $q$ even contradicts $\gcd(p, q) = 1$.
 
 **Contradiction.** Therefore $\sqrt{2} \notin \mathbb{Q}$. $\square$
 
-**Note how the proof builds on Section 4.3:** The irrationality of $\sqrt{2}$ uses the lemma "$n^2$ even $\implies$ $n$ even" as a sub-result. This is typical — complex proofs assemble simpler proven facts.
+**Note how the proof builds on Section 4.3:** The irrationality of $\sqrt{2}$ uses the lemma "$n^2$ even $\implies$ $n$ even" as a sub-result. This is typical - complex proofs assemble simpler proven facts.
 
-### 5.4 Worked Example — Infinitely Many Primes (Euclid)
+### 5.4 Worked Example - Infinitely Many Primes (Euclid)
 
 **Theorem.** There are infinitely many primes.
 
@@ -655,7 +655,7 @@ No prime divides 1. **Contradiction.**
 
 Therefore there are infinitely many primes. $\square$
 
-### 5.5 Worked Example — No Largest Real Number
+### 5.5 Worked Example - No Largest Real Number
 
 **Theorem.** There is no largest real number.
 
@@ -675,9 +675,9 @@ One can prove "$\exists x\, P(x)$" by contradiction: assume $\forall x\, \lnot P
 
 **Example:** The Intermediate Value Theorem proves $\exists c \in (a, b): f(c) = y$ without constructing $c$.
 
-**AI relevance:** Existence of optimal parameters $\theta^*$ minimising loss can be proved via compactness (if loss is continuous on a compact set) — but the proof gives no algorithm for finding $\theta^*$. This is why optimisation theory is a separate discipline from existence theory.
+**AI relevance:** Existence of optimal parameters $\theta^*$ minimising loss can be proved via compactness (if loss is continuous on a compact set) - but the proof gives no algorithm for finding $\theta^*$. This is why optimisation theory is a separate discipline from existence theory.
 
-### 5.7 Contradiction vs Contrapositive — Clarifying the Difference
+### 5.7 Contradiction vs Contrapositive - Clarifying the Difference
 
 These two techniques are frequently confused. They are **not** the same:
 
@@ -721,7 +721,7 @@ So the infimum is 0, but it is not achieved. For any $M > 0$, choosing $T$ large
 
 Assume a network with one ReLU hidden unit computes XOR. The hidden unit computes $h(x) = \text{ReLU}(w^T x + b)$, which is a piecewise linear function with at most 2 linear pieces (separated by the hyperplane $w^T x + b = 0$). The output is $f(x) = v \cdot h(x) + c$, also piecewise linear with at most 2 pieces.
 
-XOR on $\{(0,0), (0,1), (1,0), (1,1)\}$ requires: $f(0,0) = 0$, $f(0,1) = 1$, $f(1,0) = 1$, $f(1,1) = 0$. But two linear pieces cannot separate these four points correctly — any half-plane places at least one positive and one negative example on the same side. **Contradiction.** $\square$
+XOR on $\{(0,0), (0,1), (1,0), (1,1)\}$ requires: $f(0,0) = 0$, $f(0,1) = 1$, $f(1,0) = 1$, $f(1,1) = 0$. But two linear pieces cannot separate these four points correctly - any half-plane places at least one positive and one negative example on the same side. **Contradiction.** $\square$
 
 ---
 
@@ -738,26 +738,26 @@ When to use: when no single argument covers all cases, but the problem has a nat
 ### 6.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║          PROOF BY CASES TEMPLATE                     ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by cases):                                   ║
-║    Let x be arbitrary. We consider all cases.        ║
-║                                                      ║
-║    Case 1: [C₁ holds]                                ║
-║      [Prove P under assumption C₁]                   ║
-║                                                      ║
-║    Case 2: [C₂ holds]                                ║
-║      [Prove P under assumption C₂]                   ║
-║                                                      ║
-║    ⋮                                                 ║
-║    Since C₁ ∨ C₂ ∨ … ∨ Cₙ is exhaustive, P.  □     ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|          PROOF BY CASES TEMPLATE                     |
++======================================================+
+|                                                      |
+|  Proof (by cases):                                   |
+|    Let x be arbitrary. We consider all cases.        |
+|                                                      |
+|    Case 1: [C_1 holds]                                |
+|      [Prove P under assumption C_1]                   |
+|                                                      |
+|    Case 2: [C_2 holds]                                |
+|      [Prove P under assumption C_2]                   |
+|                                                      |
+|    ...                                                 |
+|    Since C_1 \vee C_2 \vee ... \vee C_n is exhaustive, P.  []     |
+|                                                      |
++======================================================+
 ```
 
-### 6.3 Worked Example — Triangle Inequality for Absolute Value
+### 6.3 Worked Example - Triangle Inequality for Absolute Value
 
 **Theorem.** For all $a, b \in \mathbb{R}$: $|a + b| \leq |a| + |b|$.
 
@@ -773,7 +773,7 @@ $|a + b| = -(a + b) = (-a) + (-b) \leq |a| + |b|$ since $-a \leq |a|$ and $-b \l
 
 Both cases yield $|a + b| \leq |a| + |b|$. $\square$
 
-### 6.4 Worked Example — n² mod 4
+### 6.4 Worked Example - n^2 mod 4
 
 **Theorem.** For all $n \in \mathbb{Z}$, $n^2 \bmod 4 \in \{0, 1\}$.
 
@@ -789,7 +789,7 @@ Both cases yield $|a + b| \leq |a| + |b|$. $\square$
 
 All cases give $n^2 \bmod 4 \in \{0, 1\}$. $\square$
 
-### 6.5 Cases in AI — Activation Function Analysis
+### 6.5 Cases in AI - Activation Function Analysis
 
 **Theorem.** The ReLU function $\sigma(x) = \max(0, x)$ is convex.
 
@@ -837,28 +837,28 @@ Induction is the foundational proof technique for discrete structures and is hea
 ### 7.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║         INDUCTION PROOF TEMPLATE                     ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by induction on n):                          ║
-║                                                      ║
-║    Base case (n = n₀):                               ║
-║      [Verify P(n₀) directly]                         ║
-║                                                      ║
-║    Inductive step:                                   ║
-║      Assume P(k) for some k ≥ n₀.  (IH)             ║
-║      [Prove P(k+1) using the inductive              ║
-║       hypothesis P(k)]                               ║
-║                                                      ║
-║    By induction, P(n) for all n ≥ n₀.  □            ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|         INDUCTION PROOF TEMPLATE                     |
++======================================================+
+|                                                      |
+|  Proof (by induction on n):                          |
+|                                                      |
+|    Base case (n = n_0):                               |
+|      [Verify P(n_0) directly]                         |
+|                                                      |
+|    Inductive step:                                   |
+|      Assume P(k) for some k \geq n_0.  (IH)             |
+|      [Prove P(k+1) using the inductive              |
+|       hypothesis P(k)]                               |
+|                                                      |
+|    By induction, P(n) for all n \geq n_0.  []            |
+|                                                      |
++======================================================+
 ```
 
-**Important:** In the inductive step, you **assume** $P(k)$ (the "inductive hypothesis," IH) and prove $P(k+1)$. This is not circular — you are proving a conditional statement.
+**Important:** In the inductive step, you **assume** $P(k)$ (the "inductive hypothesis," IH) and prove $P(k+1)$. This is not circular - you are proving a conditional statement.
 
-### 7.3 Worked Example — Sum Formula
+### 7.3 Worked Example - Sum Formula
 
 **Theorem.** $\displaystyle\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$ for all $n \geq 1$.
 
@@ -866,7 +866,7 @@ Induction is the foundational proof technique for discrete structures and is hea
 
 **Base case ($n = 1$):**
 
-LHS: $\sum_{i=1}^{1} i = 1$. RHS: $\frac{1 \cdot 2}{2} = 1$. ✓
+LHS: $\sum_{i=1}^{1} i = 1$. RHS: $\frac{1 \cdot 2}{2} = 1$. OK
 
 **Inductive step:**
 
@@ -878,11 +878,11 @@ $$\sum_{i=1}^{k+1} i = \left(\sum_{i=1}^{k} i\right) + (k+1) = \frac{k(k+1)}{2} 
 
 $$= \frac{k(k+1) + 2(k+1)}{2} = \frac{(k+1)(k+2)}{2}$$
 
-This is $\frac{(k+1)((k+1)+1)}{2}$, which is $P(k+1)$. ✓
+This is $\frac{(k+1)((k+1)+1)}{2}$, which is $P(k+1)$. OK
 
 By induction, $P(n)$ holds for all $n \geq 1$. $\square$
 
-### 7.4 Worked Example — Power Set Cardinality
+### 7.4 Worked Example - Power Set Cardinality
 
 **Theorem.** A set with $n$ elements has $2^n$ subsets.
 
@@ -890,7 +890,7 @@ By induction, $P(n)$ holds for all $n \geq 1$. $\square$
 
 **Base case ($n = 0$):**
 
-$\varnothing$ has one subset: $\varnothing$ itself. $2^0 = 1$. ✓
+$\varnothing$ has one subset: $\varnothing$ itself. $2^0 = 1$. OK
 
 **Inductive step:**
 
@@ -902,7 +902,7 @@ Every subset of $S$ either contains $x$ or does not:
 - Subsets not containing $x$: exactly the subsets of $T$. There are $2^k$ of these (by IH).
 - Subsets containing $x$: formed by taking a subset of $T$ and adding $x$. There are $2^k$ of these.
 
-Total: $2^k + 2^k = 2 \cdot 2^k = 2^{k+1}$. ✓
+Total: $2^k + 2^k = 2 \cdot 2^k = 2^{k+1}$. OK
 
 By induction, $|S| = n \implies |\mathcal{P}(S)| = 2^n$ for all $n \geq 0$. $\square$
 
@@ -914,7 +914,7 @@ By induction, $|S| = n \implies |\mathcal{P}(S)| = 2^n$ for all $n \geq 0$. $\sq
 
 **Base case ($d = 1$):**
 
-One ReLU hidden unit: $h(x) = \max(0, wx + b)$. This produces at most 2 linear pieces (one where input $\leq -b/w$ and one where $> -b/w$). $2^1 = 2$. ✓
+One ReLU hidden unit: $h(x) = \max(0, wx + b)$. This produces at most 2 linear pieces (one where input $\leq -b/w$ and one where $> -b/w$). $2^1 = 2$. OK
 
 **Inductive step:**
 
@@ -922,17 +922,17 @@ Assume a network with $k$ layers (one unit each) has $\leq 2^k$ linear regions. 
 
 Adding layer $k+1$ with one ReLU: the new ReLU unit can at most double the number of regions by "folding" each existing piece. The fold happens at the ReLU's breakpoint, splitting at most all existing regions in two.
 
-Maximum new regions: $2 \cdot 2^k = 2^{k+1}$. ✓
+Maximum new regions: $2 \cdot 2^k = 2^{k+1}$. OK
 
 By induction, the bound is $2^d$ for $d$ layers. $\square$
 
-**Remark:** With $w$ units per layer, the bound becomes $O(w^d)$, explaining the exponential expressiveness of depth — a key insight behind deep learning.
+**Remark:** With $w$ units per layer, the bound becomes $O(w^d)$, explaining the exponential expressiveness of depth - a key insight behind deep learning.
 
 ### 7.6 Common Induction Mistakes
 
 | Mistake | Example | Why It Fails |
 |---------|---------|--------------|
-| **Forgetting the base case** | "Assume $P(k)$, prove $P(k+1)$" — but never check $P(1)$ | The chain has no starting anchor |
+| **Forgetting the base case** | "Assume $P(k)$, prove $P(k+1)$" - but never check $P(1)$ | The chain has no starting anchor |
 | **Wrong base case** | Prove $P(0)$ but claim result for $n \geq 1$ | May miss that $P(1)$ needs separate attention |
 | **Assuming what you prove** | "Assume $P(k+1)$" instead of proving it | Circular reasoning |
 | **Not using the IH** | Proving $P(k+1)$ from scratch, never invoking $P(k)$ | Valid but not induction (just direct proof) |
@@ -944,37 +944,37 @@ By induction, the bound is $2^d$ for $d$ layers. $\square$
 
 ### 8.1 The Strategy
 
-Strong induction (also called **complete induction** or **course-of-values induction**) strengthens the inductive hypothesis: instead of assuming only $P(k)$, you assume $P(n_0) \land P(n_0 + 1) \land \dots \land P(k)$ — that is, $P(j)$ for **all** $n_0 \leq j \leq k$ — and then prove $P(k+1)$.
+Strong induction (also called **complete induction** or **course-of-values induction**) strengthens the inductive hypothesis: instead of assuming only $P(k)$, you assume $P(n_0) \land P(n_0 + 1) \land \dots \land P(k)$ - that is, $P(j)$ for **all** $n_0 \leq j \leq k$ - and then prove $P(k+1)$.
 
 **Logical equivalence:** Strong induction is equivalent to ordinary induction on the statement "for all $j \leq n$, $P(j)$." It is not a stronger proof system, just a more convenient packaging.
 
-When to use: when $P(k+1)$ depends on $P(k-1)$, $P(k-3)$, or some earlier case — not just the immediately preceding one.
+When to use: when $P(k+1)$ depends on $P(k-1)$, $P(k-3)$, or some earlier case - not just the immediately preceding one.
 
 ### 8.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║         STRONG INDUCTION TEMPLATE                    ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by strong induction on n):                   ║
-║                                                      ║
-║    Base case(s) (n = n₀, …, n₀+r):                  ║
-║      [Verify P(n₀), …, P(n₀+r) directly]            ║
-║                                                      ║
-║    Inductive step:                                   ║
-║      Assume P(j) for all n₀ ≤ j ≤ k.  (SIH)        ║
-║      [Prove P(k+1) using any/all of                 ║
-║       P(n₀), P(n₀+1), …, P(k)]                     ║
-║                                                      ║
-║    By strong induction, P(n) for all n ≥ n₀.  □     ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|         STRONG INDUCTION TEMPLATE                    |
++======================================================+
+|                                                      |
+|  Proof (by strong induction on n):                   |
+|                                                      |
+|    Base case(s) (n = n_0, ..., n_0+r):                  |
+|      [Verify P(n_0), ..., P(n_0+r) directly]            |
+|                                                      |
+|    Inductive step:                                   |
+|      Assume P(j) for all n_0 \leq j \leq k.  (SIH)        |
+|      [Prove P(k+1) using any/all of                 |
+|       P(n_0), P(n_0+1), ..., P(k)]                     |
+|                                                      |
+|    By strong induction, P(n) for all n \geq n_0.  []     |
+|                                                      |
++======================================================+
 ```
 
 **Note:** Strong induction often requires **multiple base cases** because the inductive step may reach back several positions.
 
-### 8.3 Worked Example — Fundamental Theorem of Arithmetic
+### 8.3 Worked Example - Fundamental Theorem of Arithmetic
 
 **Theorem.** Every integer $n \geq 2$ can be written as a product of primes.
 
@@ -982,7 +982,7 @@ When to use: when $P(k+1)$ depends on $P(k-1)$, $P(k-3)$, or some earlier case �
 
 **Base case ($n = 2$):**
 
-$2$ is prime, so it is (trivially) a product of primes. ✓
+$2$ is prime, so it is (trivially) a product of primes. OK
 
 **Inductive step:**
 
@@ -990,25 +990,25 @@ Assume every integer $j$ with $2 \leq j \leq k$ can be written as a product of p
 
 Consider $k + 1$. Two cases:
 
-**Case 1:** $k+1$ is prime. Then it is a product of one prime. ✓
+**Case 1:** $k+1$ is prime. Then it is a product of one prime. OK
 
 **Case 2:** $k+1$ is composite. Then $k+1 = a \cdot b$ for some $2 \leq a, b \leq k$.
 
 By the SIH, $a = p_1 \cdots p_r$ and $b = q_1 \cdots q_s$ are products of primes.
 
-Therefore $k+1 = p_1 \cdots p_r \cdot q_1 \cdots q_s$, a product of primes. ✓
+Therefore $k+1 = p_1 \cdots p_r \cdot q_1 \cdots q_s$, a product of primes. OK
 
 By strong induction, every $n \geq 2$ is a product of primes. $\square$
 
 **Why standard induction fails:** $P(k+1)$ for composite $k+1$ requires $P(a)$ and $P(b)$ where $a, b < k+1$, but not necessarily $P(k)$ specifically.
 
-### 8.4 Worked Example — Binary Representation
+### 8.4 Worked Example - Binary Representation
 
 **Theorem.** Every positive integer has a binary representation: $n = \sum_{i} a_i 2^i$ with $a_i \in \{0, 1\}$.
 
 **Proof (by strong induction on $n$).**
 
-**Base case ($n = 1$):** $1 = 2^0$, so $a_0 = 1$. ✓
+**Base case ($n = 1$):** $1 = 2^0$, so $a_0 = 1$. OK
 
 **Inductive step:**
 
@@ -1016,25 +1016,25 @@ Assume all $1 \leq j \leq k$ have binary representations. (SIH)
 
 Consider $k + 1$.
 
-**Case 1:** $k+1$ is even. Then $k+1 = 2m$ where $1 \leq m \leq k$. By SIH, $m = \sum_i a_i 2^i$. So $k+1 = \sum_i a_i 2^{i+1}$, a valid binary representation (shift all digits left one position). ✓
+**Case 1:** $k+1$ is even. Then $k+1 = 2m$ where $1 \leq m \leq k$. By SIH, $m = \sum_i a_i 2^i$. So $k+1 = \sum_i a_i 2^{i+1}$, a valid binary representation (shift all digits left one position). OK
 
-**Case 2:** $k+1$ is odd. Then $k+1 = 2m + 1$ where $1 \leq m \leq k$ (for $k \geq 1$). By SIH, $m = \sum_i a_i 2^i$. So $k+1 = 1 + \sum_i a_i 2^{i+1}$, setting $a_0 = 1$. ✓
+**Case 2:** $k+1$ is odd. Then $k+1 = 2m + 1$ where $1 \leq m \leq k$ (for $k \geq 1$). By SIH, $m = \sum_i a_i 2^i$. So $k+1 = 1 + \sum_i a_i 2^{i+1}$, setting $a_0 = 1$. OK
 
 By strong induction, every positive integer has a binary representation. $\square$
 
 **AI relevance:** Binary representations are fundamental to digital computation. This proof legitimises the binary encoding that underlies all neural network implementations.
 
-### 8.5 Strong Induction in AI — Recursive Network Correctness
+### 8.5 Strong Induction in AI - Recursive Network Correctness
 
 **Theorem.** A tree-structured recursive neural network correctly computes the representation of any tree of depth $d \geq 0$ if (a) it correctly handles leaves and (b) whenever it correctly handles subtrees, its composition function correctly handles their parent.
 
 **Proof (by strong induction on $d$).**
 
-**Base case ($d = 0$):** Leaf nodes. By assumption (a), the network correctly computes their representations. ✓
+**Base case ($d = 0$):** Leaf nodes. By assumption (a), the network correctly computes their representations. OK
 
 **Inductive step:** Assume the network correctly represents all trees of depth $\leq k$. (SIH)
 
-A tree of depth $k+1$ has a root whose children are roots of subtrees of depth $\leq k$. By SIH, these subtrees are correctly represented. By assumption (b), the composition function correctly computes the parent's representation from its children's representations. ✓
+A tree of depth $k+1$ has a root whose children are roots of subtrees of depth $\leq k$. By SIH, these subtrees are correctly represented. By assumption (b), the composition function correctly computes the parent's representation from its children's representations. OK
 
 By strong induction, the network correctly handles all trees. $\square$
 
@@ -1054,24 +1054,24 @@ The idea: an inductively defined set has **base constructors** (creating atomic 
 ### 9.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║       STRUCTURAL INDUCTION TEMPLATE                  ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by structural induction):                    ║
-║                                                      ║
-║    Base case: [For each base constructor c₀]         ║
-║      [Verify P(c₀)]                                 ║
-║                                                      ║
-║    Inductive step: [For each recursive               ║
-║                     constructor C(x₁, …, xₘ)]       ║
-║      Assume P(x₁), …, P(xₘ).  (SIH)                ║
-║      [Prove P(C(x₁, …, xₘ))]                       ║
-║                                                      ║
-║    By structural induction, P holds for all          ║
-║    elements of the inductively defined set.  □       ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|       STRUCTURAL INDUCTION TEMPLATE                  |
++======================================================+
+|                                                      |
+|  Proof (by structural induction):                    |
+|                                                      |
+|    Base case: [For each base constructor c_0]         |
+|      [Verify P(c_0)]                                 |
+|                                                      |
+|    Inductive step: [For each recursive               |
+|                     constructor C(x_1, ..., x_m)]       |
+|      Assume P(x_1), ..., P(x_m).  (SIH)                |
+|      [Prove P(C(x_1, ..., x_m))]                       |
+|                                                      |
+|    By structural induction, P holds for all          |
+|    elements of the inductively defined set.  []       |
+|                                                      |
++======================================================+
 ```
 
 ### 9.3 Induction on Lists
@@ -1088,7 +1088,7 @@ where $\text{append}([], \ell_2) = \ell_2$ and $\text{append}(x :: \ell_1', \ell
 
 **Base case ($\ell_1 = []$):**
 
-$\text{length}(\text{append}([], \ell_2)) = \text{length}(\ell_2) = 0 + \text{length}(\ell_2) = \text{length}([]) + \text{length}(\ell_2)$. ✓
+$\text{length}(\text{append}([], \ell_2)) = \text{length}(\ell_2) = 0 + \text{length}(\ell_2) = \text{length}([]) + \text{length}(\ell_2)$. OK
 
 **Inductive step ($\ell_1 = x :: \ell_1'$):**
 
@@ -1098,7 +1098,7 @@ $$\text{length}(\text{append}(x :: \ell_1', \ell_2)) = \text{length}(x :: \text{
 $$= 1 + \text{length}(\text{append}(\ell_1', \ell_2)) = 1 + \text{length}(\ell_1') + \text{length}(\ell_2) \quad \text{(by SIH)}$$
 $$= \text{length}(x :: \ell_1') + \text{length}(\ell_2)$$
 
-✓ By structural induction, the result holds for all lists $\ell_1$. $\square$
+OK By structural induction, the result holds for all lists $\ell_1$. $\square$
 
 ### 9.4 Induction on Binary Trees
 
@@ -1112,7 +1112,7 @@ $$= \text{length}(x :: \ell_1') + \text{length}(\ell_2)$$
 
 **Base case ($\text{Leaf}$):**
 
-0 internal nodes, 1 leaf. $0 + 1 = 1$. ✓
+0 internal nodes, 1 leaf. $0 + 1 = 1$. OK
 
 **Inductive step ($\text{Node}(L, R)$):**
 
@@ -1120,7 +1120,7 @@ Assume $L$ has $n_L$ internal nodes and $n_L + 1$ leaves (SIH). Similarly $R$ ha
 
 $\text{Node}(L, R)$ has $n_L + n_R + 1$ internal nodes (the $+1$ is the new root).
 
-Leaves: $(n_L + 1) + (n_R + 1) = n_L + n_R + 2 = (n_L + n_R + 1) + 1$. ✓
+Leaves: $(n_L + 1) + (n_R + 1) = n_L + n_R + 2 = (n_L + n_R + 1) + 1$. OK
 
 By structural induction, a tree with $n$ internal nodes has $n + 1$ leaves. $\square$
 
@@ -1136,7 +1136,7 @@ By structural induction, a tree with $n$ internal nodes has $n + 1$ leaves. $\sq
 
 **Proof sketch (by structural induction on computation nodes).**
 
-**Base case:** $v = x_i$. Then $\partial x_i / \partial x_i = 1$ and $\partial x_i / \partial x_j = 0$ for $j \neq i$. Backpropagation initialises these correctly. ✓
+**Base case:** $v = x_i$. Then $\partial x_i / \partial x_i = 1$ and $\partial x_i / \partial x_j = 0$ for $j \neq i$. Backpropagation initialises these correctly. OK
 
 **Inductive step:** $v = f(v_1, \dots, v_k)$.
 
@@ -1146,7 +1146,7 @@ By the chain rule:
 
 $$\frac{\partial v}{\partial x_i} = \sum_{j=1}^{k} \frac{\partial f}{\partial v_j} \cdot \frac{\partial v_j}{\partial x_i}$$
 
-Backpropagation computes this sum: the local gradients $\partial f / \partial v_j$ are computed by the node, and $\partial v_j / \partial x_i$ are correctly computed by SIH. Their product and sum are correctly accumulated. ✓
+Backpropagation computes this sum: the local gradients $\partial f / \partial v_j$ are computed by the node, and $\partial v_j / \partial x_i$ are correctly computed by SIH. Their product and sum are correctly accumulated. OK
 
 By structural induction, backpropagation is correct for all computation graphs. $\square$
 
@@ -1167,35 +1167,35 @@ By structural induction, backpropagation is correct for all computation graphs. 
 
 To prove that an object with property $P$ **exists**, define a probability distribution over a space of candidate objects. Show that the probability of $P$ is strictly positive: $\Pr[P] > 0$. Then an object with property $P$ must exist (otherwise the probability would be 0).
 
-This technique, pioneered by **Paul Erdős**, is profoundly non-constructive: it proves existence without exhibiting a specific example. Yet it is one of the most powerful tools in combinatorics, computer science, and — increasingly — machine learning theory.
+This technique, pioneered by **Paul Erdos**, is profoundly non-constructive: it proves existence without exhibiting a specific example. Yet it is one of the most powerful tools in combinatorics, computer science, and - increasingly - machine learning theory.
 
 ### 10.2 Template
 
 ```
-╔══════════════════════════════════════════════════════╗
-║       PROBABILISTIC METHOD TEMPLATE                  ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Proof (by the probabilistic method):                ║
-║                                                      ║
-║    Define a probability space Ω over candidates.     ║
-║    Let X be a random candidate drawn from Ω.         ║
-║    Compute E[cost(X)] or Pr[P(X)].                   ║
-║                                                      ║
-║    Show that E[cost(X)] < threshold                  ║
-║      (or Pr[P(X)] > 0).                              ║
-║                                                      ║
-║    Therefore ∃ x ∈ Ω with cost(x) < threshold       ║
-║      (or satisfying P).  □                           ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|       PROBABILISTIC METHOD TEMPLATE                  |
++======================================================+
+|                                                      |
+|  Proof (by the probabilistic method):                |
+|                                                      |
+|    Define a probability space \Omega over candidates.     |
+|    Let X be a random candidate drawn from \Omega.         |
+|    Compute E[cost(X)] or Pr[P(X)].                   |
+|                                                      |
+|    Show that E[cost(X)] < threshold                  |
+|      (or Pr[P(X)] > 0).                              |
+|                                                      |
+|    Therefore \exists x \in \Omega with cost(x) < threshold       |
+|      (or satisfying P).  []                           |
+|                                                      |
++======================================================+
 ```
 
 **Key principle:** If a random variable has expected value $\mu$, then $\exists$ an outcome $\leq \mu$ (and $\exists$ an outcome $\geq \mu$). This is the **first moment method**.
 
-### 10.3 Worked Example — Ramsey Lower Bound
+### 10.3 Worked Example - Ramsey Lower Bound
 
-**Theorem (Erdős, 1947).** $R(k, k) > 2^{k/2}$ (the diagonal Ramsey number exceeds $2^{k/2}$).
+**Theorem (Erdos, 1947).** $R(k, k) > 2^{k/2}$ (the diagonal Ramsey number exceeds $2^{k/2}$).
 
 **Proof (by the probabilistic method).**
 
@@ -1221,7 +1221,7 @@ Since probability $< 1$, there exists a 2-colouring with no monochromatic $K_k$.
 
 ### 10.4 Random Hyperplane Rounding (AI Application)
 
-**Theorem (Goemans–Williamson, 1995).** The random hyperplane rounding algorithm achieves a 0.878-approximation for MAX-CUT.
+**Theorem (Goemans-Williamson, 1995).** The random hyperplane rounding algorithm achieves a 0.878-approximation for MAX-CUT.
 
 **Proof sketch (probabilistic method).**
 
@@ -1241,11 +1241,11 @@ Therefore: $\mathbb{E}[\text{cut value}] \geq 0.878 \cdot \text{SDP value} \geq 
 
 By linearity of expectation, there **exists** a hyperplane achieving $\geq 0.878 \cdot \text{OPT}$. $\square$
 
-**AI connection:** Approximation algorithms via random rounding are conceptually related to random projection methods (Johnson–Lindenstrauss lemma, locality-sensitive hashing) used in approximate nearest neighbor search for embedding retrieval.
+**AI connection:** Approximation algorithms via random rounding are conceptually related to random projection methods (Johnson-Lindenstrauss lemma, locality-sensitive hashing) used in approximate nearest neighbor search for embedding retrieval.
 
 ### 10.5 The Probabilistic Method in Deep Learning Theory
 
-**Theorem (Random initialisation has non-zero gradients — informal).** For a randomly initialised deep network with ReLU activations, with probability 1 the gradient $\nabla_\theta L$ is non-zero at initialisation.
+**Theorem (Random initialisation has non-zero gradients - informal).** For a randomly initialised deep network with ReLU activations, with probability 1 the gradient $\nabla_\theta L$ is non-zero at initialisation.
 
 **Proof sketch.**
 
@@ -1293,7 +1293,7 @@ Partition $[0, 1)$ into 12 intervals: $[0, 1/12), [1/12, 2/12), \dots, [11/12, 1
 
 Given 13 numbers, consider their fractional parts. By pigeonhole (13 numbers, 12 intervals), at least two fractional parts lie in the same interval. Their difference has fractional part $< 1/12$. $\square$
 
-### 11.4 Pigeonhole in AI — Collision Arguments
+### 11.4 Pigeonhole in AI - Collision Arguments
 
 **Theorem.** Any hash function $h: \{0,1\}^n \to \{0,1\}^m$ with $m < n$ has collisions.
 
@@ -1311,7 +1311,7 @@ $|\text{domain}| = 2^n > 2^m = |\text{range}|$. By pigeonhole, $\exists x \neq y
 
 $$\left|\bigcup_{i=1}^n A_i\right| = \sum_i |A_i| - \sum_{i<j} |A_i \cap A_j| + \sum_{i<j<k} |A_i \cap A_j \cap A_k| - \cdots + (-1)^{n+1} |A_1 \cap \cdots \cap A_n|$$
 
-**AI application — Estimating vocabulary coverage:**
+**AI application - Estimating vocabulary coverage:**
 
 Given $n$ documents with vocabularies $V_1, \dots, V_n$:
 
@@ -1337,7 +1337,7 @@ Therefore: $\sum_{k \text{ even}} \binom{n}{k} = \sum_{k \text{ odd}} \binom{n}{
 
 ## 12. Epsilon-Delta and Analytic Proofs
 
-### 12.1 The ε-δ Framework
+### 12.1 The \epsilon-\delta Framework
 
 In analysis, many proofs require showing that a quantity can be made **arbitrarily small**. The standard framework:
 
@@ -1377,7 +1377,7 @@ $$f(x_T) - f(x^*) \leq \frac{L \|x_0 - x^*\|^2}{2T}$$
 
 This is an $O(1/T)$ convergence rate. $\square$
 
-**Reading this proof:** Note the structure — establish a per-step improvement bound, then telescope the sum. This pattern recurs throughout optimisation theory.
+**Reading this proof:** Note the structure - establish a per-step improvement bound, then telescope the sum. This pattern recurs throughout optimisation theory.
 
 ### 12.3 PAC-Learning Bound (Finite Hypothesis Classes)
 
@@ -1399,17 +1399,17 @@ $$\Pr[\exists \text{ bad consistent } h] \leq |\mathcal{H}| \cdot e^{-\varepsilo
 
 Set this $\leq \delta$: $|\mathcal{H}| e^{-\varepsilon m} \leq \delta \iff m \geq \frac{1}{\varepsilon} \ln \frac{|\mathcal{H}|}{\delta}$. $\square$
 
-**Significance:** This is the foundational bound in computational learning theory. It connects sample complexity to hypothesis class size logarithmically — explaining why large model families need more data.
+**Significance:** This is the foundational bound in computational learning theory. It connects sample complexity to hypothesis class size logarithmically - explaining why large model families need more data.
 
-### 12.4 Uniform Convergence via ε-Nets
+### 12.4 Uniform Convergence via \epsilon-Nets
 
-**Theorem (ε-net argument).** For a hypothesis class with VC-dimension $d$, $m = O\left(\frac{d + \ln(1/\delta)}{\varepsilon^2}\right)$ samples suffice for uniform convergence of empirical risk to true risk within $\varepsilon$.
+**Theorem (\epsilon-net argument).** For a hypothesis class with VC-dimension $d$, $m = O\left(\frac{d + \ln(1/\delta)}{\varepsilon^2}\right)$ samples suffice for uniform convergence of empirical risk to true risk within $\varepsilon$.
 
 **Proof idea.**
 
-The ε-net approach discretises the infinite hypothesis class: find a finite ε-net $\mathcal{N}_\varepsilon$ (of size determined by the VC dimension) such that every $h \in \mathcal{H}$ is close to some $h' \in \mathcal{N}_\varepsilon$. Apply the finite class bound to $\mathcal{N}_\varepsilon$.
+The \epsilon-net approach discretises the infinite hypothesis class: find a finite \epsilon-net $\mathcal{N}_\varepsilon$ (of size determined by the VC dimension) such that every $h \in \mathcal{H}$ is close to some $h' \in \mathcal{N}_\varepsilon$. Apply the finite class bound to $\mathcal{N}_\varepsilon$.
 
-The key technical tool is the **symmetrisation argument** (Vapnik–Chervonenkis): replace the true risk with an empirical risk on a "ghost sample," then bound the probability of large deviations using Rademacher complexity or growth function bounds.
+The key technical tool is the **symmetrisation argument** (Vapnik-Chervonenkis): replace the true risk with an empirical risk on a "ghost sample," then bound the probability of large deviations using Rademacher complexity or growth function bounds.
 
 This is the theoretical foundation of **generalisation bounds** in machine learning.
 
@@ -1422,26 +1422,26 @@ This is the theoretical foundation of **generalisation bounds** in machine learn
 ML proofs recurrently use a small number of **structural patterns**. Recognising these patterns helps you read and construct proofs more efficiently.
 
 ```
-╔══════════════════════════════════════════════════════╗
-║       ML PROOF PATTERN LANDSCAPE                     ║
-╠══════════════════════════════════════════════════════╣
-║                                                      ║
-║  Bound-Based    ──── Union bound + per-element       ║
-║                       probability control             ║
-║                                                      ║
-║  Descent-Based  ──── Per-step improvement            ║
-║                       + telescoping sum               ║
-║                                                      ║
-║  Convexity      ──── Jensen's inequality /            ║
-║                       definition verification         ║
-║                                                      ║
-║  Symmetry       ──── Rademacher / permutation         ║
-║                       arguments                       ║
-║                                                      ║
-║  Information    ──── Data processing inequality /     ║
-║                       mutual information bounds       ║
-║                                                      ║
-╚══════════════════════════════════════════════════════╝
++======================================================+
+|       ML PROOF PATTERN LANDSCAPE                     |
++======================================================+
+|                                                      |
+|  Bound-Based    ---- Union bound + per-element       |
+|                       probability control             |
+|                                                      |
+|  Descent-Based  ---- Per-step improvement            |
+|                       + telescoping sum               |
+|                                                      |
+|  Convexity      ---- Jensen's inequality /            |
+|                       definition verification         |
+|                                                      |
+|  Symmetry       ---- Rademacher / permutation         |
+|                       arguments                       |
+|                                                      |
+|  Information    ---- Data processing inequality /     |
+|                       mutual information bounds       |
+|                                                      |
++======================================================+
 ```
 
 ### 13.2 The Union Bound Pattern
@@ -1454,7 +1454,7 @@ $$\Pr\left[\bigcup_i A_i\right] \leq \sum_i \Pr[A_i]$$
 
 **Pro tip:** If the union bound is too loose (sum exceeds 1), try:
 - Chernoff/Hoeffding bounds for tighter individual terms
-- ε-net arguments to reduce the number of terms
+- \epsilon-net arguments to reduce the number of terms
 - Symmetrisation to avoid direct union bounding
 
 ### 13.3 The Descent Lemma Pattern
@@ -1474,13 +1474,13 @@ $$\Pr\left[\bigcup_i A_i\right] \leq \sum_i \Pr[A_i]$$
 2. **First-order:** $f(y) \geq f(x) + \nabla f(x)^T(y-x)$ for all $x, y$
 3. **Second-order:** $\nabla^2 f(x) \succeq 0$ for all $x$ (Hessian is PSD)
 
-**Example — Cross-entropy is convex in logits:**
+**Example - Cross-entropy is convex in logits:**
 
 $$L(z) = -z_y + \log \sum_v e^{z_v}$$
 
 $$\frac{\partial^2 L}{\partial z_i \partial z_j} = \text{diag}(p) - pp^T \quad \text{where } p_i = \frac{e^{z_i}}{\sum_v e^{z_v}}$$
 
-This is $\text{diag}(p) - pp^T$, which is the covariance matrix of a categorical distribution — always PSD. $\square$
+This is $\text{diag}(p) - pp^T$, which is the covariance matrix of a categorical distribution - always PSD. $\square$
 
 ### 13.5 The Symmetrisation Argument
 
@@ -1496,7 +1496,7 @@ This converts an infinite supremum into a computable quantity and is the basis o
 
 ### 13.6 Proof Strategy Selection Guide
 
-| I want to show… | Technique | Key tool |
+| I want to show... | Technique | Key tool |
 |---|---|---|
 | Algorithm converges | Descent lemma | Per-step bound + telescope |
 | Model generalises | Union bound / Rademacher | PAC / VC / Rademacher |
@@ -1515,7 +1515,7 @@ This converts an infinite supremum into a computable quantity and is the basis o
 
 **Fallacy:** From $P \to Q$ and $Q$, conclude $P$.
 
-**Example:** "If a model overfits, training loss is low. Training loss is low. Therefore the model overfits." — **Invalid.** Low training loss could be from a well-generalising model.
+**Example:** "If a model overfits, training loss is low. Training loss is low. Therefore the model overfits." - **Invalid.** Low training loss could be from a well-generalising model.
 
 **Correct reasoning:** $P \to Q$ and $Q$ tells you nothing about $P$. Only $P \to Q$ and $\lnot Q$ lets you conclude $\lnot P$ (modus tollens).
 
@@ -1523,7 +1523,7 @@ This converts an infinite supremum into a computable quantity and is the basis o
 
 **Fallacy:** From $P \to Q$ and $\lnot P$, conclude $\lnot Q$.
 
-**Example:** "If learning rate is too high, training diverges. Learning rate is not too high. Therefore training does not diverge." — **Invalid.** Training can diverge for other reasons (exploding gradients, numerical issues).
+**Example:** "If learning rate is too high, training diverges. Learning rate is not too high. Therefore training does not diverge." - **Invalid.** Training can diverge for other reasons (exploding gradients, numerical issues).
 
 ### 14.3 Confusing Necessary and Sufficient Conditions
 
@@ -1539,7 +1539,7 @@ This converts an infinite supremum into a computable quantity and is the basis o
 
 Verifying $P(n)$ for specific values of $n$ does not prove $\forall n\, P(n)$.
 
-**Famous counterexample:** $n^2 + n + 41$ is prime for $n = 0, 1, 2, \dots, 39$ — but $40^2 + 40 + 41 = 41^2$ is not prime.
+**Famous counterexample:** $n^2 + n + 41$ is prime for $n = 0, 1, 2, \dots, 39$ - but $40^2 + 40 + 41 = 41^2$ is not prime.
 
 **In ML:** "The model works on the test set" does not prove "the model works on all inputs." This is precisely why generalisation theory exists.
 
@@ -1557,14 +1557,14 @@ Using the conclusion as a premise (possibly through a chain of implications that
 
 "Claim: Any group of $n$ horses are the same colour.
 
-Base: $n = 1$. One horse has one colour. ✓
+Base: $n = 1$. One horse has one colour. OK
 
 Inductive step: Assume any $k$ horses are the same colour. Given $k+1$ horses $\{h_1, \dots, h_{k+1}\}$:
 - $\{h_1, \dots, h_k\}$: same colour by IH.
 - $\{h_2, \dots, h_{k+1}\}$: same colour by IH.
 - These overlap in $\{h_2, \dots, h_k\}$, so all $k+1$ are the same colour."
 
-**The bug:** When $k = 1$, the overlap $\{h_2, \dots, h_k\} = \varnothing$ — there is no overlap! The inductive step fails at $k = 1$.
+**The bug:** When $k = 1$, the overlap $\{h_2, \dots, h_k\} = \varnothing$ - there is no overlap! The inductive step fails at $k = 1$.
 
 **Lesson:** Always check that the inductive step works at the **boundary** ($k = n_0$).
 
@@ -1577,8 +1577,8 @@ Inductive step: Assume any $k$ horses are the same colour. Given $k+1$ horses $\
 
 **In ML context:**
 
-- "$\forall \varepsilon, \exists m$: with $m$ samples, error $< \varepsilon$" — correct PAC statement.
-- "$\exists m, \forall \varepsilon$: with $m$ samples, error $< \varepsilon$" — would mean finite samples give zero error, which is false.
+- "$\forall \varepsilon, \exists m$: with $m$ samples, error $< \varepsilon$" - correct PAC statement.
+- "$\exists m, \forall \varepsilon$: with $m$ samples, error $< \varepsilon$" - would mean finite samples give zero error, which is false.
 
 The **order of quantifiers matters**. Swapping $\forall$ and $\exists$ changes the meaning entirely.
 
@@ -1634,7 +1634,7 @@ The **order of quantifiers matters**. Swapping $\forall$ and $\exists$ changes t
 
 **Exercise 17.** Prove by induction on network depth: the composition of $d$ Lipschitz functions with constants $L_1, \dots, L_d$ is Lipschitz with constant $\prod_{i=1}^d L_i$.
 
-**Exercise 18.** Prove by contradiction: a continuous function on a closed bounded interval $[a, b]$ attains its maximum (use sequences and the Bolzano–Weierstrass theorem).
+**Exercise 18.** Prove by contradiction: a continuous function on a closed bounded interval $[a, b]$ attains its maximum (use sequences and the Bolzano-Weierstrass theorem).
 
 ### 15.8 Solution Sketches
 
@@ -1648,11 +1648,11 @@ Assume $\sqrt{3} = p/q$ with $\gcd(p,q) = 1$. Then $3q^2 = p^2$, so $3 | p^2$, h
 
 **Exercise 9 solution sketch:**
 
-Base ($n = 0$): $2^0 = 1 = 2^1 - 1$. ✓
+Base ($n = 0$): $2^0 = 1 = 2^1 - 1$. OK
 
 IH: Assume $\sum_{i=0}^{k} 2^i = 2^{k+1} - 1$.
 
-$\sum_{i=0}^{k+1} 2^i = (2^{k+1} - 1) + 2^{k+1} = 2 \cdot 2^{k+1} - 1 = 2^{k+2} - 1$. ✓ $\square$
+$\sum_{i=0}^{k+1} 2^i = (2^{k+1} - 1) + 2^{k+1} = 2 \cdot 2^{k+1} - 1 = 2^{k+2} - 1$. OK $\square$
 
 **Exercise 16 solution sketch:**
 
@@ -1670,18 +1670,18 @@ Machine learning operates in a landscape of empirical results. Proofs provide th
 
 | What proofs guarantee | Example |
 |---|---|
-| **Correctness** | Backpropagation correctly computes gradients (structural induction, §9.5) |
-| **Convergence** | Gradient descent reaches optimum at rate $O(1/T)$ (analytic proof, §12.2) |
-| **Generalisation** | PAC bounds on sample complexity (union bound + counting, §12.3) |
-| **Expressiveness** | Universal approximation — networks can represent any continuous function |
-| **Impossibility** | No Free Lunch — no single algorithm dominates on all problems |
-| **Robustness** | Lipschitz bounds ↔ adversarial robustness (contrapositive, §4.5) |
+| **Correctness** | Backpropagation correctly computes gradients (structural induction, 9.5) |
+| **Convergence** | Gradient descent reaches optimum at rate $O(1/T)$ (analytic proof, 12.2) |
+| **Generalisation** | PAC bounds on sample complexity (union bound + counting, 12.3) |
+| **Expressiveness** | Universal approximation - networks can represent any continuous function |
+| **Impossibility** | No Free Lunch - no single algorithm dominates on all problems |
+| **Robustness** | Lipschitz bounds <-> adversarial robustness (contrapositive, 4.5) |
 
 Without proofs, we are running experiments in the dark. With proofs, we know **why** things work (or fail) and **when** guarantees hold.
 
 ### 16.2 Proofs and Algorithms
 
-There is a deep connection between proofs and algorithms (the **Curry–Howard correspondence** in its broadest sense):
+There is a deep connection between proofs and algorithms (the **Curry-Howard correspondence** in its broadest sense):
 
 | Proof concept | Algorithm concept |
 |---|---|
@@ -1699,13 +1699,13 @@ You don't need to prove new theorems to benefit from proof literacy. Knowing how
 
 1. **Understand assumptions:** Every theorem has hypotheses. Knowing them tells you when the guarantee applies to your model and when it doesn't.
 
-2. **Spot gaps in arguments:** "This architecture is better because it has more parameters" — is that a proof? What's the implicit theorem? What are the hidden assumptions?
+2. **Spot gaps in arguments:** "This architecture is better because it has more parameters" - is that a proof? What's the implicit theorem? What are the hidden assumptions?
 
 3. **Debug theoretical claims:** Papers sometimes contain proof errors. Proof literacy lets you verify claims before building on them.
 
 4. **Transfer results:** If you understand *why* a theorem holds (not just *that* it holds), you can adapt it to new settings.
 
-### 16.4 Modern Frontiers — AI for Proofs
+### 16.4 Modern Frontiers - AI for Proofs
 
 The field is coming full circle: AI systems are now being used to **discover and verify proofs**:
 
@@ -1747,11 +1747,11 @@ As you move into linear algebra, calculus, probability, and optimization, try to
 3. **Alon, N. & Spencer, J.H.** *The Probabilistic Method.* Wiley, 4th ed., 2016.
 4. **Shalev-Shwartz, S. & Ben-David, S.** *Understanding Machine Learning: From Theory to Algorithms.* Cambridge University Press, 2014.
 5. **Boyd, S. & Vandenberghe, L.** *Convex Optimization.* Cambridge University Press, 2004.
-6. **Goemans, M.X. & Williamson, D.P.** "Improved approximation algorithms for maximum cut…" *JACM* 42(6), 1995.
-7. **Erdős, P.** "Some remarks on the theory of graphs." *Bulletin of the AMS* 53, 1947.
+6. **Goemans, M.X. & Williamson, D.P.** "Improved approximation algorithms for maximum cut..." *JACM* 42(6), 1995.
+7. **Erdos, P.** "Some remarks on the theory of graphs." *Bulletin of the AMS* 53, 1947.
 8. **Nesterov, Y.** *Introductory Lectures on Convex Optimization.* Springer, 2004.
 9. **Trinh, T. et al.** "Solving olympiad geometry without human demonstrations." *Nature* 625, 2024.
 
 ---
 
-[← Previous: Einstein Summation and Index Notation](../05-Einstein-Summation-and-Index-Notation/notes.md) | [Home](../../README.md) | [Next: Vectors and Spaces →](../../02-Linear-Algebra-Basics/01-Vectors-and-Spaces/notes.md)
+[<- Previous: Einstein Summation and Index Notation](../05-Einstein-Summation-and-Index-Notation/notes.md) | [Home](../../README.md) | [Next: Vectors and Spaces ->](../../02-Linear-Algebra-Basics/01-Vectors-and-Spaces/notes.md)

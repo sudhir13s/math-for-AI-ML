@@ -1,24 +1,24 @@
-[← Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)
+[<- Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)
 
 ---
 
 # Floating-Point Arithmetic
 
 > _"The computer is binary by nature; real numbers are not. Everything that follows is a consequence of this mismatch."_
-> — David Goldberg
+> - David Goldberg
 
 ## Overview
 
-Every AI model trained on a GPU operates entirely in floating-point arithmetic — a finite, discrete approximation to the infinite real number line. When a neural network fails to converge, produces NaN losses, or gives subtly wrong predictions, the root cause is almost always numerical: a poorly conditioned operation, a rounding error that compounds across millions of iterations, or a format mismatch between fp16 and fp32 accumulators.
+Every AI model trained on a GPU operates entirely in floating-point arithmetic - a finite, discrete approximation to the infinite real number line. When a neural network fails to converge, produces NaN losses, or gives subtly wrong predictions, the root cause is almost always numerical: a poorly conditioned operation, a rounding error that compounds across millions of iterations, or a format mismatch between fp16 and fp32 accumulators.
 
-This section develops floating-point arithmetic from the ground up. We begin with the IEEE 754 standard — the universal specification for how computers represent and compute with non-integer numbers — then study rounding error models, catastrophic cancellation, condition numbers, and numerical stability. We close with the numerical formats used in modern AI: fp32, fp16, bf16, fp8, and their implications for training stability, inference speed, and quantization.
+This section develops floating-point arithmetic from the ground up. We begin with the IEEE 754 standard - the universal specification for how computers represent and compute with non-integer numbers - then study rounding error models, catastrophic cancellation, condition numbers, and numerical stability. We close with the numerical formats used in modern AI: fp32, fp16, bf16, fp8, and their implications for training stability, inference speed, and quantization.
 
-The central lesson is: floating-point errors are not random noise — they are deterministic, structured, and predictable. Once you understand the rounding error model $\text{fl}(x \circ y) = (x \circ y)(1+\delta)$, $|\delta| \le \varepsilon_{\text{mach}}$, you can analyze, bound, and eliminate the numerical errors that silently corrupt computations.
+The central lesson is: floating-point errors are not random noise - they are deterministic, structured, and predictable. Once you understand the rounding error model $\text{fl}(x \circ y) = (x \circ y)(1+\delta)$, $|\delta| \le \varepsilon_{\text{mach}}$, you can analyze, bound, and eliminate the numerical errors that silently corrupt computations.
 
 ## Prerequisites
 
-- Real number system and binary representation — [Mathematical Foundations §01](../../01-Mathematical-Foundations/01-Number-Systems/notes.md)
-- Basic linear algebra: vectors, matrix norms — [Linear Algebra Basics](../../02-Linear-Algebra-Basics/README.md)
+- Real number system and binary representation - [Mathematical Foundations Section01](../../01-Mathematical-Foundations/01-Number-Systems/notes.md)
+- Basic linear algebra: vectors, matrix norms - [Linear Algebra Basics](../../02-Linear-Algebra-Basics/README.md)
 - No calculus or probability required
 
 ## Companion Notebooks
@@ -26,7 +26,7 @@ The central lesson is: floating-point errors are not random noise — they are d
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive: IEEE 754 bit layouts, rounding error experiments, Kahan summation, mixed-precision comparisons, stable softmax |
-| [exercises.ipynb](exercises.ipynb) | 8 graded problems: machine epsilon, catastrophic cancellation, compensated summation, condition numbers, stable algorithms |
+| [exercises.ipynb](exercises.ipynb) | 10 graded problems: machine epsilon, catastrophic cancellation, compensated summation, condition numbers, stable algorithms |
 
 ## Learning Objectives
 
@@ -52,7 +52,7 @@ After completing this section, you will:
   - [1.1 Why Computers Cannot Represent Most Real Numbers](#11-why-computers-cannot-represent-most-real-numbers)
   - [1.2 Why This Matters for AI](#12-why-this-matters-for-ai)
   - [1.3 A Day in the Life of a Floating-Point Number](#13-a-day-in-the-life-of-a-floating-point-number)
-  - [1.4 Historical Timeline: 1985–2024](#14-historical-timeline-19852024)
+  - [1.4 Historical Timeline: 1985-2024](#14-historical-timeline-19852024)
 - [2. Formal Definitions: IEEE 754](#2-formal-definitions-ieee-754)
   - [2.1 The IEEE 754 Standard](#21-the-ieee-754-standard)
   - [2.2 Machine Epsilon](#22-machine-epsilon)
@@ -91,27 +91,27 @@ After completing this section, you will:
 
 ### 1.1 Why Computers Cannot Represent Most Real Numbers
 
-The real numbers form an uncountably infinite set. A computer, by contrast, stores information in a finite number of bits. With $k$ bits you can represent at most $2^k$ distinct values. No finite $k$ is large enough to cover even the rationals between 0 and 1 — there are infinitely many of them.
+The real numbers form an uncountably infinite set. A computer, by contrast, stores information in a finite number of bits. With $k$ bits you can represent at most $2^k$ distinct values. No finite $k$ is large enough to cover even the rationals between 0 and 1 - there are infinitely many of them.
 
-The resolution: **floating-point numbers** are a carefully chosen, finite subset of the rationals — dense near zero (where scientific quantities tend to cluster) and increasingly sparse at large magnitudes. The IEEE 754 standard specifies exactly which rationals are representable and exactly how arithmetic on them is performed. Every GPU, CPU, and TPU on the planet implements this standard.
+The resolution: **floating-point numbers** are a carefully chosen, finite subset of the rationals - dense near zero (where scientific quantities tend to cluster) and increasingly sparse at large magnitudes. The IEEE 754 standard specifies exactly which rationals are representable and exactly how arithmetic on them is performed. Every GPU, CPU, and TPU on the planet implements this standard.
 
-**The consequence for computation:** Every real-number operation — addition, multiplication, transcendentals — must be *rounded* to the nearest representable floating-point number. This introduces a tiny error at each step. Over millions of operations (a single transformer forward pass involves billions), these errors can accumulate in structured, predictable ways. Understanding and controlling this accumulation is numerical analysis.
+**The consequence for computation:** Every real-number operation - addition, multiplication, transcendentals - must be *rounded* to the nearest representable floating-point number. This introduces a tiny error at each step. Over millions of operations (a single transformer forward pass involves billions), these errors can accumulate in structured, predictable ways. Understanding and controlling this accumulation is numerical analysis.
 
-**A concrete example:** The number $0.1$ cannot be represented exactly in binary floating-point. In fp32 it is stored as approximately $0.100000001490116119384765625$ — an error of $\approx 1.5 \times 10^{-9}$. This seems negligible, but when you sum 10 million such values, the error accumulates to $\approx 15$ — a 15% error in a sum that should be exactly $10^6$.
+**A concrete example:** The number $0.1$ cannot be represented exactly in binary floating-point. In fp32 it is stored as approximately $0.100000001490116119384765625$ - an error of $\approx 1.5 \times 10^{-9}$. This seems negligible, but when you sum 10 million such values, the error accumulates to $\approx 15$ - a 15% error in a sum that should be exactly $10^6$.
 
 ### 1.2 Why This Matters for AI
 
-Floating-point arithmetic is not an abstraction for AI practitioners — it is the daily substrate:
+Floating-point arithmetic is not an abstraction for AI practitioners - it is the daily substrate:
 
 **Training stability:** fp16 training requires loss scaling to prevent gradient underflow. Without it, gradients smaller than the fp16 minimum ($\approx 6 \times 10^{-5}$) are rounded to zero, silently stopping learning for those parameters.
 
 **Model quality:** Quantizing from fp32 to int8 for inference can degrade accuracy by 1-5% on challenging tasks if done naively. Understanding the rounding error model tells you which operations are most sensitive and how to compensate.
 
-**Numerical bugs:** NaN (Not a Number) propagation is one of the most common silent failures in deep learning. A single NaN anywhere in the computation graph — caused by $\log(0)$, $0/0$, or overflow — propagates through every subsequent operation, turning the entire gradient to NaN.
+**Numerical bugs:** NaN (Not a Number) propagation is one of the most common silent failures in deep learning. A single NaN anywhere in the computation graph - caused by $\log(0)$, $0/0$, or overflow - propagates through every subsequent operation, turning the entire gradient to NaN.
 
 **Speed and memory:** The transition from fp32 to bf16 for training LLMs (GPT-4, Llama, Gemini all use bf16) halves memory and roughly doubles arithmetic throughput on modern hardware. Understanding why bf16 preserves training stability when fp16 does not requires knowing that bf16 preserves the exponent range of fp32 while sacrificing mantissa precision.
 
-**For AI:** Every tensor in PyTorch, JAX, or TensorFlow is a floating-point array. `torch.finfo(torch.float16).eps` gives you $\varepsilon_{\text{mach}}$ for fp16. Knowing this number — $9.77 \times 10^{-4}$ — immediately tells you the precision limit of every fp16 computation.
+**For AI:** Every tensor in PyTorch, JAX, or TensorFlow is a floating-point array. `torch.finfo(torch.float16).eps` gives you $\varepsilon_{\text{mach}}$ for fp16. Knowing this number - $9.77 \times 10^{-4}$ - immediately tells you the precision limit of every fp16 computation.
 
 ### 1.3 A Day in the Life of a Floating-Point Number
 
@@ -123,33 +123,33 @@ Follow a real number $x = 0.3$ through a computation:
 
 **Comparison (danger):** Testing `x_fp32 + 0.6_fp32 == 0.9` returns `False` in Python because both sides round differently. This is the source of countless bugs in numerical code.
 
-**Accumulation (catastrophe):** Subtract $0.8_{\text{fp32}}$ from the result: $0.89999997615814208 - 0.80000001192092896 = 0.09999996423721312$ vs the true $0.1$. Relative error: $\approx 3.6 \times 10^{-7}$ — 30× larger than the original encoding error, because subtraction of nearly-equal numbers amplifies relative error. This is **catastrophic cancellation**.
+**Accumulation (catastrophe):** Subtract $0.8_{\text{fp32}}$ from the result: $0.89999997615814208 - 0.80000001192092896 = 0.09999996423721312$ vs the true $0.1$. Relative error: $\approx 3.6 \times 10^{-7}$ - 30x larger than the original encoding error, because subtraction of nearly-equal numbers amplifies relative error. This is **catastrophic cancellation**.
 
 **Death (overflow/underflow):** Multiply by $10^{38}$ in fp32: overflow to $+\infty$. Multiply by $10^{-46}$: underflow to $0$ (or a subnormal). Once a value becomes $\pm\infty$ or NaN, all subsequent operations inherit the corruption.
 
-### 1.4 Historical Timeline: 1985–2024
+### 1.4 Historical Timeline: 1985-2024
 
 ```
 FLOATING-POINT ARITHMETIC: KEY MILESTONES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1985  IEEE 754-1985 published — first universal FP standard
+  1985  IEEE 754-1985 published - first universal FP standard
         (sign, exponent, mantissa; round-to-nearest-even default)
   1987  First IEEE 754 hardware: Intel 8087 math coprocessor
   1998  IEEE 754-1985 extended to include 80-bit extended precision
-  2008  IEEE 754-2008 — adds fp16 (half precision), decimal formats
+  2008  IEEE 754-2008 - adds fp16 (half precision), decimal formats
   2010  NVIDIA Fermi GPU: first IEEE-compliant fp64 on GPU
-  2017  Mixed-precision training (Micikevicius et al., NVIDIA) —
+  2017  Mixed-precision training (Micikevicius et al., NVIDIA) -
         fp16 forward/backward, fp32 master weights
   2018  bf16 (Brain Float 16) introduced by Google Brain for TPUs
   2019  NVIDIA Ampere: bf16 tensor cores, hardware Transformer Engine
-  2022  fp8 training (NVIDIA H100 Transformer Engine) — 8-bit FP
+  2022  fp8 training (NVIDIA H100 Transformer Engine) - 8-bit FP
         with dynamic scaling; used for LLM training
   2023  Llama-2, GPT-4, Gemini: bf16 training standard
   2024  fp4 experimental; int4/int8 GGUF quantization standard
         for LLM inference (llama.cpp ecosystem)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -185,7 +185,7 @@ where:
 
 ```
 IEEE 754 BIT LAYOUTS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   fp32 (32 bits):
   [S][EEEEEEEE][MMMMMMMMMMMMMMMMMMMMMMM]
@@ -197,13 +197,13 @@ IEEE 754 BIT LAYOUTS
 
   bf16 (16 bits):
   [S][EEEEEEEE][MMMMMMM]
-   1     8         7      ← Same exponent field as fp32!
+   1     8         7      <- Same exponent field as fp32!
 
   fp8 E4M3 (8 bits):
   [S][EEEE][MMM]
    1    4     3
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 2.2 Machine Epsilon
@@ -222,18 +222,18 @@ $$|\text{fl}(x) - x| \le \frac{1}{2} \text{ULP}(x) \le \frac{\varepsilon_{\text{
 
 This is the **relative rounding error bound**: $|\text{fl}(x) - x| / |x| \le \varepsilon_{\text{mach}}/2$.
 
-**Non-example:** Machine epsilon is NOT the smallest positive floating-point number. The smallest normal fp32 number is $\approx 1.18 \times 10^{-38}$. Machine epsilon is the smallest perturbation to $1$ that is detectable — a very different concept.
+**Non-example:** Machine epsilon is NOT the smallest positive floating-point number. The smallest normal fp32 number is $\approx 1.18 \times 10^{-38}$. Machine epsilon is the smallest perturbation to $1$ that is detectable - a very different concept.
 
 ### 2.3 The Floating-Point Number Line
 
 The floating-point numbers are **not uniformly spaced**. They cluster densely near zero and become increasingly sparse at large magnitudes:
 
-- In $[1, 2)$: spacing = $2^{-23}$ (fp32) — $\approx 8.4 \times 10^6$ numbers
-- In $[2, 4)$: spacing = $2^{-22}$ — $\approx 8.4 \times 10^6$ numbers
-- In $[1024, 2048)$: spacing = $2^{-13}$ — same count, but 1000× coarser
-- Near $10^{37}$: spacing $\approx 10^{30}$ — individual values separated by $10^{30}$!
+- In $[1, 2)$: spacing = $2^{-23}$ (fp32) - $\approx 8.4 \times 10^6$ numbers
+- In $[2, 4)$: spacing = $2^{-22}$ - $\approx 8.4 \times 10^6$ numbers
+- In $[1024, 2048)$: spacing = $2^{-13}$ - same count, but 1000x coarser
+- Near $10^{37}$: spacing $\approx 10^{30}$ - individual values separated by $10^{30}$!
 
-**Consequence for AI:** Neural network weights are typically initialized in $[-1, 1]$, where fp32 provides $\sim 10^7$ distinct values per unit. As training progresses and some weights grow large, precision degrades — but this rarely matters because the loss landscape is smooth there. The dangerous zone is when gradients become very small (near $10^{-7}$ in fp32), where underflow begins.
+**Consequence for AI:** Neural network weights are typically initialized in $[-1, 1]$, where fp32 provides $\sim 10^7$ distinct values per unit. As training progresses and some weights grow large, precision degrades - but this rarely matters because the loss landscape is smooth there. The dangerous zone is when gradients become very small (near $10^{-7}$ in fp32), where underflow begins.
 
 ### 2.4 Special Values: Infinity, NaN, Subnormals
 
@@ -247,7 +247,7 @@ The floating-point numbers are **not uniformly spaced**. They cluster densely ne
 
 ### 2.5 Rounding Modes
 
-IEEE 754 defines five rounding modes. The default — used in virtually all ML training — is **round-to-nearest-even** (banker's rounding):
+IEEE 754 defines five rounding modes. The default - used in virtually all ML training - is **round-to-nearest-even** (banker's rounding):
 
 | Mode | Description | When used |
 |------|-------------|-----------|
@@ -275,7 +275,7 @@ The computed result equals the exact result times a factor $(1+\delta)$ where $\
 **Chaining errors:** For a sequence of $n$ operations, the cumulative error is bounded by approximately $n\varepsilon_{\text{mach}}$ in relative terms. For a dot product $\mathbf{x}^\top \mathbf{y} = \sum_{i=1}^n x_i y_i$:
 $$|\text{fl}(\mathbf{x}^\top \mathbf{y}) - \mathbf{x}^\top \mathbf{y}| \le (n-1)\varepsilon_{\text{mach}} |\mathbf{x}|^\top |\mathbf{y}| \cdot (1 + O(\varepsilon_{\text{mach}}))$$
 
-**For AI:** The attention softmax computes $\text{softmax}(\mathbf{q}^\top K / \sqrt{d_k})$ — a dot product of length $d_k$ (typically 64–128). In fp16, $\varepsilon_{\text{mach}} \approx 10^{-3}$, and the dot product accumulates $\sim 128 \times 10^{-3} = 12.8\%$ relative error if done naively in fp16. This is why FlashAttention accumulates the softmax denominator in fp32 even when computing in fp16.
+**For AI:** The attention softmax computes $\text{softmax}(\mathbf{q}^\top K / \sqrt{d_k})$ - a dot product of length $d_k$ (typically 64-128). In fp16, $\varepsilon_{\text{mach}} \approx 10^{-3}$, and the dot product accumulates $\sim 128 \times 10^{-3} = 12.8\%$ relative error if done naively in fp16. This is why FlashAttention accumulates the softmax denominator in fp32 even when computing in fp16.
 
 ### 3.2 Catastrophic Cancellation
 
@@ -286,7 +286,7 @@ $$|\text{fl}(\mathbf{x}^\top \mathbf{y}) - \mathbf{x}^\top \mathbf{y}| \le (n-1)
 For $x = 10^8$ in fp32:
 - $\sqrt{10^8 + 1} \approx 10000.0000500000$ (fp32: $10000.0$)
 - $\sqrt{10^8} = 10000.0$ (fp32: $10000.0$)
-- $f(10^8)_{\text{fp32}} = 0.0$ — complete loss of all digits!
+- $f(10^8)_{\text{fp32}} = 0.0$ - complete loss of all digits!
 
 True value: $f(10^8) = 1/(\sqrt{10^8+1} + \sqrt{10^8}) \approx 5 \times 10^{-5}$.
 
@@ -295,17 +295,17 @@ $$\sqrt{x+1} - \sqrt{x} = \frac{(\sqrt{x+1} - \sqrt{x})(\sqrt{x+1} + \sqrt{x})}{
 
 The denominator is computed by addition (not subtraction), avoiding cancellation entirely.
 
-**General rule:** When a subtraction $a - b$ results in a value much smaller than $|a|$ and $|b|$, suspect catastrophic cancellation. The relative error in the result can be as large as $|a|/|a-b| \times \varepsilon_{\text{mach}}$ — the ratio of operand magnitude to result magnitude times machine epsilon.
+**General rule:** When a subtraction $a - b$ results in a value much smaller than $|a|$ and $|b|$, suspect catastrophic cancellation. The relative error in the result can be as large as $|a|/|a-b| \times \varepsilon_{\text{mach}}$ - the ratio of operand magnitude to result magnitude times machine epsilon.
 
-**In AI:** The log-sum-exp function $\log(\sum_i e^{x_i})$ suffers cancellation when $e^{x_i}$ values are very different in magnitude. The numerically stable form subtracts the maximum first — an algebraic rearrangement that avoids both overflow and cancellation (see §6.2).
+**In AI:** The log-sum-exp function $\log(\sum_i e^{x_i})$ suffers cancellation when $e^{x_i}$ values are very different in magnitude. The numerically stable form subtracts the maximum first - an algebraic rearrangement that avoids both overflow and cancellation (see Section6.2).
 
 ### 3.3 Error Accumulation in Long Computations
 
 **Forward error analysis:** Track how errors in inputs propagate to errors in outputs. For a function $f: \mathbb{R}^n \to \mathbb{R}^m$ evaluated via a sequence of operations, the forward error bound expresses $\|\hat{f}(\mathbf{x}) - f(\mathbf{x})\|$ in terms of $\varepsilon_{\text{mach}}$ and problem data.
 
-**Backward error analysis (Wilkinson):** Ask a different question: for what perturbed input $\hat{\mathbf{x}}$ does the computed output $\hat{f}(\mathbf{x})$ equal the *exact* output? The backward error is $\|\hat{\mathbf{x}} - \mathbf{x}\|/\|\mathbf{x}\|$ — how much was the input effectively perturbed?
+**Backward error analysis (Wilkinson):** Ask a different question: for what perturbed input $\hat{\mathbf{x}}$ does the computed output $\hat{f}(\mathbf{x})$ equal the *exact* output? The backward error is $\|\hat{\mathbf{x}} - \mathbf{x}\|/\|\mathbf{x}\|$ - how much was the input effectively perturbed?
 
-**Why backward analysis is preferred:** If an algorithm's backward error is of size $\varepsilon_{\text{mach}}$ (i.e., the computed answer is the exact answer for a slightly perturbed input), the algorithm is **backward stable** — as good as you can expect from finite-precision arithmetic.
+**Why backward analysis is preferred:** If an algorithm's backward error is of size $\varepsilon_{\text{mach}}$ (i.e., the computed answer is the exact answer for a slightly perturbed input), the algorithm is **backward stable** - as good as you can expect from finite-precision arithmetic.
 
 **Summation error:** For the sum $S = \sum_{i=1}^n x_i$, naive sequential summation has forward error $O(n \varepsilon_{\text{mach}}) \|{\mathbf{x}}\|_1$. Pairwise summation (binary tree) reduces this to $O(\log n \varepsilon_{\text{mach}})$. Kahan summation reduces it to $O(\varepsilon_{\text{mach}})$, independent of $n$.
 
@@ -315,10 +315,10 @@ Kahan (1965) showed that a small modification to sequential summation reduces th
 
 ```
 KAHAN SUMMATION ALGORITHM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input: x_1, x_2, ..., x_n
-  Output: S ≈ sum(x_i)
+  Output: S \\approx sum(x_i)
 
   s = 0.0       # running sum
   c = 0.0       # compensation (tracks lost digits)
@@ -331,10 +331,10 @@ KAHAN SUMMATION ALGORITHM
 
   return s
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Why it works:** The compensation variable `c` tracks the rounding error at each step. It accumulates the "lost" low-order bits and feeds them back into the next iteration. The net effect is that the error behaves as $O(\varepsilon_{\text{mach}})$ regardless of $n$ — equivalent to computing in twice the precision.
+**Why it works:** The compensation variable `c` tracks the rounding error at each step. It accumulates the "lost" low-order bits and feeds them back into the next iteration. The net effect is that the error behaves as $O(\varepsilon_{\text{mach}})$ regardless of $n$ - equivalent to computing in twice the precision.
 
 **In PyTorch:** `torch.sum()` uses pairwise summation (tree reduction), which achieves $O(\log n \varepsilon_{\text{mach}})$ error. For high-precision accumulation (e.g., loss over a large batch), consider accumulating in fp64 then converting back.
 
@@ -344,7 +344,7 @@ KAHAN SUMMATION ALGORITHM
 
 **Example:** $[1.0, 1.0] + [0.3, 0.3_{\text{fp32}}^+] = [1.3, 1.3_{\text{fp32}}^+]$ where the subscript fp32$^+$ denotes rounding up.
 
-**Practical use:** Interval arithmetic gives **verified** bounds on computation results — you know with certainty that the true answer lies in the computed interval. Used in: formal verification of safety-critical software, reliable computing, and bound propagation in neural network verification (e.g., $\alpha$-$\beta$ CROWN for adversarial robustness).
+**Practical use:** Interval arithmetic gives **verified** bounds on computation results - you know with certainty that the true answer lies in the computed interval. Used in: formal verification of safety-critical software, reliable computing, and bound propagation in neural network verification (e.g., $\alpha$-$\beta$ CROWN for adversarial robustness).
 
 **Limitation:** Interval widths grow rapidly in long computations (dependency problem), making intervals pessimistic for iterative algorithms. More sophisticated tools (affine arithmetic, Taylor models) improve the dependency problem.
 
@@ -354,7 +354,7 @@ KAHAN SUMMATION ALGORITHM
 
 ### 4.1 Condition Number of a Scalar Problem
 
-The **condition number** of a computational problem measures the sensitivity of the output to perturbations in the input — it quantifies how much the problem amplifies input errors, independent of any particular algorithm.
+The **condition number** of a computational problem measures the sensitivity of the output to perturbations in the input - it quantifies how much the problem amplifies input errors, independent of any particular algorithm.
 
 **Definition (absolute condition number):** For a function $f: \mathbb{R} \to \mathbb{R}$:
 $$\kappa_{\text{abs}}(x) = \lim_{\delta \to 0} \sup_{|\Delta x| \le \delta} \frac{|f(x + \Delta x) - f(x)|}{|\Delta x|} = |f'(x)|$$
@@ -362,32 +362,32 @@ $$\kappa_{\text{abs}}(x) = \lim_{\delta \to 0} \sup_{|\Delta x| \le \delta} \fra
 **Definition (relative condition number):**
 $$\kappa_{\text{rel}}(x) = \left|\frac{x \cdot f'(x)}{f(x)}\right|$$
 
-This measures relative output change per unit relative input change — the more natural quantity.
+This measures relative output change per unit relative input change - the more natural quantity.
 
 **Examples:**
 
 | Function | $\kappa_{\text{rel}}(x)$ | Well-conditioned? |
 |----------|--------------------------|-------------------|
-| $f(x) = \sqrt{x}$ | $1/2$ | Yes — always |
+| $f(x) = \sqrt{x}$ | $1/2$ | Yes - always |
 | $f(x) = \ln x$ | $1/|\ln x|$ | Yes for $|x| \gg 1$; ill-conditioned near $x = 1$ |
 | $f(x) = e^x$ | $|x|$ | Ill-conditioned for large $|x|$ |
 | $f(x) = \sin x$ | $|x \cos x / \sin x|$ | Ill-conditioned near $x = k\pi$ |
 | $a - b$ (subtraction) | $\max(|a|, |b|)/|a-b|$ | Catastrophic for $a \approx b$ |
 
-**Key insight:** Condition number $\kappa_{\text{rel}} \gg 1$ means the problem is **inherently ill-conditioned** — even the best algorithm operating in exact arithmetic cannot give accurate results given inaccurate inputs. No numerical technique can fix a fundamentally ill-conditioned problem; it requires reformulation.
+**Key insight:** Condition number $\kappa_{\text{rel}} \gg 1$ means the problem is **inherently ill-conditioned** - even the best algorithm operating in exact arithmetic cannot give accurate results given inaccurate inputs. No numerical technique can fix a fundamentally ill-conditioned problem; it requires reformulation.
 
 ### 4.2 Forward vs Backward Error Analysis
 
 Given a computed result $\hat{y}$ for a true answer $y = f(x)$:
 
-**Forward error:** $|y - \hat{y}|$ (or relative: $|y - \hat{y}|/|y|$) — how far the computed answer is from the truth.
+**Forward error:** $|y - \hat{y}|$ (or relative: $|y - \hat{y}|/|y|$) - how far the computed answer is from the truth.
 
-**Backward error:** The smallest $\|\Delta x\|$ such that $f(x + \Delta x) = \hat{y}$ — what perturbation to the input makes our computed answer *exact*. Symbolically: $\hat{y} = f(\hat{x})$ for some $\hat{x}$; the backward error is $|\hat{x} - x|/|x|$.
+**Backward error:** The smallest $\|\Delta x\|$ such that $f(x + \Delta x) = \hat{y}$ - what perturbation to the input makes our computed answer *exact*. Symbolically: $\hat{y} = f(\hat{x})$ for some $\hat{x}$; the backward error is $|\hat{x} - x|/|x|$.
 
 **Connection:** Forward error $\le$ condition number $\times$ backward error:
 $$\frac{|\hat{y} - y|}{|y|} \lesssim \kappa_{\text{rel}}(x) \cdot \frac{|\hat{x} - x|}{|x|}$$
 
-If an algorithm has backward error $\sim \varepsilon_{\text{mach}}$, then its forward error is at most $\kappa \varepsilon_{\text{mach}}$ — the best possible for that problem.
+If an algorithm has backward error $\sim \varepsilon_{\text{mach}}$, then its forward error is at most $\kappa \varepsilon_{\text{mach}}$ - the best possible for that problem.
 
 ### 4.3 Forward and Backward Stability of Algorithms
 
@@ -401,8 +401,8 @@ $$\|\hat{f}(x) - f(x)\| = O(\varepsilon_{\text{mach}}) \|f(x)\|$$
 
 **Hierarchy:**
 ```
-backward stable → forward stable (when κ is moderate)
-forward stable ↛ backward stable (in general)
+backward stable -> forward stable (when  is moderate)
+forward stable  backward stable (in general)
 ```
 
 **Examples:**
@@ -425,11 +425,11 @@ $$\frac{\|\hat{\mathbf{x}} - \mathbf{x}\|}{\|\mathbf{x}\|} \le \kappa(A) \cdot \
 The condition number is the worst-case amplification factor from $\mathbf{b}$-error to $\mathbf{x}$-error.
 
 **Values to know:**
-- $\kappa(I) = 1$ — perfectly conditioned (identity)
-- $\kappa(A) \approx 10^k$ — you lose $k$ decimal digits of accuracy
-- $\kappa(A) > 1/\varepsilon_{\text{mach}}$ — $A$ is numerically singular; solutions are meaningless
+- $\kappa(I) = 1$ - perfectly conditioned (identity)
+- $\kappa(A) \approx 10^k$ - you lose $k$ decimal digits of accuracy
+- $\kappa(A) > 1/\varepsilon_{\text{mach}}$ - $A$ is numerically singular; solutions are meaningless
 
-**For AI:** The Hessian matrix of a neural network loss has condition number $\kappa(H) = \lambda_{\max}/\lambda_{\min}$. When $\kappa(H)$ is large ($10^5$–$10^{10}$ in practice), gradient descent converges slowly and is sensitive to learning rate. Adam's parameter-wise scaling approximates diagonal preconditioning, reducing the effective condition number. Full preconditioning (Shampoo optimizer) targets the exact Hessian eigenspectrum.
+**For AI:** The Hessian matrix of a neural network loss has condition number $\kappa(H) = \lambda_{\max}/\lambda_{\min}$. When $\kappa(H)$ is large ($10^5$-$10^{10}$ in practice), gradient descent converges slowly and is sensitive to learning rate. Adam's parameter-wise scaling approximates diagonal preconditioning, reducing the effective condition number. Full preconditioning (Shampoo optimizer) targets the exact Hessian eigenspectrum.
 
 ---
 
@@ -439,28 +439,28 @@ The condition number is the worst-case amplification factor from $\mathbf{b}$-er
 
 ```
 FLOATING-POINT FORMAT COMPARISON
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Property           fp32           fp16           bf16
-  ─────────────────────────────────────────────────────────────────────
+  ---------------------------------------------------------------------
   Bits               32             16             16
   Exponent bits       8              5              8
   Mantissa bits      23             10              7
   Max value       3.4e+38       6.5e+04        3.4e+38
   Min normal      1.2e-38       6.1e-05        1.2e-38
   Machine eps     1.2e-07       9.8e-04        7.8e-03
-  ─────────────────────────────────────────────────────────────────────
+  ---------------------------------------------------------------------
   Training use    Reference     Legacy (APEX)  Standard (2023+)
   Gradient risk   None          Underflow      None
   Memory (1B par) 4 GB          2 GB           2 GB
-  Arithmetic TPU  Baseline      2× fp32        2× fp32
+  Arithmetic TPU  Baseline      2x fp32        2x fp32
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**bf16 vs fp16:** Both are 16-bit. bf16 keeps the 8-bit exponent field of fp32, giving the same dynamic range. fp16 uses only 5 exponent bits — max value $\approx 65504$ — which causes overflow for activations in large models. bf16 gives 3 fewer significant decimal digits than fp16, but training remains stable because gradients don't overflow.
+**bf16 vs fp16:** Both are 16-bit. bf16 keeps the 8-bit exponent field of fp32, giving the same dynamic range. fp16 uses only 5 exponent bits - max value $\approx 65504$ - which causes overflow for activations in large models. bf16 gives 3 fewer significant decimal digits than fp16, but training remains stable because gradients don't overflow.
 
-**Why bf16 won for LLMs:** GPT-2 trained in fp16 with careful loss scaling. GPT-3, Llama, Mistral, Gemini all train in bf16 — no loss scaling needed, simpler codebase, same memory.
+**Why bf16 won for LLMs:** GPT-2 trained in fp16 with careful loss scaling. GPT-3, Llama, Mistral, Gemini all train in bf16 - no loss scaling needed, simpler codebase, same memory.
 
 ### 5.2 fp8 and Extreme Quantization
 
@@ -478,26 +478,26 @@ Mixed-precision training (Micikevicius et al., 2018) is the standard approach fo
 
 ```
 MIXED-PRECISION TRAINING WORKFLOW
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Master weights:  fp32  ─────────────────────────────────────────────┐
-                          │ cast down                      ↑ update    │
-  Forward pass:   fp16/bf16 (activations, weights)                    │
-  Loss:           fp32 accumulation                                    │
-  Backward pass:  fp16/bf16 gradients                                 │
-  Gradient:       fp16/bf16 → fp32 (before weight update)  ──────────┘
+  Master weights:  fp32  ---------------------------------------------+
+                          | cast down                      ^ update    |
+  Forward pass:   fp16/bf16 (activations, weights)                    |
+  Loss:           fp32 accumulation                                    |
+  Backward pass:  fp16/bf16 gradients                                 |
+  Gradient:       fp16/bf16 -> fp32 (before weight update)  ----------+
 
   With loss scaling (fp16 only):
-  loss_scaled = loss × scale_factor   (e.g., 2^15 = 32768)
+  loss_scaled = loss x scale_factor   (e.g., 2^15 = 32768)
   Backward through loss_scaled
   gradients_fp32 /= scale_factor before optimizer step
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Key elements:**
 1. **fp32 master weights:** Full-precision copy of weights for optimizer states (momentum, variance) and weight updates
-2. **fp16/bf16 forward/backward:** Halves memory for activations; 2× throughput on tensor cores
+2. **fp16/bf16 forward/backward:** Halves memory for activations; 2x throughput on tensor cores
 3. **Loss scaling (fp16 only):** Multiplies loss by a large factor before backward pass to prevent gradient underflow; divides gradients before applying them
 4. **fp32 accumulation:** Matrix multiplications accumulate partial sums in fp32 on modern hardware, even when inputs are in fp16
 
@@ -505,7 +505,7 @@ MIXED-PRECISION TRAINING WORKFLOW
 
 Standard rounding (round-to-nearest) is **deterministically biased**: a number exactly halfway between two representable values always rounds to even. Over many operations, this can systematically shift the computed trajectory.
 
-**Stochastic rounding:** Round $x$ to $\lfloor x \rfloor_{\text{fp}}$ with probability $(\lceil x \rceil_{\text{fp}} - x) / \text{ULP}(x)$, otherwise to $\lceil x \rceil_{\text{fp}}$. This introduces random noise but ensures $\mathbb{E}[\text{fl}(x)] = x$ — the rounding is **unbiased**.
+**Stochastic rounding:** Round $x$ to $\lfloor x \rfloor_{\text{fp}}$ with probability $(\lceil x \rceil_{\text{fp}} - x) / \text{ULP}(x)$, otherwise to $\lceil x \rceil_{\text{fp}}$. This introduces random noise but ensures $\mathbb{E}[\text{fl}(x)] = x$ - the rounding is **unbiased**.
 
 **Why this matters for low-precision training:** In fp8/fp4 training, rounding errors are large enough to systematically bias weight updates. Stochastic rounding prevents this systematic bias, allowing effective training at very low precision. Used in Graphcore IPUs and experimental fp4 training.
 
@@ -515,9 +515,9 @@ Standard rounding (round-to-nearest) is **deterministically biased**: a number e
 
 ### 6.1 Gradient Vanishing/Exploding Through a Floating-Point Lens
 
-**Vanishing gradients** in fp16: If a gradient $g$ satisfies $|g| < 6.1 \times 10^{-5}$ (fp16 minimum normal), it is represented as 0 (or a subnormal with reduced precision). The parameter receives no gradient — vanishing is literal in floating-point.
+**Vanishing gradients** in fp16: If a gradient $g$ satisfies $|g| < 6.1 \times 10^{-5}$ (fp16 minimum normal), it is represented as 0 (or a subnormal with reduced precision). The parameter receives no gradient - vanishing is literal in floating-point.
 
-**Loss scaling** prevents this: multiplying the loss by $s$ before backprop multiplies all gradients by $s$. A gradient of $10^{-6}$ with scale $s = 2^{15} \approx 32768$ becomes $\approx 0.03$ — comfortably within fp16 range.
+**Loss scaling** prevents this: multiplying the loss by $s$ before backprop multiplies all gradients by $s$. A gradient of $10^{-6}$ with scale $s = 2^{15} \approx 32768$ becomes $\approx 0.03$ - comfortably within fp16 range.
 
 **Gradient clipping** addresses exploding gradients: if $\|\mathbf{g}\|_2 > G_{\max}$, scale $\mathbf{g} \leftarrow G_{\max} \mathbf{g}/\|\mathbf{g}\|_2$. This prevents overflow and stabilizes training. Used by default in transformer training (clip norm $= 1.0$ is standard).
 
@@ -525,12 +525,12 @@ Standard rounding (round-to-nearest) is **deterministically biased**: a number e
 
 **Naive softmax:** $\text{softmax}(\mathbf{x})_i = e^{x_i} / \sum_j e^{x_j}$
 
-**Problem:** For large $x_i$ (e.g., $x_i = 100$), $e^{100} \approx 2.7 \times 10^{43}$ — overflow in fp32. For very negative $x_i$, $e^{x_i} = 0$ — underflow, losing the contribution entirely.
+**Problem:** For large $x_i$ (e.g., $x_i = 100$), $e^{100} \approx 2.7 \times 10^{43}$ - overflow in fp32. For very negative $x_i$, $e^{x_i} = 0$ - underflow, losing the contribution entirely.
 
 **Stable softmax:** Subtract the maximum before exponentiation:
 $$\text{softmax}(\mathbf{x})_i = \frac{e^{x_i - \max_j x_j}}{\sum_j e^{x_j - \max_j x_j}}$$
 
-By linearity of softmax, this gives identical output. Now the largest exponent is $e^0 = 1$ — no overflow. All other terms are in $(0, 1]$ — no underflow for reasonable inputs.
+By linearity of softmax, this gives identical output. Now the largest exponent is $e^0 = 1$ - no overflow. All other terms are in $(0, 1]$ - no underflow for reasonable inputs.
 
 **Log-sum-exp:** $\text{logsumexp}(\mathbf{x}) = \log(\sum_j e^{x_j})$. Stable form:
 $$\text{logsumexp}(\mathbf{x}) = m + \log\sum_j e^{x_j - m}, \quad m = \max_j x_j$$
@@ -561,7 +561,7 @@ This avoids both overflow in `exp` and `log(0)` in the entropy term.
 **Dynamic loss scaling (PyTorch `GradScaler`):**
 1. Start with scale $s = 2^{15}$
 2. Compute `scaled_loss = loss * s`
-3. Call `scaled_loss.backward()` — gradients are scaled by $s$
+3. Call `scaled_loss.backward()` - gradients are scaled by $s$
 4. If any gradient is `inf` or `nan`: reduce $s \leftarrow s/2$; skip optimizer step
 5. Otherwise: unscale gradients by $1/s$; optimizer step; every $N$ steps try $s \leftarrow s \times 2$
 
@@ -583,14 +583,14 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 | 8 | Using fp16 without loss scaling | Gradients of magnitude $< 6\times 10^{-5}$ flush to zero | Use `torch.amp.GradScaler()` or switch to bf16 |
 | 9 | Naive large-number subtraction | $10^{10} - (10^{10} - 1)$ loses all digits in fp32 | Rearrange algebraically to avoid large-magnitude cancellation |
 | 10 | Computing $e^x$ for large $x$ before dividing | Overflow before normalization | Use log-sum-exp trick; never compute raw $e^x$ without max-subtraction |
-| 11 | Assuming GPU arithmetic is associative | `(a+b)+c ≠ a+(b+c)` in floating point; GPU thread ordering varies | Don't rely on associativity; use `torch.use_deterministic_algorithms(True)` for reproducibility |
+| 11 | Assuming GPU arithmetic is associative | `(a+b)+c \\neq a+(b+c)` in floating point; GPU thread ordering varies | Don't rely on associativity; use `torch.use_deterministic_algorithms(True)` for reproducibility |
 | 12 | Ignoring subnormal flushing on GPU | CUDA default: FTZ (flush-to-zero) mode for subnormals | Be aware of subnormal behavior; check if FTZ affects your gradient magnitudes |
 
 ---
 
 ## 8. Exercises
 
-**Exercise 1 ★ — Machine Epsilon and Floating-Point Formats**
+**Exercise 1 * - Machine Epsilon and Floating-Point Formats**
 
 (a) Without using `np.finfo`, write code to experimentally determine machine epsilon for fp32 by finding the smallest $\varepsilon$ such that $\text{fl}(1 + \varepsilon) > 1$ (start from 1.0 and halve repeatedly).
 
@@ -602,7 +602,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 2 ★ — Catastrophic Cancellation**
+**Exercise 2 * - Catastrophic Cancellation**
 
 (a) Compute $f(x) = x - \sin(x)$ for $x = 10^{-7}$ in fp32 and fp64. Compare to the Taylor series approximation $x - (x - x^3/6 + x^5/120) = x^3/6 - x^5/120 \approx x^3/6$.
 
@@ -612,7 +612,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 3 ★ — Kahan Compensated Summation**
+**Exercise 3 * - Kahan Compensated Summation**
 
 (a) Implement naive summation and Kahan summation in pure NumPy (no special functions).
 
@@ -624,7 +624,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 4 ★★ — Condition Numbers**
+**Exercise 4 ** - Condition Numbers**
 
 (a) Compute the relative condition number of $f(x) = e^x$ at $x = -30$, $x = 0$, $x = 30$. At which value is $f$ most sensitive to input perturbation?
 
@@ -634,7 +634,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 5 ★★ — Numerically Stable Softmax and Log-Sum-Exp**
+**Exercise 5 ** - Numerically Stable Softmax and Log-Sum-Exp**
 
 (a) Implement naive softmax and stable softmax. Test both on $\mathbf{x} = (1000, 1001, 1002)$ in fp32. Which produces NaN? What does the stable version give?
 
@@ -646,7 +646,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 6 ★★ — Mixed-Precision Comparison**
+**Exercise 6 ** - Mixed-Precision Comparison**
 
 (a) Compute the inner product $\mathbf{x}^\top \mathbf{y}$ for $n = 1024$-dimensional random unit vectors in fp16, bf16, fp32, and fp64. Use the fp64 result as ground truth. Report absolute and relative errors.
 
@@ -656,7 +656,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 7 ★★★ — Floating-Point Conditioning of a Linear System**
+**Exercise 7 *** - Floating-Point Conditioning of a Linear System**
 
 (a) Generate random $n \times n$ matrices with condition number $\kappa \in \{10, 10^4, 10^8, 10^{12}\}$ by constructing $A = U \Sigma V^\top$ with $U, V$ random orthogonal and $\Sigma = \text{diag}(\sigma_1, \ldots, \sigma_n)$ with $\sigma_1/\sigma_n = \kappa$.
 
@@ -666,7 +666,7 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ---
 
-**Exercise 8 ★★★ — Stable Algorithm Design**
+**Exercise 8 *** - Stable Algorithm Design**
 
 (a) The sample variance formula $\sigma^2 = \frac{1}{n} \sum (x_i - \bar{x})^2$ can be expanded as $\sigma^2 = \frac{1}{n}\sum x_i^2 - \bar{x}^2$ (one-pass formula). Show that the one-pass formula suffers catastrophic cancellation for $\mathbf{x} = (10^8, 10^8 + 1, 10^8 + 2)$ in fp32. Verify using Welford's online algorithm as the stable alternative.
 
@@ -680,13 +680,13 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 | Concept | AI Impact |
 |---------|-----------|
-| **Machine epsilon / format choice** | LLM training: bf16 is now the universal default (Llama-3, Gemma, Mistral) — understanding why requires knowing bf16's exponent range matches fp32 |
+| **Machine epsilon / format choice** | LLM training: bf16 is now the universal default (Llama-3, Gemma, Mistral) - understanding why requires knowing bf16's exponent range matches fp32 |
 | **Catastrophic cancellation** | Naive attention score computation can cancel digits; FlashAttention's online softmax reordering avoids this |
 | **Loss scaling** | Required for stable fp16 training; not needed with bf16; integral to `torch.amp.GradScaler` |
 | **Stable log-sum-exp** | Every transformer's softmax in the forward pass uses this; also in all language modeling losses and perplexity calculations |
 | **Condition numbers** | The Hessian condition number $\kappa(H)$ determines gradient descent convergence rate; Adam/Adafactor implicitly precondition to reduce effective $\kappa$ |
 | **fp8 training** | NVIDIA H100 Transformer Engine, used for Llama-3 and GPT-4 training; requires per-tensor scaling factors |
-| **Gradient underflow** | Without scaling, fp16 gradient magnitudes below $6\times 10^{-5}$ flush to zero — silent learning failure |
+| **Gradient underflow** | Without scaling, fp16 gradient magnitudes below $6\times 10^{-5}$ flush to zero - silent learning failure |
 | **Stochastic rounding** | Enables effective fp4/fp8 training by preventing systematic rounding bias; used in Graphcore IPU and emerging hardware |
 | **Subnormal flushing** | CUDA FTZ mode flushes subnormals to zero for speed; can cause unexpected behavior in extreme low-precision regimes |
 | **Kahan summation** | PyTorch's attention accumulation uses fp32 accumulation (equivalent to Kahan) even in bf16 forward passes |
@@ -697,46 +697,46 @@ This adaptive scheme maintains the gradient scale in fp16 range, maximizing util
 
 ### Backward: What This Builds On
 
-Floating-point arithmetic is the computational manifestation of the real number system. The real numbers ($\mathbb{R}$) are dense, complete, and infinite — studied in [Mathematical Foundations §01](../../01-Mathematical-Foundations/01-Number-Systems/notes.md). Floating-point numbers are a finite approximation: the map $\text{fl}: \mathbb{R} \to \mathbb{F}$ introduces the rounding errors analyzed here.
+Floating-point arithmetic is the computational manifestation of the real number system. The real numbers ($\mathbb{R}$) are dense, complete, and infinite - studied in [Mathematical Foundations Section01](../../01-Mathematical-Foundations/01-Number-Systems/notes.md). Floating-point numbers are a finite approximation: the map $\text{fl}: \mathbb{R} \to \mathbb{F}$ introduces the rounding errors analyzed here.
 
-The condition number of a linear system — introduced as $\kappa(A) = \|A\|\|A^{-1}\|$ — is defined using matrix norms from [Linear Algebra Basics §06](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md) and singular values from [Advanced Linear Algebra §02](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md). The interpretation $\kappa(A) = \sigma_{\max}/\sigma_{\min}$ requires the full SVD theory developed there.
+The condition number of a linear system - introduced as $\kappa(A) = \|A\|\|A^{-1}\|$ - is defined using matrix norms from [Linear Algebra Basics Section06](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md) and singular values from [Advanced Linear Algebra Section02](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md). The interpretation $\kappa(A) = \sigma_{\max}/\sigma_{\min}$ requires the full SVD theory developed there.
 
 ### Forward: What This Enables
 
-**Numerical Linear Algebra** (§02, this chapter): Every linear system solver, least-squares method, and eigenvalue algorithm is analyzed through the lens of backward error and condition numbers introduced here. The pivoting strategies in Gaussian elimination and the choice between QR and normal equations for least squares are direct applications of the stability concepts from §4.
+**Numerical Linear Algebra** (Section02, this chapter): Every linear system solver, least-squares method, and eigenvalue algorithm is analyzed through the lens of backward error and condition numbers introduced here. The pivoting strategies in Gaussian elimination and the choice between QR and normal equations for least squares are direct applications of the stability concepts from Section4.
 
-**Numerical Optimization** (§03, this chapter): Gradient checking via finite differences relies on the finite-difference approximation error analysis — the step size $h$ must balance truncation error $O(h^2)$ against cancellation error $O(\varepsilon_{\text{mach}}/h)$, an optimization that requires understanding both. Mixed-precision training is the union of §5 (format choices) and optimization algorithms.
+**Numerical Optimization** (Section03, this chapter): Gradient checking via finite differences relies on the finite-difference approximation error analysis - the step size $h$ must balance truncation error $O(h^2)$ against cancellation error $O(\varepsilon_{\text{mach}}/h)$, an optimization that requires understanding both. Mixed-precision training is the union of Section5 (format choices) and optimization algorithms.
 
-**All of Applied Mathematics:** Every numerical computation in this curriculum — ODE solvers, PDE methods, Fourier transforms — is ultimately floating-point arithmetic analyzed by the tools developed here.
+**All of Applied Mathematics:** Every numerical computation in this curriculum - ODE solvers, PDE methods, Fourier transforms - is ultimately floating-point arithmetic analyzed by the tools developed here.
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §01-Mathematical-Foundations  (real numbers, binary representation)
-       │
-       ▼
-  §02-Linear-Algebra-Basics  (matrix norms, condition numbers prelim.)
-  §03-Advanced-Linear-Algebra  (SVD → κ(A) = σ_max/σ_min)
-       │
-       ▼
-  §10-Numerical-Methods
-    ├── §01-Floating-Point-Arithmetic  ◀═══ YOU ARE HERE
-    │        │  ε_mach, κ, stability
-    │        ▼
-    ├── §02-Numerical-Linear-Algebra  (stable solvers, iterative methods)
-    ├── §03-Numerical-Optimization   (AD, line search, finite diffs)
-    ├── §04-Interpolation            (polynomial, spline, RBF)
-    └── §05-Numerical-Integration    (quadrature, Monte Carlo)
-       │
-       ▼
-  §08-Optimization  (gradient descent, Adam — uses mixed-precision)
-  §13-ML-Specific-Math  (numerical stability of transformers)
+  Section01-Mathematical-Foundations  (real numbers, binary representation)
+       |
+       v
+  Section02-Linear-Algebra-Basics  (matrix norms, condition numbers prelim.)
+  Section03-Advanced-Linear-Algebra  (SVD -> (A) = \\sigma_max/\\sigma_min)
+       |
+       v
+  Section10-Numerical-Methods
+    +-- Section01-Floating-Point-Arithmetic  === YOU ARE HERE
+    |        |  \\varepsilon_mach, , stability
+    |        v
+    +-- Section02-Numerical-Linear-Algebra  (stable solvers, iterative methods)
+    +-- Section03-Numerical-Optimization   (AD, line search, finite diffs)
+    +-- Section04-Interpolation            (polynomial, spline, RBF)
+    +-- Section05-Numerical-Integration    (quadrature, Monte Carlo)
+       |
+       v
+  Section08-Optimization  (gradient descent, Adam - uses mixed-precision)
+  Section13-ML-Specific-Math  (numerical stability of transformers)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The foundations laid in this section — machine epsilon, rounding error models, condition numbers, backward stability — are the vocabulary of all numerical computation. Every section that follows assumes fluency with these concepts.
+The foundations laid in this section - machine epsilon, rounding error models, condition numbers, backward stability - are the vocabulary of all numerical computation. Every section that follows assumes fluency with these concepts.
 
 ---
 
@@ -747,7 +747,7 @@ The foundations laid in this section — machine epsilon, rounding error models,
 Every fp32 number $x$ is stored as three fields:
 
 ```
-Bit 31  | Bits 30–23  | Bits 22–0
+Bit 31  | Bits 30-23  | Bits 22-0
 Sign S  | Exponent E  | Mantissa M
 ```
 
@@ -759,7 +759,7 @@ $$x = (-1)^S \times 2^{E - 127} \times (1.M_1 M_2 \ldots M_{23})_2$$
 - $S = 0$ (positive)
 - $E = 01111111_2 = 127$; exponent $= 127 - 127 = 0$
 - Mantissa $= 1.10000\ldots_2 = 1 + 2^{-1} = 1.5$
-- Value: $(-1)^0 \times 2^0 \times 1.5 = 1.5$ ✓
+- Value: $(-1)^0 \times 2^0 \times 1.5 = 1.5$ [ok]
 
 **Encoding 1.0:** $1.0 = 1.000\ldots_2 \times 2^0$; $E = 127 = 01111111_2$; $M = 0$; hex `0x3F800000`.
 
@@ -773,8 +773,8 @@ $$x = (-1)^S \times 2^{E - 127} \times (1.M_1 M_2 \ldots M_{23})_2$$
 | $E = 00000000$, $M \ne 0$ | Subnormal: $(-1)^S \times 2^{-126} \times (0.M)_2$ |
 | $E = 11111111$, $M = 0$ | $\pm\infty$ |
 | $E = 11111111$, $M \ne 0$ | NaN (quiet or signaling) |
-| $E = 11111111$, $M_{22} = 1$ | Quiet NaN (qNaN) — most common |
-| $E = 11111111$, $M_{22} = 0, M \ne 0$ | Signaling NaN (sNaN) — triggers exception |
+| $E = 11111111$, $M_{22} = 1$ | Quiet NaN (qNaN) - most common |
+| $E = 11111111$, $M_{22} = 0, M \ne 0$ | Signaling NaN (sNaN) - triggers exception |
 
 ### A.3 Python Bit Manipulation
 
@@ -811,8 +811,8 @@ The quadratic $x^2 - 10^8 x + 1 = 0$ has roots:
 $$x_{1,2} = \frac{10^8 \pm \sqrt{10^{16} - 4}}{2}$$
 
 In fp32, $\sqrt{10^{16} - 4} \approx 10^8$ (exactly). So:
-- $x_1 = (10^8 + 10^8)/2 = 10^8$ — fine
-- $x_2 = (10^8 - 10^8)/2 = 0/2 = 0$ — catastrophically wrong (true: $x_2 = 10^{-8}$)
+- $x_1 = (10^8 + 10^8)/2 = 10^8$ - fine
+- $x_2 = (10^8 - 10^8)/2 = 0/2 = 0$ - catastrophically wrong (true: $x_2 = 10^{-8}$)
 
 **Stable form:** Use $x_1 x_2 = c/a = 1$, so $x_2 = 1/x_1 = 10^{-8}$.
 
@@ -822,7 +822,7 @@ For $\mathbf{x}, \mathbf{y} \in \mathbb{R}^n$, the computed dot product $\hat{s}
 $$|\hat{s} - \mathbf{x}^\top \mathbf{y}| \le \gamma_n |\mathbf{x}|^\top |\mathbf{y}|$$
 where $\gamma_n = n\varepsilon_{\text{mach}} / (1 - n\varepsilon_{\text{mach}}) \approx n\varepsilon_{\text{mach}}$.
 
-For $n = 512$, fp16: $\gamma_{512} \approx 512 \times 10^{-3} = 0.512$ — potential 50% error! This is why transformer attention uses fp32 accumulation inside bf16/fp16 matmuls.
+For $n = 512$, fp16: $\gamma_{512} \approx 512 \times 10^{-3} = 0.512$ - potential 50% error! This is why transformer attention uses fp32 accumulation inside bf16/fp16 matmuls.
 
 ### B.3 Gram-Schmidt vs Householder
 
@@ -877,7 +877,7 @@ torch.nn.functional.cross_entropy(logits, targets)
 
 # Stable sigmoid cross-entropy:
 torch.nn.functional.binary_cross_entropy_with_logits(logits, targets)
-# NEVER: binary_cross_entropy(sigmoid(logits), targets)  ← unstable
+# NEVER: binary_cross_entropy(sigmoid(logits), targets)  <- unstable
 
 # Numerically stable softplus:
 torch.nn.functional.softplus(x)  # log(1 + exp(x)), stable
@@ -906,10 +906,10 @@ for name, param in model.named_parameters():
 
 ```
 QUICK REFERENCE: FLOATING-POINT FORMATS FOR AI
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Format   Bits  ε_mach      Max         Use case
-  ──────────────────────────────────────────────────────────────────────
+  Format   Bits  \\varepsilon_mach      Max         Use case
+  ----------------------------------------------------------------------
   fp64      64   2.2e-16   1.8e+308    Scientific computing, reference
   fp32      32   1.2e-07   3.4e+038    Training master weights, debug
   bf16      16   7.8e-03   3.4e+038    LLM training (2023+ standard)
@@ -918,20 +918,20 @@ QUICK REFERENCE: FLOATING-POINT FORMATS FOR AI
   fp8 E5M2   8   2.5e-01   57344       H100 backward pass
   int8       8   1/128      127        Inference quantization (weights)
   int4       4   1/8          7        GGUF LLM inference
-  ──────────────────────────────────────────────────────────────────────
+  ----------------------------------------------------------------------
 
   Rule of thumb:
-  • Training large models:  bf16 compute + fp32 master weights
-  • Inference large models: int8 or int4 weights, fp16 activations
-  • Scientific computing:   fp64 throughout
-  • Edge inference:         int4/int8 quantized (ONNX, TFLite, GGUF)
+  - Training large models:  bf16 compute + fp32 master weights
+  - Inference large models: int8 or int4 weights, fp16 activations
+  - Scientific computing:   fp64 throughout
+  - Edge inference:         int4/int8 quantized (ONNX, TFLite, GGUF)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
 
-*[← Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)*
+*[<- Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)*
 
 ---
 
@@ -956,7 +956,7 @@ The accumulated error is $O(\varepsilon_{\text{mach}}^2)$ per step rather than $
 **Proof:**
 $$\frac{e^{x_i - m}}{\sum_j e^{x_j - m}} = \frac{e^{x_i} e^{-m}}{\sum_j e^{x_j} e^{-m}} = \frac{e^{x_i}}{\sum_j e^{x_j}} = \text{softmax}(\mathbf{x})_i \quad \square$$
 
-Setting $m = \max_j x_j$ ensures the largest exponent is $e^0 = 1$, bounding all terms in $[e^{-\infty}, 1] = [0, 1]$ — within the range of any floating-point format.
+Setting $m = \max_j x_j$ ensures the largest exponent is $e^0 = 1$, bounding all terms in $[e^{-\infty}, 1] = [0, 1]$ - within the range of any floating-point format.
 
 ### E.3 Wilkinson's Backward Error for GE with Partial Pivoting
 
@@ -995,8 +995,8 @@ $$\frac{\|\Delta\mathbf{x}\|}{\|\mathbf{x}\|} \lesssim \kappa(A) \left(\frac{\|\
 | Matrix type | Typical $\kappa(A)$ | Implication |
 |------------|--------------------|----|
 | Random Gaussian $A \in \mathbb{R}^{n \times n}$ | $\sim \sqrt{n}$ | Well-conditioned; easy to solve |
-| Gram matrix $X^\top X$ for correlated features | $10^3$–$10^8$ | May need regularization |
-| Hessian of neural loss at sharp minimum | $10^5$–$10^{10}$ | Slow gradient descent; use Adam |
+| Gram matrix $X^\top X$ for correlated features | $10^3$-$10^8$ | May need regularization |
+| Hessian of neural loss at sharp minimum | $10^5$-$10^{10}$ | Slow gradient descent; use Adam |
 | Hessian at flat region (saddle) | $\approx 0$ on some axes | Ill-conditioned; Newton fails |
 | Hilbert matrix $n=10$ | $\approx 10^{13}$ | Numerically singular in fp32 |
 | Discrete Laplacian $n \times n$ PDE | $O(n^2)$ | Requires preconditioning |
@@ -1050,7 +1050,7 @@ The choice of floating-point format directly impacts optimizer behavior:
 
 **Gradient clipping and numerical overflow:** When gradients overflow to $\pm\infty$ in fp16, the global norm $\|\mathbf{g}\|_2 = \sqrt{\sum g_i^2}$ also becomes infinity. Clipping to $G_{\max}$ when norm is $\infty$ produces division $0/0 = \text{NaN}$. PyTorch's `clip_grad_norm_` guards against this by checking for non-finite norms before clipping.
 
-**Numerical second-order methods:** Computing the Hessian $\nabla^2 L$ via finite differences requires step size $h \approx \varepsilon_{\text{mach}}^{1/3}$ — balancing truncation error $O(h^2)$ with cancellation error $O(\varepsilon_{\text{mach}}/h)$. For fp32, optimal $h \approx (1.2 \times 10^{-7})^{1/3} \approx 5 \times 10^{-3}$.
+**Numerical second-order methods:** Computing the Hessian $\nabla^2 L$ via finite differences requires step size $h \approx \varepsilon_{\text{mach}}^{1/3}$ - balancing truncation error $O(h^2)$ with cancellation error $O(\varepsilon_{\text{mach}}/h)$. For fp32, optimal $h \approx (1.2 \times 10^{-7})^{1/3} \approx 5 \times 10^{-3}$.
 
 ### H.2 Floating-Point and Neural Network Architecture
 
@@ -1058,13 +1058,13 @@ The choice of floating-point format directly impacts optimizer behavior:
 
 **Softmax temperature scaling:** Attention logits $\mathbf{q}^\top \mathbf{k} / \sqrt{d_k}$ scale inversely with dimension. Without the $\sqrt{d_k}$ divisor, logits grow as $\Theta(\sqrt{d_k})$ and softmax becomes peaky (near one-hot), causing vanishing gradients. The scaling keeps logits in a numerically well-conditioned range.
 
-**Residual connections:** $\mathbf{h}_{l+1} = \mathbf{h}_l + F(\mathbf{h}_l)$ prevents the gradient vanishing problem: $\partial L / \partial \mathbf{h}_l = \partial L / \partial \mathbf{h}_{l+1} (I + \partial F / \partial \mathbf{h}_l)$. The identity term ensures at least one gradient path with multiplication by 1 — no floating-point underflow across layers.
+**Residual connections:** $\mathbf{h}_{l+1} = \mathbf{h}_l + F(\mathbf{h}_l)$ prevents the gradient vanishing problem: $\partial L / \partial \mathbf{h}_l = \partial L / \partial \mathbf{h}_{l+1} (I + \partial F / \partial \mathbf{h}_l)$. The identity term ensures at least one gradient path with multiplication by 1 - no floating-point underflow across layers.
 
 ### H.3 Floating-Point and Transformer Efficiency
 
 **FlashAttention:** The standard attention computation $\text{softmax}(QK^\top / \sqrt{d_k}) V$ requires materializing the $n \times n$ attention matrix. FlashAttention (Dao et al., 2022) computes this in chunks, maintaining online softmax statistics in fp32 while storing intermediate results in fp16/bf16. This avoids both overflow and numerical drift across the $n$ tokens.
 
-**KV cache quantization:** In inference, key and value matrices are cached across decoding steps. Quantizing this cache from fp16 to int8 (or int4) reduces memory by 2-4×. The quantization error adds noise to the attention scores — understanding the rounding error model tells you this noise is $O(\varepsilon_{int}) \sim O(2^{-7})$ per element, tolerable for typical sequence lengths.
+**KV cache quantization:** In inference, key and value matrices are cached across decoding steps. Quantizing this cache from fp16 to int8 (or int4) reduces memory by 2-4x. The quantization error adds noise to the attention scores - understanding the rounding error model tells you this noise is $O(\varepsilon_{int}) \sim O(2^{-7})$ per element, tolerable for typical sequence lengths.
 
 ---
 
@@ -1072,33 +1072,33 @@ The choice of floating-point format directly impacts optimizer behavior:
 
 ### Foundational Papers
 
-1. **Goldberg, D.** (1991). What every computer scientist should know about floating-point arithmetic. *ACM Computing Surveys*, 23(1), 5–48. — The definitive reference; free online.
+1. **Goldberg, D.** (1991). What every computer scientist should know about floating-point arithmetic. *ACM Computing Surveys*, 23(1), 5-48. - The definitive reference; free online.
 
-2. **Higham, N.J.** (2002). *Accuracy and Stability of Numerical Algorithms* (2nd ed.). SIAM. — Chapter 2–3: rounding errors; Chapter 9: Gaussian elimination; definitive modern reference.
+2. **Higham, N.J.** (2002). *Accuracy and Stability of Numerical Algorithms* (2nd ed.). SIAM. - Chapter 2-3: rounding errors; Chapter 9: Gaussian elimination; definitive modern reference.
 
-3. **Wilkinson, J.H.** (1963). *Rounding Errors in Algebraic Processes*. Prentice-Hall. — Original backward error analysis.
+3. **Wilkinson, J.H.** (1963). *Rounding Errors in Algebraic Processes*. Prentice-Hall. - Original backward error analysis.
 
 4. **Kahan, W.** (1965). Pracniques: Further remarks on reducing truncation errors. *Communications of the ACM*, 8(1), 40.
 
 ### ML-Specific Papers
 
-5. **Micikevicius, P. et al.** (2018). Mixed Precision Training. *ICLR 2018*. — The paper that established fp16 mixed-precision training as standard.
+5. **Micikevicius, P. et al.** (2018). Mixed Precision Training. *ICLR 2018*. - The paper that established fp16 mixed-precision training as standard.
 
-6. **Kalamkar, D. et al.** (2019). A Study of BFLOAT16 for Deep Learning Training. *arXiv:1905.12322*. — Why bf16 works better than fp16 for training.
+6. **Kalamkar, D. et al.** (2019). A Study of BFLOAT16 for Deep Learning Training. *arXiv:1905.12322*. - Why bf16 works better than fp16 for training.
 
-7. **Noune, B. et al.** (2022). 8-bit Numerical Formats for Deep Neural Networks. *arXiv:2206.02915*. — fp8 training foundations.
+7. **Noune, B. et al.** (2022). 8-bit Numerical Formats for Deep Neural Networks. *arXiv:2206.02915*. - fp8 training foundations.
 
-8. **Dao, T. et al.** (2022). FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness. *NeurIPS 2022*. — Numerically stable attention at scale.
+8. **Dao, T. et al.** (2022). FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness. *NeurIPS 2022*. - Numerically stable attention at scale.
 
 ### Textbooks
 
-9. **Trefethen, L.N. & Bau, D.** (1997). *Numerical Linear Algebra*. SIAM. — Excellent treatment of backward error; Chapter 12-15 on floating-point and stability.
+9. **Trefethen, L.N. & Bau, D.** (1997). *Numerical Linear Algebra*. SIAM. - Excellent treatment of backward error; Chapter 12-15 on floating-point and stability.
 
-10. **Press, W.H. et al.** (2007). *Numerical Recipes: The Art of Scientific Computing* (3rd ed.). Cambridge. — Practical algorithms with implementation details.
+10. **Press, W.H. et al.** (2007). *Numerical Recipes: The Art of Scientific Computing* (3rd ed.). Cambridge. - Practical algorithms with implementation details.
 
 ---
 
-*[← Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)*
+*[<- Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)*
 
 ---
 
@@ -1136,9 +1136,9 @@ Common sources in order of frequency:
 
 Linear regression via normal equations: $\hat{\boldsymbol\beta} = (X^\top X)^{-1} X^\top \mathbf{y}$.
 
-The condition number of $X^\top X$ is $\kappa(X^\top X) = \kappa(X)^2$. If $X$ has condition number $\kappa(X) = 10^4$ (common for correlated features), then $\kappa(X^\top X) = 10^8$ — near the threshold of fp32 accuracy.
+The condition number of $X^\top X$ is $\kappa(X^\top X) = \kappa(X)^2$. If $X$ has condition number $\kappa(X) = 10^4$ (common for correlated features), then $\kappa(X^\top X) = 10^8$ - near the threshold of fp32 accuracy.
 
-**Safer alternative:** Use the QR decomposition of $X = QR$; then $\hat{\boldsymbol\beta} = R^{-1} Q^\top \mathbf{y}$. The condition number of $R$ equals $\kappa(X) = 10^4$ — half the digits lost.
+**Safer alternative:** Use the QR decomposition of $X = QR$; then $\hat{\boldsymbol\beta} = R^{-1} Q^\top \mathbf{y}$. The condition number of $R$ equals $\kappa(X) = 10^4$ - half the digits lost.
 
 **Safest:** Use `scipy.linalg.lstsq` which internally uses SVD-based pseudo-inverse with automatic rank determination. Condition number is $\kappa(X)$, with singular values below `rcond * sigma_max` set to zero.
 
@@ -1146,9 +1146,9 @@ The condition number of $X^\top X$ is $\kappa(X^\top X) = \kappa(X)^2$. If $X$ h
 
 In a transformer with $d_{\text{model}} = 4096$ and $d_k = d_{\text{model}} / H = 128$ (32 heads):
 
-**Attention logits** (before softmax): $\mathbf{q}^\top \mathbf{k} / \sqrt{128}$. Without the $1/\sqrt{d_k}$ factor, the dot product is $\Theta(\sqrt{d_k}) = \Theta(11)$ in expectation — fine. With random initialization, dot products can reach $\pm 50$ before training stabilizes.
+**Attention logits** (before softmax): $\mathbf{q}^\top \mathbf{k} / \sqrt{128}$. Without the $1/\sqrt{d_k}$ factor, the dot product is $\Theta(\sqrt{d_k}) = \Theta(11)$ in expectation - fine. With random initialization, dot products can reach $\pm 50$ before training stabilizes.
 
-**fp16 concern:** $e^{50} \approx 5 \times 10^{21}$ — severe overflow. But with the $1/\sqrt{128} = 1/11.3$ factor: $e^{50/11.3} \approx e^{4.4} \approx 82$ — safely within fp16 max of 65504. Gradient of the attention weights passes through softmax's Jacobian, which has values $\le 1/4$ — fine for fp16.
+**fp16 concern:** $e^{50} \approx 5 \times 10^{21}$ - severe overflow. But with the $1/\sqrt{128} = 1/11.3$ factor: $e^{50/11.3} \approx e^{4.4} \approx 82$ - safely within fp16 max of 65504. Gradient of the attention weights passes through softmax's Jacobian, which has values $\le 1/4$ - fine for fp16.
 
 **bf16:** Identical analysis; bf16's wider exponent range means even moderate overflow during early training is handled gracefully, whereas fp16 needs careful initialization.
 
@@ -1172,7 +1172,7 @@ torch.use_deterministic_algorithms(True)
 torch.backends.cuda.matmul.allow_tf32 = False  # Disable TF32 (approximate matmul)
 ```
 
-TF32 (TensorFloat-32) is NVIDIA's format that uses fp32 exponent/sign but only 10 bits of mantissa for matmul accumulation — faster but less precise. Enabled by default in PyTorch since 1.7. For reproducible science, disable it; for production training, leave it enabled.
+TF32 (TensorFloat-32) is NVIDIA's format that uses fp32 exponent/sign but only 10 bits of mantissa for matmul accumulation - faster but less precise. Enabled by default in PyTorch since 1.7. For reproducible science, disable it; for production training, leave it enabled.
 
 ---
 
@@ -1193,11 +1193,11 @@ TF32 (TensorFloat-32) is NVIDIA's format that uses fp32 exponent/sign but only 1
 
 ---
 
-*[← Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)*
+*[<- Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)*
 
 ---
 
-## Appendix L: Numerical Analysis in PyTorch — Implementation Patterns
+## Appendix L: Numerical Analysis in PyTorch - Implementation Patterns
 
 ### L.1 Computing Machine Epsilon Empirically
 
@@ -1244,20 +1244,20 @@ for lo, hi in ranges:
     print(f"[{lo}, {hi}): {count} values, spacing = {spacing:.6f}")
 ```
 
-Output shows: every power-of-2 interval contains exactly 1024 fp16 values (for normals), but the spacing doubles with each interval — geometric, not arithmetic, distribution.
+Output shows: every power-of-2 interval contains exactly 1024 fp16 values (for normals), but the spacing doubles with each interval - geometric, not arithmetic, distribution.
 
 ### L.3 Detecting and Fixing Common Numerical Issues
 
 ```python
 class NumericalGuard:
     """Context manager for detecting numerical issues during training."""
-    
+
     def __init__(self, model, check_inputs=True, check_outputs=True):
         self.model = model
         self.hooks = []
         self.check_inputs = check_inputs
         self.check_outputs = check_outputs
-    
+
     def __enter__(self):
         def hook(module, input, output):
             name = type(module).__name__
@@ -1272,11 +1272,11 @@ class NumericalGuard:
                 if isinstance(output, torch.Tensor):
                     if torch.isnan(output).any():
                         raise ValueError(f"NaN in {name} output")
-        
+
         for module in self.model.modules():
             self.hooks.append(module.register_forward_hook(hook))
         return self
-    
+
     def __exit__(self, *args):
         for hook in self.hooks:
             hook.remove()
@@ -1354,7 +1354,7 @@ def sigmoid(x):
 def softplus(x):
     """Numerically stable softplus: log(1 + exp(x))."""
     return np.where(x > 20,
-                    x,  # log(1 + exp(x)) ≈ x for large x
+                    x,  # log(1 + exp(x)) \\approx x for large x
                     np.log1p(np.exp(x)))  # log1p is more accurate than log(1+...)
 ```
 
@@ -1363,17 +1363,17 @@ def softplus(x):
 ```python
 class SimpleLossScaler:
     """Minimal loss scaler for fp16 training."""
-    
+
     def __init__(self, init_scale=2**15, scale_factor=2.0, scale_window=2000):
         self.scale = init_scale
         self.scale_factor = scale_factor
         self.scale_window = scale_window
         self._steps_since_update = 0
         self._successful_steps = 0
-    
+
     def scale_loss(self, loss):
         return loss * self.scale
-    
+
     def step(self, optimizer, params):
         """Unscale gradients and step, or skip if overflow detected."""
         # Check for overflow
@@ -1381,7 +1381,7 @@ class SimpleLossScaler:
             torch.isnan(p.grad).any() or torch.isinf(p.grad).any()
             for p in params if p.grad is not None
         )
-        
+
         if overflow:
             # Reduce scale and skip step
             self.scale /= self.scale_factor
@@ -1393,7 +1393,7 @@ class SimpleLossScaler:
                     p.grad /= self.scale
             optimizer.step()
             self._successful_steps += 1
-            
+
             # Increase scale every scale_window successful steps
             if self._successful_steps % self.scale_window == 0:
                 self.scale *= self.scale_factor
@@ -1402,21 +1402,21 @@ class SimpleLossScaler:
 
 ---
 
-*[← Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)*
+*[<- Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)*
 
 ---
 
-## Appendix M: Historical Perspective — The Road to IEEE 754
+## Appendix M: Historical Perspective - The Road to IEEE 754
 
 ### M.1 Before IEEE 754 (Pre-1985)
 
-Before the IEEE 754 standard, every computer manufacturer used its own floating-point format. IBM mainframes used base-16 (hexadecimal) floating point. DEC VAX used its own 32-bit format. CDC 6600 used 60-bit words with 48-bit mantissa. Programs written for one machine could not be reliably ported to another — the same computation produced different results depending on the hardware.
+Before the IEEE 754 standard, every computer manufacturer used its own floating-point format. IBM mainframes used base-16 (hexadecimal) floating point. DEC VAX used its own 32-bit format. CDC 6600 used 60-bit words with 48-bit mantissa. Programs written for one machine could not be reliably ported to another - the same computation produced different results depending on the hardware.
 
 The chaos had real consequences: scientific simulations gave different answers on different machines; numerical algorithms required hand-tuning for each platform; software bugs were indistinguishable from floating-point differences. The 1970s saw a growing recognition that a universal standard was needed.
 
-### M.2 The IEEE 754 Committee (1977–1985)
+### M.2 The IEEE 754 Committee (1977-1985)
 
-The IEEE 754 working group (chaired by Jerome Coonen, with key contributions from William Kahan and Harold Stone) spent eight years developing the standard. Kahan — who would win the 1989 Turing Award partly for this work — insisted on several features that were controversial but proved crucial:
+The IEEE 754 working group (chaired by Jerome Coonen, with key contributions from William Kahan and Harold Stone) spent eight years developing the standard. Kahan - who would win the 1989 Turing Award partly for this work - insisted on several features that were controversial but proved crucial:
 
 1. **Round-to-nearest-even as default:** Reduces systematic bias in long computations
 2. **Gradual underflow (subnormals):** Prevents sudden loss of precision near zero
@@ -1434,17 +1434,17 @@ The 2008 revision added:
 
 FMA is particularly important for ML: matrix multiplication decomposes into FMA operations, and modern GPU tensor cores implement FMA in mixed precision (fp16/bf16 multiply + fp32 accumulate) for maximum throughput with minimum precision loss.
 
-### M.4 The ML Formats (2017–2024)
+### M.4 The ML Formats (2017-2024)
 
 The ML revolution created demand for formats the IEEE committee never anticipated:
 
 **bf16 (2018):** Google Brain developed Brain Float 16 for TPUs. The key insight: training stability requires dynamic range (exponent bits), not precision (mantissa bits). Keep all 8 exponent bits of fp32, sacrifice 16 mantissa bits. The result trains as stably as fp32 at half the cost.
 
-**tf32 (2020):** NVIDIA's TensorFloat-32 uses fp32's 8-bit exponent and 10-bit mantissa (same as fp16) for matmul accumulation, giving 3× speedup with minimal accuracy loss. Enabled by default in PyTorch on Ampere and newer GPUs.
+**tf32 (2020):** NVIDIA's TensorFloat-32 uses fp32's 8-bit exponent and 10-bit mantissa (same as fp16) for matmul accumulation, giving 3x speedup with minimal accuracy loss. Enabled by default in PyTorch on Ampere and newer GPUs.
 
 **fp8 E4M3 / E5M2 (2022):** For H100 training at extreme throughput. Requires per-tensor scaling factors and careful format selection per layer (E4M3 for weights/activations, E5M2 for gradients).
 
-**fp4 / int4 (experimental):** Used for inference quantization (GGUF format, llama.cpp). Weights stored as 4-bit integers with a shared scale factor per block. 4-bit reduces model size by 8× vs fp32, enabling 70B-parameter models on a single consumer GPU.
+**fp4 / int4 (experimental):** Used for inference quantization (GGUF format, llama.cpp). Weights stored as 4-bit integers with a shared scale factor per block. 4-bit reduces model size by 8x vs fp32, enabling 70B-parameter models on a single consumer GPU.
 
 ---
 
@@ -1484,7 +1484,7 @@ $$\kappa_2(A) = \sigma_{\max}(A)/\sigma_{\min}(A); \quad \kappa_1(A) = \|A\|_1 \
 Before deploying any numerical computation, verify:
 
 - [ ] All `log()` calls are protected: `log(x + eps)` or `log_softmax()` instead of `log(softmax())`
-- [ ] All divisions are protected: `x / (y + eps)` for division by potentially-zero values  
+- [ ] All divisions are protected: `x / (y + eps)` for division by potentially-zero values
 - [ ] Softmax is computed with max-subtraction (`stable_softmax`) not naive
 - [ ] Cross-entropy uses `F.cross_entropy(logits, labels)` not `F.nll_loss(F.log_softmax(logits), labels)` (equivalent but one extra call)
 - [ ] Float comparisons use `torch.isclose` with appropriate `atol` and `rtol`, not `==`
@@ -1496,7 +1496,7 @@ Before deploying any numerical computation, verify:
 
 ---
 
-*[← Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)*
+*[<- Back to Numerical Methods](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)*
 
 ---
 
@@ -1511,7 +1511,7 @@ Before deploying any numerical computation, verify:
 **Stable approach:** Use the identity $e^x - 1 = x + x^2/2 + x^3/6 + \ldots$ for small $x$, implemented as `numpy.expm1(x)`:
 $$\text{expm1}(10^{-8}) = 10^{-8} \times (1 + 10^{-8}/2 + \ldots) \approx 10^{-8}$$
 
-The `expm1` function is computed without the catastrophic cancellation — it directly computes $e^x - 1$ without subtracting large numbers. Result: $10^{-8}$. Relative error: machine precision.
+The `expm1` function is computed without the catastrophic cancellation - it directly computes $e^x - 1$ without subtracting large numbers. Result: $10^{-8}$. Relative error: machine precision.
 
 **Rule:** Use `np.expm1(x)` instead of `np.exp(x) - 1` whenever $|x| \ll 1$. Similarly, use `np.log1p(x)` instead of `np.log(1+x)` for small $x$.
 
@@ -1551,7 +1551,7 @@ where $|A|$ denotes the entry-wise absolute value.
 
 **For a GPU matmul** using FMA with fp32 accumulation: the effective error is reduced by approximately factor $\sqrt{n}$ due to cancellations, but the worst-case bound above still applies.
 
-**Implication for attention:** The attention score $\mathbf{q}^\top \mathbf{k} / \sqrt{d_k}$ is a dot product of length $d_k$. In fp16 ($\varepsilon \approx 10^{-3}$) without fp32 accumulation: error $\le d_k \times 10^{-3} \times$ (product magnitude). For $d_k = 128$: 12.8% relative error — unacceptably large. With fp32 accumulation (as in FlashAttention): error $\le d_k \times 10^{-7}$ — perfectly fine.
+**Implication for attention:** The attention score $\mathbf{q}^\top \mathbf{k} / \sqrt{d_k}$ is a dot product of length $d_k$. In fp16 ($\varepsilon \approx 10^{-3}$) without fp32 accumulation: error $\le d_k \times 10^{-3} \times$ (product magnitude). For $d_k = 128$: 12.8% relative error - unacceptably large. With fp32 accumulation (as in FlashAttention): error $\le d_k \times 10^{-7}$ - perfectly fine.
 
 ### O.4 Problem: Condition Number of the Attention Matrix
 
@@ -1559,7 +1559,7 @@ where $|A|$ denotes the entry-wise absolute value.
 
 The Jacobian of softmax is $J = \text{diag}(\mathbf{p}) - \mathbf{p}\mathbf{p}^\top$, which has eigenvalues $0$ and $p_i(1-p_i)$ for each $i$. This matrix is singular (rank $n-1$), so in the strictest sense, the softmax map has infinite condition number (it maps from $\mathbb{R}^n$ to the probability simplex, a lower-dimensional manifold).
 
-**Practical question:** How sensitive are the softmax outputs to perturbations in the logits? The answer depends on the sharpness of the softmax. A "peaky" distribution (one $p_i \approx 1$) has Jacobian entries near 0 — small gradient flow, effectively zero sensitivity. A "flat" distribution (all $p_i = 1/n$) has maximum sensitivity: the Frobenius norm of $J$ is maximized.
+**Practical question:** How sensitive are the softmax outputs to perturbations in the logits? The answer depends on the sharpness of the softmax. A "peaky" distribution (one $p_i \approx 1$) has Jacobian entries near 0 - small gradient flow, effectively zero sensitivity. A "flat" distribution (all $p_i = 1/n$) has maximum sensitivity: the Frobenius norm of $J$ is maximized.
 
 **For training:** Sharp attention (peaky softmax) causes vanishing gradients through the attention weights. This is prevented by: (1) temperature scaling $1/\sqrt{d_k}$; (2) attention dropout (randomly zero-ing some weights, softening the distribution); (3) label smoothing (softens the target distribution, preventing overconfident predictions).
 
@@ -1568,15 +1568,15 @@ The Jacobian of softmax is $J = \text{diag}(\mathbf{p}) - \mathbf{p}\mathbf{p}^\
 ## Appendix P: Summary Statistics of Chapter
 
 ```
-CHAPTER §01 SUMMARY
-════════════════════════════════════════════════════════════════════════
+CHAPTER Section01 SUMMARY
+========================================================================
 
-  Core concepts: 10 (IEEE 754, ε_mach, rounding, cancellation,
+  Core concepts: 10 (IEEE 754, \\varepsilon_mach, rounding, cancellation,
                      Kahan, condition number, stability, formats,
                      mixed precision, stable implementations)
 
   Key formulas: 12 (rounding model, Kahan step, stable softmax,
-                    logsumexp, κ(A), error bounds, ...)
+                    logsumexp, (A), error bounds, ...)
 
   Numerical formats: 8 (fp64, fp32, bf16, fp16, fp8 E4M3, fp8 E5M2,
                         int8, int4)
@@ -1584,20 +1584,20 @@ CHAPTER §01 SUMMARY
   AI connections: 15 (loss scaling, NaN debugging, FlashAttention,
                       TF32, bf16 training, gradient clipping, ...)
 
-  Exercises: 8 (★ to ★★★), covering all major topics
+  Exercises: 8 (* to ***), covering all major topics
 
   Appendices: 16 (A through P)
 
   Notes length: ~1700 lines
   Theory cells: 50+
-  Exercises: 8 graded problems (24 cells)
+  Exercises: 10 graded problems (24 cells)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
 
-## Appendix Q: Deep Dive — IEEE 754 Special Value Arithmetic
+## Appendix Q: Deep Dive - IEEE 754 Special Value Arithmetic
 
 Understanding how special values propagate is essential for debugging AI training runs.
 
@@ -1609,7 +1609,7 @@ NaN (Not a Number) is **sticky**: any arithmetic operation with a NaN produces a
 NaN + x  = NaN    for any x (including NaN)
 NaN * 0  = NaN    (not 0, despite "anything times zero is zero")
 NaN < x  = False  for any x
-NaN == NaN = False  (IEEE mandates this — NaN is not equal to itself)
+NaN == NaN = False  (IEEE mandates this - NaN is not equal to itself)
 ```
 
 **The self-inequality of NaN** is the canonical way to detect it:
@@ -1633,18 +1633,18 @@ In PyTorch: `torch.isnan(x)` or `x != x`.
 
 Infinity follows extended real arithmetic:
 ```
-+∞ + (+∞)  = +∞
-+∞ + (-∞)  = NaN    (indeterminate form)
-+∞ * 0     = NaN    (indeterminate form)
-+∞ * (+∞)  = +∞
-1 / 0      = +∞     (for positive numerator)
--1 / 0     = -∞
++\\infty + (+\\infty)  = +\\infty
++\\infty + (-\\infty)  = NaN    (indeterminate form)
++\\infty * 0     = NaN    (indeterminate form)
++\\infty * (+\\infty)  = +\\infty
+1 / 0      = +\\infty     (for positive numerator)
+-1 / 0     = -\\infty
 0 / 0      = NaN
-x / +∞     = 0      for finite x
+x / +\\infty     = 0      for finite x
 ```
 
 **Loss spike analysis:** When a loss value becomes `inf`, trace backward:
-- `log(0)` — zero probability assigned to correct class
+- `log(0)` - zero probability assigned to correct class
 - `exp(x)` for large `x` before normalization (use log-sum-exp)
 - Division by a very small denominator (batch norm with near-zero variance)
 - Accumulated gradients that overflow fp16 range before gradient clipping
@@ -1653,8 +1653,8 @@ x / +∞     = 0      for finite x
 
 IEEE 754 has both `+0` and `-0`. They compare equal (`+0 == -0` is True) but differ in division:
 ```
-1 / (+0) = +∞
-1 / (-0) = -∞
+1 / (+0) = +\\infty
+1 / (-0) = -\\infty
 ```
 
 Signed zero matters in:
@@ -1667,8 +1667,8 @@ Signed zero matters in:
 On most hardware, operations involving subnormal numbers (also called denormals) execute 10-100x slower than normal operations, because they require software emulation or special hardware paths.
 
 In training:
-- Very small weight values gradually entering subnormal range → sudden throughput drop
-- Gradient values approaching zero → subnormal gradients → training slows
+- Very small weight values gradually entering subnormal range -> sudden throughput drop
+- Gradient values approaching zero -> subnormal gradients -> training slows
 - **Fix**: Set the **flush-to-zero (FTZ)** flag, which replaces subnormals with zero
   - PyTorch: enabled by default in CUDA
   - NumPy: `np.seterr(under='ignore')` + platform FTZ setting
@@ -1681,15 +1681,15 @@ In training:
 ### Case Study 1: The fp16 Loss Explosion Problem (2017-2018)
 
 When researchers first attempted to train large language models in fp16, they observed frequent loss explosions. Investigation revealed:
-- Gradient magnitudes of ~10⁻⁴ to 10⁻³ during stable training
-- fp16 minimum positive normal: ~6.1 × 10⁻⁵
-- Many gradients underflowed to zero → effectively frozen parameters
+- Gradient magnitudes of ~10^-^4 to 10^-^3 during stable training
+- fp16 minimum positive normal: ~6.1 x 10^-5
+- Many gradients underflowed to zero -> effectively frozen parameters
 - Sudden instability from accumulated representation errors in weights
 
 **Solution (Micikevicius et al., 2017):** Mixed-precision training with loss scaling:
 1. Maintain **fp32 master copy** of all weights
 2. Cast to fp16 for forward and backward pass (4x speedup)
-3. Scale loss by $S$ (typically 2⁸ to 2¹⁵) before backward
+3. Scale loss by $S$ (typically 28 to 215) before backward
 4. Check for overflow (any gradient is Inf or NaN)
 5. If no overflow: unscale, apply gradient clipping, update fp32 weights
 6. If overflow: skip step, halve $S$
@@ -1704,7 +1704,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\r
 Without the $\sqrt{d_k}$ scaling, with $d_k = 64$:
 - $q \cdot k$ can have magnitude $\sim d_k = 64$ (assuming unit-variance features)
 - After softmax, extreme values dominate: $\text{softmax}([10, 10, ..., 64]) \approx [0, 0, ..., 1]$
-- Gradient of softmax becomes nearly zero → vanishing gradients
+- Gradient of softmax becomes nearly zero -> vanishing gradients
 
 The $1/\sqrt{d_k}$ factor ensures dot products have variance 1, keeping softmax in its informative regime.
 
@@ -1732,7 +1732,7 @@ Gradient checkpointing saves memory by recomputing intermediate activations duri
 
 **Source of error:** In mixed-precision training with `autocast`, the recomputed forward pass during backward may use slightly different floating-point operations than the original forward. The resulting gradient is mathematically correct (same bit pattern inputs) but the error can accumulate differently.
 
-**Industry practice:** PyTorch's `torch.utils.checkpoint.checkpoint` handles this correctly by default. The key requirement is that the checkpointed function must be deterministic — stochastic operations (like Dropout) must use the same random seed in forward and recomputation.
+**Industry practice:** PyTorch's `torch.utils.checkpoint.checkpoint` handles this correctly by default. The key requirement is that the checkpointed function must be deterministic - stochastic operations (like Dropout) must use the same random seed in forward and recomputation.
 
 ---
 
@@ -1749,13 +1749,13 @@ def benchmark_matmul(dtype, size=4096, n_warmup=5, n_trials=20):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     A = torch.randn(size, size, dtype=dtype, device=device)
     B = torch.randn(size, size, dtype=dtype, device=device)
-    
+
     # Warmup
     for _ in range(n_warmup):
         C = torch.mm(A, B)
     if device == 'cuda':
         torch.cuda.synchronize()
-    
+
     # Benchmark
     start = time.perf_counter()
     for _ in range(n_trials):
@@ -1763,7 +1763,7 @@ def benchmark_matmul(dtype, size=4096, n_warmup=5, n_trials=20):
     if device == 'cuda':
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - start
-    
+
     # FLOPS: 2 * N^3 for N x N matmul
     flops = 2 * size**3 * n_trials
     tflops = flops / elapsed / 1e12
@@ -1781,7 +1781,7 @@ def benchmark_matmul(dtype, size=4096, n_warmup=5, n_trials=20):
 def register_nan_hooks(model):
     """Register hooks to detect NaN/Inf in forward and backward passes."""
     hooks = []
-    
+
     def forward_hook(name):
         def hook(module, input, output):
             if isinstance(output, torch.Tensor):
@@ -1790,18 +1790,18 @@ def register_nan_hooks(model):
                 if torch.isinf(output).any():
                     print(f"Inf detected in forward: {name}")
         return hook
-    
+
     def backward_hook(name):
         def hook(module, grad_input, grad_output):
             for i, g in enumerate(grad_input):
                 if g is not None and torch.isnan(g).any():
                     print(f"NaN in grad_input[{i}] at: {name}")
         return hook
-    
+
     for name, module in model.named_modules():
         hooks.append(module.register_forward_hook(forward_hook(name)))
         hooks.append(module.register_full_backward_hook(backward_hook(name)))
-    
+
     return hooks  # Call hook.remove() to deregister
 
 # Usage:
@@ -1847,7 +1847,7 @@ For fp32: $p = 24$ (1 implicit + 23 explicit mantissa bits), so $\varepsilon_{\t
 
 ### T.2 Why Kahan Summation Has $O(\varepsilon_{\text{mach}})$ Error
 
-Naive summation of $n$ numbers has error bound $O(n \varepsilon_{\text{mach}} \sum |x_i|)$ — grows with $n$.
+Naive summation of $n$ numbers has error bound $O(n \varepsilon_{\text{mach}} \sum |x_i|)$ - grows with $n$.
 
 Kahan summation maintains a compensation variable $c$ tracking the lost low-order bits:
 ```
@@ -1876,7 +1876,7 @@ Setting $c = \max_j z_j$ ensures all exponents $z_i - c \leq 0$, preventing over
 The Householder QR algorithm produces $\hat{Q}, \hat{R}$ such that:
 $$\hat{Q}\hat{R} = A + \delta A, \quad \frac{\|\delta A\|}{\|A\|} = O(\varepsilon_{\text{mach}})$$
 
-This is backward stable: the computed result is the exact answer for a slightly perturbed problem. The forward error in solving $Ax = b$ via QR is then $O(\kappa(A) \varepsilon_{\text{mach}})$, which is optimal — no algorithm can do better without additional information about the problem structure.
+This is backward stable: the computed result is the exact answer for a slightly perturbed problem. The forward error in solving $Ax = b$ via QR is then $O(\kappa(A) \varepsilon_{\text{mach}})$, which is optimal - no algorithm can do better without additional information about the problem structure.
 
 ---
 
@@ -1886,17 +1886,17 @@ This section connects to several other parts of the curriculum:
 
 | Topic Introduced Here | Full Treatment |
 |----------------------|----------------|
-| Condition number $\kappa(A)$ | [§02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) — condition number theory, backward stability proofs, perturbation analysis |
-| Stable matrix algorithms (LU, QR, Cholesky) | [§03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md) — full decomposition theory |
-| Floating-point in optimization (gradient descent) | [§03 Numerical Optimization](../03-Numerical-Optimization/notes.md) — learning rate selection, gradient accumulation, precision effects on convergence |
-| Interpolation with finite precision | [§04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md) — Runge's phenomenon, Chebyshev nodes, numerical stability of polynomial evaluation |
-| Numerical quadrature errors | [§05 Numerical Integration](../05-Numerical-Integration/notes.md) — error analysis of quadrature rules in finite precision |
-| Probabilistic error analysis | [§05-Probability-and-Statistics](../../05-Probability-and-Statistics/notes.md) — probabilistic numerics, Gaussian process approximations |
+| Condition number $\kappa(A)$ | [Section02 Numerical Linear Algebra](../02-Numerical-Linear-Algebra/notes.md) - condition number theory, backward stability proofs, perturbation analysis |
+| Stable matrix algorithms (LU, QR, Cholesky) | [Section03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md) - full decomposition theory |
+| Floating-point in optimization (gradient descent) | [Section03 Numerical Optimization](../03-Numerical-Optimization/notes.md) - learning rate selection, gradient accumulation, precision effects on convergence |
+| Interpolation with finite precision | [Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md) - Runge's phenomenon, Chebyshev nodes, numerical stability of polynomial evaluation |
+| Numerical quadrature errors | [Section05 Numerical Integration](../05-Numerical-Integration/notes.md) - error analysis of quadrature rules in finite precision |
+| Probabilistic error analysis | [Section05-Probability-and-Statistics](../../05-Probability-and-Statistics/notes.md) - probabilistic numerics, Gaussian process approximations |
 
 **Notation cross-references:**
-- $\varepsilon_{\text{mach}}$ defined here → used in all §10 sections
-- $\kappa(A)$ introduced here → defined formally in §02
-- $\text{fl}(\cdot)$ rounding operator defined here → used throughout §10
+- $\varepsilon_{\text{mach}}$ defined here -> used in all Section10 sections
+- $\kappa(A)$ introduced here -> defined formally in Section02
+- $\text{fl}(\cdot)$ rounding operator defined here -> used throughout Section10
 
 
 ---
@@ -1905,7 +1905,7 @@ This section connects to several other parts of the curriculum:
 
 These supplementary problems extend the main exercises for students who want deeper practice.
 
-### V.1 Sterbenz's Lemma (★★)
+### V.1 Sterbenz's Lemma (**)
 
 **Statement:** If $a, b \in \mathbb{F}$ and $b/2 \leq a \leq 2b$, then $a - b$ is computed exactly (no rounding error).
 
@@ -1915,15 +1915,15 @@ These supplementary problems extend the main exercises for students who want dee
 
 **Exercise:** Verify Sterbenz's lemma numerically for fp32 arithmetic. Generate pairs $(a, b)$ where $b/2 \leq a \leq 2b$ and confirm that `a - b` equals `(a - b)` computed via Fraction (exact rational arithmetic). Compare with pairs outside the range.
 
-### V.2 The Table Maker's Dilemma (★★★)
+### V.2 The Table Maker's Dilemma (***)
 
-When evaluating $\sin(x)$ to correctly-rounded results, we need to know $\sin(x)$ to much higher precision — potentially arbitrary precision. This is because the correctly-rounded result depends on which side of a representable number $\sin(x)$ falls on. For a $p$-bit significand, the worst case requires computing $\sin(x)$ to approximately $p^2$ bits of precision (the **Table Maker's Dilemma**, Kahan and Ziv, 1990s).
+When evaluating $\sin(x)$ to correctly-rounded results, we need to know $\sin(x)$ to much higher precision - potentially arbitrary precision. This is because the correctly-rounded result depends on which side of a representable number $\sin(x)$ falls on. For a $p$-bit significand, the worst case requires computing $\sin(x)$ to approximately $p^2$ bits of precision (the **Table Maker's Dilemma**, Kahan and Ziv, 1990s).
 
 **Modern resolution:** The CRlibm library (INRIA) and Intel SVML use multi-stage argument reduction + polynomial approximation with double-double arithmetic to guarantee correctly-rounded elementary functions.
 
-**For AI:** This is why `torch.sin()` may give slightly different results than `math.sin()` for the same input — different levels of accuracy guarantees.
+**For AI:** This is why `torch.sin()` may give slightly different results than `math.sin()` for the same input - different levels of accuracy guarantees.
 
-### V.3 Floating-Point Reproducibility (★★)
+### V.3 Floating-Point Reproducibility (**)
 
 Training a deep neural network on the same hardware, same code, same random seed should produce the same result. But in practice, results often differ between runs. Sources of non-reproducibility:
 - **Non-associative reductions:** GPU CUDA reduction operations may sum in different orders depending on thread scheduling
@@ -1941,7 +1941,7 @@ torch.backends.cudnn.benchmark = False     # Disable algorithm search
 
 **Tradeoff:** Deterministic mode can be 10-30% slower due to avoiding certain non-deterministic fast paths.
 
-### V.4 Error-Free Transformations (★★★)
+### V.4 Error-Free Transformations (***)
 
 An **error-free transformation** (EFT) computes not just $\text{fl}(a \circ b)$ but also the exact rounding error $e$ such that $a \circ b = \text{fl}(a \circ b) + e$ exactly.
 
@@ -1956,7 +1956,7 @@ function TwoSum(a, b):
 
 This costs 6 floating-point operations to compute both the sum and the exact rounding error.
 
-**Application — Double-Double Arithmetic:** By representing each number as a pair $(h, l)$ where $h + l$ is the true value (and $|l| \leq \varepsilon_{\text{mach}}|h|/2$), we effectively double the working precision from $p$ to $\sim 2p$ bits using only hardware arithmetic. This is how `long double` is emulated on some platforms and how Kahan summation achieves its precision.
+**Application - Double-Double Arithmetic:** By representing each number as a pair $(h, l)$ where $h + l$ is the true value (and $|l| \leq \varepsilon_{\text{mach}}|h|/2$), we effectively double the working precision from $p$ to $\sim 2p$ bits using only hardware arithmetic. This is how `long double` is emulated on some platforms and how Kahan summation achieves its precision.
 
 ---
 
@@ -1966,41 +1966,41 @@ This costs 6 floating-point operations to compute both the sum and the exact rou
 
 ```
 CHOOSING FLOATING-POINT FORMAT
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Is this inference or training?
-  │
-  ├─► INFERENCE
-  │     Is accuracy critical?
-  │     ├─► YES: fp32 (or bf16 if model supports it)
-  │     └─► NO: int8 quantization (post-training quant, GPTQ, AWQ)
-  │                → 4-8x memory reduction, ~1-2% accuracy loss
-  │
-  └─► TRAINING
+  |
+  +-> INFERENCE
+  |     Is accuracy critical?
+  |     +-> YES: fp32 (or bf16 if model supports it)
+  |     +-> NO: int8 quantization (post-training quant, GPTQ, AWQ)
+  |                -> 4-8x memory reduction, ~1-2% accuracy loss
+  |
+  +-> TRAINING
         Hardware with Tensor Cores? (A100/H100/RTX 30xx/40xx)
-        ├─► YES: bf16 + AMP (torch.cuda.amp)
-        │         - Weight master copy in fp32
-        │         - Compute in bf16 (4x throughput)
-        │         - Dynamic loss scaling
-        └─► NO (V100 or CPU):
+        +-> YES: bf16 + AMP (torch.cuda.amp)
+        |         - Weight master copy in fp32
+        |         - Compute in bf16 (4x throughput)
+        |         - Dynamic loss scaling
+        +-> NO (V100 or CPU):
               fp32 safe baseline
               fp16 + AMP if V100 (needs loss scaling, unstable for LLMs)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### Format Comparison Summary
 
 | Format | Bits | Dynamic Range | Precision | Best Use Case |
 |--------|------|---------------|-----------|---------------|
-| fp64 | 64 | ±10^308 | ~15 digits | Scientific computing, debugging |
-| fp32 | 32 | ±10^38 | ~7 digits | Training baseline, optimizer states |
-| tf32 | 19* | ±10^38 | ~3 digits | A100 matmul (automatic, transparent) |
-| bf16 | 16 | ±10^38 | ~2 digits | LLM training (same range as fp32) |
-| fp16 | 16 | ±65504 | ~3 digits | Vision models, inference |
-| fp8 E4M3 | 8 | ±448 | ~1 digit | Forward pass (H100+) |
-| fp8 E5M2 | 8 | ±57344 | <1 digit | Gradient accumulation (H100+) |
-| int8 | 8 | ±127 | Integer | Inference quantization |
+| fp64 | 64 | +/-10^308 | ~15 digits | Scientific computing, debugging |
+| fp32 | 32 | +/-10^38 | ~7 digits | Training baseline, optimizer states |
+| tf32 | 19* | +/-10^38 | ~3 digits | A100 matmul (automatic, transparent) |
+| bf16 | 16 | +/-10^38 | ~2 digits | LLM training (same range as fp32) |
+| fp16 | 16 | +/-65504 | ~3 digits | Vision models, inference |
+| fp8 E4M3 | 8 | +/-448 | ~1 digit | Forward pass (H100+) |
+| fp8 E5M2 | 8 | +/-57344 | <1 digit | Gradient accumulation (H100+) |
+| int8 | 8 | +/-127 | Integer | Inference quantization |
 
 *tf32 uses 10-bit mantissa for compute but stores as fp32.
 
@@ -2009,7 +2009,7 @@ CHOOSING FLOATING-POINT FORMAT
 ```python
 # Typical AMP GradScaler configuration
 scaler = torch.cuda.amp.GradScaler(
-    init_scale=2**16,      # Start with 65536 — large enough for fp16
+    init_scale=2**16,      # Start with 65536 - large enough for fp16
     growth_factor=2.0,      # Double scale every growth_interval steps
     backoff_factor=0.5,     # Halve scale on overflow
     growth_interval=2000,   # Steps between scale increases
@@ -2023,4 +2023,4 @@ scaler = torch.cuda.amp.GradScaler(
 
 *End of Appendix W*
 
-[← Back to Chapter 10](../README.md) | [Next: Numerical Linear Algebra →](../02-Numerical-Linear-Algebra/notes.md)
+[<- Back to Chapter 10](../README.md) | [Next: Numerical Linear Algebra ->](../02-Numerical-Linear-Algebra/notes.md)

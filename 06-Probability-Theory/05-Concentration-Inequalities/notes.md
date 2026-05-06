@@ -1,15 +1,15 @@
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Stochastic Processes →](../06-Stochastic-Processes/notes.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Stochastic Processes ->](../06-Stochastic-Processes/notes.md)
 
 ---
 
 # Concentration Inequalities
 
 > _"The tendency of random quantities to concentrate near their expectations is one of the most powerful and pervasive phenomena in all of mathematics."_
-> — Stéphane Boucheron, Gábor Lugosi & Pascal Massart, *Concentration Inequalities* (2013)
+> - Stephane Boucheron, Gabor Lugosi & Pascal Massart, *Concentration Inequalities* (2013)
 
 ## Overview
 
-A random variable $X$ has an expectation $\mathbb{E}[X]$, but individual realisations scatter around it. **Concentration inequalities** answer the quantitative question: how far from $\mathbb{E}[X]$ can $X$ stray, and with what probability? These are not mere abstract bounds — they are the mathematical engine behind almost every theoretical guarantee in machine learning.
+A random variable $X$ has an expectation $\mathbb{E}[X]$, but individual realisations scatter around it. **Concentration inequalities** answer the quantitative question: how far from $\mathbb{E}[X]$ can $X$ stray, and with what probability? These are not mere abstract bounds - they are the mathematical engine behind almost every theoretical guarantee in machine learning.
 
 Every time a practitioner asks "how many training examples do I need to achieve 95% accuracy with 99% confidence?", the answer is a concentration inequality. Every time a theorist proves that a learning algorithm *generalises* from training data to unseen data, the proof uses a concentration inequality. The PAC learning framework, VC theory, Rademacher complexity, and modern neural tangent kernel theory all rest on the same probabilistic foundation built in this section.
 
@@ -17,17 +17,17 @@ The central insight is a hierarchy: weaker assumptions yield looser bounds, stro
 
 ## Prerequisites
 
-- [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) — $\mathbb{E}[X]$, $\operatorname{Var}(X)$, MGF $M_X(t) = \mathbb{E}[e^{tX}]$, Jensen's inequality, indicator random variables
-- [§03 Joint Distributions](../03-Joint-Distributions/notes.md) — independence, conditional distributions
-- [§02 Common Distributions](../02-Common-Distributions/notes.md) — Gaussian, Bernoulli, Binomial
-- [§01 Introduction and Random Variables](../01-Introduction-and-Random-Variables/notes.md) — probability axioms, union bound preview
+- [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) - $\mathbb{E}[X]$, $\operatorname{Var}(X)$, MGF $M_X(t) = \mathbb{E}[e^{tX}]$, Jensen's inequality, indicator random variables
+- [Section03 Joint Distributions](../03-Joint-Distributions/notes.md) - independence, conditional distributions
+- [Section02 Common Distributions](../02-Common-Distributions/notes.md) - Gaussian, Bernoulli, Binomial
+- [Section01 Introduction and Random Variables](../01-Introduction-and-Random-Variables/notes.md) - probability axioms, union bound preview
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Interactive derivations: Markov, Chebyshev, Hoeffding, Chernoff, McDiarmid, PAC bounds, Rademacher complexity |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from tail bound verification to VC dimension and Rademacher estimation |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from tail bound verification to VC dimension and Rademacher estimation |
 
 ## Learning Objectives
 
@@ -88,7 +88,7 @@ After completing this section, you will be able to:
 - [8. The Union Bound and Covering Arguments](#8-the-union-bound-and-covering-arguments)
   - [8.1 Union Bound](#81-union-bound)
   - [8.2 Multiple Hypothesis Testing](#82-multiple-hypothesis-testing)
-  - [8.3 Covering Numbers and ε-Nets](#83-covering-numbers-and-ε-nets)
+  - [8.3 Covering Numbers and \\varepsilon-Nets](#83-covering-numbers-and-\\varepsilon-nets)
   - [8.4 The Net Argument](#84-the-net-argument)
 - [9. PAC Learning and Generalisation Bounds](#9-pac-learning-and-generalisation-bounds)
   - [9.1 The PAC Framework](#91-the-pac-framework)
@@ -123,7 +123,7 @@ The fundamental question is: **given what we know about $X$ (its mean, variance,
 
 This matters deeply in practice. In machine learning, we observe the *empirical* mean of a loss function on training data and want to know how well it approximates the *true* (population) mean. If $X_1, \ldots, X_n$ are i.i.d. losses with mean $\mu$ and we observe $\bar{X}_n = \frac{1}{n}\sum X_i$, concentration inequalities tell us how close $\bar{X}_n$ is to $\mu$ with high probability. This is the foundation of statistical learning theory.
 
-**The sample mean concentrates around the true mean.** As $n$ grows, the deviation $|\bar{X}_n - \mu|$ becomes increasingly small with high probability. This is the content of the Law of Large Numbers — but concentration inequalities give *quantitative, finite-$n$* bounds, not just asymptotic guarantees.
+**The sample mean concentrates around the true mean.** As $n$ grows, the deviation $|\bar{X}_n - \mu|$ becomes increasingly small with high probability. This is the content of the Law of Large Numbers - but concentration inequalities give *quantitative, finite-$n$* bounds, not just asymptotic guarantees.
 
 **For AI:** Every evaluation metric in ML (accuracy, F1, BLEU, ROUGE, perplexity) is estimated from a finite test set. Concentration inequalities tell us how many test examples we need to trust the estimate. HELM benchmarks for LLMs, for instance, implicitly rely on Hoeffding-type bounds for the confidence intervals around model comparisons.
 
@@ -133,32 +133,32 @@ Concentration inequalities form a clear hierarchy. Moving down requires stronger
 
 ```
 CONCENTRATION INEQUALITY HIERARCHY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Assumption          Inequality         Tail bound form
-  ─────────────────────────────────────────────────────────────────
-  E[X] < ∞, X ≥ 0   Markov             P(X ≥ t) ≤ μ/t
+  -----------------------------------------------------------------
+  E[X] < \\infty, X \\geq 0   Markov             P(X \\geq t) \\leq \\mu/t
   (polynomial decay)
 
-  Var(X) < ∞         Chebyshev          P(|X-μ| ≥ t) ≤ σ²/t²
+  Var(X) < \\infty         Chebyshev          P(|X-\\mu| \\geq t) \\leq \\sigma^2/t^2
   (polynomial decay)
 
-  E[e^{sX}] < ∞      Chernoff method    P(X ≥ t) ≤ min_s e^{-st}M(s)
+  E[e^{sX}] < \\infty      Chernoff method    P(X \\geq t) \\leq min_s e^{-st}M(s)
   (general expo)
 
-  X ∈ [a,b] a.s.     Hoeffding          P(X̄-μ ≥ t) ≤ exp(-2nt²/(b-a)²)
+  X \\in [a,b] a.s.     Hoeffding          P(Xbar-\\mu \\geq t) \\leq exp(-2nt^2/(b-a)^2)
   (sub-Gaussian)      (exponential decay)
 
-  Var known + bounded Bernstein          exp(-nt²/(2σ²+2ct/3))
+  Var known + bounded Bernstein          exp(-nt^2/(2\\sigma^2+2ct/3))
   (variance-aware)    (tighter for small t)
 
-  f(X₁,...,Xₙ)       McDiarmid          exp(-2t²/Σcᵢ²)
+  f(X_1,...,X_n)       McDiarmid          exp(-2t^2/\\Sigmac_i^2)
   bounded differences (functions of iid)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The key insight: **moment-based bounds** (Markov, Chebyshev) give polynomial tails $O(1/t^k)$, while **MGF-based bounds** give exponential tails $O(e^{-ct^2})$. Exponential tails are vastly superior — a Gaussian has $P(|X| \geq 3\sigma) \approx 0.003$, while Chebyshev gives only $1/9 \approx 0.11$.
+The key insight: **moment-based bounds** (Markov, Chebyshev) give polynomial tails $O(1/t^k)$, while **MGF-based bounds** give exponential tails $O(e^{-ct^2})$. Exponential tails are vastly superior - a Gaussian has $P(|X| \geq 3\sigma) \approx 0.003$, while Chebyshev gives only $1/9 \approx 0.11$.
 
 ### 1.3 Historical Timeline
 
@@ -169,14 +169,14 @@ The key insight: **moment-based bounds** (Markov, Chebyshev) give polynomial tai
 | 1952 | Herman Chernoff | MGF-based exponential tail bounds for sums of independent variables |
 | 1963 | Wassily Hoeffding | Tight bounds for bounded variables; modern form used everywhere |
 | 1971 | Vapnik & Chervonenkis | VC dimension theory; combinatorial approach to generalisation |
-| 1984 | Leslie Valiant | PAC learning framework — theoretical model for machine learning |
+| 1984 | Leslie Valiant | PAC learning framework - theoretical model for machine learning |
 | 1989 | Colin McDiarmid | Bounded differences inequality for general functions of independent variables |
-| 1995 | Bartlett & Mendelson | Rademacher complexity — data-dependent alternative to VC theory |
+| 1995 | Bartlett & Mendelson | Rademacher complexity - data-dependent alternative to VC theory |
 | 2013 | Boucheron, Lugosi & Massart | Comprehensive monograph unifying modern concentration theory |
 
 ### 1.4 Why Concentration Matters for ML
 
-**Generalisation:** A neural network achieves 99% training accuracy. Does it generalise? Concentration inequalities bound $|R(h) - \hat{R}(h)|$ — the gap between true and empirical risk. They tell us when we can trust training metrics.
+**Generalisation:** A neural network achieves 99% training accuracy. Does it generalise? Concentration inequalities bound $|R(h) - \hat{R}(h)|$ - the gap between true and empirical risk. They tell us when we can trust training metrics.
 
 **SGD analysis:** Stochastic gradient descent uses a mini-batch estimate $\hat{g}$ of the true gradient $g$. Concentration inequalities bound $\|\hat{g} - g\|_2$, determining the noise level and required step sizes for convergence.
 
@@ -200,14 +200,14 @@ $$P(X \geq t) = \mathbb{E}[\mathbf{1}[X \geq t]] \leq \mathbb{E}\!\left[\frac{X}
 
 This proof is a master class in the indicator trick: multiply by 1, then bound the indicator.
 
-**Tightness.** Markov's bound is tight. Consider $X = t$ with probability $\mu/t$ and $X = 0$ otherwise. Then $\mathbb{E}[X] = \mu$ and $P(X \geq t) = \mu/t$ — exactly matching the bound.
+**Tightness.** Markov's bound is tight. Consider $X = t$ with probability $\mu/t$ and $X = 0$ otherwise. Then $\mathbb{E}[X] = \mu$ and $P(X \geq t) = \mu/t$ - exactly matching the bound.
 
 **Extensions.** Markov applies to any non-negative function of $X$: for any non-decreasing $\phi \geq 0$,
 $$P(X \geq t) = P(\phi(X) \geq \phi(t)) \leq \frac{\mathbb{E}[\phi(X)]}{\phi(t)}$$
 
 Setting $\phi(x) = x^k$ gives the *$k$-th moment bound*: $P(X \geq t) \leq \mathbb{E}[X^k]/t^k$. Setting $\phi(x) = e^{sx}$ gives the Chernoff method.
 
-**For AI:** Markov's inequality underlies gradient clipping analysis. If $\mathbb{E}[\|g\|_2] \leq G$, then $P(\|g\|_2 \geq cG) \leq 1/c$ — so gradient norms exceed $10G$ at most 10% of steps.
+**For AI:** Markov's inequality underlies gradient clipping analysis. If $\mathbb{E}[\|g\|_2] \leq G$, then $P(\|g\|_2 \geq cG) \leq 1/c$ - so gradient norms exceed $10G$ at most 10% of steps.
 
 ### 2.2 Chebyshev's Inequality
 
@@ -228,9 +228,9 @@ $$P(|X - \mu| \geq t) = P((X-\mu)^2 \geq t^2) \leq \frac{\mathbb{E}[(X-\mu)^2]}{
 | 4 | $\geq 93.75\%$ within $4\sigma$ | $\approx 99.994\%$ |
 | 5 | $\geq 96\%$ within $5\sigma$ | $\approx 99.99994\%$ |
 
-**For AI:** Chebyshev justifies batch normalisation. If activations have $\operatorname{Var}(X) = \sigma^2$, then at most $1/k^2$ of activations lie beyond $k\sigma$ — this quantifies the scale-normalisation benefit.
+**For AI:** Chebyshev justifies batch normalisation. If activations have $\operatorname{Var}(X) = \sigma^2$, then at most $1/k^2$ of activations lie beyond $k\sigma$ - this quantifies the scale-normalisation benefit.
 
-> **Recall:** The variance $\operatorname{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$ and its properties were developed fully in [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md). We use it here as a plug-in parameter.
+> **Recall:** The variance $\operatorname{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2$ and its properties were developed fully in [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md). We use it here as a plug-in parameter.
 
 ### 2.3 One-Sided Chebyshev (Cantelli's Inequality)
 
@@ -243,13 +243,13 @@ $$P(X - \mu \geq t) \leq \frac{\sigma^2}{\sigma^2 + t^2}$$
 $$P(X - \mu \geq t) = P(X - \mu + s \geq t + s) \leq \frac{\mathbb{E}[(X-\mu+s)^2]}{(t+s)^2} = \frac{\sigma^2 + s^2}{(t+s)^2}$$
 Optimise over $s$: $\partial/\partial s = 0$ gives $s = \sigma^2/t$, yielding $\sigma^2/(\sigma^2 + t^2)$.
 
-For large $t$: Chebyshev gives $\sigma^2/t^2$ per tail (so $2\sigma^2/t^2$ two-sided), while Cantelli gives $\sigma^2/(\sigma^2 + t^2) \approx \sigma^2/t^2$ one-sided — roughly the same. But for small $t$, Cantelli avoids the factor of 2.
+For large $t$: Chebyshev gives $\sigma^2/t^2$ per tail (so $2\sigma^2/t^2$ two-sided), while Cantelli gives $\sigma^2/(\sigma^2 + t^2) \approx \sigma^2/t^2$ one-sided - roughly the same. But for small $t$, Cantelli avoids the factor of 2.
 
 ### 2.4 Limitations of Moment-Based Bounds
 
-Markov and Chebyshev have polynomial tails. The Gaussian has $P(X \geq 3\sigma) \approx 0.0013$, but Chebyshev gives only $1/9 \approx 0.111$ — an 85× overestimate. For $t = 10\sigma$, Chebyshev gives $0.01$, while the true Gaussian probability is $\approx 10^{-23}$.
+Markov and Chebyshev have polynomial tails. The Gaussian has $P(X \geq 3\sigma) \approx 0.0013$, but Chebyshev gives only $1/9 \approx 0.111$ - an 85x overestimate. For $t = 10\sigma$, Chebyshev gives $0.01$, while the true Gaussian probability is $\approx 10^{-23}$.
 
-**Why the gap?** Chebyshev uses only the first two moments. A distribution could concentrate all its mass at $\mu \pm t$ and match any $(\mu, \sigma^2)$ pair — that's the worst case for Chebyshev. Real distributions with bounded support or thin tails concentrate far more.
+**Why the gap?** Chebyshev uses only the first two moments. A distribution could concentrate all its mass at $\mu \pm t$ and match any $(\mu, \sigma^2)$ pair - that's the worst case for Chebyshev. Real distributions with bounded support or thin tails concentrate far more.
 
 **When Chebyshev is the right tool:**
 - Distribution-free bounds (don't know the family)
@@ -269,7 +269,7 @@ $$\mathbb{E}[e^{tX}] \leq e^{\sigma^2 t^2/2}$$
 
 The parameter $\sigma^2$ is the **sub-Gaussian parameter** (also called the *proxy variance*). Note: $\sigma^2$ need not equal $\operatorname{Var}(X)$, though $\operatorname{Var}(X) \leq \sigma^2$ always holds (by differentiation at $t=0$).
 
-**Why this condition?** Recall from [§04](../04-Expectation-and-Moments/notes.md) that the MGF of $\mathcal{N}(0, \sigma^2)$ is exactly $e^{\sigma^2 t^2/2}$. The sub-Gaussian condition says the MGF of $X$ is dominated by that of a Gaussian with variance $\sigma^2$. This immediately implies Gaussian-like tail bounds.
+**Why this condition?** Recall from [Section04](../04-Expectation-and-Moments/notes.md) that the MGF of $\mathcal{N}(0, \sigma^2)$ is exactly $e^{\sigma^2 t^2/2}$. The sub-Gaussian condition says the MGF of $X$ is dominated by that of a Gaussian with variance $\sigma^2$. This immediately implies Gaussian-like tail bounds.
 
 **Equivalent characterisations** (for mean-zero $X$):
 1. MGF condition: $\mathbb{E}[e^{tX}] \leq e^{\sigma^2 t^2/2}$ for all $t$
@@ -278,11 +278,11 @@ The parameter $\sigma^2$ is the **sub-Gaussian parameter** (also called the *pro
 
 ### 3.2 Examples of Sub-Gaussian Variables
 
-**Gaussian.** $X \sim \mathcal{N}(0, \sigma^2)$ is $\sigma^2$-sub-Gaussian. The MGF equals $e^{\sigma^2 t^2/2}$ exactly — Gaussian is the *equality case*.
+**Gaussian.** $X \sim \mathcal{N}(0, \sigma^2)$ is $\sigma^2$-sub-Gaussian. The MGF equals $e^{\sigma^2 t^2/2}$ exactly - Gaussian is the *equality case*.
 
-**Bounded random variable.** If $X \in [a, b]$ almost surely with $\mathbb{E}[X] = \mu$, then $X - \mu$ is $\frac{(b-a)^2}{4}$-sub-Gaussian. This is **Hoeffding's lemma** — proved in §4.
+**Bounded random variable.** If $X \in [a, b]$ almost surely with $\mathbb{E}[X] = \mu$, then $X - \mu$ is $\frac{(b-a)^2}{4}$-sub-Gaussian. This is **Hoeffding's lemma** - proved in Section4.
 
-**Rademacher variable.** $\varepsilon \in \{-1, +1\}$ with equal probability. Then $\mathbb{E}[e^{t\varepsilon}] = \cosh(t) \leq e^{t^2/2}$, so $\varepsilon$ is 1-sub-Gaussian. Rademacher variables appear in Rademacher complexity (§10).
+**Rademacher variable.** $\varepsilon \in \{-1, +1\}$ with equal probability. Then $\mathbb{E}[e^{t\varepsilon}] = \cosh(t) \leq e^{t^2/2}$, so $\varepsilon$ is 1-sub-Gaussian. Rademacher variables appear in Rademacher complexity (Section10).
 
 **Bernoulli centered.** $X = \operatorname{Bern}(p) - p \in \{-p, 1-p\}$. Since $X \in [-p, 1-p]$, it is $\frac{1}{4}$-sub-Gaussian by Hoeffding's lemma.
 
@@ -299,7 +299,7 @@ $$P(X \geq t) = P(e^{sX} \geq e^{st}) \leq \frac{\mathbb{E}[e^{sX}]}{e^{st}} \le
 Optimise over $s$: $\partial/\partial s(\sigma^2 s^2/2 - st) = 0 \Rightarrow s^* = t/\sigma^2$. Substituting:
 $$P(X \geq t) \leq e^{\sigma^2(t/\sigma^2)^2/2 - t \cdot t/\sigma^2} = e^{t^2/(2\sigma^2) - t^2/\sigma^2} = e^{-t^2/(2\sigma^2)}$$
 
-This proof pattern — Markov + MGF bound + optimise — is the **Chernoff method** and will recur throughout this section.
+This proof pattern - Markov + MGF bound + optimise - is the **Chernoff method** and will recur throughout this section.
 
 ### 3.4 Closure Under Sums
 
@@ -310,7 +310,7 @@ $$\mathbb{E}[e^{tS}] = \prod_{i=1}^n \mathbb{E}[e^{tX_i}] \leq \prod_{i=1}^n e^{
 
 **Corollary.** For $n$ i.i.d. $\sigma^2$-sub-Gaussian variables, the sample mean $\bar{X}_n = S/n$ satisfies $P(\bar{X}_n \geq t) \leq e^{-nt^2/(2\sigma^2)}$.
 
-**For AI:** Mini-batch gradient estimation. If each sample's contribution to the gradient is sub-Gaussian with parameter $\sigma^2$, then the mini-batch gradient of size $m$ is $\sigma^2/m$-sub-Gaussian — the noise decreases as $1/m$.
+**For AI:** Mini-batch gradient estimation. If each sample's contribution to the gradient is sub-Gaussian with parameter $\sigma^2$, then the mini-batch gradient of size $m$ is $\sigma^2/m$-sub-Gaussian - the noise decreases as $1/m$.
 
 ---
 
@@ -340,7 +340,7 @@ where $u = t(b-a)$ and $g(u) = -pu + \log(1 - p + pe^u)$ with $p = -a/(b-a)$. Ex
 **Theorem (Hoeffding, 1963).** Let $X_1, \ldots, X_n$ be independent random variables with $\mathbb{E}[X_i] = \mu_i$ and $X_i \in [a_i, b_i]$ almost surely. Then for all $t > 0$:
 $$P\!\left(\sum_{i=1}^n (X_i - \mu_i) \geq t\right) \leq \exp\!\left(-\frac{2t^2}{\sum_{i=1}^n (b_i - a_i)^2}\right)$$
 
-**Proof.** Let $Y_i = X_i - \mu_i$ (mean-zero, $Y_i \in [a_i - \mu_i, b_i - \mu_i]$). By Hoeffding's lemma, each $Y_i$ is $\frac{(b_i - a_i)^2}{4}$-sub-Gaussian. By independence and closure under sums (§3.4), $\sum Y_i$ is $\frac{\sum(b_i-a_i)^2}{4}$-sub-Gaussian. Applying the sub-Gaussian tail bound:
+**Proof.** Let $Y_i = X_i - \mu_i$ (mean-zero, $Y_i \in [a_i - \mu_i, b_i - \mu_i]$). By Hoeffding's lemma, each $Y_i$ is $\frac{(b_i - a_i)^2}{4}$-sub-Gaussian. By independence and closure under sums (Section3.4), $\sum Y_i$ is $\frac{\sum(b_i-a_i)^2}{4}$-sub-Gaussian. Applying the sub-Gaussian tail bound:
 $$P\!\left(\sum Y_i \geq t\right) \leq \exp\!\left(-\frac{t^2}{2 \cdot \frac{\sum(b_i-a_i)^2}{4}}\right) = \exp\!\left(-\frac{2t^2}{\sum(b_i-a_i)^2}\right)$$
 
 ### 4.3 Two-Sided Hoeffding and Sample Complexity
@@ -379,7 +379,7 @@ $$P(X \geq a) \leq \inf_{s > 0} e^{-sa} \cdot \mathbb{E}[e^{sX}] = \inf_{s > 0} 
 
 The infimum over $s$ gives the tightest bound. The optimal $s^*$ satisfies $M_X'(s^*)/M_X(s^*) = a$, i.e., the mean of $X$ under the *tilted distribution* equals $a$.
 
-> **Recall:** $M_X(t) = \mathbb{E}[e^{tX}]$ was developed in [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md#5-moment-generating-functions). The key property used here is $M_{X+Y}(t) = M_X(t) \cdot M_Y(t)$ for independent $X, Y$.
+> **Recall:** $M_X(t) = \mathbb{E}[e^{tX}]$ was developed in [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md#5-moment-generating-functions). The key property used here is $M_{X+Y}(t) = M_X(t) \cdot M_Y(t)$ for independent $X, Y$.
 
 ### 5.2 Chernoff for Bernoulli Sums
 
@@ -415,9 +415,9 @@ Chernoff gives $\exp(-np^2\delta^2/3) = \exp(-\mu^2\delta^2/(3n))$. For small $p
 For the lower tail, for $\delta \in (0, 1)$:
 $$P(S \leq (1-\delta)\mu) \leq e^{-\mu\delta^2/2}$$
 
-Note the factor of $1/2$ vs $1/3$ in the exponent — the lower tail is slightly tighter.
+Note the factor of $1/2$ vs $1/3$ in the exponent - the lower tail is slightly tighter.
 
-**Application: balls into bins.** When $n$ items are assigned to $m$ bins uniformly at random, the expected load per bin is $\mu = n/m$. Chernoff bounds control the maximum load — crucial for hashing and load-balancing proofs in distributed systems.
+**Application: balls into bins.** When $n$ items are assigned to $m$ bins uniformly at random, the expected load per bin is $\mu = n/m$. Chernoff bounds control the maximum load - crucial for hashing and load-balancing proofs in distributed systems.
 
 ---
 
@@ -425,7 +425,7 @@ Note the factor of $1/2$ vs $1/3$ in the exponent — the lower tail is slightly
 
 ### 6.1 Sub-Exponential Random Variables
 
-Some random variables have heavier tails than sub-Gaussian but still lighter than arbitrary — these are sub-exponential.
+Some random variables have heavier tails than sub-Gaussian but still lighter than arbitrary - these are sub-exponential.
 
 **Definition.** A mean-zero random variable $X$ is **sub-exponential** with parameters $(\nu^2, b)$ if:
 $$\mathbb{E}[e^{tX}] \leq e^{\nu^2 t^2/2} \quad \text{for all } |t| \leq 1/b$$
@@ -443,8 +443,8 @@ Sub-exponential tails decay as $e^{-t/b}$ (exponential), slower than Gaussian $e
 $$P\!\left(\sum_{i=1}^n X_i \geq t\right) \leq \exp\!\left(-\frac{t^2/2}{\nu^2 + ct/3}\right)$$
 
 **Intuition.** This interpolates between two regimes:
-- **Small $t$ ($t \ll \nu^2/c$):** Denominator $\approx \nu^2$, gives $e^{-t^2/(2\nu^2)}$ — sub-Gaussian with variance $\nu^2$
-- **Large $t$ ($t \gg \nu^2/c$):** Denominator $\approx ct/3$, gives $e^{-3t/(2c)}$ — exponential tail
+- **Small $t$ ($t \ll \nu^2/c$):** Denominator $\approx \nu^2$, gives $e^{-t^2/(2\nu^2)}$ - sub-Gaussian with variance $\nu^2$
+- **Large $t$ ($t \gg \nu^2/c$):** Denominator $\approx ct/3$, gives $e^{-3t/(2c)}$ - exponential tail
 
 ### 6.3 Bernstein vs Hoeffding
 
@@ -457,7 +457,7 @@ For $n$ i.i.d. variables with $|X_i| \leq c$ and sample variance $s^2 = \frac{1}
 
 **When Bernstein wins.** If $s^2 \ll c^2$ (data has small variance despite large range), Bernstein gives $\exp(-nt^2/(2s^2))$ for small $t$, while Hoeffding gives $\exp(-nt^2/(2c^2))$. Since $s^2 \ll c^2$, Bernstein is exponentially tighter.
 
-**Example.** Suppose $X_i \in [-1, 1]$ but $\operatorname{Var}(X_i) = 0.01$. Hoeffding uses range $(b-a)^2 = 4$, while Bernstein uses variance $0.01$ — a 400× improvement in the exponent for small $t$.
+**Example.** Suppose $X_i \in [-1, 1]$ but $\operatorname{Var}(X_i) = 0.01$. Hoeffding uses range $(b-a)^2 = 4$, while Bernstein uses variance $0.01$ - a 400x improvement in the exponent for small $t$.
 
 ### 6.4 Application to Gradient Noise
 
@@ -517,7 +517,7 @@ $$P\!\left(\bigcup_{i=1}^k A_i\right) \leq \sum_{i=1}^k P(A_i)$$
 
 The union bound is exact when events are disjoint and pessimistic otherwise. Despite its looseness, it is indispensable because it requires no assumption about dependence between events.
 
-**For AI:** The union bound appears in virtually every multi-class or multi-hypothesis analysis. PAC theory for a finite hypothesis class $\mathcal{H}$ asks for the probability that *any* $h \in \mathcal{H}$ is bad — union bound over all $|\mathcal{H}|$ hypotheses.
+**For AI:** The union bound appears in virtually every multi-class or multi-hypothesis analysis. PAC theory for a finite hypothesis class $\mathcal{H}$ asks for the probability that *any* $h \in \mathcal{H}$ is bad - union bound over all $|\mathcal{H}|$ hypotheses.
 
 ### 8.2 Multiple Hypothesis Testing
 
@@ -530,7 +530,7 @@ $$P(\exists i: A_i) \leq k\varepsilon$$
 
 To make this $\leq \delta$: need each $P(A_i) \leq \delta/k$. In PAC theory, this costs an extra $\log k$ in the required sample size.
 
-### 8.3 Covering Numbers and ε-Nets
+### 8.3 Covering Numbers and \\varepsilon-Nets
 
 The union bound can only be applied to finite collections of events. For continuous hypothesis spaces (e.g., all linear classifiers, all neural networks), we need to discretise first.
 
@@ -541,7 +541,7 @@ The **covering number** $\mathcal{N}(\mathcal{H}, d, \varepsilon)$ is the size o
 **Covering number of a ball.** The $\ell_2$-ball $\{\mathbf{w}: \|\mathbf{w}\|_2 \leq R\}$ in $\mathbb{R}^d$ has covering number:
 $$\mathcal{N}(\mathcal{B}_R, \ell_2, \varepsilon) \leq \left(\frac{2R}{\varepsilon} + 1\right)^d \leq \left(\frac{3R}{\varepsilon}\right)^d$$
 
-This grows polynomially in $1/\varepsilon$ but exponentially in $d$ — the **curse of dimensionality** for covering.
+This grows polynomially in $1/\varepsilon$ but exponentially in $d$ - the **curse of dimensionality** for covering.
 
 ### 8.4 The Net Argument
 
@@ -632,11 +632,11 @@ where $d = d_{VC}(\mathcal{H})$.
 **Sample complexity.** Setting the right-hand side excess to $\varepsilon$:
 $$n = O\!\left(\frac{d \log(1/(\varepsilon\delta)) + \log(1/\delta)}{\varepsilon^2}\right) = O\!\left(\frac{d + \log(1/\delta)}{\varepsilon^2}\right)$$
 
-The $\log(|\mathcal{H}|)$ from the finite case is replaced by $d_{VC}$. For a $d$-dimensional linear classifier ($d_{VC} = d+1$), need $n = O(d/\varepsilon^2)$ — linear in dimension, not exponential.
+The $\log(|\mathcal{H}|)$ from the finite case is replaced by $d_{VC}$. For a $d$-dimensional linear classifier ($d_{VC} = d+1$), need $n = O(d/\varepsilon^2)$ - linear in dimension, not exponential.
 
 **For AI (2026):** Modern transformers have billions of parameters, implying enormous VC dimension. Yet they generalise. This "paradox" is partly resolved by:
 1. **Implicit regularisation:** gradient descent finds minimum-norm solutions
-2. **Overparameterisation:** interpolation threshold, double descent (covered in §04)
+2. **Overparameterisation:** interpolation threshold, double descent (covered in Section04)
 3. **PAC-Bayes:** data-dependent bounds that are tighter for specific algorithms
 
 ---
@@ -720,7 +720,7 @@ This gives the **Hoeffding confidence interval**: $p \in \left[\hat{p} - \sqrt{\
 **Numerical example.** For $n = 1000$ questions and $\delta = 0.05$:
 $$\text{CI half-width} = \sqrt{\frac{\log(40)}{2000}} \approx \sqrt{\frac{3.69}{2000}} \approx 0.043$$
 
-So a measured accuracy of 73.2% on 1000 questions gives 95% CI $[69.0\%, 77.4\%]$ — a $\pm 4.2\%$ interval. This explains why claiming "Model A (73.2%) outperforms Model B (72.8%)" on 1000 questions has no statistical support.
+So a measured accuracy of 73.2% on 1000 questions gives 95% CI $[69.0\%, 77.4\%]$ - a $\pm 4.2\%$ interval. This explains why claiming "Model A (73.2%) outperforms Model B (72.8%)" on 1000 questions has no statistical support.
 
 ### 11.3 Random Features and Kernel Approximation
 
@@ -743,7 +743,7 @@ High-dimensional geometry exhibits surprising concentration phenomena. For $\mat
 **Chi-squared concentration.** $\|\mathbf{x}\|_2^2 \sim \chi^2_d$ with mean $d$ and variance $2d$. Bernstein gives:
 $$P\!\left(\left|\frac{\|\mathbf{x}\|_2^2}{d} - 1\right| \geq t\right) \leq 2\exp\!\left(-d \cdot \min\!\left(\frac{t^2}{4}, \frac{t}{4}\right)\right)$$
 
-So $\|\mathbf{x}\|_2 / \sqrt{d} \to 1$ in probability — **all Gaussian vectors in high dimensions have nearly the same norm $\sqrt{d}$.**
+So $\|\mathbf{x}\|_2 / \sqrt{d} \to 1$ in probability - **all Gaussian vectors in high dimensions have nearly the same norm $\sqrt{d}$.**
 
 **Concentration of inner products.** For independent $\mathbf{x}, \mathbf{y} \sim \mathcal{N}(0, I_d/d)$ (unit-variance):
 $$P(|\langle \mathbf{x}, \mathbf{y} \rangle| \geq t) \leq 2e^{-dt^2/2}$$
@@ -756,7 +756,7 @@ Nearly-orthogonal random vectors: with $d = 512$ (typical embedding dimension), 
 >
 > The concentration results above provide finite-sample bounds. The LLN says $\bar{X}_n \to \mu$ as $n \to \infty$; the CLT says the deviation $\sqrt{n}(\bar{X}_n - \mu)/\sigma$ converges to $\mathcal{N}(0,1)$. These are the asymptotic counterparts of Hoeffding's inequality.
 >
-> → *Full treatment: [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md)*
+> -> *Full treatment: [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md)*
 
 ---
 
@@ -770,7 +770,7 @@ Nearly-orthogonal random vectors: with $d = 512$ (typical embedding dimension), 
 | 4 | Confusing sub-Gaussian parameter with variance | Sub-Gaussian parameter $\sigma^2$ satisfies $\operatorname{Var}(X) \leq \sigma^2$ but is not equal | $\operatorname{Var}(X) = M''(0)$; sub-Gaussian parameter can be larger |
 | 5 | Applying union bound over infinite classes directly | Union bound only works for countable (finite/countably infinite) collections | Use $\varepsilon$-net covering argument first, then union bound over the net |
 | 6 | Computing VC dimension by counting parameters | VC dimension is not the number of parameters; depends on the function class structure | For linear classifiers in $\mathbb{R}^d$: $d_{VC} = d+1$, not number of weights |
-| 7 | Ignoring the $\log(1/\delta)$ term in sample complexity | Setting $\delta = 0.01$ adds $\log(100) \approx 4.6$ — small, but not negligible | Always compute full bound including $\log(1/\delta)$ |
+| 7 | Ignoring the $\log(1/\delta)$ term in sample complexity | Setting $\delta = 0.01$ adds $\log(100) \approx 4.6$ - small, but not negligible | Always compute full bound including $\log(1/\delta)$ |
 | 8 | Claiming Chernoff applies to dependent variables | Chernoff requires independence (product of MGFs) | For dependent variables, use McDiarmid or martingale concentration |
 | 9 | Using Hoeffding when variance is known to be small | Bernstein would give an exponentially tighter bound for small-variance data | Check if $\operatorname{Var}(X_i) \ll (b-a)^2/4$; if so, use Bernstein |
 | 10 | Interpreting VC generalisation bounds as practically tight | VC bounds are often vacuous for deep networks; describe worst-case behaviour | Use PAC-Bayes or Rademacher bounds, which can be data-dependent and tighter |
@@ -779,56 +779,56 @@ Nearly-orthogonal random vectors: with $d = 512$ (typical embedding dimension), 
 
 ## 13. Exercises
 
-**Exercise 1 ★** (Markov and Chebyshev)
+**Exercise 1 *** (Markov and Chebyshev)
 For $X \sim \operatorname{Exp}(1)$ and $Y \sim \mathcal{N}(0,1)$:
 (a) Compute $P(X \geq 3)$ exactly and via Markov's inequality. What is the ratio?
 (b) Compute $P(|Y| \geq 3)$ exactly and via Chebyshev. What is the ratio?
 (c) For which $k$ does Chebyshev give $P(|Y| \geq k) \leq 0.05$? Compare to the exact Gaussian answer.
 (d) Verify both bounds numerically with $N = 10^6$ samples.
 
-**Exercise 2 ★** (Hoeffding Sample Complexity)
+**Exercise 2 *** (Hoeffding Sample Complexity)
 A spam filter classifies emails. On $n$ test emails, it achieves accuracy $\hat{p}$.
 (a) Using Hoeffding, find the smallest $n$ such that with 99% confidence, $|\hat{p} - p| \leq 0.02$.
 (b) How does the required $n$ change if we only require $|\hat{p} - p| \leq 0.05$?
 (c) If $n = 500$ and $\hat{p} = 0.92$, give the 95% Hoeffding confidence interval for $p$.
 (d) Compare the Hoeffding CI to the Normal-approximation CI $\hat{p} \pm 1.96\sqrt{\hat{p}(1-\hat{p})/n}$.
 
-**Exercise 3 ★** (Chernoff Bounds for Binomial)
+**Exercise 3 *** (Chernoff Bounds for Binomial)
 Let $S \sim \operatorname{Bin}(n, p)$ with $n = 1000$, $p = 0.1$ (so $\mu = 100$).
 (a) Compute $P(S \geq 130)$ exactly and via the multiplicative Chernoff bound ($\delta = 0.3$).
-(b) Compute $P(S \geq 130)$ via Hoeffding. Compare to Chernoff — which is tighter?
+(b) Compute $P(S \geq 130)$ via Hoeffding. Compare to Chernoff - which is tighter?
 (c) Compute $P(S \leq 70)$ via the lower-tail Chernoff bound and compare to the exact value.
 (d) Plot all three bounds (Hoeffding, upper Chernoff, lower Chernoff) as a function of the threshold.
 
-**Exercise 4 ★★** (Bernstein: Gradient Noise in SGD)
+**Exercise 4 **** (Bernstein: Gradient Noise in SGD)
 Assume each sample gradient $g_i \in [-G, G]^d$ with $\mathbb{E}[g_i] = g$ and per-coordinate variance $\sigma_k^2$.
 (a) Apply Bernstein (with union bound) to bound $P(\|\hat{g} - g\|_\infty \geq \varepsilon)$ for mini-batch size $m$.
 (b) Compare to the Hoeffding-based bound. Under what condition does Bernstein win?
 (c) For $G = 1$, $d = 100$, $\sigma_k^2 = 0.01$, find the $m$ needed for $P(\|\hat{g} - g\|_\infty \geq 0.1) \leq 0.05$ via both bounds.
 (d) Verify numerically: generate synthetic gradients and measure empirical exceedance probability.
 
-**Exercise 5 ★★** (McDiarmid on Empirical Risk)
+**Exercise 5 **** (McDiarmid on Empirical Risk)
 Let $\hat{R}(h, \mathcal{D}) = \frac{1}{n}\sum_{i=1}^n \ell(h, z_i)$ with $\ell \in [0, 1]$ and $z_i$ i.i.d.
 (a) Show that swapping one training example changes $\hat{R}$ by at most $1/n$.
 (b) Apply McDiarmid's inequality to bound $P(|\hat{R} - \mathbb{E}[\hat{R}]| \geq t)$.
 (c) Compare this to the direct Hoeffding application. Are they the same? Why?
 (d) What if $\ell \in [0, L]$ instead of $[0, 1]$? How does the bound scale?
 
-**Exercise 6 ★★** (PAC Bounds for Finite Class)
+**Exercise 6 **** (PAC Bounds for Finite Class)
 Consider $\mathcal{H} = \{h_1, \ldots, h_{1000}\}$ with 1000 decision rules for binary classification.
 (a) How many training examples are needed for uniform convergence with $\varepsilon = 0.05$, $\delta = 0.05$?
 (b) ERM achieves training error 0. Using the PAC bound, what is the worst-case true error with 95% confidence?
 (c) If we use $n = 5000$ examples and observe $\hat{R}(\hat{h}) = 0.03$, bound $R(\hat{h})$ with 99% confidence.
 (d) How does the bound change if $|\mathcal{H}| = 10^6$ (e.g., a lookup table over binary features)?
 
-**Exercise 7 ★★★** (VC Dimension and Generalisation)
+**Exercise 7 ***** (VC Dimension and Generalisation)
 Consider linear classifiers in $\mathbb{R}^d$: $\mathcal{H} = \{\operatorname{sign}(\mathbf{w}^\top \mathbf{x} + b): \mathbf{w} \in \mathbb{R}^d, b \in \mathbb{R}\}$.
 (a) Show by construction that $d+1$ points can be shattered (exhibit a configuration).
 (b) Show that no $d+2$ points in general position can be shattered.
 (c) Write the VC generalisation bound for $d = 100$, $n = 10000$, $\delta = 0.05$.
 (d) Compare to the Rademacher bound for the same class with $\|\mathbf{w}\|_2 \leq 1$ and $\|\mathbf{x}\|_2 \leq 1$.
 
-**Exercise 8 ★★★** (Rademacher Complexity: Monte Carlo Estimation)
+**Exercise 8 ***** (Rademacher Complexity: Monte Carlo Estimation)
 Given a dataset $\{x^{(1)}, \ldots, x^{(n)}\} \subset \mathbb{R}^d$ and linear function class $\mathcal{F} = \{\mathbf{x} \mapsto \mathbf{w}^\top \mathbf{x}: \|\mathbf{w}\|_2 \leq 1\}$:
 (a) Show that $\hat{\mathfrak{R}}_S(\mathcal{F}) = \frac{1}{n}\mathbb{E}_\sigma\!\left[\left\|\sum_i \sigma_i x^{(i)}\right\|_2\right]$.
 (b) Implement a Monte Carlo estimator using $T = 1000$ random sign vectors $\sigma$.
@@ -841,7 +841,7 @@ Given a dataset $\{x^{(1)}, \ldots, x^{(n)}\} \subset \mathbb{R}^d$ and linear f
 
 | Concept | AI/ML Connection | Current Importance |
 |---------|-----------------|-------------------|
-| Hoeffding confidence intervals | LLM benchmark evaluation: how many test questions for reliable rankings? | Critical — used implicitly in all leaderboard comparisons (MMLU, HELM, LMSYS) |
+| Hoeffding confidence intervals | LLM benchmark evaluation: how many test questions for reliable rankings? | Critical - used implicitly in all leaderboard comparisons (MMLU, HELM, LMSYS) |
 | PAC-Bayes bounds | Tightest known generalisation bounds for overparameterised models; connects to flat minima and sharpness-aware minimisation (SAM) | Active research frontier, 2023-2026 |
 | VC dimension | Classical foundation; vacuous for LLMs with $10^9$+ parameters | Conceptually important; practically replaced by norm-based bounds |
 | Rademacher complexity | Data-dependent bounds; finite for norm-constrained transformers | Used in theoretical analysis of attention, LoRA rank bounds |
@@ -856,40 +856,40 @@ Given a dataset $\{x^{(1)}, \ldots, x^{(n)}\} \subset \mathbb{R}^d$ and linear f
 
 ## 15. Conceptual Bridge
 
-**Looking back.** This section builds on §04 Expectation and Moments, which established $\mathbb{E}[X]$, $\operatorname{Var}(X)$, and the MGF $M_X(t) = \mathbb{E}[e^{tX}]$. The MGF is the critical bridge: Hoeffding's lemma uses convexity of $e^{tx}$; the Chernoff method optimises over $M_X(s)$; Bernstein's inequality exploits the variance $\mathbb{E}[X^2]$. Jensen's inequality (from §04) underlies both Hoeffding's lemma proof and the information-theoretic interpretation of Chernoff bounds.
+**Looking back.** This section builds on Section04 Expectation and Moments, which established $\mathbb{E}[X]$, $\operatorname{Var}(X)$, and the MGF $M_X(t) = \mathbb{E}[e^{tX}]$. The MGF is the critical bridge: Hoeffding's lemma uses convexity of $e^{tx}$; the Chernoff method optimises over $M_X(s)$; Bernstein's inequality exploits the variance $\mathbb{E}[X^2]$. Jensen's inequality (from Section04) underlies both Hoeffding's lemma proof and the information-theoretic interpretation of Chernoff bounds.
 
-**Looking forward.** The Law of Large Numbers says $\bar{X}_n \to \mu$ almost surely. This is the *qualitative* counterpart of Hoeffding's quantitative bound: Hoeffding gives the *rate* at which $\bar{X}_n$ concentrates. The Central Limit Theorem (CLT) says the *shape* of the distribution of $\bar{X}_n$ converges to Gaussian — explaining why sub-Gaussian bounds are the right model for sums of bounded variables. Both are developed in [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md).
+**Looking forward.** The Law of Large Numbers says $\bar{X}_n \to \mu$ almost surely. This is the *qualitative* counterpart of Hoeffding's quantitative bound: Hoeffding gives the *rate* at which $\bar{X}_n$ concentrates. The Central Limit Theorem (CLT) says the *shape* of the distribution of $\bar{X}_n$ converges to Gaussian - explaining why sub-Gaussian bounds are the right model for sums of bounded variables. Both are developed in [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md).
 
 **The PAC-statistics connection.** PAC learning theory is, at its core, applied concentration theory. The "probably" in PAC = concentration inequality. The "approximately correct" = $\varepsilon$ tolerance. The sample complexity $n = O((d + \log(1/\delta))/\varepsilon^2)$ is exactly what concentration inequalities give. Chapter 7 (Statistics) will build on this: confidence intervals are Hoeffding bounds, hypothesis tests are Chernoff bounds, and MLE theory uses Bernstein to prove asymptotic normality.
 
 ```
 CONCENTRATION INEQUALITIES IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §04 Expectation and Moments
-  ├─ E[X], Var(X), MGF M_X(t)  ────────────────────────── input
-  ├─ Jensen's inequality         ────────────────────────── used in proofs
-  └─ Markov/Chebyshev preview    ────────────────────────── previewed there
+  Section04 Expectation and Moments
+  +- E[X], Var(X), MGF M_X(t)  -------------------------- input
+  +- Jensen's inequality         -------------------------- used in proofs
+  +- Markov/Chebyshev preview    -------------------------- previewed there
 
-         ↓
+         v
 
-  §05 Concentration Inequalities   ◄─── YOU ARE HERE
-  ├─ Markov / Chebyshev            (moment-based, polynomial tails)
-  ├─ Sub-Gaussian / Hoeffding      (bounded, exponential tails)
-  ├─ Chernoff / Bernstein          (MGF-based, variance-aware)
-  ├─ McDiarmid                     (functions of independent variables)
-  ├─ Union bound + covering        (infinite hypothesis classes)
-  ├─ PAC learning / VC dimension   (generalisation theory)
-  └─ Rademacher complexity         (data-dependent bounds)
+  Section05 Concentration Inequalities   <--- YOU ARE HERE
+  +- Markov / Chebyshev            (moment-based, polynomial tails)
+  +- Sub-Gaussian / Hoeffding      (bounded, exponential tails)
+  +- Chernoff / Bernstein          (MGF-based, variance-aware)
+  +- McDiarmid                     (functions of independent variables)
+  +- Union bound + covering        (infinite hypothesis classes)
+  +- PAC learning / VC dimension   (generalisation theory)
+  +- Rademacher complexity         (data-dependent bounds)
 
-         ↓                                      ↓
+         v                                      v
 
-  §06 Stochastic Processes         Chapter 7: Statistics
-  ├─ Weak LLN (via Chebyshev)      ├─ Confidence intervals
-  ├─ Strong LLN                    ├─ Hypothesis testing
-  └─ CLT (limit of Hoeffding)      └─ MLE consistency (Bernstein)
+  Section06 Stochastic Processes         Chapter 7: Statistics
+  +- Weak LLN (via Chebyshev)      +- Confidence intervals
+  +- Strong LLN                    +- Hypothesis testing
+  +- CLT (limit of Hoeffding)      +- MLE consistency (Bernstein)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -923,7 +923,7 @@ Hoeffding is distribution-free (works for worst case); Normal approximation assu
 
 ---
 
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Stochastic Processes →](../06-Stochastic-Processes/notes.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Stochastic Processes ->](../06-Stochastic-Processes/notes.md)
 
 ## Appendix C: Detailed Proofs and Derivations
 
@@ -1025,7 +1025,7 @@ $$\Pi_\mathcal{H}(n) \leq \sum_{k=0}^d \binom{n}{k}$$
 | Neural nets with $W$ weights | $O(W \log W)$ |
 | Kernel classifiers (universal) | $\infty$ |
 
-**Why VC = $d+1$ for halfspaces.** In $\mathbb{R}^d$, any $d+1$ points in general position (no $d+1$ are on a hyperplane) can be shattered by a halfspace. But for $d+2$ points, by Radon's theorem, they can be split into two groups whose convex hulls intersect — no halfspace separates them. Hence $d_{VC} = d+1$.
+**Why VC = $d+1$ for halfspaces.** In $\mathbb{R}^d$, any $d+1$ points in general position (no $d+1$ are on a hyperplane) can be shattered by a halfspace. But for $d+2$ points, by Radon's theorem, they can be split into two groups whose convex hulls intersect - no halfspace separates them. Hence $d_{VC} = d+1$.
 
 ### D.4 Fundamental Theorem of Statistical Learning
 
@@ -1043,7 +1043,7 @@ This theorem, proved through Sauer-Shelah and the symmetrisation technique (doub
 
 ### E.1 Talagrand's Inequality
 
-Talagrand's inequality (1995) strengthens McDiarmid for "self-bounding" functions — those where the effect of each coordinate is bounded by the function value itself.
+Talagrand's inequality (1995) strengthens McDiarmid for "self-bounding" functions - those where the effect of each coordinate is bounded by the function value itself.
 
 **Self-bounding functions.** $f: \mathcal{X}^n \to \mathbb{R}_{\geq 0}$ is self-bounding if there exist $f_i: \mathcal{X}^{n-1} \to \mathbb{R}$ such that:
 $$0 \leq f(\mathbf{x}) - f_i(\mathbf{x}^{-i}) \leq 1 \quad \text{and} \quad \sum_{i=1}^n (f(\mathbf{x}) - f_i(\mathbf{x}^{-i})) \leq f(\mathbf{x})$$
@@ -1051,7 +1051,7 @@ $$0 \leq f(\mathbf{x}) - f_i(\mathbf{x}^{-i}) \leq 1 \quad \text{and} \quad \sum
 **Talagrand's bound.** For self-bounding $f$:
 $$P(f \geq \mathbb{E}[f] + t) \leq e^{-t^2/(2(\mathbb{E}[f]+t/3))}$$
 
-This is a *variance-adaptive* McDiarmid — analogous to Bernstein vs Hoeffding.
+This is a *variance-adaptive* McDiarmid - analogous to Bernstein vs Hoeffding.
 
 **Applications:** Number of ones in a sum of Bernoullis, size of random matchings, empirical risk when the model fits the data.
 
@@ -1064,7 +1064,7 @@ $$P(|\hat{\mu}_\psi - \mu| \geq t) \leq 2\exp\!\left(-\frac{nt^2}{2\sigma^2 + 2t
 
 using a truncated exponential influence function. This gives Bernstein-like rates without boundedness.
 
-**Median of means.** Partition $n$ samples into $k$ groups of $n/k$. Compute group means and take the median. The median is sub-Gaussian with parameter $\sigma^2 k/n$ — achieving sub-Gaussian rates for distributions with only two moments.
+**Median of means.** Partition $n$ samples into $k$ groups of $n/k$. Compute group means and take the median. The median is sub-Gaussian with parameter $\sigma^2 k/n$ - achieving sub-Gaussian rates for distributions with only two moments.
 
 **For AI:** Training data for LLMs often has heavy-tailed length distributions (documents follow power laws). Heavy-tail-robust mean estimation is relevant for unbiased training.
 
@@ -1082,7 +1082,7 @@ The extra factor $d$ (matrix dimension) accounts for the eigenvalue structure.
 **Matrix Bernstein.** For independent zero-mean random matrices $X_i$ with $\|X_i\|_2 \leq R$ and $\sigma^2 = \|\sum \mathbb{E}[X_i^2]\|_2$:
 $$P\!\left(\left\|\sum_i X_i\right\|_2 \geq t\right) \leq 2d \cdot \exp\!\left(-\frac{t^2/2}{\sigma^2 + Rt/3}\right)$$
 
-Used in randomised linear algebra (randomised SVD, Nyström approximation).
+Used in randomised linear algebra (randomised SVD, Nystrom approximation).
 
 ### E.4 PAC-Bayes Theory
 
@@ -1095,7 +1095,7 @@ $$\mathbb{E}_{h \sim Q}[R(h)] \leq \mathbb{E}_{h \sim Q}[\hat{R}(h)] + \sqrt{\fr
 
 **Why this is powerful:** The KL term $D_{\mathrm{KL}}(Q\|P)$ replaces $\log|\mathcal{H}|$ (which can be infinite). For neural networks, if the posterior concentrates near the prior (small KL), the bound is tight. Flat minima (low sharpness) correspond to posteriors that don't drift far from the prior.
 
-**Connection to SAM.** Sharpness-Aware Minimisation (SAM, 2021) minimises a PAC-Bayes-inspired upper bound on generalisation error by seeking flat minima — directly operationalising PAC-Bayes in practice.
+**Connection to SAM.** Sharpness-Aware Minimisation (SAM, 2021) minimises a PAC-Bayes-inspired upper bound on generalisation error by seeking flat minima - directly operationalising PAC-Bayes in practice.
 
 ---
 
@@ -1121,7 +1121,7 @@ $$P(\exists a: |\hat{p}_a - p_a| > \varepsilon) \leq 2K e^{-2n_0\varepsilon^2}$$
 
 Set $\leq \delta$: $n_0 \geq \frac{\log(2K/\delta)}{2\varepsilon^2} = \frac{\log(20000)}{0.0002} \approx 48{,}200$. Total pulls: $4{,}820{,}000$.
 
-**Adaptive strategy (UCB).** Upper Confidence Bound algorithms concentrate exploration on promising arms, achieving total pulls $O(K\log n/\varepsilon^2)$ — much smaller in practice.
+**Adaptive strategy (UCB).** Upper Confidence Bound algorithms concentrate exploration on promising arms, achieving total pulls $O(K\log n/\varepsilon^2)$ - much smaller in practice.
 
 ### F.3 Neural Network Generalisation: PAC-Bayes in Practice
 
@@ -1130,7 +1130,7 @@ Set $\leq \delta$: $n_0 \geq \frac{\log(2K/\delta)}{2\varepsilon^2} = \frac{\log
 **PAC-Bayes approach.** Use Gaussian prior $P = \mathcal{N}(0, \sigma_0^2 I)$ and posterior $Q = \mathcal{N}(\hat{\theta}, \sigma^2 I)$ (trained weights $\hat{\theta}$). Compute:
 $$D_{\mathrm{KL}}(Q\|P) = \frac{\|\hat{\theta}\|_2^2}{2\sigma_0^2} + d\log(\sigma_0/\sigma) + d\sigma^2/(2\sigma_0^2) - d/2$$
 
-With careful tuning of $\sigma$, this can give non-vacuous bounds (< 50% error guarantee) even for deep networks — unlike VC theory.
+With careful tuning of $\sigma$, this can give non-vacuous bounds (< 50% error guarantee) even for deep networks - unlike VC theory.
 
 ### F.4 Random Projection (Johnson-Lindenstrauss)
 
@@ -1139,7 +1139,7 @@ With careful tuning of $\sigma$, this can give non-vacuous bounds (< 50% error g
 **JL Lemma.** For $m = O(\log n / \varepsilon^2)$ random projections (from $\mathcal{N}(0, I/m)$):
 $$m \geq \frac{4 + 2\log(n^2)}{\varepsilon^2/2 - \varepsilon^3/3} \approx \frac{8\log n}{\varepsilon^2} = \frac{8 \cdot \ln(10000)}{0.01} \approx 7400$$
 
-So 7400 dimensions suffice — far less than 1000 (already doing 26% compression), and compression from 10000 would be massive.
+So 7400 dimensions suffice - far less than 1000 (already doing 26% compression), and compression from 10000 would be massive.
 
 **Proof sketch.** A random Gaussian matrix $R \in \mathbb{R}^{m \times d}$ satisfies: for any fixed pair of points $x, y$:
 $$P\!\left(\left|\|Rx - Ry\|_2^2/m - \|x-y\|_2^2\right| > \varepsilon\|x-y\|_2^2\right) \leq 2e^{-m\varepsilon^2/8}$$
@@ -1156,32 +1156,32 @@ by chi-squared concentration. Union bound over $\binom{n}{2}$ pairs gives the JL
 
 ```
 DECISION TREE: WHICH BOUND TO USE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Do you know E[X]? ─── No ──► Can't bound tail
-       │
+  Do you know E[X]? --- No --> Can't bound tail
+       |
        Yes
-       │
-  Is X ≥ 0? ─── Yes ──► Markov: P(X ≥ t) ≤ E[X]/t
-       │
+       |
+  Is X \\geq 0? --- Yes --> Markov: P(X \\geq t) \\leq E[X]/t
+       |
        No
-       │
-  Do you know Var(X)? ─── Yes ──► Chebyshev: P(|X-μ| ≥ t) ≤ σ²/t²
-       │
+       |
+  Do you know Var(X)? --- Yes --> Chebyshev: P(|X-\\mu| \\geq t) \\leq \\sigma^2/t^2
+       |
        No
-       │
-  Is X bounded in [a,b]? ─── Yes ──► Hoeffding (exponential bound)
-       │                             or Bernstein if Var(X) known
-       │
+       |
+  Is X bounded in [a,b]? --- Yes --> Hoeffding (exponential bound)
+       |                             or Bernstein if Var(X) known
+       |
        No
-       │
-  Is MGF finite? ─── Yes ──► Chernoff method (optimise over s)
-       │
+       |
+  Is MGF finite? --- Yes --> Chernoff method (optimise over s)
+       |
        No
-       │
-  Distribution-free needed ──► Student-t CI or bootstrap
+       |
+  Distribution-free needed --> Student-t CI or bootstrap
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### G.2 Python Recipe for Hoeffding CIs
@@ -1208,7 +1208,7 @@ When a model achieves training error 1% and test error 5%:
 - Generalisation gap = 4%
 - Is this within bounds? With $n = 10000$, $\delta = 0.05$: Hoeffding gives $\sqrt{\log(40)/20000} \approx 1.4\%$ per hypothesis
 - For $|\mathcal{H}| = 10^6$ hypotheses: add $\sqrt{\log(10^6)/20000} \approx 2.6\%$
-- Total bound: $\approx 4\%$ — exactly matching the observed gap!
+- Total bound: $\approx 4\%$ - exactly matching the observed gap!
 
 In practice, neural networks occupy a tiny corner of their hypothesis class (due to inductive bias of SGD), so effective complexity is much smaller than the VC dimension suggests.
 
@@ -1216,7 +1216,7 @@ In practice, neural networks occupy a tiny corner of their hypothesis class (due
 
 ## Appendix H: Self-Assessment Checklist
 
-Before moving to §06 (Stochastic Processes), verify you can:
+Before moving to Section06 (Stochastic Processes), verify you can:
 
 - [ ] **State Markov's inequality** from memory and prove it with the indicator trick
 - [ ] **Derive Chebyshev from Markov** by applying Markov to $(X-\mu)^2$
@@ -1244,7 +1244,7 @@ $$\lim_{n \to \infty} \frac{1}{n}\log P(\bar{X}_n \geq a) = -D_{\mathrm{KL}}(P_a
 
 where $P_a$ is the *exponential tilt* of $P$ that puts its mean at $a$: $P_a(x) \propto e^{s^* x} P(x)$ with $\mathbb{E}_{P_a}[X] = a$.
 
-This is **Cramér's theorem** — the foundation of large deviations theory. The probability of a rare event decays exponentially at rate given by the KL divergence to the closest distribution that makes the event typical.
+This is **Cramer's theorem** - the foundation of large deviations theory. The probability of a rare event decays exponentially at rate given by the KL divergence to the closest distribution that makes the event typical.
 
 **For AI:** This connection explains why cross-entropy loss (KL divergence from data to model) is the right loss for language models: minimising cross-entropy = maximising the probability of the training data = minimising the Chernoff exponent for generalisation error.
 
@@ -1257,7 +1257,7 @@ is the **combinatorial entropy** of $\mathcal{H}$. Sauer-Shelah shows:
 - If $d_{VC} < \infty$: $h(\mathcal{H}) = 0$ (subexponential growth, polynomial in $n$)
 - If $d_{VC} = \infty$: $h(\mathcal{H}) = 1$ (full exponential growth $2^n$)
 
-This binary distinction — polynomial vs exponential growth — is precisely what separates PAC-learnable from non-learnable hypothesis classes.
+This binary distinction - polynomial vs exponential growth - is precisely what separates PAC-learnable from non-learnable hypothesis classes.
 
 ---
 
@@ -1283,7 +1283,7 @@ $$\sup_z |\ell(\mathcal{A}(S), z) - \ell(\mathcal{A}(S'), z)| \leq \beta$$
 **Theorem (Bousquet-Elisseeff, 2002).** If $\mathcal{A}$ is $\beta$-stable with $\beta \leq c/n$ for some constant $c$, and losses are bounded in $[0, 1]$, then with probability $\geq 1-\delta$:
 $$R(\mathcal{A}(S)) \leq \hat{R}(\mathcal{A}(S)) + 2\beta + (4n\beta + 1)\sqrt{\frac{\log(1/\delta)}{2n}}$$
 
-**SGD is stable.** For $L$-smooth convex losses, SGD with step size $\eta$ for $T$ steps is $2\eta TL/n$-uniformly stable. Setting $\eta = O(1/\sqrt{T})$ gives stability $O(\sqrt{T}/n)$ — small when $T \ll n^2$.
+**SGD is stable.** For $L$-smooth convex losses, SGD with step size $\eta$ for $T$ steps is $2\eta TL/n$-uniformly stable. Setting $\eta = O(1/\sqrt{T})$ gives stability $O(\sqrt{T}/n)$ - small when $T \ll n^2$.
 
 This explains why early stopping helps: more SGD steps = less stable = worse generalisation.
 
@@ -1334,7 +1334,7 @@ where $C = \max_i \|x^{(i)}\|_2$. The key: Rademacher complexity scales as $\sqr
 
 | Mistake | Statistical Problem | Fix |
 |---------|-------------------|-----|
-| "Model A (73.2%) > Model B (72.8%) on 1000 questions" | 95% CI is ±4.2% — difference insignificant | Need $n \geq 19000$ for ±1% CI |
+| "Model A (73.2%) > Model B (72.8%) on 1000 questions" | 95% CI is +/-4.2% - difference insignificant | Need $n \geq 19000$ for +/-1% CI |
 | "Best of 10 model variants is significant" | Multiple comparison: $10 \times 0.05 = 0.5$ false positive rate | Bonferroni: each test at $0.05/10 = 0.005$ |
 | "Averaging over 5 datasets gives reliable comparison" | Each dataset is a separate test | Report CI for each; meta-analysis requires care |
 | "Our method wins on 8/10 tasks" | Sign test: need $\geq 9/10$ for $p < 0.05$ | Use paired t-test or Wilcoxon signed-rank |
@@ -1346,12 +1346,12 @@ For binary outcomes (accuracy), using Hoeffding with 95% confidence ($\delta = 0
 
 | Desired precision ($\varepsilon$) | Required $n$ |
 |----------------------------------|-------------|
-| ±10% (0.10) | 185 |
-| ±5% (0.05) | 738 |
-| ±3% (0.03) | 2,056 |
-| ±2% (0.02) | 4,626 |
-| ±1% (0.01) | 18,445 |
-| ±0.5% (0.005) | 73,779 |
+| +/-10% (0.10) | 185 |
+| +/-5% (0.05) | 738 |
+| +/-3% (0.03) | 2,056 |
+| +/-2% (0.02) | 4,626 |
+| +/-1% (0.01) | 18,445 |
+| +/-0.5% (0.005) | 73,779 |
 
 *Note: These are conservative (distribution-free). Normal approximation gives roughly half as many, valid when $n\hat{p}(1-\hat{p}) \geq 5$.*
 
@@ -1359,10 +1359,10 @@ For binary outcomes (accuracy), using Hoeffding with 95% confidence ($\delta = 0
 
 Current theoretical bounds are often **loose** for deep networks. Practitioners should interpret them as:
 
-1. **Order of magnitude guidance:** A bound of $O(\sqrt{d/n})$ correctly predicts that more data helps linearly, but may overestimate the absolute gap by 10-100×
+1. **Order of magnitude guidance:** A bound of $O(\sqrt{d/n})$ correctly predicts that more data helps linearly, but may overestimate the absolute gap by 10-100x
 2. **Relative comparisons:** PAC-Bayes bounds correctly rank models by generalisation risk even when absolute values are imprecise
 3. **Design principles:** Results like "norm-constrained models generalise better" translate directly to regularisation practices (weight decay, gradient clipping, dropout)
-4. **Not absolute guarantees:** A theoretical bound of 40% error doesn't mean the model has 40% test error — it means we can't rule out 40% test error from the theory alone
+4. **Not absolute guarantees:** A theoretical bound of 40% error doesn't mean the model has 40% test error - it means we can't rule out 40% test error from the theory alone
 
 The theory is most useful as a framework for thinking, not as a numerical oracle.
 
@@ -1372,33 +1372,33 @@ The theory is most useful as a framework for thinking, not as a numerical oracle
 
 ### Primary Sources
 
-1. **Boucheron, Lugosi & Massart** (2013). *Concentration Inequalities: A Nonasymptotic Theory of Independence.* Oxford University Press. — The definitive modern treatment.
+1. **Boucheron, Lugosi & Massart** (2013). *Concentration Inequalities: A Nonasymptotic Theory of Independence.* Oxford University Press. - The definitive modern treatment.
 
-2. **Hoeffding, W.** (1963). Probability Inequalities for Sums of Bounded Random Variables. *Journal of the American Statistical Association*, 58(301), 13–30.
+2. **Hoeffding, W.** (1963). Probability Inequalities for Sums of Bounded Random Variables. *Journal of the American Statistical Association*, 58(301), 13-30.
 
-3. **McDiarmid, C.** (1989). On the Method of Bounded Differences. *Surveys in Combinatorics*, 141, 148–188.
+3. **McDiarmid, C.** (1989). On the Method of Bounded Differences. *Surveys in Combinatorics*, 141, 148-188.
 
-4. **Vapnik, V. & Chervonenkis, A.** (1971). On the Uniform Convergence of Relative Frequencies to Their Probabilities. *Theory of Probability and Its Applications*, 16(2), 264–280.
+4. **Vapnik, V. & Chervonenkis, A.** (1971). On the Uniform Convergence of Relative Frequencies to Their Probabilities. *Theory of Probability and Its Applications*, 16(2), 264-280.
 
-5. **Valiant, L.** (1984). A Theory of the Learnable. *Communications of the ACM*, 27(11), 1134–1142.
+5. **Valiant, L.** (1984). A Theory of the Learnable. *Communications of the ACM*, 27(11), 1134-1142.
 
 ### Learning Theory Textbooks
 
-6. **Shalev-Shwartz & Ben-David** (2014). *Understanding Machine Learning: From Theory to Algorithms.* Cambridge University Press. — Best introduction to PAC learning for ML practitioners.
+6. **Shalev-Shwartz & Ben-David** (2014). *Understanding Machine Learning: From Theory to Algorithms.* Cambridge University Press. - Best introduction to PAC learning for ML practitioners.
 
-7. **Mohri, Rostamizadeh & Talwalkar** (2018). *Foundations of Machine Learning* (2nd ed.). MIT Press. — Covers Rademacher complexity and generalisation theory in depth.
+7. **Mohri, Rostamizadeh & Talwalkar** (2018). *Foundations of Machine Learning* (2nd ed.). MIT Press. - Covers Rademacher complexity and generalisation theory in depth.
 
-8. **Wainwright, M.** (2019). *High-Dimensional Statistics: A Non-Asymptotic Viewpoint.* Cambridge University Press. — Advanced treatment, covers matrix concentration and modern techniques.
+8. **Wainwright, M.** (2019). *High-Dimensional Statistics: A Non-Asymptotic Viewpoint.* Cambridge University Press. - Advanced treatment, covers matrix concentration and modern techniques.
 
 ### Deep Learning Theory
 
-9. **Zhang, Bengio et al.** (2017). Understanding Deep Learning Requires Rethinking Generalization. *ICLR 2017.* — Showed memorisation capacity, challenging classical VC theory.
+9. **Zhang, Bengio et al.** (2017). Understanding Deep Learning Requires Rethinking Generalization. *ICLR 2017.* - Showed memorisation capacity, challenging classical VC theory.
 
-10. **Dziugaite & Roy** (2017). Computing Nonvacuous Generalization Bounds for Deep (Stochastic) Neural Networks with Many Parameters. *UAI 2017.* — First non-vacuous PAC-Bayes bounds for deep nets.
+10. **Dziugaite & Roy** (2017). Computing Nonvacuous Generalization Bounds for Deep (Stochastic) Neural Networks with Many Parameters. *UAI 2017.* - First non-vacuous PAC-Bayes bounds for deep nets.
 
-11. **Belkin et al.** (2019). Reconciling Modern Machine-Learning Practice and the Classical Bias–Variance Trade-Off. *PNAS 2019.* — Double descent, overparameterisation.
+11. **Belkin et al.** (2019). Reconciling Modern Machine-Learning Practice and the Classical Bias-Variance Trade-Off. *PNAS 2019.* - Double descent, overparameterisation.
 
-12. **Foret et al.** (2021). Sharpness-Aware Minimization for Efficiently Improving Generalization. *ICLR 2021.* — SAM as PAC-Bayes operationalisation.
+12. **Foret et al.** (2021). Sharpness-Aware Minimization for Efficiently Improving Generalization. *ICLR 2021.* - SAM as PAC-Bayes operationalisation.
 
 
 ---
@@ -1416,7 +1416,7 @@ Setting $ne^{-t^2/2} = 1$: $t^* = \sqrt{2\log n}$. So $\max_i X_i = O(\sqrt{\log
 
 More precisely, $\mathbb{E}[\max_i X_i] \approx \sqrt{2\log n}(1 - O(1/\log n))$. For $n = 1000$: $\approx \sqrt{2 \cdot 6.9} \approx 3.7$, matching Monte Carlo.
 
-**For AI:** The maximum attention logit in a head with $n$ tokens and $d_k$-dimensional keys satisfies $\max_j Q K_j^\top \approx \sqrt{2d_k \log n}$. The softmax of this concentrates on one or few tokens for large $d_k$ — explaining why attention becomes "sharp" (spiky) in deeper layers where $d_k$ is large.
+**For AI:** The maximum attention logit in a head with $n$ tokens and $d_k$-dimensional keys satisfies $\max_j Q K_j^\top \approx \sqrt{2d_k \log n}$. The softmax of this concentrates on one or few tokens for large $d_k$ - explaining why attention becomes "sharp" (spiky) in deeper layers where $d_k$ is large.
 
 ### N.2 Symmetric Rounding
 
@@ -1437,7 +1437,7 @@ $$R(\hat{h}) \leq \hat{R}(\hat{h}) + \sqrt{\frac{\log(2|\mathcal{H}|/\delta)}{2n
 With $\delta = 0.05$ and $|\mathcal{H}| = 2^{10^6}$:
 $$\sqrt{\frac{\log(2 \cdot 2^{10^6}/0.05)}{10000}} = \sqrt{\frac{10^6 \ln 2 + \ln 40}{10000}} \approx \sqrt{\frac{693150}{10000}} \approx 8.3$$
 
-Test error bound: $0.02 + 8.3 \approx 8.32$ — a completely vacuous bound (exceeds 100%). This illustrates why VC/parameter-counting bounds are useless for deep networks. PAC-Bayes or Rademacher complexity (using $\|\mathbf{w}\|_F$ rather than parameter count) gives non-vacuous results.
+Test error bound: $0.02 + 8.3 \approx 8.32$ - a completely vacuous bound (exceeds 100%). This illustrates why VC/parameter-counting bounds are useless for deep networks. PAC-Bayes or Rademacher complexity (using $\|\mathbf{w}\|_F$ rather than parameter count) gives non-vacuous results.
 
 ### N.4 Proving Generalisation for 1-Nearest Neighbour
 
@@ -1474,29 +1474,29 @@ When visualising tail bounds, always show:
 3. **The ratio** (bound/exact) to show how loose the bound is
 
 ```
-TAIL BOUND TIGHTNESS — Gaussian(0,1)
-════════════════════════════════════════════════════════════════════════
+TAIL BOUND TIGHTNESS - Gaussian(0,1)
+========================================================================
 
-  t   | P(X≥t) exact | Markov* | Chebyshev | Hoeffding | Bound/Exact
-  ────────────────────────────────────────────────────────────────────
+  t   | P(X\\geqt) exact | Markov* | Chebyshev | Hoeffding | Bound/Exact
+  --------------------------------------------------------------------
   1   | 0.159  | N/A    | 1.000    | 0.607     |  4x / 3.8x
   2   | 0.023  | N/A    | 0.250    | 0.135     | 11x / 5.9x
   3   | 0.0013 | N/A    | 0.111    | 0.011     | 85x / 8.5x
   4   | 3.2e-5 | N/A    | 0.0625   | 3.4e-4    | 1953x / 11x
   5   | 2.9e-7 | N/A    | 0.040    | 3.7e-7    | 138,000x / 1.3x
 
-  *Markov requires X ≥ 0; not directly applicable to symmetric Gaussian
+  *Markov requires X \\geq 0; not directly applicable to symmetric Gaussian
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-At $t = 5\sigma$: Chebyshev overestimates by 138,000×! Hoeffding for Gaussian is essentially tight — Gaussian IS the sub-Gaussian equality case.
+At $t = 5\sigma$: Chebyshev overestimates by 138,000x! Hoeffding for Gaussian is essentially tight - Gaussian IS the sub-Gaussian equality case.
 
 ### O.2 Sample Complexity Curves
 
 The sample complexity $n(\varepsilon, \delta) = \frac{\log(2/\delta)}{2\varepsilon^2}$ has a characteristic shape:
-- $O(1/\varepsilon^2)$: doubling precision requires 4× more data
-- $O(\log(1/\delta))$: going from 95% to 99.9% confidence adds only $\log(200/20)/\log(40/20) \approx 3.3 \times$ more data — logarithmically cheap
+- $O(1/\varepsilon^2)$: doubling precision requires 4x more data
+- $O(\log(1/\delta))$: going from 95% to 99.9% confidence adds only $\log(200/20)/\log(40/20) \approx 3.3 \times$ more data - logarithmically cheap
 
 This $1/\varepsilon^2$ scaling is fundamental: it appears in:
 - Hoeffding (statistical estimation)
@@ -1512,21 +1512,21 @@ All are manifestations of the same underlying concentration phenomenon.
 
 | Term | Definition | Section |
 |------|-----------|---------|
-| **Concentration inequality** | A bound on $P(X - \mathbb{E}[X] \geq t)$ or $P(\|X - \mathbb{E}[X]\| \geq t)$ | §1 |
-| **Sub-Gaussian random variable** | $X$ with $\mathbb{E}[e^{tX}] \leq e^{\sigma^2 t^2/2}$ for all $t$ | §3.1 |
-| **Sub-Gaussian parameter** | $\sigma^2$: the proxy variance in the sub-Gaussian definition | §3.1 |
-| **Rademacher variable** | $\sigma \in \{-1, +1\}$ with equal probability | §3.2 |
-| **Hoeffding's lemma** | Bounded RV $X \in [a,b]$ with zero mean $\Rightarrow$ $\mathbb{E}[e^{tX}] \leq e^{t^2(b-a)^2/8}$ | §4.1 |
-| **Chernoff method** | Tail bound via $P(X \geq t) \leq e^{-st}\mathbb{E}[e^{sX}]$, optimised over $s$ | §5.1 |
-| **Bounded differences** | $|f(\cdots x_i \cdots) - f(\cdots x_i' \cdots)| \leq c_i$ for all $i$ | §7.1 |
-| **Union bound** | $P(\bigcup A_i) \leq \sum P(A_i)$ | §8.1 |
-| **Covering number** | Smallest $\varepsilon$-net size for a set under a metric | §8.3 |
-| **Shattering** | $\mathcal{H}$ shatters $C$ if it can realise all $2^{|C|}$ labellings | §9.4 |
-| **VC dimension** | Size of largest shattered set | §9.4 |
+| **Concentration inequality** | A bound on $P(X - \mathbb{E}[X] \geq t)$ or $P(\|X - \mathbb{E}[X]\| \geq t)$ | Section1 |
+| **Sub-Gaussian random variable** | $X$ with $\mathbb{E}[e^{tX}] \leq e^{\sigma^2 t^2/2}$ for all $t$ | Section3.1 |
+| **Sub-Gaussian parameter** | $\sigma^2$: the proxy variance in the sub-Gaussian definition | Section3.1 |
+| **Rademacher variable** | $\sigma \in \{-1, +1\}$ with equal probability | Section3.2 |
+| **Hoeffding's lemma** | Bounded RV $X \in [a,b]$ with zero mean $\Rightarrow$ $\mathbb{E}[e^{tX}] \leq e^{t^2(b-a)^2/8}$ | Section4.1 |
+| **Chernoff method** | Tail bound via $P(X \geq t) \leq e^{-st}\mathbb{E}[e^{sX}]$, optimised over $s$ | Section5.1 |
+| **Bounded differences** | $|f(\cdots x_i \cdots) - f(\cdots x_i' \cdots)| \leq c_i$ for all $i$ | Section7.1 |
+| **Union bound** | $P(\bigcup A_i) \leq \sum P(A_i)$ | Section8.1 |
+| **Covering number** | Smallest $\varepsilon$-net size for a set under a metric | Section8.3 |
+| **Shattering** | $\mathcal{H}$ shatters $C$ if it can realise all $2^{|C|}$ labellings | Section9.4 |
+| **VC dimension** | Size of largest shattered set | Section9.4 |
 | **Growth function** | $\Pi_\mathcal{H}(n)$: max labellings of $n$ points by $\mathcal{H}$ | App D.1 |
-| **PAC learning** | Probably approximately correct: $R(\hat{h}) \leq \min_h R(h) + \varepsilon$ w.p. $\geq 1-\delta$ | §9.1 |
-| **Uniform convergence** | $\sup_h |\hat{R}(h) - R(h)| \leq \varepsilon$ w.h.p. | §9.3 |
-| **Rademacher complexity** | $\mathfrak{R}_n(\mathcal{F}) = \mathbb{E}_\sigma[\sup_f \frac{1}{n}\sum \sigma_i f(x^{(i)})]$ | §10.1 |
+| **PAC learning** | Probably approximately correct: $R(\hat{h}) \leq \min_h R(h) + \varepsilon$ w.p. $\geq 1-\delta$ | Section9.1 |
+| **Uniform convergence** | $\sup_h |\hat{R}(h) - R(h)| \leq \varepsilon$ w.h.p. | Section9.3 |
+| **Rademacher complexity** | $\mathfrak{R}_n(\mathcal{F}) = \mathbb{E}_\sigma[\sup_f \frac{1}{n}\sum \sigma_i f(x^{(i)})]$ | Section10.1 |
 | **PAC-Bayes** | Generalisation bound using $D_{\mathrm{KL}}(\text{posterior}\|\text{prior})$ | App E.4 |
 | **Algorithmic stability** | Output insensitive to swapping one training example | App J.2 |
 | **Exponential tilt** | Twisted distribution $P_s(x) \propto e^{sx}P(x)$ used in Chernoff | App I.1 |
@@ -1560,16 +1560,16 @@ $$P(\bar{X}_n \geq a) \leq (n+1)^{|\mathcal{X}|} e^{-n D_{\mathrm{KL}}(Q^* \| P)
 
 where $Q^*$ is the type closest to $P$ with mean $\geq a$. For large $n$, the polynomial factor $(n+1)^{|\mathcal{X}|}$ is negligible, and this matches the Chernoff bound with the KL divergence interpretation.
 
-### Q.3 Cramér's Theorem
+### Q.3 Cramer's Theorem
 
-**Theorem (Cramér, 1938).** For i.i.d. $X_1, \ldots, X_n$ with distribution $P$:
+**Theorem (Cramer, 1938).** For i.i.d. $X_1, \ldots, X_n$ with distribution $P$:
 $$\lim_{n\to\infty} \frac{1}{n} \log P(\bar{X}_n \geq a) = -I(a)$$
 
-where $I(a) = \sup_{t} \{ta - \log M_X(t)\}$ is the **Cramér-Legendre transform** (rate function), and $I(a) = D_{\mathrm{KL}}(P_a \| P)$ (KL divergence to the tilted distribution).
+where $I(a) = \sup_{t} \{ta - \log M_X(t)\}$ is the **Cramer-Legendre transform** (rate function), and $I(a) = D_{\mathrm{KL}}(P_a \| P)$ (KL divergence to the tilted distribution).
 
 This is the fundamental result of **large deviations theory**: rare events occur at exponential rate determined by the KL distance to the "closest" distribution that makes the event typical.
 
-**For AI:** Language model perplexity is essentially $\exp(D_{\mathrm{KL}}(\text{true dist}\|\text{model}))$. Low perplexity = model close to true distribution = rare events (unusual tokens) are not overly penalised. Cramér's theorem connects the generalisation gap to KL divergence, explaining why cross-entropy is the right loss.
+**For AI:** Language model perplexity is essentially $\exp(D_{\mathrm{KL}}(\text{true dist}\|\text{model}))$. Low perplexity = model close to true distribution = rare events (unusual tokens) are not overly penalised. Cramer's theorem connects the generalisation gap to KL divergence, explaining why cross-entropy is the right loss.
 
 ---
 
@@ -1587,14 +1587,14 @@ The resolution involves multiple mechanisms:
 $$\text{MSE} \approx \frac{\sigma^2 d}{n} \cdot \frac{1}{1 - n/d}$$
 which decreases as $d/n \to \infty$ (overparameterised regime).
 
-**3. Benign overfitting.** Bartlett et al. (2020) showed that for linear models with Gaussian data, interpolation (zero training error) can generalise well when most singular values of the data matrix are small — the model "memorises" noise in directions orthogonal to the signal.
+**3. Benign overfitting.** Bartlett et al. (2020) showed that for linear models with Gaussian data, interpolation (zero training error) can generalise well when most singular values of the data matrix are small - the model "memorises" noise in directions orthogonal to the signal.
 
 ### R.2 Neural Tangent Kernel (NTK) Theory
 
 Wide neural networks in the "lazy training" (NTK) regime behave like kernel methods. The generalisation bound becomes:
 $$R(\hat{h}) \leq \hat{R}(\hat{h}) + O\!\left(\sqrt{\frac{\hat{\mathbf{y}}^\top (K_{nn})^{-1} \hat{\mathbf{y}} + \log(1/\delta)}{n}}\right)$$
 
-where $K_{nn}$ is the NTK kernel matrix. The key quantity $\hat{\mathbf{y}}^\top K_{nn}^{-1} \hat{\mathbf{y}}$ is the **effective complexity** — analogous to Rademacher complexity but computed from the kernel. For networks trained with weight decay, this remains bounded even as depth and width grow.
+where $K_{nn}$ is the NTK kernel matrix. The key quantity $\hat{\mathbf{y}}^\top K_{nn}^{-1} \hat{\mathbf{y}}$ is the **effective complexity** - analogous to Rademacher complexity but computed from the kernel. For networks trained with weight decay, this remains bounded even as depth and width grow.
 
 ### R.3 PAC-Bayes for Overparameterised Models
 
@@ -1625,7 +1625,7 @@ $$P(Z_n \geq t) \leq \exp\!\left(-\frac{t^2}{2\sum_{k=1}^n c_k^2}\right)$$
 
 **Application to SGD.** Define $M_t = \|\theta_t - \theta^*\|_2^2 - t \cdot C\eta^2\sigma^2$ where $C$ is a constant. Under mild conditions, $M_t$ is a supermartingale. Azuma's inequality applied to the stopped process gives high-probability guarantees on convergence time.
 
-This is the mathematical foundation of *high-probability* SGD convergence — stronger than the usual in-expectation guarantees.
+This is the mathematical foundation of *high-probability* SGD convergence - stronger than the usual in-expectation guarantees.
 
 ---
 
@@ -1635,46 +1635,46 @@ This is the mathematical foundation of *high-probability* SGD convergence — st
 
 ```
 PROOF TECHNIQUES FOR CONCENTRATION INEQUALITIES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Core tool: Markov's inequality
-  ───────────────────────────────────────────────────────────────────
+  -------------------------------------------------------------------
 
-  Apply Markov to (X-μ)²          ──► Chebyshev
-  Apply Markov to e^{sX}          ──► Chernoff method
-       ├── with Hoeffding's lemma  ──► Hoeffding's inequality
-       ├── with Bernstein's lemma  ──► Bernstein's inequality
-       └── with Binomial MGF       ──► Chernoff for Bin(n,p)
+  Apply Markov to (X-\\mu)^2          --> Chebyshev
+  Apply Markov to e^{sX}          --> Chernoff method
+       +-- with Hoeffding's lemma  --> Hoeffding's inequality
+       +-- with Bernstein's lemma  --> Bernstein's inequality
+       +-- with Binomial MGF       --> Chernoff for Bin(n,p)
 
-  Apply Azuma to Doob martingale  ──► McDiarmid's inequality
-  Union bound over hypothesis class ──► PAC generalisation bound
-  Union bound + covering number    ──► Infinite-class PAC
-  Rademacher symmetrisation        ──► Rademacher complexity bound
+  Apply Azuma to Doob martingale  --> McDiarmid's inequality
+  Union bound over hypothesis class --> PAC generalisation bound
+  Union bound + covering number    --> Infinite-class PAC
+  Rademacher symmetrisation        --> Rademacher complexity bound
 
-  ───────────────────────────────────────────────────────────────────
-  Common pattern: P(X ≥ t) ≤ E[e^{sX}] / e^{st}  (all MGF methods)
-════════════════════════════════════════════════════════════════════════
+  -------------------------------------------------------------------
+  Common pattern: P(X \\geq t) \\leq E[e^{sX}] / e^{st}  (all MGF methods)
+========================================================================
 ```
 
 ### T.2 Bound Quality Comparison
 
 ```
-TAIL PROBABILITY COMPARISON — X = mean of n=100 Bernoulli(0.5), t=0.1
-════════════════════════════════════════════════════════════════════════
+TAIL PROBABILITY COMPARISON - X = mean of n=100 Bernoulli(0.5), t=0.1
+========================================================================
 
   Method           Bound          Notes
-  ─────────────────────────────────────────────────────────────────
+  -----------------------------------------------------------------
   Exact (CLT)     ~0.046         Normal approx; valid for large n
   Hoeffding        0.135          Tight for this case
-  Chebyshev        0.250          3× looser
-  Markov           0.500          5× looser (applied to |X-0.5|/0.5)
+  Chebyshev        0.250          3x looser
+  Markov           0.500          5x looser (applied to |X-0.5|/0.5)
 
   Same setup, t=0.2:
   Exact            ~0.000046
-  Hoeffding        0.018          400× looser
-  Chebyshev        0.0625         1360× looser
+  Hoeffding        0.018          400x looser
+  Chebyshev        0.0625         1360x looser
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 
@@ -1688,13 +1688,13 @@ TAIL PROBABILITY COMPARISON — X = mean of n=100 Bernoulli(0.5), t=0.1
 
 **Proof.** $\cosh(t) = \sum_{k=0}^\infty t^{2k}/(2k)! \leq \sum_{k=0}^\infty t^{2k}/(2^k k!) = \sum_{k=0}^\infty (t^2/2)^k/k! = e^{t^2/2}$, using $(2k)! \geq 2^k k!$.
 
-**Interpretation.** Rademacher variables are the "most concentrated" bounded variables in $[-1,1]$: their MGF is exactly $\cosh(t)$, slightly below the sub-Gaussian bound $e^{t^2/2}$. This is also why Rademacher complexity multiplied by 2 appears in generalisation bounds — the factor accounts for the Rademacher supremum.
+**Interpretation.** Rademacher variables are the "most concentrated" bounded variables in $[-1,1]$: their MGF is exactly $\cosh(t)$, slightly below the sub-Gaussian bound $e^{t^2/2}$. This is also why Rademacher complexity multiplied by 2 appears in generalisation bounds - the factor accounts for the Rademacher supremum.
 
 ### U.2 Sub-Gaussian Parameter for Bounded Variables
 
 **Claim.** If $X \in [a,b]$ with $\mathbb{E}[X] = 0$, then $X$ is $\frac{(b-a)^2}{4}$-sub-Gaussian.
 
-The parameter $\frac{(b-a)^2}{4}$ is achieved when $X = \frac{b-a}{2}\varepsilon$ where $\varepsilon$ is Rademacher — a two-point distribution at the endpoints. This is the "hardest" distribution on $[a,b]$ for Hoeffding's lemma.
+The parameter $\frac{(b-a)^2}{4}$ is achieved when $X = \frac{b-a}{2}\varepsilon$ where $\varepsilon$ is Rademacher - a two-point distribution at the endpoints. This is the "hardest" distribution on $[a,b]$ for Hoeffding's lemma.
 
 **Tightness example.** For $X \in \{-1, +1\}$ uniform: variance $= 1$, sub-Gaussian parameter $= \frac{(1-(-1))^2}{4} = 1$. They agree! For the Rademacher distribution, sub-Gaussian parameter = variance. For other distributions in $[-1,1]$, sub-Gaussian parameter $\geq$ variance.
 
@@ -1702,7 +1702,7 @@ The parameter $\frac{(b-a)^2}{4}$ is achieved when $X = \frac{b-a}{2}\varepsilon
 
 The following are equivalent for a mean-zero random variable $X$:
 1. (MGF) $\mathbb{E}[e^{tX}] \leq e^{\sigma^2 t^2/2}$ for all $t$
-2. (Tail) $P(|X| \geq t) \leq 2e^{-t^2/(2\sigma^2)}$ for all $t \geq 0$  
+2. (Tail) $P(|X| \geq t) \leq 2e^{-t^2/(2\sigma^2)}$ for all $t \geq 0$
 3. (Moments) $\|X\|_{L^p} = (\mathbb{E}[|X|^p])^{1/p} \leq \sigma\sqrt{p}$ for all $p \geq 1$
 
 The equivalence (up to constants) is non-trivial. The key step: $(2) \Rightarrow (1)$ uses $\mathbb{E}[e^{tX}] = 1 + \sum_{k=1}^\infty \frac{t^k \mathbb{E}[X^k]}{k!}$ and bounds $\mathbb{E}[X^k]$ from the tail condition.
@@ -1723,7 +1723,7 @@ The equivalence (up to constants) is non-trivial. The key step: $(2) \Rightarrow
 (b) Chebyshev: $P(X \geq 12) \leq P(|X - 5| \geq 7) \leq 5/49 \approx 0.102$
 (c) Exact: $P(X \geq 12) = 1 - \sum_{k=0}^{11} e^{-5}5^k/k! \approx 0.020$
 
-Chebyshev is 5× loose; Markov is 21× loose. Both bounds hold but are very conservative.
+Chebyshev is 5x loose; Markov is 21x loose. Both bounds hold but are very conservative.
 
 ### V.2 Hoeffding Bound Computation
 
@@ -1734,7 +1734,7 @@ $$\varepsilon = \sqrt{\frac{\log(2/0.01)}{2 \cdot 2000}} = \sqrt{\frac{\log 200}
 
 99% CI: $[0.08 - 0.0364, 0.08 + 0.0364] = [0.0436, 0.1164]$.
 
-Interpretation: we're 99% confident the true CTR is between 4.4% and 11.6% — a very wide interval! To tighten to ±1%: need $n \geq \frac{\log 200}{2(0.01)^2} \approx 26{,}490$ users.
+Interpretation: we're 99% confident the true CTR is between 4.4% and 11.6% - a very wide interval! To tighten to +/-1%: need $n \geq \frac{\log 200}{2(0.01)^2} \approx 26{,}490$ users.
 
 ### V.3 Chernoff vs Hoeffding
 
@@ -1746,7 +1746,7 @@ Interpretation: we're 99% confident the true CTR is between 4.4% and 11.6% — a
 
 **Exact:** $P(S \geq 20) \approx 0.0085$ (Poisson approximation: $e^{-10}\sum_{k=20}^\infty 10^k/k!$).
 
-Chernoff is 4× loose; Hoeffding is essentially vacuous (bound > 0.5 is useless). For rare events with $p \ll 1$ and large $n$, Chernoff is the right tool.
+Chernoff is 4x loose; Hoeffding is essentially vacuous (bound > 0.5 is useless). For rare events with $p \ll 1$ and large $n$, Chernoff is the right tool.
 
 ### V.4 McDiarmid on Dropout
 
@@ -1780,7 +1780,7 @@ With larger networks and better weight norms ($\sum c_{lj}^2 = 0.1$): $2e^{-2 \c
 | $\varepsilon$-net | Covering set with spacing $\varepsilon$ |
 | $\mathcal{N}(\mathcal{H}, d, \varepsilon)$ | Covering number: size of smallest $\varepsilon$-net |
 | $D_{\mathrm{KL}}(P\|Q)$ | KL divergence from $Q$ to $P$ |
-| $I(a) = \sup_t(ta - \log M(t))$ | Cramér rate function |
+| $I(a) = \sup_t(ta - \log M(t))$ | Cramer rate function |
 | $\sigma_i$ | Rademacher random variable $\in \{-1,+1\}$ |
 | $B_\delta(h)$ | Ball of radius $\delta$ around hypothesis $h$ |
 
@@ -1794,7 +1794,7 @@ With larger networks and better weight norms ($\sum c_{lj}^2 = 0.1$): $2e^{-2 \c
 **Halfspaces with margin.** For $\mathcal{H}_\gamma = \{\mathbf{x} \mapsto \operatorname{sign}(\mathbf{w}^\top \mathbf{x}): \|\mathbf{w}\|_2 \leq 1, \gamma\text{-margin}\}$ on data with $\|\mathbf{x}^{(i)}\|_2 \leq 1$:
 $$\mathfrak{R}_n(\mathcal{H}_\gamma) \leq \frac{1}{\gamma\sqrt{n}}$$
 
-The margin $\gamma$ effectively replaces dimension $d$! This is why SVMs with large margins generalise well in high dimensions — the effective complexity is $O(1/\gamma^2 n)$, not $O(d/n)$.
+The margin $\gamma$ effectively replaces dimension $d$! This is why SVMs with large margins generalise well in high dimensions - the effective complexity is $O(1/\gamma^2 n)$, not $O(d/n)$.
 
 **Two-layer neural network.** For $\mathcal{F} = \{\mathbf{x} \mapsto \mathbf{v}^\top \sigma(W\mathbf{x}): \|W\|_F \leq B_W, \|\mathbf{v}\|_1 \leq B_v\}$:
 $$\mathfrak{R}_n(\mathcal{F}) \leq \frac{B_v B_W C \sqrt{2\log(2d)}}{\sqrt{n}}$$
@@ -1806,7 +1806,7 @@ where $C = \max_i \|\mathbf{x}^{(i)}\|_2$. The $\log d$ factor comes from the un
 A deep connection: the Rademacher complexity $\hat{\mathfrak{R}}_S(\mathcal{F})$ can be bounded via mutual information between the training labels and the class predictions. For bounded function classes:
 $$\hat{\mathfrak{R}}_S(\mathcal{F}) \leq \sqrt{\frac{2I(Y^n; f(X^n))}{n}}$$
 
-where $I(Y^n; f(X^n))$ is the mutual information between labels and class predictions. This connects concentration theory to information theory — a richer theory being actively developed (2020-2026) under "information-theoretic generalisation bounds."
+where $I(Y^n; f(X^n))$ is the mutual information between labels and class predictions. This connects concentration theory to information theory - a richer theory being actively developed (2020-2026) under "information-theoretic generalisation bounds."
 
 ### X.3 Monte Carlo Estimation of Rademacher Complexity
 
@@ -1828,7 +1828,7 @@ def estimate_rademacher(X, W_norm=1.0, T=1000):
     return np.mean(rademachers)
 ```
 
-For a dataset of $n=500$ MNIST digits (784-dimensional), $W_\text{norm}=1$: empirical $\hat{\mathfrak{R}}_S \approx 0.038$. Rademacher bound: test error $\leq$ train error + $2 \cdot 0.038 + \sqrt{\log(20)/1000} \approx$ train error + 0.076 + 0.055. For 2% train error: test error $\leq 13.1\%$ — loose but not vacuous!
+For a dataset of $n=500$ MNIST digits (784-dimensional), $W_\text{norm}=1$: empirical $\hat{\mathfrak{R}}_S \approx 0.038$. Rademacher bound: test error $\leq$ train error + $2 \cdot 0.038 + \sqrt{\log(20)/1000} \approx$ train error + 0.076 + 0.055. For 2% train error: test error $\leq 13.1\%$ - loose but not vacuous!
 
 ---
 
@@ -1855,10 +1855,10 @@ When fine-tuning a pretrained LLM on task-specific data:
 
 **Prior:** Pre-trained weights $\theta_0$ from language model pre-training on internet-scale data
 **Posterior:** Fine-tuned weights $\hat{\theta}$ on $n$ task examples
-**PAC-Bayes bound:** 
+**PAC-Bayes bound:**
 $$R(\hat{\theta}) \leq \hat{R}(\hat{\theta}) + \sqrt{\frac{\|\hat{\theta} - \theta_0\|_2^2/(2\sigma_0^2) + \log(1/\delta)}{2(n-1)}}$$
 
-The $\|\hat{\theta} - \theta_0\|_2^2$ term is small when fine-tuning doesn't move far from pre-training — exactly what LoRA enforces by constraining $\Delta W = AB$. With rank $r \ll \min(d,k)$:
+The $\|\hat{\theta} - \theta_0\|_2^2$ term is small when fine-tuning doesn't move far from pre-training - exactly what LoRA enforces by constraining $\Delta W = AB$. With rank $r \ll \min(d,k)$:
 $$\|\hat{\theta} - \theta_0\|_2^2 = \|AB\|_F^2 \leq \|A\|_F^2 \|B\|_F^2 \leq r \cdot \text{(per-param budget)}$$
 
 PAC-Bayes theoretically justifies why LoRA generalises better than full fine-tuning on small datasets.
@@ -1940,9 +1940,9 @@ This appendix lists every named result in this section for quick reference.
 
 ---
 
-*This completes §05 Concentration Inequalities. The material here is used extensively in [Chapter 7: Statistics](../../07-Statistics/README.md) for confidence intervals and hypothesis tests, and throughout learning theory.*
+*This completes Section05 Concentration Inequalities. The material here is used extensively in [Chapter 7: Statistics](../../07-Statistics/README.md) for confidence intervals and hypothesis tests, and throughout learning theory.*
 
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Stochastic Processes →](../06-Stochastic-Processes/notes.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Stochastic Processes ->](../06-Stochastic-Processes/notes.md)
 
 ---
 
@@ -1965,21 +1965,21 @@ for a universal constant $c > 0$.
 **Implication for dot products.** For two independent $\mathbf{x}, \mathbf{y} \sim \mathcal{N}(0, I_d/d)$:
 $$P\!\left(\left|\langle \mathbf{x}, \mathbf{y}\rangle\right| \geq t/\sqrt{d}\right) \leq 2e^{-ct^2}$$
 
-This is why scaled dot-product attention uses $1/\sqrt{d_k}$ — it keeps logits $O(1)$ despite $d_k$-dimensional embeddings.
+This is why scaled dot-product attention uses $1/\sqrt{d_k}$ - it keeps logits $O(1)$ despite $d_k$-dimensional embeddings.
 
 ### Geometry of Softmax
 
 Let $\mathbf{q}, \mathbf{k}_1, \ldots, \mathbf{k}_n \in \mathbb{R}^{d_k}$ be the query and keys in a transformer. The attention weight on key $j$ is:
 $$\alpha_j = \frac{e^{\mathbf{q}^\top \mathbf{k}_j / \sqrt{d_k}}}{\sum_{\ell} e^{\mathbf{q}^\top \mathbf{k}_\ell / \sqrt{d_k}}}$$
 
-Without the $1/\sqrt{d_k}$ scaling, the logits $\mathbf{q}^\top \mathbf{k}_j$ have variance $d_k$ (for unit random vectors), pushing softmax into near-zero gradient regions — a form of implicit dimension dependence that concentration inequalities make precise.
+Without the $1/\sqrt{d_k}$ scaling, the logits $\mathbf{q}^\top \mathbf{k}_j$ have variance $d_k$ (for unit random vectors), pushing softmax into near-zero gradient regions - a form of implicit dimension dependence that concentration inequalities make precise.
 
 ### Covering Numbers in Transformer Weight Space
 
 The number of parameters in a transformer layer is $\Theta = O(d^2)$. For LoRA with rank $r$, the effective dimensionality is $O(dr)$. By the $\varepsilon$-covering number bound:
 $$\log \mathcal{N}(\mathcal{F}_{\text{LoRA}}, \varepsilon, \|\cdot\|) = O\!\left(dr \log(1/\varepsilon)\right)$$
 
-This converts directly to a PAC generalisation bound showing that LoRA generalises with $O(\sqrt{dr \log n / n})$ excess risk — substantially better than $O(\sqrt{d^2 \log n / n})$ for full fine-tuning. Concentration inequalities thus provide the theoretical foundation for parameter-efficient fine-tuning.
+This converts directly to a PAC generalisation bound showing that LoRA generalises with $O(\sqrt{dr \log n / n})$ excess risk - substantially better than $O(\sqrt{d^2 \log n / n})$ for full fine-tuning. Concentration inequalities thus provide the theoretical foundation for parameter-efficient fine-tuning.
 
 ### Summary: Why This Section Matters
 
@@ -1991,15 +1991,15 @@ Concentration inequalities are the engine behind every finite-sample guarantee i
 4. **Why LoRA works**: Rademacher complexity of low-rank updates is provably small
 5. **Why LLM benchmarks need many examples**: CIs on accuracy require $n \propto 1/\varepsilon^2$
 
-The progression Markov → Chebyshev → sub-Gaussian → Chernoff → McDiarmid is not merely a tour of tricks — it is a systematic strengthening of assumptions that yields exponentially tighter guarantees, mirroring the progress from "some data" to "structured data" in modern ML.
+The progression Markov -> Chebyshev -> sub-Gaussian -> Chernoff -> McDiarmid is not merely a tour of tricks - it is a systematic strengthening of assumptions that yields exponentially tighter guarantees, mirroring the progress from "some data" to "structured data" in modern ML.
 
 
 ---
 
-_End of §05 Concentration Inequalities_
+_End of Section05 Concentration Inequalities_
 
-> **Next:** [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md) — where concentration inequalities meet martingales in continuous time.
+> **Next:** [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md) - where concentration inequalities meet martingales in continuous time.
 
-> **Back:** [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) — the moment-based tools (MGF, Jensen) used throughout this section.
+> **Back:** [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) - the moment-based tools (MGF, Jensen) used throughout this section.
 
-> **Chapter:** [§06 Probability Theory README](../README.md)
+> **Chapter:** [Section06 Probability Theory README](../README.md)

@@ -1,4 +1,4 @@
-[← Back to Mathematical Foundations](../README.md) | [Previous: Number Systems](../01-Number-Systems/notes.md) | [Next: Functions and Mappings →](../03-Functions-and-Mappings/notes.md)
+[<- Back to Mathematical Foundations](../README.md) | [Previous: Number Systems](../01-Number-Systems/notes.md) | [Next: Functions and Mappings ->](../03-Functions-and-Mappings/notes.md)
 
 ---
 
@@ -63,13 +63,13 @@ After completing this section, you will:
 
 ### 1.1 What Are Sets and Logic?
 
-Set theory is the mathematical language for talking about **collections of objects**; logic is the mathematical language for talking about **truth and valid reasoning**. Together they form the foundation of all mathematics: every other mathematical structure — numbers, functions, probability, linear algebra — is built on sets and governed by logic.
+Set theory is the mathematical language for talking about **collections of objects**; logic is the mathematical language for talking about **truth and valid reasoning**. Together they form the foundation of all mathematics: every other mathematical structure - numbers, functions, probability, linear algebra - is built on sets and governed by logic.
 
 A **set** answers the question: _what objects belong to this category?_
 
 **Logic** answers the question: _given what we know, what can we validly conclude?_
 
-These are not abstract curiosities. When you tokenise a sentence, the vocabulary $V$ is a set. When you compute attention, the mask selects a subset of positions. When you train a model, the loss function maps from a set of parameters to real numbers. When you evaluate whether a model's output is "correct", you're applying logical predicates. Sets and logic are not prerequisites you study once and forget — they are the operational language of every equation in this curriculum.
+These are not abstract curiosities. When you tokenise a sentence, the vocabulary $V$ is a set. When you compute attention, the mask selects a subset of positions. When you train a model, the loss function maps from a set of parameters to real numbers. When you evaluate whether a model's output is "correct", you're applying logical predicates. Sets and logic are not prerequisites you study once and forget - they are the operational language of every equation in this curriculum.
 
 **For AI and LLMs specifically:**
 
@@ -110,7 +110,7 @@ Layer 0: Logic                (what is valid reasoning? what follows from what?)
 
 Each layer is defined in terms of the layers below. Natural numbers are constructed from sets (von Neumann ordinals). Real numbers are equivalence classes of Cauchy sequences of rationals. Vector spaces are sets with operations satisfying axioms stated in predicate logic. Probability measures are functions from sets to $[0,1]$. The entire edifice stands on sets and logic.
 
-This is not historical accident — it is the result of 150 years of foundational work from Cantor, Frege, Russell, Hilbert, Gödel, and Turing to make mathematics rigorous and unambiguous.
+This is not historical accident - it is the result of 150 years of foundational work from Cantor, Frege, Russell, Hilbert, Godel, and Turing to make mathematics rigorous and unambiguous.
 
 ### 1.4 Formal vs Informal Mathematics
 
@@ -131,7 +131,7 @@ This is not historical accident — it is the result of 150 years of foundationa
 - **Lean 4** (Microsoft Research): Mathlib library; used by AlphaProof (Google DeepMind, 2024) to win IMO gold medals
 - **Coq** (INRIA): CompCert verified C compiler; Four Colour Theorem formalised
 - **Isabelle** (Cambridge/Munich): seL4 verified operating system kernel
-- **AI and formal mathematics**: LLMs increasingly used to assist with formal proofs — Lean Copilot, Hypertree Proof Search, AlphaProof. Understanding sets and logic is prerequisite for understanding what LLMs are attempting when doing mathematical reasoning
+- **AI and formal mathematics**: LLMs increasingly used to assist with formal proofs - Lean Copilot, Hypertree Proof Search, AlphaProof. Understanding sets and logic is prerequisite for understanding what LLMs are attempting when doing mathematical reasoning
 
 ### 1.5 Historical Timeline
 
@@ -139,23 +139,23 @@ The development of sets and logic spans 2,400 years. Here are the critical miles
 
 | Year     | Person                  | Contribution                                                                     |
 | -------- | ----------------------- | -------------------------------------------------------------------------------- |
-| ~350 BCE | **Aristotle**           | Syllogistic logic — first formal system of deductive reasoning                   |
-| 1679     | **Leibniz**             | Calculus ratiocinator — dream of universal logical calculus                      |
-| 1847     | **Boole**               | _The Mathematical Analysis of Logic_ — Boolean algebra; logic as algebra         |
-| 1874     | **Cantor**              | Set theory — infinite sets, cardinality, continuum hypothesis                    |
-| 1879     | **Frege**               | Begriffsschrift — first complete formal logic system; predicate calculus         |
-| 1901     | **Russell**             | Russell's Paradox — naive set theory is inconsistent                             |
-| 1908     | **Zermelo**             | Axiomatic set theory — foundation for modern mathematics                         |
-| 1910–13  | **Russell & Whitehead** | _Principia Mathematica_ — attempt to reduce all mathematics to logic             |
-| 1922–30s | **Fraenkel, Skolem**    | ZFC axioms completed — standard foundation of modern mathematics                 |
-| 1929     | **Gödel**               | Completeness theorem — every valid FOL formula has a proof                       |
-| 1931     | **Gödel**               | Incompleteness theorems — no consistent system can prove all true arithmetic     |
-| 1936     | **Church & Turing**     | Lambda calculus and Turing machines — computability theory                       |
-| 1936     | **Tarski**              | Formal semantics — truth defined precisely for formal languages                  |
-| 1965     | **Zadeh**               | Fuzzy logic — graded truth values in $[0,1]$                                     |
-| 1972     | **Martin-Löf**          | Dependent type theory — constructive foundations connecting logic to programming |
-| 2005–10  | —                       | SAT solvers industrialised — automated reasoning becomes practical               |
-| 2024     | **Google DeepMind**     | AlphaProof — neural theorem prover achieves IMO gold medal level                 |
+| ~350 BCE | **Aristotle**           | Syllogistic logic - first formal system of deductive reasoning                   |
+| 1679     | **Leibniz**             | Calculus ratiocinator - dream of universal logical calculus                      |
+| 1847     | **Boole**               | _The Mathematical Analysis of Logic_ - Boolean algebra; logic as algebra         |
+| 1874     | **Cantor**              | Set theory - infinite sets, cardinality, continuum hypothesis                    |
+| 1879     | **Frege**               | Begriffsschrift - first complete formal logic system; predicate calculus         |
+| 1901     | **Russell**             | Russell's Paradox - naive set theory is inconsistent                             |
+| 1908     | **Zermelo**             | Axiomatic set theory - foundation for modern mathematics                         |
+| 1910-13  | **Russell & Whitehead** | _Principia Mathematica_ - attempt to reduce all mathematics to logic             |
+| 1922-30s | **Fraenkel, Skolem**    | ZFC axioms completed - standard foundation of modern mathematics                 |
+| 1929     | **Godel**               | Completeness theorem - every valid FOL formula has a proof                       |
+| 1931     | **Godel**               | Incompleteness theorems - no consistent system can prove all true arithmetic     |
+| 1936     | **Church & Turing**     | Lambda calculus and Turing machines - computability theory                       |
+| 1936     | **Tarski**              | Formal semantics - truth defined precisely for formal languages                  |
+| 1965     | **Zadeh**               | Fuzzy logic - graded truth values in $[0,1]$                                     |
+| 1972     | **Martin-Lof**          | Dependent type theory - constructive foundations connecting logic to programming |
+| 2005-10  | -                       | SAT solvers industrialised - automated reasoning becomes practical               |
+| 2024     | **Google DeepMind**     | AlphaProof - neural theorem prover achieves IMO gold medal level                 |
 
 ### 1.6 The Two Pillars
 
@@ -163,28 +163,28 @@ Mathematics rests on two pillars, and understanding their relationship is essent
 
 ```
                         MATHEMATICS
-                            │
-        ┌───────────────────┴───────────────────┐
-        │                                       │
+                            |
+        +-------------------+-------------------+
+        |                                       |
    LOGIC                                  SET THEORY
    (What is valid reasoning?)             (What objects exist?)
-        │                                       │
+        |                                       |
    Propositional Logic                    Naive Set Theory
-        ↓                                       ↓
+        down                                       down
    Predicate Logic (FOL)                  Axiomatic (ZFC)
-        ↓                                       ↓
+        down                                       down
    Modal / Temporal Logic                 Type Theory
-        │                                       │
-        └───────────────────┬───────────────────┘
-                            │
+        |                                       |
+        +-------------------+-------------------+
+                            |
               Both together: the language in which
               all of AI's mathematical foundations
                         are written
 ```
 
-**Logic** provides the rules of valid inference — what follows from what. It tells you that if "all transformers have attention" and "GPT is a transformer", then "GPT has attention" — and it tells you exactly _why_ this inference is valid (universal instantiation plus modus ponens).
+**Logic** provides the rules of valid inference - what follows from what. It tells you that if "all transformers have attention" and "GPT is a transformer", then "GPT has attention" - and it tells you exactly _why_ this inference is valid (universal instantiation plus modus ponens).
 
-**Set theory** provides the objects — the collections, the spaces, the structures. It tells you what $\mathbb{R}^d$ is (a Cartesian product of $d$ copies of $\mathbb{R}$), what a function is (a special kind of relation, which is a subset of a Cartesian product), and what a probability space is (a triple of sets and a measure).
+**Set theory** provides the objects - the collections, the spaces, the structures. It tells you what $\mathbb{R}^d$ is (a Cartesian product of $d$ copies of $\mathbb{R}$), what a function is (a special kind of relation, which is a subset of a Cartesian product), and what a probability space is (a triple of sets and a measure).
 
 Neither is sufficient alone. Logic without sets has nothing to reason about. Sets without logic have no way to draw conclusions. Together they form the complete foundation.
 
@@ -206,7 +206,7 @@ $$A = \{1, 2, 3\}$$
 
 Then $1 \in A$, $2 \in A$, $3 \in A$, but $4 \notin A$, $0 \notin A$.
 
-**The fundamental principle — Axiom of Extensionality:** A set is entirely determined by its members. Two sets are equal if and only if they have exactly the same elements:
+**The fundamental principle - Axiom of Extensionality:** A set is entirely determined by its members. Two sets are equal if and only if they have exactly the same elements:
 
 $$A = B \iff \forall x\,(x \in A \iff x \in B)$$
 
@@ -215,7 +215,7 @@ This means:
 - **Order does not matter:** $\{1, 2, 3\} = \{3, 1, 2\} = \{2, 3, 1\}$
 - **Repetition does not matter:** $\{1, 1, 2\} = \{1, 2\}$ (sets have distinct elements)
 
-> **Important distinction:** Sets have no notion of order or multiplicity. If you need order, use a sequence (tuple). If you need multiplicity, use a multiset (see §2.6). In ML, training batches are typically ordered sequences, not sets — but the mathematical specification of "training data" is a multiset (same example can appear multiple times).
+> **Important distinction:** Sets have no notion of order or multiplicity. If you need order, use a sequence (tuple). If you need multiplicity, use a multiset (see 2.6). In ML, training batches are typically ordered sequences, not sets - but the mathematical specification of "training data" is a multiset (same example can appear multiple times).
 
 ### 2.2 Describing Sets
 
@@ -278,7 +278,7 @@ Each step adds new elements: $\mathbb{Z}$ adds negatives, $\mathbb{Q}$ adds frac
 | $\{\emptyset\} = \{\{\}\}$     | One element: $\emptyset$                      | 1           |
 | $\{\emptyset, \{\emptyset\}\}$ | Two elements: $\emptyset$ and $\{\emptyset\}$ | 2           |
 
-> **Warning:** $\emptyset \neq \{\emptyset\}$. The empty set has no elements. The set containing the empty set has one element (which happens to be the empty set). This distinction is not pedantic — it is exactly how natural numbers are constructed from sets in ZFC (see §8.3).
+> **Warning:** $\emptyset \neq \{\emptyset\}$. The empty set has no elements. The set containing the empty set has one element (which happens to be the empty set). This distinction is not pedantic - it is exactly how natural numbers are constructed from sets in ZFC (see 8.3).
 
 ### 2.4 Subset and Superset
 
@@ -286,7 +286,7 @@ Each step adds new elements: $\mathbb{Z}$ adds negatives, $\mathbb{Q}$ adds frac
 
 $$A \subseteq B \iff \forall x\,(x \in A \implies x \in B)$$
 
-**Proper subset:** $A$ is a proper subset of $B$ (written $A \subsetneq B$ or $A \subset B$) if $A \subseteq B$ and $A \neq B$ — that is, $B$ has at least one element not in $A$.
+**Proper subset:** $A$ is a proper subset of $B$ (written $A \subsetneq B$ or $A \subset B$) if $A \subseteq B$ and $A \neq B$ - that is, $B$ has at least one element not in $A$.
 
 **Superset:** $A \supseteq B$ means $B \subseteq A$ (read: "$A$ is a superset of $B$").
 
@@ -301,11 +301,11 @@ $$A \subseteq B \iff \forall x\,(x \in A \implies x \in B)$$
 
 The antisymmetry property gives us the **standard method for proving two sets are equal**: show $A \subseteq B$ (every element of $A$ is in $B$) and $B \subseteq A$ (every element of $B$ is in $A$). This "double containment" proof is used constantly in mathematics.
 
-> **Vacuous truth explanation:** Why is $\emptyset \subseteq A$ true? The definition says: for every $x$, if $x \in \emptyset$ then $x \in A$. Since nothing is in $\emptyset$, the "if" clause is never satisfied, so the implication is vacuously true. There is no counterexample — we would need an $x$ that is in $\emptyset$ but not in $A$, and no such $x$ exists. See §5.2 for more on vacuous truth and implication.
+> **Vacuous truth explanation:** Why is $\emptyset \subseteq A$ true? The definition says: for every $x$, if $x \in \emptyset$ then $x \in A$. Since nothing is in $\emptyset$, the "if" clause is never satisfied, so the implication is vacuously true. There is no counterexample - we would need an $x$ that is in $\emptyset$ but not in $A$, and no such $x$ exists. See 5.2 for more on vacuous truth and implication.
 
 ### 2.5 Russell's Paradox
 
-**Naive comprehension** (the principle that doomed early set theory): For any property $P$, there exists a set $\{x \mid P(x)\}$. This seems natural — "the set of all things with property $P$" — but it leads to disaster.
+**Naive comprehension** (the principle that doomed early set theory): For any property $P$, there exists a set $\{x \mid P(x)\}$. This seems natural - "the set of all things with property $P$" - but it leads to disaster.
 
 **Russell's construction (1901):** Define
 
@@ -321,13 +321,13 @@ Then $R$ satisfies the condition $x \notin x$, so by the definition of $R$, we h
 
 Either way we get a contradiction. **Naive set theory is inconsistent.**
 
-**The resolution:** We cannot form "the set of all sets" or unrestricted collections. The axiom of **Separation** (in ZFC) restricts comprehension: you can only form $\{x \in A \mid P(x)\}$ for an already-existing set $A$. You cannot form a set "from scratch" using just a property — you must separate from an existing set. This blocks Russell's paradox because there is no universal set of all sets from which to separate.
+**The resolution:** We cannot form "the set of all sets" or unrestricted collections. The axiom of **Separation** (in ZFC) restricts comprehension: you can only form $\{x \in A \mid P(x)\}$ for an already-existing set $A$. You cannot form a set "from scratch" using just a property - you must separate from an existing set. This blocks Russell's paradox because there is no universal set of all sets from which to separate.
 
-This is not merely a historical curiosity. Russell's paradox is the reason mathematics has axioms for set theory at all, and understanding it is prerequisite for understanding ZFC (§8), type theory (§9.4), and the limits of formal systems (§12.1).
+This is not merely a historical curiosity. Russell's paradox is the reason mathematics has axioms for set theory at all, and understanding it is prerequisite for understanding ZFC (8), type theory (9.4), and the limits of formal systems (12.1).
 
 ### 2.6 Multisets (Bags)
 
-Standard sets require distinct elements: $\{1, 1, 2\} = \{1, 2\}$. But in practice, we often need to track multiplicity — how many times each element appears.
+Standard sets require distinct elements: $\{1, 1, 2\} = \{1, 2\}$. But in practice, we often need to track multiplicity - how many times each element appears.
 
 A **multiset** (or **bag**) generalises sets by assigning each element a **multiplicity** (count). Formally, a multiset over a base set $A$ is a function $m: A \to \mathbb{N}_0$ where $m(a)$ gives the number of times $a$ appears.
 
@@ -343,8 +343,8 @@ A **multiset** (or **bag**) generalises sets by assigning each element a **multi
 
 **AI applications of multisets:**
 
-- **Training data:** A dataset is a multiset of examples — the same document may appear multiple times (data repetition, which affects training dynamics)
-- **Token counting:** Term frequency in TF-IDF and BM25 is a multiset operation — how many times each word appears matters
+- **Training data:** A dataset is a multiset of examples - the same document may appear multiple times (data repetition, which affects training dynamics)
+- **Token counting:** Term frequency in TF-IDF and BM25 is a multiset operation - how many times each word appears matters
 - **Gradient accumulation:** Sum of gradient multiset over a batch: each micro-batch contributes a gradient, and we sum (multiset addition)
 - **Batch statistics:** BatchNorm computes mean and variance of a multiset of activations per channel
 
@@ -358,7 +358,7 @@ Set operations are the algebraic toolkit for combining, comparing, and transform
 
 $$A \cup B = \{x \mid x \in A \text{ or } x \in B\}$$
 
-The union contains every element that belongs to **at least one** of the two sets. The "or" is inclusive — elements in both sets are included (once, since sets don't repeat).
+The union contains every element that belongs to **at least one** of the two sets. The "or" is inclusive - elements in both sets are included (once, since sets don't repeat).
 
 **Visual:** Think of taking both sets and pouring them together. Any element from either set goes in.
 
@@ -398,7 +398,7 @@ The intersection contains only elements that belong to **both** sets simultaneou
 | Idempotence   | $A \cap A = A$                          | Set intersected with itself is itself   |
 | Annihilation  | $A \cap \emptyset = \emptyset$          | Intersecting with nothing gives nothing |
 
-**Disjoint sets:** Two sets $A$ and $B$ are **disjoint** if $A \cap B = \emptyset$ — they share no elements.
+**Disjoint sets:** Two sets $A$ and $B$ are **disjoint** if $A \cap B = \emptyset$ - they share no elements.
 
 **Generalised intersection:** For a collection $\{A_i\}_{i \in I}$:
 
@@ -415,7 +415,7 @@ $$\bigcap_{i \in I} A_i = \{x \mid x \in A_i \text{ for all } i \in I\}$$
 $$A \cap (B \cup C) = (A \cap B) \cup (A \cap C)$$
 $$A \cup (B \cap C) = (A \cup B) \cap (A \cup C)$$
 
-These mirror the distributive laws of multiplication over addition ($a \cdot (b + c) = ab + ac$), which is no coincidence — Boolean algebra (§5.7) makes these analogies precise.
+These mirror the distributive laws of multiplication over addition ($a \cdot (b + c) = ab + ac$), which is no coincidence - Boolean algebra (5.7) makes these analogies precise.
 
 ### 3.3 Set Difference
 
@@ -449,7 +449,7 @@ Difference is intersection with complement (this is often the most useful way to
 
 $$A \triangle B = (A \setminus B) \cup (B \setminus A) = (A \cup B) \setminus (A \cap B)$$
 
-Elements in **exactly one** of the two sets — not in both.
+Elements in **exactly one** of the two sets - not in both.
 
 **Properties of symmetric difference:**
 
@@ -461,7 +461,7 @@ Elements in **exactly one** of the two sets — not in both.
 | Self-inverse  | $A \triangle A = \emptyset$                                 | XOR with self cancels       |
 | Criterion     | $A \triangle B = \emptyset \iff A = B$                      | Zero difference means equal |
 
-> **Algebraic structure:** The symmetric difference operation makes the power set $\mathcal{P}(U)$ into an abelian group with $\emptyset$ as identity. Combined with intersection as multiplication, $(\mathcal{P}(U), \triangle, \cap)$ forms a Boolean ring — connecting set theory to abstract algebra.
+> **Algebraic structure:** The symmetric difference operation makes the power set $\mathcal{P}(U)$ into an abelian group with $\emptyset$ as identity. Combined with intersection as multiplication, $(\mathcal{P}(U), \triangle, \cap)$ forms a Boolean ring - connecting set theory to abstract algebra.
 
 **AI examples:**
 
@@ -491,13 +491,13 @@ Everything in the universal set $U$ that is **not** in $A$. The complement depen
 
 These are the most important algebraic identities for sets. They connect union and intersection through complementation:
 
-**First law — complement of union = intersection of complements:**
+**First law - complement of union = intersection of complements:**
 
 $$\overline{A \cup B} = \bar{A} \cap \bar{B}$$
 
 "Not in A-or-B" is the same as "not in A **and** not in B."
 
-**Second law — complement of intersection = union of complements:**
+**Second law - complement of intersection = union of complements:**
 
 $$\overline{A \cap B} = \bar{A} \cup \bar{B}$$
 
@@ -533,10 +533,10 @@ The set of all **ordered pairs** where the first element comes from $A$ and the 
 
 **Higher products:**
 
-- $A \times B \times C = \{(a, b, c) \mid a \in A,\, b \in B,\, c \in C\}$ — ordered triples
-- $A^n = \underbrace{A \times A \times \cdots \times A}_{n \text{ times}}$ — $n$-tuples of elements from $A$
+- $A \times B \times C = \{(a, b, c) \mid a \in A,\, b \in B,\, c \in C\}$ - ordered triples
+- $A^n = \underbrace{A \times A \times \cdots \times A}_{n \text{ times}}$ - $n$-tuples of elements from $A$
 
-**AI examples — Cartesian products are everywhere:**
+**AI examples - Cartesian products are everywhere:**
 
 | Expression                                                                   | Meaning                                      |
 | ---------------------------------------------------------------------------- | -------------------------------------------- |
@@ -546,7 +546,7 @@ The set of all **ordered pairs** where the first element comes from $A$ and the 
 | $[n] \times [n]$                                                             | All position pairs for attention matrix      |
 | $\Theta = \mathbb{R}^p$                                                      | Parameter space of model with $p$ parameters |
 
-**Formal definition of ordered pair (Kuratowski):** $(a, b) = \{\{a\}, \{a, b\}\}$. This reduces ordered pairs to pure sets — the pair $(a, b)$ is a set that encodes the order by treating $a$ as the "singleton" element.
+**Formal definition of ordered pair (Kuratowski):** $(a, b) = \{\{a\}, \{a, b\}\}$. This reduces ordered pairs to pure sets - the pair $(a, b)$ is a set that encodes the order by treating $a$ as the "singleton" element.
 
 ### 3.8 Power Set
 
@@ -556,7 +556,7 @@ The set of **all subsets** of $A$, including $\emptyset$ and $A$ itself.
 
 **Cardinality:** $|\mathcal{P}(A)| = 2^{|A|}$ for finite $A$.
 
-The reason: for each element of $A$, you independently choose "include" or "exclude" — this gives $2$ choices for each of the $|A|$ elements, hence $2^{|A|}$ subsets total.
+The reason: for each element of $A$, you independently choose "include" or "exclude" - this gives $2$ choices for each of the $|A|$ elements, hence $2^{|A|}$ subsets total.
 
 **Examples:**
 
@@ -571,12 +571,12 @@ The reason: for each element of $A$, you independently choose "include" or "excl
 
 $$|A| < |\mathcal{P}(A)| \quad \text{for all sets } A$$
 
-This means there are always more subsets than elements — a fact that generates the entire hierarchy of infinite cardinalities (see §10.4).
+This means there are always more subsets than elements - a fact that generates the entire hierarchy of infinite cardinalities (see 10.4).
 
 **AI implications:**
 
-- If vocabulary $|V| = 32{,}000$, then $|\mathcal{P}(V)| = 2^{32{,}000}$ — the number of possible token subsets is astronomically larger than the vocabulary itself
-- Structured generation constrains output to a subset of $V$ at each step — it selects one element of $\mathcal{P}(V)$
+- If vocabulary $|V| = 32{,}000$, then $|\mathcal{P}(V)| = 2^{32{,}000}$ - the number of possible token subsets is astronomically larger than the vocabulary itself
+- Structured generation constrains output to a subset of $V$ at each step - it selects one element of $\mathcal{P}(V)$
 - The exponential blowup of power sets is why exhaustive search over subsets is intractable, driving the need for heuristic and approximate algorithms throughout AI
 
 ### 3.9 Operations Summary Table
@@ -590,8 +590,8 @@ For quick reference, here is the complete table of set operations with their log
 | Difference           | $A \setminus B$  | $\wedge \neg$ (AND NOT) | `A - B` or `A.difference(B)`           |
 | Symmetric difference | $A \triangle B$  | $\oplus$ (XOR)          | `A ^ B` or `A.symmetric_difference(B)` |
 | Complement           | $\bar{A}$        | $\neg$ (NOT)            | `U - A`                                |
-| Cartesian product    | $A \times B$     | —                       | `itertools.product(A, B)`              |
-| Power set            | $\mathcal{P}(A)$ | —                       | `itertools.combinations` for each size |
+| Cartesian product    | $A \times B$     | -                       | `itertools.product(A, B)`              |
+| Power set            | $\mathcal{P}(A)$ | -                       | `itertools.combinations` for each size |
 | Subset test          | $A \subseteq B$  | $\implies$              | `A <= B` or `A.issubset(B)`            |
 
 ---
@@ -634,51 +634,51 @@ Let $R$ be a relation on set $A$ (i.e., $R \subseteq A \times A$). There are six
 
 $$\forall a \in A:\, (a, a) \in R$$
 
-- ✓ $\leq$ is reflexive ($x \leq x$ for all $x$)
-- ✗ $<$ is not reflexive ($x \not< x$)
+- OK $\leq$ is reflexive ($x \leq x$ for all $x$)
+- NO $<$ is not reflexive ($x \not< x$)
 - AI: identity attention (token attends to itself) is a reflexive relation
 
 **Irreflexivity:** No element is related to itself.
 
 $$\forall a \in A:\, (a, a) \notin R$$
 
-- ✓ $<$ is irreflexive
-- ✓ "parent-of" is irreflexive (no one is their own parent)
+- OK $<$ is irreflexive
+- OK "parent-of" is irreflexive (no one is their own parent)
 - A relation can be neither reflexive nor irreflexive (some self-loops, not all)
 
 **Symmetry:** If $a$ is related to $b$, then $b$ is related to $a$.
 
 $$\forall a, b \in A:\, (a, b) \in R \implies (b, a) \in R$$
 
-- ✓ "is sibling of" is symmetric
-- ✓ "has same length as" is symmetric
-- ✗ $\leq$ is not symmetric ($3 \leq 5$ but $5 \not\leq 3$)
-- AI: cosine similarity is symmetric; attention is NOT symmetric (query→key direction)
+- OK "is sibling of" is symmetric
+- OK "has same length as" is symmetric
+- NO $\leq$ is not symmetric ($3 \leq 5$ but $5 \not\leq 3$)
+- AI: cosine similarity is symmetric; attention is NOT symmetric (query->key direction)
 
 **Antisymmetry:** If $a$ is related to $b$ AND $b$ is related to $a$, then $a = b$.
 
 $$\forall a, b \in A:\, (a, b) \in R \wedge (b, a) \in R \implies a = b$$
 
-- ✓ $\leq$ is antisymmetric ($x \leq y$ and $y \leq x$ implies $x = y$)
-- ✓ $\subseteq$ on sets is antisymmetric
-- Note: antisymmetry ≠ "not symmetric". A relation can be both symmetric and antisymmetric (e.g., equality)
+- OK $\leq$ is antisymmetric ($x \leq y$ and $y \leq x$ implies $x = y$)
+- OK $\subseteq$ on sets is antisymmetric
+- Note: antisymmetry \neq "not symmetric". A relation can be both symmetric and antisymmetric (e.g., equality)
 
 **Asymmetry:** If $a$ is related to $b$, then $b$ is NOT related to $a$.
 
 $$\forall a, b \in A:\, (a, b) \in R \implies (b, a) \notin R$$
 
-- ✓ $<$ is asymmetric
-- ✓ "parent-of" is asymmetric
+- OK $<$ is asymmetric
+- OK "parent-of" is asymmetric
 - Asymmetry implies irreflexivity (if $R$ were reflexive, $(a, a) \in R$ would require $(a, a) \notin R$)
 
 **Transitivity:** If $a$ is related to $b$ and $b$ is related to $c$, then $a$ is related to $c$.
 
 $$\forall a, b, c \in A:\, (a, b) \in R \wedge (b, c) \in R \implies (a, c) \in R$$
 
-- ✓ $\leq$ is transitive
-- ✓ "ancestor-of" is transitive
-- ✗ "friend-of" is not transitive (my friend's friend need not be my friend)
-- AI: causal mask transitivity — if position $i$ attends to $j$ and $j$ attends to $k$, should $i$ attend to $k$? In a causal mask, yes (by transitivity of $\geq$)
+- OK $\leq$ is transitive
+- OK "ancestor-of" is transitive
+- NO "friend-of" is not transitive (my friend's friend need not be my friend)
+- AI: causal mask transitivity - if position $i$ attends to $j$ and $j$ attends to $k$, should $i$ attend to $k$? In a causal mask, yes (by transitivity of $\geq$)
 
 ### 4.3 Equivalence Relations
 
@@ -688,7 +688,7 @@ A relation $R$ on $A$ is an **equivalence relation** if it is:
 2. **Symmetric:** $aRb \implies bRa$
 3. **Transitive:** $aRb \wedge bRc \implies aRc$
 
-Equivalence relations capture the idea of "sameness" or "interchangeability" — elements related by an equivalence relation are considered equivalent for the purpose at hand.
+Equivalence relations capture the idea of "sameness" or "interchangeability" - elements related by an equivalence relation are considered equivalent for the purpose at hand.
 
 **Examples of equivalence relations:**
 
@@ -712,9 +712,9 @@ All elements equivalent to $a$ form the equivalence class $[a]$.
 - The union of all classes equals $A$: $\bigcup_a [a] = A$
 - Distinct classes are disjoint: $[a] \neq [b] \implies [a] \cap [b] = \emptyset$
 
-**Quotient set:** $A / R = \{[a] \mid a \in A\}$ — the set of all equivalence classes.
+**Quotient set:** $A / R = \{[a] \mid a \in A\}$ - the set of all equivalence classes.
 
-> **AI example — tokenisation as equivalence:** BPE tokenisation defines an equivalence relation on character sequences. Two character sequences are "equivalent" if they merge to the same token. The equivalence classes are precisely the tokens. The vocabulary $V$ is the quotient set $\Sigma^* / \sim_{\text{BPE}}$ (restricted to the merge rules).
+> **AI example - tokenisation as equivalence:** BPE tokenisation defines an equivalence relation on character sequences. Two character sequences are "equivalent" if they merge to the same token. The equivalence classes are precisely the tokens. The vocabulary $V$ is the quotient set $\Sigma^* / \sim_{\text{BPE}}$ (restricted to the merge rules).
 
 ### 4.4 Partial Orders
 
@@ -726,7 +726,7 @@ A relation $R$ on $A$ is a **partial order** if it is:
 
 A partial order is written $\leq$ or $\preceq$ conventionally. The pair $(A, \leq)$ is called a **partially ordered set** (poset).
 
-**"Partial" means:** Not all pairs need be comparable. Some elements may be **incomparable** — neither $a \leq b$ nor $b \leq a$ holds.
+**"Partial" means:** Not all pairs need be comparable. Some elements may be **incomparable** - neither $a \leq b$ nor $b \leq a$ holds.
 
 **Total order (linear order):** A partial order where additionally
 
@@ -746,11 +746,11 @@ All pairs are comparable. Total orders arrange elements in a single line.
 
 **Hasse diagram:** A graphical representation of a finite poset. Draw $a$ above $b$ with an edge if $a > b$ and there is no element between them (no element $c$ with $a > c > b$). This gives a compact picture of the partial order structure.
 
-**AI connection — dependency parsing:** In a syntactic parse tree, token $i$ dominates token $j$ if $j$ is a descendant of $i$. This dominance relation is a partial order on sentence tokens. Similarly, in DAG-structured computation graphs, the execution order is a partial order on operations.
+**AI connection - dependency parsing:** In a syntactic parse tree, token $i$ dominates token $j$ if $j$ is a descendant of $i$. This dominance relation is a partial order on sentence tokens. Similarly, in DAG-structured computation graphs, the execution order is a partial order on operations.
 
 ### 4.5 Functions as Relations
 
-A **function** $f: A \to B$ is a special case of a relation — a relation $f \subseteq A \times B$ satisfying the condition that every element of $A$ appears in **exactly one** pair:
+A **function** $f: A \to B$ is a special case of a relation - a relation $f \subseteq A \times B$ satisfying the condition that every element of $A$ appears in **exactly one** pair:
 
 $$\forall a \in A:\, \exists!\, b \in B:\, (a, b) \in f$$
 
@@ -768,15 +768,15 @@ We write $f(a) = b$ to mean $(a, b) \in f$.
 
 | Type                       | Definition                           | Meaning                             |
 | -------------------------- | ------------------------------------ | ----------------------------------- |
-| **Injective** (one-to-one) | $f(a_1) = f(a_2) \implies a_1 = a_2$ | Distinct inputs → distinct outputs  |
+| **Injective** (one-to-one) | $f(a_1) = f(a_2) \implies a_1 = a_2$ | Distinct inputs -> distinct outputs  |
 | **Surjective** (onto)      | $\text{ran}(f) = B$                  | Every output is hit                 |
 | **Bijective**              | Injective and surjective             | Perfect pairing between $A$ and $B$ |
 
-**AI examples — functions are the core abstraction:**
+**AI examples - functions are the core abstraction:**
 
 | Function  | Type Signature                                                                                                      | Properties                                     |
 | --------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Tokeniser | $\Sigma^* \to V^*$                                                                                                  | Not injective (multiple strings → same tokens) |
+| Tokeniser | $\Sigma^* \to V^*$                                                                                                  | Not injective (multiple strings -> same tokens) |
 | Embedding | $V \to \mathbb{R}^d$                                                                                                | Injective (each token gets unique vector)      |
 | LM head   | $\mathbb{R}^d \to \mathbb{R}^{\vert V \vert}$                                                                       | Linear map (matrix multiplication)             |
 | Attention | $\mathbb{R}^{n \times d} \times \mathbb{R}^{n \times d} \times \mathbb{R}^{n \times d} \to \mathbb{R}^{n \times d}$ | Highly non-linear                              |
@@ -803,17 +803,17 @@ $$f^{-1}(f(a)) = a \quad \text{and} \quad f(f^{-1}(b)) = b$$
 
 Only bijections have inverses. Injective-but-not-surjective functions have **left inverses**; surjective-but-not-injective functions have **right inverses**.
 
-> **AI example — neural networks as function composition:** A deep neural network is fundamentally a composition of functions:
+> **AI example - neural networks as function composition:** A deep neural network is fundamentally a composition of functions:
 >
 > $$\hat{y} = f_L \circ f_{L-1} \circ \cdots \circ f_2 \circ f_1(x)$$
 >
-> Each $f_i$ is one layer (linear map + activation). Deep learning is deeply compositional — the power comes from composing many simple functions. The chain rule of calculus (backpropagation) exploits this compositional structure: $\frac{\partial}{\partial x}(g \circ f) = \frac{\partial g}{\partial f} \cdot \frac{\partial f}{\partial x}$.
+> Each $f_i$ is one layer (linear map + activation). Deep learning is deeply compositional - the power comes from composing many simple functions. The chain rule of calculus (backpropagation) exploits this compositional structure: $\frac{\partial}{\partial x}(g \circ f) = \frac{\partial g}{\partial f} \cdot \frac{\partial f}{\partial x}$.
 
 ---
 
 ## 5. Propositional Logic
 
-Propositional logic is the simplest complete system of logical reasoning. It studies how the truth of compound statements depends on the truth of their components, without looking inside those components. It is the foundation for Boolean circuits, attention mask logic, SAT solvers, and the systematic reasoning that predicate logic (§6) and proof techniques (§7) build upon.
+Propositional logic is the simplest complete system of logical reasoning. It studies how the truth of compound statements depends on the truth of their components, without looking inside those components. It is the foundation for Boolean circuits, attention mask logic, SAT solvers, and the systematic reasoning that predicate logic (6) and proof techniques (7) build upon.
 
 ### 5.1 Propositions
 
@@ -821,18 +821,18 @@ A **proposition** is a declarative statement that is either **true** ($T$, 1) or
 
 **Examples of propositions:**
 
-- "The sky is blue" — true proposition
-- "$2 + 2 = 5$" — false proposition
-- "LLaMA-3 has 8B parameters" — true proposition
-- "Every even integer greater than 2 is the sum of two primes" — proposition (truth value unknown; Goldbach's conjecture)
+- "The sky is blue" - true proposition
+- "$2 + 2 = 5$" - false proposition
+- "LLaMA-3 has 8B parameters" - true proposition
+- "Every even integer greater than 2 is the sum of two primes" - proposition (truth value unknown; Goldbach's conjecture)
 
 **Not propositions:**
 
-- "What is your name?" — question, no truth value
-- "Close the door" — command, no truth value
-- "$x > 3$" — depends on $x$; becomes a proposition only when $x$ is specified (this is a **predicate**, see §6)
+- "What is your name?" - question, no truth value
+- "Close the door" - command, no truth value
+- "$x > 3$" - depends on $x$; becomes a proposition only when $x$ is specified (this is a **predicate**, see 6)
 
-**Propositional variables:** Letters $p, q, r, s, \ldots$ stand for unspecified propositions. Each has a **truth value** — either $T$ or $F$.
+**Propositional variables:** Letters $p, q, r, s, \ldots$ stand for unspecified propositions. Each has a **truth value** - either $T$ or $F$.
 
 ### 5.2 Logical Connectives
 
@@ -886,11 +886,11 @@ AI: Union of token sets in structured generation; "match either pattern" in retr
 | $F$ | $T$ | $T$          |
 | $F$ | $F$ | $F$          |
 
-AI: Symmetric difference of sets; error detection (XOR of prediction and ground truth bits); XOR is the simplest function not linearly separable — a single perceptron cannot learn it (Minsky & Papert 1969).
+AI: Symmetric difference of sets; error detection (XOR of prediction and ground truth bits); XOR is the simplest function not linearly separable - a single perceptron cannot learn it (Minsky & Papert 1969).
 
 #### Implication (IF...THEN): $p \to q$
 
-"If $p$ then $q$." Also read "$p$ implies $q$." False **only when $p$ is true and $q$ is false** — a true hypothesis cannot lead to a false conclusion.
+"If $p$ then $q$." Also read "$p$ implies $q$." False **only when $p$ is true and $q$ is false** - a true hypothesis cannot lead to a false conclusion.
 
 | $p$ | $q$ | $p \to q$ |
 | --- | --- | --------- |
@@ -906,9 +906,9 @@ AI: Symmetric difference of sets; error detection (XOR of prediction and ground 
 
 **Vacuous truth in mathematics and AI:**
 
-- "$\forall x \in \emptyset$, property $P(x)$ holds" — true, because there's nothing to check
-- "$\emptyset \subseteq A$" — true, because every element of $\emptyset$ (there are none) is in $A$
-- "If the model reaches 100% accuracy, then it has generalised" — vacuously true if the model never reaches 100%
+- "$\forall x \in \emptyset$, property $P(x)$ holds" - true, because there's nothing to check
+- "$\emptyset \subseteq A$" - true, because every element of $\emptyset$ (there are none) is in $A$
+- "If the model reaches 100% accuracy, then it has generalised" - vacuously true if the model never reaches 100%
 
 #### Biconditional (IF AND ONLY IF): $p \leftrightarrow q$
 
@@ -941,7 +941,7 @@ $$\neg \quad > \quad \wedge \quad > \quad \vee \quad > \quad \to \quad > \quad \
 
 ### 5.4 Tautologies, Contradictions, and Contingencies
 
-**Tautology:** A formula that is true for **all possible** truth value assignments to its variables. Logically necessary — cannot possibly be false.
+**Tautology:** A formula that is true for **all possible** truth value assignments to its variables. Logically necessary - cannot possibly be false.
 
 | Tautology                                   | Name                    |
 | ------------------------------------------- | ----------------------- |
@@ -959,18 +959,18 @@ $$\neg \quad > \quad \wedge \quad > \quad \vee \quad > \quad \to \quad > \quad \
 
 **Contingency:** A formula that is true for some assignments and false for others.
 
-- $p \wedge q$ — true when both true, false otherwise
-- $p \to q$ — false only when $T \to F$
+- $p \wedge q$ - true when both true, false otherwise
+- $p \to q$ - false only when $T \to F$
 
 **Satisfiability:** A formula is **satisfiable** if at least one truth assignment makes it true. Tautologies and contingencies are satisfiable; contradictions are not.
 
-**The SAT problem:** Given a propositional formula $\phi$, is $\phi$ satisfiable? This is the canonical **NP-complete** problem (Cook–Levin theorem, 1971). Despite worst-case intractability, modern SAT solvers handle millions of variables — they are critical for AI constraint solving, formal verification, and automated planning.
+**The SAT problem:** Given a propositional formula $\phi$, is $\phi$ satisfiable? This is the canonical **NP-complete** problem (Cook-Levin theorem, 1971). Despite worst-case intractability, modern SAT solvers handle millions of variables - they are critical for AI constraint solving, formal verification, and automated planning.
 
 ### 5.5 Logical Equivalence
 
 Two formulas $\phi$ and $\psi$ are **logically equivalent** (written $\phi \equiv \psi$) if they have the same truth value for every possible truth assignment. Equivalently: $\phi \leftrightarrow \psi$ is a tautology.
 
-Here are the fundamental equivalences — the "algebra rules" of logic:
+Here are the fundamental equivalences - the "algebra rules" of logic:
 
 **Double Negation:**
 $$\neg\neg p \equiv p$$
@@ -979,14 +979,14 @@ $$\neg\neg p \equiv p$$
 $$\neg(p \wedge q) \equiv \neg p \vee \neg q$$
 $$\neg(p \vee q) \equiv \neg p \wedge \neg q$$
 
-These are the most used laws in practice. Notice they mirror the set-theoretic De Morgan's Laws (§3.6) exactly — this is the Boolean algebra correspondence (§5.7).
+These are the most used laws in practice. Notice they mirror the set-theoretic De Morgan's Laws (3.6) exactly - this is the Boolean algebra correspondence (5.7).
 
 **Implication Equivalences:**
 $$p \to q \equiv \neg p \vee q$$
 $$p \to q \equiv \neg q \to \neg p \quad \text{(contrapositive)}$$
 $$\neg(p \to q) \equiv p \wedge \neg q$$
 
-The contrapositive equivalence is used constantly in proofs (see §7.3). It says "$p$ implies $q$" is the same as "not $q$ implies not $p$." Distinguish from the **converse** ($q \to p$), which is NOT equivalent to $p \to q$.
+The contrapositive equivalence is used constantly in proofs (see 7.3). It says "$p$ implies $q$" is the same as "not $q$ implies not $p$." Distinguish from the **converse** ($q \to p$), which is NOT equivalent to $p \to q$.
 
 **Distributive Laws:**
 $$p \wedge (q \vee r) \equiv (p \wedge q) \vee (p \wedge r)$$
@@ -1022,19 +1022,19 @@ $$p \vee \neg p \equiv T$$
 
 #### Conjunctive Normal Form (CNF)
 
-A formula in CNF is a **conjunction of clauses** — an AND of ORs:
+A formula in CNF is a **conjunction of clauses** - an AND of ORs:
 
 $$(p \vee q \vee \neg r) \wedge (\neg p \vee s) \wedge (r \vee \neg s)$$
 
-Every propositional formula can be converted to an equivalent CNF. SAT solvers **require** CNF input — the DPLL and CDCL algorithms operate exclusively on CNF.
+Every propositional formula can be converted to an equivalent CNF. SAT solvers **require** CNF input - the DPLL and CDCL algorithms operate exclusively on CNF.
 
 #### Disjunctive Normal Form (DNF)
 
-A formula in DNF is a **disjunction of terms** — an OR of ANDs:
+A formula in DNF is a **disjunction of terms** - an OR of ANDs:
 
 $$(p \wedge q \wedge \neg r) \vee (\neg p \wedge s) \vee (r \wedge \neg s)$$
 
-Every formula can be converted to DNF. A DNF is satisfiable iff **any single term** is satisfiable (no complementary literals in a term), which is easy to check — but the conversion to DNF may be exponentially large.
+Every formula can be converted to DNF. A DNF is satisfiable iff **any single term** is satisfiable (no complementary literals in a term), which is easy to check - but the conversion to DNF may be exponentially large.
 
 #### Conversion to CNF (Algorithm)
 
@@ -1051,13 +1051,13 @@ Given an arbitrary formula $\phi$:
 **Example:** Convert $p \to (q \wedge r)$ to CNF:
 
 - Step 2: $\neg p \vee (q \wedge r)$
-- Step 4: $(\neg p \vee q) \wedge (\neg p \vee r)$ — this is CNF ✓
+- Step 4: $(\neg p \vee q) \wedge (\neg p \vee r)$ - this is CNF OK
 
 ### 5.7 Boolean Algebra
 
-The laws of propositional logic form an algebraic structure called a **Boolean algebra**: $(B, \wedge, \vee, \neg, 0, 1)$ satisfying all the equivalences listed in §5.5.
+The laws of propositional logic form an algebraic structure called a **Boolean algebra**: $(B, \wedge, \vee, \neg, 0, 1)$ satisfying all the equivalences listed in 5.5.
 
-**The fundamental connection — Stone Representation Theorem:** Every Boolean algebra is isomorphic to an algebra of sets:
+**The fundamental connection - Stone Representation Theorem:** Every Boolean algebra is isomorphic to an algebra of sets:
 
 | Logic                   | Sets                  | Python        |
 | ----------------------- | --------------------- | ------------- |
@@ -1069,21 +1069,21 @@ The laws of propositional logic form an algebraic structure called a **Boolean a
 | $\to$ (implies)         | $\subseteq$           | `<=`          |
 | $\leftrightarrow$ (iff) | $=$                   | `==`          |
 
-This is why De Morgan's laws look the same for sets and for logic — they **are** the same, in the precise algebraic sense. Boolean algebra unifies propositional logic, set operations, and circuit design under a single framework.
+This is why De Morgan's laws look the same for sets and for logic - they **are** the same, in the precise algebraic sense. Boolean algebra unifies propositional logic, set operations, and circuit design under a single framework.
 
 **AI connections:**
 
 - **Attention masks as Boolean matrices:** An attention mask is a Boolean matrix $M \in \{0, 1\}^{n \times n}$ where $M_{ij} = 1$ iff query $i$ attends to key $j$. Combining masks (causal AND sliding window) is Boolean AND.
 - **Structured generation FSMs:** The transition function of a finite state machine operates on Boolean states. Valid token sets at each state are computed via Boolean operations.
-- **Circuit complexity of neural networks:** A ReLU network computes a piecewise linear function; each linear region corresponds to a Boolean pattern of active/inactive neurons — the network's behaviour is described by a Boolean function over activation patterns.
+- **Circuit complexity of neural networks:** A ReLU network computes a piecewise linear function; each linear region corresponds to a Boolean pattern of active/inactive neurons - the network's behaviour is described by a Boolean function over activation patterns.
 
 ---
 
 ## 6. Predicate Logic (First-Order Logic)
 
-Propositional logic treats statements as atomic units — it cannot look inside them. Predicate logic (FOL) opens them up, exposing the **objects**, **properties**, and **quantifiers** that make mathematical reasoning powerful. Every formal specification in AI — from type systems to knowledge bases to verification conditions — ultimately rests on predicate logic.
+Propositional logic treats statements as atomic units - it cannot look inside them. Predicate logic (FOL) opens them up, exposing the **objects**, **properties**, and **quantifiers** that make mathematical reasoning powerful. Every formal specification in AI - from type systems to knowledge bases to verification conditions - ultimately rests on predicate logic.
 
-### 6.1 Predicates and Quantifiers — Motivation
+### 6.1 Predicates and Quantifiers - Motivation
 
 The statement "every prime greater than 2 is odd" cannot be expressed in propositional logic. We need:
 
@@ -1117,9 +1117,9 @@ $$\forall x\, P(x)$$
 
 **Examples:**
 
-- $\forall x \in \mathbb{R},\, x^2 \geq 0$ — "every real number squared is non-negative"
-- $\forall t \in V,\, \text{embed}(t) \in \mathbb{R}^d$ — "every token maps to a $d$-dimensional vector"
-- $\forall i, j \in [n],\, i > j \implies M_{ij} = 0$ — causal mask definition
+- $\forall x \in \mathbb{R},\, x^2 \geq 0$ - "every real number squared is non-negative"
+- $\forall t \in V,\, \text{embed}(t) \in \mathbb{R}^d$ - "every token maps to a $d$-dimensional vector"
+- $\forall i, j \in [n],\, i > j \implies M_{ij} = 0$ - causal mask definition
 
 #### Existential Quantifier: $\exists$ ("there exists")
 
@@ -1129,15 +1129,15 @@ $$\exists x\, P(x)$$
 
 **Examples:**
 
-- $\exists x \in \mathbb{R},\, x^2 = 2$ — "$\sqrt{2}$ exists (in $\mathbb{R}$)"
-- $\exists t \in V,\, P(\text{next} = t \mid \text{context}) > 0.5$ — "there's a token with probability above 0.5"
-- $\exists \theta,\, \mathcal{L}(\theta) = 0$ — "a global minimum exists" (not always true!)
+- $\exists x \in \mathbb{R},\, x^2 = 2$ - "$\sqrt{2}$ exists (in $\mathbb{R}$)"
+- $\exists t \in V,\, P(\text{next} = t \mid \text{context}) > 0.5$ - "there's a token with probability above 0.5"
+- $\exists \theta,\, \mathcal{L}(\theta) = 0$ - "a global minimum exists" (not always true!)
 
 #### Unique Existential: $\exists!$ ("there exists exactly one")
 
 $$\exists! x\, P(x) \equiv \exists x\, [P(x) \wedge \forall y\, (P(y) \to y = x)]$$
 
-"There is **exactly one** $x$ satisfying $P(x)$." This is a defined symbol — it's syntactic sugar for the expression on the right.
+"There is **exactly one** $x$ satisfying $P(x)$." This is a defined symbol - it's syntactic sugar for the expression on the right.
 
 ### 6.3 Free and Bound Variables
 
@@ -1147,9 +1147,9 @@ A variable $x$ is **bound** in a formula if it appears within the scope of a qua
 - In $\exists x\, P(x, y) \wedge Q(z)$: $x$ is bound, $y$ and $z$ are free
 - In $\forall x\, \exists y\, (x + y = 0)$: both $x$ and $y$ are bound
 
-A **sentence** (closed formula) has **no free variables** — it has a definite truth value. A formula with free variables is a **predicate** — it becomes a sentence only when specific values are substituted for the free variables or when they are quantified.
+A **sentence** (closed formula) has **no free variables** - it has a definite truth value. A formula with free variables is a **predicate** - it becomes a sentence only when specific values are substituted for the free variables or when they are quantified.
 
-> **AI connection:** In a loss function $\mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^N \ell(f_\theta(x_i), y_i)$, the index $i$ is bound (by the sum, a disguised $\forall$), while $\theta$ is free — this is why we optimise **over** $\theta$.
+> **AI connection:** In a loss function $\mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^N \ell(f_\theta(x_i), y_i)$, the index $i$ is bound (by the sum, a disguised $\forall$), while $\theta$ is free - this is why we optimise **over** $\theta$.
 
 ### 6.4 Negating Quantifiers
 
@@ -1196,10 +1196,10 @@ $$\exists y\, \forall x\, P(x, y) \implies \forall x\, \exists y\, P(x, y)$$
 
 The converse is NOT generally true. A single universal $y$ is a strictly stronger claim than an individual $y(x)$ for each $x$.
 
-> **AI example — convergence of SGD:**
+> **AI example - convergence of SGD:**
 >
 > - $\forall \varepsilon > 0\, \exists T\, \forall t > T\, |\mathcal{L}(\theta_t) - \mathcal{L}^*| < \varepsilon$ means "the loss converges to $\mathcal{L}^*$"
-> - Here $T$ depends on $\varepsilon$ — this is the $\forall\exists$ pattern
+> - Here $T$ depends on $\varepsilon$ - this is the $\forall\exists$ pattern
 
 ### 6.6 Translating Between English and FOL
 
@@ -1228,11 +1228,11 @@ Translating natural language to FOL is a critical skill for formal verification,
 
 **Knowledge graphs** store facts as FOL ground atoms: $\text{LocatedIn}(\text{Paris}, \text{France})$, $\text{InstanceOf}(\text{GPT-4}, \text{LLM})$. Rules are FOL implications: $\forall x, y, z\, [\text{LocatedIn}(x, y) \wedge \text{LocatedIn}(y, z) \to \text{LocatedIn}(x, z)]$.
 
-**Description logics** (OWL, used in ontologies) are decidable fragments of FOL. They balance expressiveness with computational tractability — reasoning in full FOL is undecidable.
+**Description logics** (OWL, used in ontologies) are decidable fragments of FOL. They balance expressiveness with computational tractability - reasoning in full FOL is undecidable.
 
 **Program specification:** Hoare logic uses FOL to specify pre/post-conditions: $\{P\}\, \text{program}\, \{Q\}$ means "if $P$ holds before, $Q$ holds after."
 
-**LLM reasoning:** When an LLM performs chain-of-thought reasoning, it is (approximately) performing FOL inference — applying modus ponens, instantiating universals, existential witnesses. The fidelity of this approximation is an active research question.
+**LLM reasoning:** When an LLM performs chain-of-thought reasoning, it is (approximately) performing FOL inference - applying modus ponens, instantiating universals, existential witnesses. The fidelity of this approximation is an active research question.
 
 ---
 
@@ -1260,7 +1260,7 @@ Example: to show that the sum of two even integers is even, write them as $2a$ a
 
 ### 7.3 Proof by Contrapositive
 
-Sometimes the forward direction is awkward, but the logically equivalent statement $\neg Q \to \neg P$ is easier. That is **proof by contrapositive**, and it is why the implication equivalence in §5.5 matters operationally, not just symbolically.
+Sometimes the forward direction is awkward, but the logically equivalent statement $\neg Q \to \neg P$ is easier. That is **proof by contrapositive**, and it is why the implication equivalence in 5.5 matters operationally, not just symbolically.
 
 Classic example: to prove "if $n^2$ is even, then $n$ is even," it is simpler to show "if $n$ is odd, then $n^2$ is odd." In theory-heavy AI writing, contraposition shows up in impossibility and lower-bound arguments where failure of the conclusion exposes useful structure in the assumptions.
 
@@ -1308,7 +1308,7 @@ When you are ready to go deeper, continue with [Proof Techniques](../06-Proof-Te
 
 ## 8. Axiomatic Set Theory (ZFC)
 
-Naive set theory (§2) is intuitive but broken — Russell's Paradox (§2.5) shows that unrestricted set formation leads to contradictions. **ZFC** (Zermelo–Fraenkel axioms with the Axiom of Choice) is the standard rigorous foundation for all of modern mathematics. Every mathematical object — numbers, functions, spaces, probability measures, neural networks — can be built from ZFC sets.
+Naive set theory (2) is intuitive but broken - Russell's Paradox (2.5) shows that unrestricted set formation leads to contradictions. **ZFC** (Zermelo-Fraenkel axioms with the Axiom of Choice) is the standard rigorous foundation for all of modern mathematics. Every mathematical object - numbers, functions, spaces, probability measures, neural networks - can be built from ZFC sets.
 
 ### 8.1 Why Axioms?
 
@@ -1327,7 +1327,7 @@ There are 9 axioms (some formulations give 8 or 10; the exact count depends on g
 
 $$\forall A\, \forall B\, [\forall x\, (x \in A \leftrightarrow x \in B) \to A = B]$$
 
-Two sets are equal **if and only if** they have the same elements. A set is determined entirely by its membership — there is no "hidden structure."
+Two sets are equal **if and only if** they have the same elements. A set is determined entirely by its membership - there is no "hidden structure."
 
 > **Consequence:** $\{1, 2, 3\} = \{3, 1, 2\} = \{1, 1, 2, 3\}$. Order and repetition are irrelevant.
 
@@ -1335,7 +1335,7 @@ Two sets are equal **if and only if** they have the same elements. A set is dete
 
 $$\exists \emptyset\, \forall x\, (x \notin \emptyset)$$
 
-There exists a set with no elements. By Extensionality, this set is unique — there is only one empty set.
+There exists a set with no elements. By Extensionality, this set is unique - there is only one empty set.
 
 #### Axiom 3: Pairing
 
@@ -1359,21 +1359,21 @@ For any set $A$, the power set $\mathcal{P}(A)$ exists. This is the set of **all
 
 $$\forall A\, \exists B\, \forall x\, (x \in B \leftrightarrow x \in A \wedge \phi(x))$$
 
-For any set $A$ and any property $\phi$, the set $\{x \in A \mid \phi(x)\}$ exists. Crucially, you can only **separate out** elements from an **existing set** — you cannot form $\{x \mid \phi(x)\}$ without a bounding set $A$.
+For any set $A$ and any property $\phi$, the set $\{x \in A \mid \phi(x)\}$ exists. Crucially, you can only **separate out** elements from an **existing set** - you cannot form $\{x \mid \phi(x)\}$ without a bounding set $A$.
 
-> **This is what blocks Russell's Paradox.** The "set of all sets that don't contain themselves" would require $\{x \mid x \notin x\}$ — but without a bounding set $A$, Separation doesn't let you form it.
+> **This is what blocks Russell's Paradox.** The "set of all sets that don't contain themselves" would require $\{x \mid x \notin x\}$ - but without a bounding set $A$, Separation doesn't let you form it.
 
 #### Axiom 7: Infinity
 
 $$\exists I\, [\emptyset \in I \wedge \forall x\, (x \in I \to x \cup \{x\} \in I)]$$
 
-There exists an infinite set — specifically, a set containing $\emptyset$, $\{\emptyset\}$, $\{\emptyset, \{\emptyset\}\}$, and so on forever. This axiom guarantees the existence of the natural numbers (and prevents mathematics from being stuck in a finite world).
+There exists an infinite set - specifically, a set containing $\emptyset$, $\{\emptyset\}$, $\{\emptyset, \{\emptyset\}\}$, and so on forever. This axiom guarantees the existence of the natural numbers (and prevents mathematics from being stuck in a finite world).
 
 #### Axiom 8: Replacement
 
 $$\forall A\, \forall F\, [\text{($F$ is a function)} \to \exists B\, B = \{F(x) \mid x \in A\}]$$
 
-If $F$ is a definable function and $A$ is a set, then the image $\{F(x) \mid x \in A\}$ is a set. This is like Separation but more powerful — it lets you apply a function to every element and collect the results.
+If $F$ is a definable function and $A$ is a set, then the image $\{F(x) \mid x \in A\}$ is a set. This is like Separation but more powerful - it lets you apply a function to every element and collect the results.
 
 > **AI analogy:** Replacement is `map`. Given a set (dataset) and a function (model), the outputs form a set (predictions).
 
@@ -1381,7 +1381,7 @@ If $F$ is a definable function and $A$ is a set, then the image $\{F(x) \mid x \
 
 $$\forall A\, [A \neq \emptyset \to \exists x \in A\, (x \cap A = \emptyset)]$$
 
-Every non-empty set $A$ has an element disjoint from $A$. This prevents circular membership chains ($a \in b \in a$) and self-containing sets ($a \in a$). Sets are "well-founded" — they are built from the bottom up (from $\emptyset$).
+Every non-empty set $A$ has an element disjoint from $A$. This prevents circular membership chains ($a \in b \in a$) and self-containing sets ($a \in a$). Sets are "well-founded" - they are built from the bottom up (from $\emptyset$).
 
 ### 8.3 The Axiom of Choice (AC)
 
@@ -1399,12 +1399,12 @@ For any collection of non-empty sets, there exists a **choice function** $f$ tha
 
 - Without AC, many theorems fail (every vector space has a basis; Tychonoff's theorem; Hahn-Banach theorem)
 - ZFC (with AC) has not been shown inconsistent
-- AC is independent of ZF: both ZF+AC and ZF+¬AC are consistent (if ZF is consistent), by Gödel (1938) and Cohen (1963)
+- AC is independent of ZF: both ZF+AC and ZF+\negAC are consistent (if ZF is consistent), by Godel (1938) and Cohen (1963)
 
 **AI applications of AC:** Most machine learning theory implicitly uses AC:
 
-- "There exists a minimiser of the loss function" — may require AC for non-compact spaces
-- "Every vector space has a basis" — needs AC for infinite-dimensional spaces (function spaces in kernel methods)
+- "There exists a minimiser of the loss function" - may require AC for non-compact spaces
+- "Every vector space has a basis" - needs AC for infinite-dimensional spaces (function spaces in kernel methods)
 - In practice, everything is finite-dimensional, so AC is not needed for actual computations
 
 ### 8.4 Constructing Numbers from Sets
@@ -1423,7 +1423,7 @@ The rule: $n + 1 = n \cup \{n\}$. Each natural number is the set of all smaller 
 
 **Reals:** $\mathbb{R}$ is constructed via **Dedekind cuts** or **Cauchy sequences** of rationals.
 
-> **The takeaway:** Every mathematical object — including the real numbers that neural network weights live in — is built from the empty set using ZFC axioms. This is why set theory is called the "foundation of mathematics."
+> **The takeaway:** Every mathematical object - including the real numbers that neural network weights live in - is built from the empty set using ZFC axioms. This is why set theory is called the "foundation of mathematics."
 
 ### 8.5 Ordinals and Cardinals (Brief)
 
@@ -1433,27 +1433,27 @@ $$0, 1, 2, \ldots, \omega, \omega + 1, \omega + 2, \ldots, \omega \cdot 2, \ldot
 
 Here $\omega$ is the first infinite ordinal (the "ordinal type" of $\mathbb{N}$). Ordinals are used to measure the "height" of sets in the cumulative hierarchy.
 
-**Cardinal numbers** measure the "size" of sets. For finite sets, the cardinal and ordinal notions coincide ($|S| = n$ means $S$ has $n$ elements). For infinite sets, cardinality is defined via bijections — two sets have the same cardinality iff a bijection exists between them. More on this in §10.
+**Cardinal numbers** measure the "size" of sets. For finite sets, the cardinal and ordinal notions coincide ($|S| = n$ means $S$ has $n$ elements). For infinite sets, cardinality is defined via bijections - two sets have the same cardinality iff a bijection exists between them. More on this in 10.
 
 ---
 
 ## 9. Logic in Computation and AI
 
-This section bridges the pure theory of §5-8 to the concrete computational world. The key idea: logic is not just a tool for proofs — it is the foundation of computation itself.
+This section bridges the pure theory of 5-8 to the concrete computational world. The key idea: logic is not just a tool for proofs - it is the foundation of computation itself.
 
 ### 9.1 Boolean Circuits
 
-Every digital computer is built from **logic gates** — physical implementations of the logical connectives:
+Every digital computer is built from **logic gates** - physical implementations of the logical connectives:
 
 | Gate | Logic              | Symbol | Output                        |
 | ---- | ------------------ | ------ | ----------------------------- |
 | AND  | $p \wedge q$       | `&`    | 1 iff both inputs are 1       |
 | OR   | $p \vee q$         | `\|`   | 1 iff at least one input is 1 |
 | NOT  | $\neg p$           | `~`    | Flips the bit                 |
-| NAND | $\neg(p \wedge q)$ | —      | 0 iff both inputs are 1       |
+| NAND | $\neg(p \wedge q)$ | -      | 0 iff both inputs are 1       |
 | XOR  | $p \oplus q$       | `^`    | 1 iff inputs differ           |
 
-**Functional completeness:** $\{AND, OR, NOT\}$ can compute **any** Boolean function. Even more remarkably, $\{NAND\}$ alone is functionally complete — every Boolean function can be built from NAND gates.
+**Functional completeness:** $\{AND, OR, NOT\}$ can compute **any** Boolean function. Even more remarkably, $\{NAND\}$ alone is functionally complete - every Boolean function can be built from NAND gates.
 
 **From gates to GPUs:** GPU cores perform massively parallel Boolean and arithmetic operations. The floating-point units, comparison circuits, and memory addressing logic in a GPU are all Boolean circuits. When you run `torch.matmul(A, B)`, underneath it is billions of transistors implementing Boolean functions.
 
@@ -1461,14 +1461,14 @@ Every digital computer is built from **logic gates** — physical implementation
 
 The **Boolean satisfiability problem** (SAT): given a propositional formula in CNF, is there a truth assignment that makes it true?
 
-**DPLL Algorithm** (Davis–Putnam–Logemann–Loveland, 1962):
+**DPLL Algorithm** (Davis-Putnam-Logemann-Loveland, 1962):
 
 1. **Unit propagation:** If a clause has one unset literal, it must be true
 2. **Pure literal elimination:** If a variable appears with only one polarity, set it to satisfy those clauses
 3. **Branching:** Pick an unset variable, try both truth values, recurse
 4. **Backtracking:** If a contradiction is found, undo the last choice
 
-**CDCL** (Conflict-Driven Clause Learning): Modern SAT solvers extend DPLL with **learned clauses** — when a conflict occurs, they analyse why and add a clause preventing the same conflict pattern. This is a form of learning from mistakes.
+**CDCL** (Conflict-Driven Clause Learning): Modern SAT solvers extend DPLL with **learned clauses** - when a conflict occurs, they analyse why and add a clause preventing the same conflict pattern. This is a form of learning from mistakes.
 
 **SAT in AI:**
 
@@ -1488,7 +1488,7 @@ If one clause contains $p$ and another contains $\neg p$, their **resolvent** co
 
 **Completeness (Robinson, 1965):** A set of clauses is unsatisfiable if and only if the empty clause ($\bot$) can be derived by repeated resolution.
 
-This is the backbone of **Prolog** and logic programming — computation as proof search.
+This is the backbone of **Prolog** and logic programming - computation as proof search.
 
 ### 9.4 Type Theory and Programming
 
@@ -1508,7 +1508,7 @@ Type systems are deductive systems closely related to logic. The **Curry-Howard 
 
 **Consequence:** A valid type-checked program **is** a proof of its type signature. Type errors are logical contradictions.
 
-> **AI connection — type-safe tensors:** Projects like `jaxtyping` and `beartype` enforce tensor shape constraints at the type level: `Float[Array, "batch seq d_model"]`. A shape mismatch is caught as a type error — i.e., a logical contradiction between what the function promises and what it receives.
+> **AI connection - type-safe tensors:** Projects like `jaxtyping` and `beartype` enforce tensor shape constraints at the type level: `Float[Array, "batch seq d_model"]`. A shape mismatch is caught as a type error - i.e., a logical contradiction between what the function promises and what it receives.
 
 ### 9.5 Modal Logic (Brief)
 
@@ -1521,7 +1521,7 @@ Modal logic extends propositional logic with **necessity** ($\square$) and **pos
 
 - **Epistemic logic:** $K_a P$ means "agent $a$ knows $P$." Used in multi-agent systems.
 - **Temporal logic:** $\square P$ means "$P$ always holds" (safety); $\diamond P$ means "$P$ eventually holds" (liveness). Used in model checking and formal verification.
-- **Deontic logic:** What an AI system "should" do — the logic of obligations and permissions, relevant to AI alignment.
+- **Deontic logic:** What an AI system "should" do - the logic of obligations and permissions, relevant to AI alignment.
 
 ### 9.6 Description Logics and Knowledge Representation
 
@@ -1531,7 +1531,7 @@ Modal logic extends propositional logic with **necessity** ($\square$) and **pos
 - **Roles** (binary predicates): `trainedBy`, `hasParameter`, `outputs`
 - **Constructors:** $C \sqcap D$ (intersection), $C \sqcup D$ (union), $\neg C$ (complement), $\forall R.C$ (all $R$-successors are in $C$), $\exists R.C$ (some $R$-successor is in $C$)
 
-DLs underpin the **Web Ontology Language (OWL)**, used in knowledge graphs, biomedical ontologies, and semantic web. The reasoning complexity depends on which constructors are included — a careful balance between expressiveness and decidability.
+DLs underpin the **Web Ontology Language (OWL)**, used in knowledge graphs, biomedical ontologies, and semantic web. The reasoning complexity depends on which constructors are included - a careful balance between expressiveness and decidability.
 
 ### 9.7 LLM Reasoning as Approximate Logic
 
@@ -1557,7 +1557,7 @@ Current evidence suggests LLMs are surprisingly good at local logical steps but 
 
 ## 10. Cardinality and Infinite Sets
 
-Cardinality answers the question: **how big is a set?** For finite sets the answer is obvious — just count. For infinite sets, the answer is one of the most profound discoveries in mathematics: **not all infinities are the same size**.
+Cardinality answers the question: **how big is a set?** For finite sets the answer is obvious - just count. For infinite sets, the answer is one of the most profound discoveries in mathematics: **not all infinities are the same size**.
 
 ### 10.1 Finite Cardinality
 
@@ -1574,15 +1574,15 @@ If $A$ is finite, $|A| = n$ means there exists a bijection $f: A \to \{1, 2, \ld
 | $n! = n \cdot (n-1) \cdots 1$                                                 | Factorial           | Permutation count                   |
 | $\binom{n}{k} = \frac{n!}{k!(n-k)!}$                                          | Binomial            | Ways to choose $k$ items from $n$   |
 
-### 10.2 Comparing Infinite Sets — Bijections
+### 10.2 Comparing Infinite Sets - Bijections
 
 **Definition:** Two sets $A$ and $B$ have the same cardinality ($|A| = |B|$) if and only if there exists a bijection $f: A \to B$.
 
-This is the only sensible definition for infinite sets — we cannot "count" them, but we can pair their elements one-to-one.
+This is the only sensible definition for infinite sets - we cannot "count" them, but we can pair their elements one-to-one.
 
-**Example — $|\mathbb{N}| = |\mathbb{Z}|$:**
+**Example - $|\mathbb{N}| = |\mathbb{Z}|$:**
 
-This seems wrong — $\mathbb{Z}$ "has twice as many elements." But pair them:
+This seems wrong - $\mathbb{Z}$ "has twice as many elements." But pair them:
 
 $$0 \mapsto 0, \quad 1 \mapsto 1, \quad 2 \mapsto -1, \quad 3 \mapsto 2, \quad 4 \mapsto -2, \quad 5 \mapsto 3, \quad \ldots$$
 
@@ -1592,7 +1592,7 @@ This is a bijection, so $|\mathbb{N}| = |\mathbb{Z}|$. Infinity doesn't work lik
 
 ### 10.3 Countable Sets
 
-A set $A$ is **countably infinite** if $|A| = |\mathbb{N}|$ — i.e., there exists a bijection $A \to \mathbb{N}$. A set is **countable** if it is finite or countably infinite.
+A set $A$ is **countably infinite** if $|A| = |\mathbb{N}|$ - i.e., there exists a bijection $A \to \mathbb{N}$. A set is **countable** if it is finite or countably infinite.
 
 Equivalently, $A$ is countable iff its elements can be listed as a sequence $a_1, a_2, a_3, \ldots$ (possibly terminating).
 
@@ -1615,9 +1615,9 @@ $$A_1, A_2, A_3, \ldots \text{ countable} \implies \bigcup_{i=1}^\infty A_i \tex
 
 > **AI consequence:** The set of all possible tokenised prompts (finite strings over a finite vocabulary $V$) is **countable**. There are $\aleph_0$ possible inputs to an LLM.
 
-### 10.4 Uncountable Sets — Cantor's Diagonal Argument
+### 10.4 Uncountable Sets - Cantor's Diagonal Argument
 
-**Theorem (Cantor, 1891).** $\mathbb{R}$ is uncountable — there is **no** bijection $\mathbb{N} \to \mathbb{R}$.
+**Theorem (Cantor, 1891).** $\mathbb{R}$ is uncountable - there is **no** bijection $\mathbb{N} \to \mathbb{R}$.
 
 **Proof (diagonal argument).** We show that even the interval $(0, 1)$ is uncountable. Assume, for contradiction, that $(0, 1)$ is countable. Then we can list all real numbers in $(0, 1)$:
 
@@ -1640,12 +1640,12 @@ No set is as large as its power set. This holds for **every** set, finite or inf
 
 **Proof sketch.** The map $a \mapsto \{a\}$ injects $A$ into $\mathcal{P}(A)$, so $|A| \leq |\mathcal{P}(A)|$. To show strict inequality, suppose $f: A \to \mathcal{P}(A)$ is a bijection. Let $D = \{a \in A \mid a \notin f(a)\}$. Then $D \in \mathcal{P}(A)$, so $D = f(d)$ for some $d$ (by surjectivity). Is $d \in D$?
 
-- If $d \in D$, then $d \notin f(d) = D$ — contradiction.
-- If $d \notin D$, then $d \in f(d) = D$ — contradiction.
+- If $d \in D$, then $d \notin f(d) = D$ - contradiction.
+- If $d \notin D$, then $d \in f(d) = D$ - contradiction.
 
 Either way, contradiction. So no such bijection exists. $\square$
 
-**Consequence — the infinite tower:**
+**Consequence - the infinite tower:**
 
 $$|\mathbb{N}| < |\mathcal{P}(\mathbb{N})| < |\mathcal{P}(\mathcal{P}(\mathbb{N}))| < \cdots$$
 
@@ -1657,7 +1657,7 @@ There is no largest infinity. The hierarchy of infinities is itself infinite (an
 
 In other words, there is no "intermediate" infinity between the countable and the continuum.
 
-**Resolution (Gödel 1940, Cohen 1963):** The Continuum Hypothesis is **independent** of ZFC — it can neither be proved nor disproved from the standard axioms. Both ZFC + CH and ZFC + ¬CH are consistent (if ZFC is).
+**Resolution (Godel 1940, Cohen 1963):** The Continuum Hypothesis is **independent** of ZFC - it can neither be proved nor disproved from the standard axioms. Both ZFC + CH and ZFC + \negCH are consistent (if ZFC is).
 
 This is one of the most surprising results in mathematics: there are meaningful mathematical questions that our axioms simply cannot answer.
 
@@ -1667,17 +1667,17 @@ This is one of the most surprising results in mathematics: there are meaningful 
 | --------------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
 | Finite vocabulary $V$                         | $\vert V \vert$ (finite, e.g., 32,000)       | Discrete, tractable                                |
 | All prompts $V^*$                             | $\aleph_0$ (countable)                       | Enumerable in principle                            |
-| All real-valued weight vectors $\mathbb{R}^d$ | $\mathfrak{c}$                               | Uncountable — can't enumerate models               |
+| All real-valued weight vectors $\mathbb{R}^d$ | $\mathfrak{c}$                               | Uncountable - can't enumerate models               |
 | All functions $\mathbb{R}^d \to \mathbb{R}$   | $\mathfrak{c}^{\mathfrak{c}} > \mathfrak{c}$ | Vastly larger than the set of computable functions |
 | All computable functions                      | $\aleph_0$                                   | Programs are countable strings                     |
 
-**The gap:** There are uncountably many functions but only countably many programs (and neural network architectures, at any fixed precision). Most functions are **not computable** — and most mathematical objects are **not representable** by any model. This is a fundamental limitation.
+**The gap:** There are uncountably many functions but only countably many programs (and neural network architectures, at any fixed precision). Most functions are **not computable** - and most mathematical objects are **not representable** by any model. This is a fundamental limitation.
 
 ---
 
 ## 11. Logic and Set Theory in Machine Learning
 
-This section shows how the abstract tools of §2–10 appear concretely in modern ML.
+This section shows how the abstract tools of 2-10 appear concretely in modern ML.
 
 ### 11.1 Formal Languages and Automata
 
@@ -1723,11 +1723,11 @@ The entire framework of probability theory is built on set theory (Kolmogorov ax
 | ---------------------- | ------------------------------------------------------------------------- |
 | Vector space $V$       | Set with addition and scalar multiplication                               |
 | Subspace $W \leq V$    | Subset that is itself a vector space                                      |
-| Span                   | $\text{span}(S) = \{$ all linear combinations of $S\}$ — a set            |
+| Span                   | $\text{span}(S) = \{$ all linear combinations of $S\}$ - a set            |
 | Basis                  | Linearly independent spanning set                                         |
-| Eigenspace             | $E_\lambda = \{v \mid Av = \lambda v\}$ — defined by set-builder notation |
-| Column space           | $\text{Col}(A) = \{Ax \mid x \in \mathbb{R}^n\}$ — image of $A$ (a set)   |
-| Null space             | $\text{Null}(A) = \{x \mid Ax = 0\}$ — kernel of $A$ (a set)              |
+| Eigenspace             | $E_\lambda = \{v \mid Av = \lambda v\}$ - defined by set-builder notation |
+| Column space           | $\text{Col}(A) = \{Ax \mid x \in \mathbb{R}^n\}$ - image of $A$ (a set)   |
+| Null space             | $\text{Null}(A) = \{x \mid Ax = 0\}$ - kernel of $A$ (a set)              |
 
 ### 11.4 Logic in Training
 
@@ -1740,7 +1740,7 @@ The entire framework of probability theory is built on set theory (Kolmogorov ax
 | Margin condition            | $y_i (\mathbf{w} \cdot \mathbf{x}_i) \geq 1$ | Hinge loss: $\max(0, 1 - y_i (\mathbf{w} \cdot \mathbf{x}_i))$ |
 | Constraint satisfaction     | $g(\theta) \leq 0$                           | Lagrangian: $\mathcal{L} + \lambda g(\theta)$                  |
 
-**Training as logic**: gradient descent searches for $\theta$ satisfying $\nabla \mathcal{L}(\theta) = 0$ — this is an existential claim: $\exists \theta^*\, \nabla \mathcal{L}(\theta^*) = 0$.
+**Training as logic**: gradient descent searches for $\theta$ satisfying $\nabla \mathcal{L}(\theta) = 0$ - this is an existential claim: $\exists \theta^*\, \nabla \mathcal{L}(\theta^*) = 0$.
 
 **Early stopping as logic**: "Stop when the validation loss has not decreased for $k$ epochs" is a quantified condition: $\forall t \in [T, T+k],\, \mathcal{L}_{\text{val}}^{(t)} \geq \mathcal{L}_{\text{val}}^{(T)}$.
 
@@ -1751,14 +1751,14 @@ The entire framework of probability theory is built on set theory (Kolmogorov ax
 The key insight of attention is that it operates on a **set** of key-value pairs (modulo positional encoding). Self-attention is permutation-equivariant: it treats the input as a set, not a sequence.
 
 - **Query:** "What am I looking for?"
-- **Key set:** $K = \{k_1, k_2, \ldots, k_n\}$ — the set of keys to match against
-- **Value set:** $V = \{v_1, v_2, \ldots, v_n\}$ — the set of values to aggregate
-- **Attention mask:** $M \subseteq [n] \times [n]$ — the set of allowed (query, key) pairs
+- **Key set:** $K = \{k_1, k_2, \ldots, k_n\}$ - the set of keys to match against
+- **Value set:** $V = \{v_1, v_2, \ldots, v_n\}$ - the set of values to aggregate
+- **Attention mask:** $M \subseteq [n] \times [n]$ - the set of allowed (query, key) pairs
 
 Combining masks:
 
-- **Causal AND local:** $M_{\text{causal}} \cap M_{\text{local}}$ — intersection (Boolean AND)
-- **Multi-head union:** $\bigcup_h M_h$ — each head sees a different subset of positions
+- **Causal AND local:** $M_{\text{causal}} \cap M_{\text{local}}$ - intersection (Boolean AND)
+- **Multi-head union:** $\bigcup_h M_h$ - each head sees a different subset of positions
 - **Padding mask:** $M_{\text{pad}} = \{(i, j) \mid j \text{ is not a padding token}\}$
 
 ### 11.6 Formal Verification of ML Systems
@@ -1772,25 +1772,25 @@ Logic provides tools to **prove** properties of ML systems rather than merely te
 | Safety       | $\forall \text{input},\, \text{output} \in \text{SafeSet}$                      | Reachability analysis                    |
 | Monotonicity | $x_i \leq x_i' \to f(x) \leq f(x')$                                             | Lattice-based verification               |
 
-**Certified defences** use logical proofs (often via abstract interpretation or interval arithmetic) to guarantee that no adversarial perturbation within an $\varepsilon$-ball can change the classification. This is the gold standard for ML safety — moving from empirical robustness to **provable** robustness.
+**Certified defences** use logical proofs (often via abstract interpretation or interval arithmetic) to guarantee that no adversarial perturbation within an $\varepsilon$-ball can change the classification. This is the gold standard for ML safety - moving from empirical robustness to **provable** robustness.
 
 ---
 
 ## 12. Advanced Topics
 
-### 12.1 Gödel's Incompleteness Theorems
+### 12.1 Godel's Incompleteness Theorems
 
 The most profound results in mathematical logic, with deep implications for AI.
 
-**First Incompleteness Theorem (Gödel, 1931):** Any consistent formal system $F$ capable of expressing basic arithmetic contains a statement $G$ such that:
+**First Incompleteness Theorem (Godel, 1931):** Any consistent formal system $F$ capable of expressing basic arithmetic contains a statement $G$ such that:
 
 - $G$ is true (in the standard model of arithmetic)
 - $G$ is not provable in $F$
 - $\neg G$ is not provable in $F$
 
-In other words, **there are true mathematical statements that cannot be proved.** No axiom system — ZFC, or any extension — can be both consistent and complete for arithmetic.
+In other words, **there are true mathematical statements that cannot be proved.** No axiom system - ZFC, or any extension - can be both consistent and complete for arithmetic.
 
-**Gödel's self-referential trick:** Gödel constructs $G$ to say, essentially, "I am not provable in system $F$." If $G$ were provable, it would be false (since it says it's unprovable), contradicting consistency. If $\neg G$ were provable, $G$ would be provable (since $G$ says it's not), contradiction. So neither $G$ nor $\neg G$ is provable.
+**Godel's self-referential trick:** Godel constructs $G$ to say, essentially, "I am not provable in system $F$." If $G$ were provable, it would be false (since it says it's unprovable), contradicting consistency. If $\neg G$ were provable, $G$ would be provable (since $G$ says it's not), contradiction. So neither $G$ nor $\neg G$ is provable.
 
 **Second Incompleteness Theorem:** No consistent system $F$ capable of expressing arithmetic can prove its own consistency.
 
@@ -1798,9 +1798,9 @@ $$F \text{ consistent} \implies F \not\vdash \text{Con}(F)$$
 
 **AI implications:**
 
-- No AI system (which is a formal system) can verify all true mathematical statements — there will always be truths beyond its reach
+- No AI system (which is a formal system) can verify all true mathematical statements - there will always be truths beyond its reach
 - The claim "this AI is guaranteed safe" cannot be proved within the AI's own framework (a version of the second theorem)
-- Gödel's theorems do NOT mean mathematics is broken — they mean it is **inexhaustible**
+- Godel's theorems do NOT mean mathematics is broken - they mean it is **inexhaustible**
 
 ### 12.2 The Halting Problem
 
@@ -1812,14 +1812,14 @@ $$D(P) = \begin{cases} \text{loop forever} & \text{if } H(P, P) = \text{"halts"}
 
 What does $D(D)$ do?
 
-- If $H(D, D) = $ "halts" → $D(D)$ loops forever. But $H$ said it halts. Contradiction.
-- If $H(D, D) = $ "loops" → $D(D)$ halts. But $H$ said it loops. Contradiction.
+- If $H(D, D) = $ "halts" -> $D(D)$ loops forever. But $H$ said it halts. Contradiction.
+- If $H(D, D) = $ "loops" -> $D(D)$ halts. But $H$ said it loops. Contradiction.
 
 So $H$ cannot exist. $\square$
 
 **Connections to AI:**
 
-- This is the computation analogue of Russell's Paradox — self-reference plus negation creates paradox
+- This is the computation analogue of Russell's Paradox - self-reference plus negation creates paradox
 - You cannot write a "universal bug detector" that catches all infinite loops
 - Theorem provers and code verifiers must be incomplete (they may time out or return "unknown")
 - LLM code generation cannot guarantee termination of generated code
@@ -1857,7 +1857,7 @@ where $\mu_A(x)$ is the **degree of membership** of $x$ in fuzzy set $A$.
 
 **AI connections:**
 
-- Softmax outputs are like fuzzy membership values — a token has degree-of-membership in each class
+- Softmax outputs are like fuzzy membership values - a token has degree-of-membership in each class
 - Attention weights $\alpha_{ij} \in [0, 1]$ are fuzzy: not binary "attend or not" but "how much to attend"
 - Fuzzy control systems (early AI) used fuzzy rules: "IF temperature IS high THEN fan IS fast"
 - Modern neural networks have largely replaced fuzzy systems, but the conceptual framework persists in the soft/differentiable operations that make gradient descent possible
@@ -1868,7 +1868,7 @@ where $\mu_A(x)$ is the **degree of membership** of $x$ in fuzzy set $A$.
 
 **Second-order logic** quantifies over **properties** (sets, predicates, functions): $\forall P, \exists f, \ldots$
 
-**Example — Completeness of $\mathbb{R}$:**
+**Example - Completeness of $\mathbb{R}$:**
 
 - First-order: CANNOT express "every bounded set has a least upper bound" (needs quantification over sets)
 - Second-order: $\forall S \subseteq \mathbb{R}\, [S \neq \emptyset \wedge \exists M\, \forall x \in S\, (x \leq M) \to \exists \sup S]$
@@ -1887,20 +1887,20 @@ In AI, first-order logic is preferred because it has better computational proper
 | #   | Mistake                                                       | Why it's wrong                                                                                  | Correct version                                                                                    |
 | --- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | 1   | Confusing $\in$ and $\subseteq$                               | "$3 \in \{1,2,3\}$" (membership) vs "$\{3\} \subseteq \{1,2,3\}$" (subset)                      | $a \in A$ = element belongs; $B \subseteq A$ = every element of $B$ is in $A$                      |
-| 2   | $\{1,2\} \in \{1,2,3\}$                                       | The set $\{1,2\}$ is not an element of $\{1,2,3\}$; its elements are $1$, $2$, $3$              | $\{1,2\} \subseteq \{1,2,3\}$ ✓ but $\{1,2\} \in \{1,2,3\}$ ✗                                      |
+| 2   | $\{1,2\} \in \{1,2,3\}$                                       | The set $\{1,2\}$ is not an element of $\{1,2,3\}$; its elements are $1$, $2$, $3$              | $\{1,2\} \subseteq \{1,2,3\}$ OK but $\{1,2\} \in \{1,2,3\}$ NO                                      |
 | 3   | $\emptyset = \{\emptyset\}$                                   | $\emptyset$ has 0 elements; $\{\emptyset\}$ has 1 element (namely $\emptyset$)                  | $\emptyset \neq \{\emptyset\}$; $\vert \emptyset \vert = 0$, $\vert \{\emptyset\} \vert = 1$       |
 | 4   | "Universal set exists"                                        | In ZFC, there is no set of all sets (leads to Russell's Paradox)                                | Work relative to a fixed domain $U$ (a set large enough for your purpose)                          |
 | 5   | Confusing $\to$ and $\leftrightarrow$                         | $p \to q$ does NOT mean $q \to p$ (converse)                                                    | Implication is one-directional; biconditional is both                                              |
-| 6   | "Vacuous truth is a bug"                                      | $F \to Q$ is always $T$ — this is a feature, not a bug                                          | Vacuous truth prevents edge-case contradictions; it's why $\emptyset \subseteq A$ for all $A$      |
+| 6   | "Vacuous truth is a bug"                                      | $F \to Q$ is always $T$ - this is a feature, not a bug                                          | Vacuous truth prevents edge-case contradictions; it's why $\emptyset \subseteq A$ for all $A$      |
 | 7   | Converse = contrapositive                                     | $q \to p$ (converse) $\neq$ $\neg q \to \neg p$ (contrapositive)                                | Contrapositive $\equiv$ original; converse is NOT equivalent                                       |
 | 8   | Swapping $\forall$ and $\exists$                              | $\forall x \exists y P(x,y) \neq \exists y \forall x P(x,y)$                                    | Quantifier order matters; only $\exists y \forall x \Rightarrow \forall x \exists y$ (not reverse) |
-| 9   | "Countable = small"                                           | $\mathbb{Q}$ is countable but dense in $\mathbb{R}$; countable sets can be structurally complex | Countable means "no bigger than $\mathbb{N}$" — still infinite                                     |
+| 9   | "Countable = small"                                           | $\mathbb{Q}$ is countable but dense in $\mathbb{R}$; countable sets can be structurally complex | Countable means "no bigger than $\mathbb{N}$" - still infinite                                     |
 | 10  | Induction hypothesis forgotten                                | Claiming $P(k+1)$ without using $P(k)$                                                          | The inductive step MUST use the hypothesis $P(k)$ (or $P(1), \ldots, P(k)$ for strong induction)   |
 | 11  | Using induction without base case                             | Proving only the inductive step                                                                 | Without base case, the chain has no starting point; the "proof" proves nothing                     |
-| 12  | Confusing "not proven" with "false"                           | Gödel: some true statements are unprovable                                                      | Unprovability $\neq$ falsity; independence results are about axiom limitations                     |
+| 12  | Confusing "not proven" with "false"                           | Godel: some true statements are unprovable                                                      | Unprovability $\neq$ falsity; independence results are about axiom limitations                     |
 | 13  | $A - B = B - A$                                               | Set difference is NOT symmetric (unlike symmetric difference)                                   | $\{1,2,3\} - \{2,3,4\} = \{1\}$; $\{2,3,4\} - \{1,2,3\} = \{4\}$                                   |
-| 14  | $\vert \mathcal{P}(A) \vert = \vert A \vert$ for infinite $A$ | Cantor's theorem: $\vert A \vert < \vert \mathcal{P}(A) \vert$ always, even for infinite sets   | There is no bijection between $A$ and $\mathcal{P}(A)$ — ever                                      |
-| 15  | Treating attention as symmetric                               | $\text{Attends}(i,j)$ does NOT imply $\text{Attends}(j,i)$; attention is a directed relation    | Attention is asymmetric: query→key direction matters                                               |
+| 14  | $\vert \mathcal{P}(A) \vert = \vert A \vert$ for infinite $A$ | Cantor's theorem: $\vert A \vert < \vert \mathcal{P}(A) \vert$ always, even for infinite sets   | There is no bijection between $A$ and $\mathcal{P}(A)$ - ever                                      |
+| 15  | Treating attention as symmetric                               | $\text{Attends}(i,j)$ does NOT imply $\text{Attends}(j,i)$; attention is a directed relation    | Attention is asymmetric: query->key direction matters                                               |
 
 ---
 
@@ -1917,7 +1917,7 @@ Given $A = \{1, 2, 3, 4, 5\}$, $B = \{3, 4, 5, 6, 7\}$, $C = \{5, 6, 7, 8, 9\}$,
 5. $(A \cup B) \cap C$
 6. $A \cap (B \cup C)$
 7. Verify De Morgan's law: $(A \cup B)^c = A^c \cap B^c$ (with $U = \{1,\ldots,9\}$)
-8. $\mathcal{P}(\{1,2,3\})$ — list all elements
+8. $\mathcal{P}(\{1,2,3\})$ - list all elements
 
 ### Exercise 2: Relations
 
@@ -1941,8 +1941,8 @@ Consider the divisibility relation $|$ on the set $S = \{1, 2, 3, 4, 6, 12\}$ ($
 ### Exercise 4: Propositional Logic
 
 1. Construct truth tables for:
-   - $(p \to q) \wedge (q \to r) \to (p \to r)$ — is this a tautology?
-   - $(p \wedge q) \to p$ — simplification law
+   - $(p \to q) \wedge (q \to r) \to (p \to r)$ - is this a tautology?
+   - $(p \wedge q) \to p$ - simplification law
    - $\neg(p \to q) \leftrightarrow (p \wedge \neg q)$
 2. Prove or disprove: $(p \to q) \equiv (\neg q \to \neg p)$ (using truth tables).
 3. Convert to CNF: $p \to (q \vee r)$.
@@ -1994,24 +1994,24 @@ Prove each of the following using the specified technique:
 
 | Topic in This Chapter     | Where It Appears in AI/ML                                    | Chapter Reference |
 | ------------------------- | ------------------------------------------------------------ | ----------------- |
-| Sets, subsets, operations | Data partitioning (train/val/test), vocabularies, token sets | §2–3              |
-| Relations                 | Attention masks, knowledge graphs, dependency parsing        | §4                |
-| Equivalence relations     | Tokenisation, clustering, quotient spaces                    | §4.3              |
-| Partial orders            | Computation graphs, dependency ordering, beam search         | §4.4              |
-| Functions                 | Neural network layers, loss functions, activations           | §4.5              |
-| Composition               | Deep networks as function chains, backpropagation            | §4.6              |
-| Propositional logic       | Boolean masks, circuit design, SAT solving                   | §5                |
-| Truth tables, CNF         | Constraint satisfaction, structured generation               | §5.2, §5.6        |
-| Predicate logic (FOL)     | Formal specifications, knowledge representation              | §6                |
-| Quantifiers               | Convergence definitions, generalization bounds               | §6.2–6.5          |
-| Proof techniques          | Understanding theoretical papers, convergence proofs         | §7                |
-| Induction                 | Proofs about recursive algorithms and sequence models        | §7.6              |
-| ZFC axioms                | Why mathematics is consistent; foundational security         | §8                |
-| Axiom of Choice           | Existence of bases, minima in non-compact spaces             | §8.3              |
-| Cardinality               | Expressiveness limits, countability of programs              | §10               |
-| Diagonal argument         | Impossibility results, undecidability                        | §10.4, §12.2      |
-| Gödel's theorems          | Limits of formal verification and AI reasoning               | §12.1             |
-| Formal verification       | Provable robustness, safety guarantees                       | §11.6             |
+| Sets, subsets, operations | Data partitioning (train/val/test), vocabularies, token sets | 2-3              |
+| Relations                 | Attention masks, knowledge graphs, dependency parsing        | 4                |
+| Equivalence relations     | Tokenisation, clustering, quotient spaces                    | 4.3              |
+| Partial orders            | Computation graphs, dependency ordering, beam search         | 4.4              |
+| Functions                 | Neural network layers, loss functions, activations           | 4.5              |
+| Composition               | Deep networks as function chains, backpropagation            | 4.6              |
+| Propositional logic       | Boolean masks, circuit design, SAT solving                   | 5                |
+| Truth tables, CNF         | Constraint satisfaction, structured generation               | 5.2, 5.6        |
+| Predicate logic (FOL)     | Formal specifications, knowledge representation              | 6                |
+| Quantifiers               | Convergence definitions, generalization bounds               | 6.2-6.5          |
+| Proof techniques          | Understanding theoretical papers, convergence proofs         | 7                |
+| Induction                 | Proofs about recursive algorithms and sequence models        | 7.6              |
+| ZFC axioms                | Why mathematics is consistent; foundational security         | 8                |
+| Axiom of Choice           | Existence of bases, minima in non-compact spaces             | 8.3              |
+| Cardinality               | Expressiveness limits, countability of programs              | 10               |
+| Diagonal argument         | Impossibility results, undecidability                        | 10.4, 12.2      |
+| Godel's theorems          | Limits of formal verification and AI reasoning               | 12.1             |
+| Formal verification       | Provable robustness, safety guarantees                       | 11.6             |
 
 ## 16. Conceptual Bridge
 
@@ -2019,11 +2019,11 @@ Prove each of the following using the specified technique:
 
 Now that you have the foundations of sets and logic, the natural next steps are:
 
-1. **Functions and Mappings (Chapter 03):** Deepens the treatment of functions from §4.5 — injectivity, surjectivity, inverse functions, and their role in defining neural network layers precisely.
+1. **Functions and Mappings (Chapter 03):** Deepens the treatment of functions from 4.5 - injectivity, surjectivity, inverse functions, and their role in defining neural network layers precisely.
 
-2. **Linear Algebra (Chapters 02-03):** Sets and logic provide the language for defining vector spaces, subspaces, and linear maps rigorously. Every "for all" and "there exists" in a linear algebra textbook uses the predicate logic from §6.
+2. **Linear Algebra (Chapters 02-03):** Sets and logic provide the language for defining vector spaces, subspaces, and linear maps rigorously. Every "for all" and "there exists" in a linear algebra textbook uses the predicate logic from 6.
 
-3. **Calculus (Chapters 04-05):** The $\varepsilon$-$\delta$ definition of continuity ($\forall \varepsilon > 0, \exists \delta > 0, \forall x, |x - a| < \delta \to |f(x) - f(a)| < \varepsilon$) is a nested quantifier statement from §6.5. Optimisation theory builds on this.
+3. **Calculus (Chapters 04-05):** The $\varepsilon$-$\delta$ definition of continuity ($\forall \varepsilon > 0, \exists \delta > 0, \forall x, |x - a| < \delta \to |f(x) - f(a)| < \varepsilon$) is a nested quantifier statement from 6.5. Optimisation theory builds on this.
 
 4. **Probability Theory (Chapters 06-07):** Built entirely on measure theory, which is set theory on steroids. Events are sets, probability is a set function, and conditional probability uses set intersection.
 
@@ -2032,24 +2032,24 @@ Now that you have the foundations of sets and logic, the natural next steps are:
 ### 16.2 The Big Picture
 
 ```
-     ┌─────────────────────────────────────────────────────┐
-     │                  THIS CHAPTER                        │
-     │                                                      │
-     │   Sets ──── Logic ──── Proofs ──── Axioms            │
-     │    │          │          │            │               │
-     │    ▼          ▼          ▼            ▼               │
-     │  Data      Masks     Theory     Foundations          │
-     │ structures  & rules   papers     of math             │
-     │    │          │          │            │               │
-     │    └──────────┴──────────┴────────────┘               │
-     │                    │                                  │
-     │                    ▼                                  │
-     │          ┌─────────────────┐                         │
-     │          │    EVERYTHING    │                         │
-     │          │   IN MATH/CS    │                         │
-     │          │   BUILDS HERE   │                         │
-     │          └─────────────────┘                         │
-     └─────────────────────────────────────────────────────┘
+     +-----------------------------------------------------+
+     |                  THIS CHAPTER                        |
+     |                                                      |
+     |   Sets ---- Logic ---- Proofs ---- Axioms            |
+     |    |          |          |            |               |
+     |    v          v          v            v               |
+     |  Data      Masks     Theory     Foundations          |
+     | structures  & rules   papers     of math             |
+     |    |          |          |            |               |
+     |    +----------+----------+------------+               |
+     |                    |                                  |
+     |                    v                                  |
+     |          +-----------------+                         |
+     |          |    EVERYTHING    |                         |
+     |          |   IN MATH/CS    |                         |
+     |          |   BUILDS HERE   |                         |
+     |          +-----------------+                         |
+     +-----------------------------------------------------+
 ```
 
 Sets and logic are the **lingua franca** of mathematics. Every mathematical definition, theorem, and proof uses the language developed in this chapter. When you encounter a statement like:
@@ -2058,11 +2058,11 @@ Sets and logic are the **lingua franca** of mathematics. Every mathematical defi
 
 You now know:
 
-- **$\forall \varepsilon > 0$** — universal quantifier (§6.2)
-- **$\exists N$** — existential quantifier (§6.2)
-- **$\|N - f\|_\infty < \varepsilon$** — a predicate (§6.1)
-- The whole statement is a nested $\forall\exists$ claim (§6.5)
-- It can be proved by construction (§7.8) or contradiction (§7.4)
-- The set of all such networks has a specific cardinality (§10)
+- **$\forall \varepsilon > 0$** - universal quantifier (6.2)
+- **$\exists N$** - existential quantifier (6.2)
+- **$\|N - f\|_\infty < \varepsilon$** - a predicate (6.1)
+- The whole statement is a nested $\forall\exists$ claim (6.5)
+- It can be proved by construction (7.8) or contradiction (7.4)
+- The set of all such networks has a specific cardinality (10)
 
 **You can read mathematics now.** The rest of this course builds on this foundation.

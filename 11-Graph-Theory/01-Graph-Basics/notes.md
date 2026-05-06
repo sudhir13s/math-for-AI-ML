@@ -1,24 +1,24 @@
-[← Back to Graph Theory](../README.md) | [Next: Graph Representations →](../02-Graph-Representations/notes.md)
+[<- Back to Graph Theory](../README.md) | [Next: Graph Representations ->](../02-Graph-Representations/notes.md)
 
 ---
 
 # Graph Basics
 
-> _"A graph is the mathematician's way of saying: I don't care what the objects are — I care how they're connected. This single abstraction unifies social networks, molecular structures, knowledge bases, parse trees, and the computation graphs inside every neural network."_
+> _"A graph is the mathematician's way of saying: I don't care what the objects are - I care how they're connected. This single abstraction unifies social networks, molecular structures, knowledge bases, parse trees, and the computation graphs inside every neural network."_
 
 ## Overview
 
 A graph is a mathematical structure that captures pairwise relationships between objects. Formally, a graph $G = (V, E)$ consists of a set of vertices (or nodes) $V$ and a set of edges $E$ connecting pairs of vertices. This deceptively simple definition gives rise to one of the richest and most applicable branches of mathematics.
 
-For AI and machine learning, graphs are not merely a data structure — they are the native language of relational reasoning. Every knowledge graph (Wikidata, Freebase), every molecular structure (drug discovery, protein folding), every social network (recommendation systems), every dependency parse tree (NLP), and every computation graph (PyTorch, JAX autograd) is a graph. The adjacency matrix of a graph is a matrix, connecting graph theory directly to linear algebra. The eigenvalues of graph matrices reveal community structure, connecting graph theory to spectral methods. And the message-passing paradigm of Graph Neural Networks (Kipf & Welling, 2017; Velickovic et al., 2018) is a direct formalization of how information propagates through graph structure.
+For AI and machine learning, graphs are not merely a data structure - they are the native language of relational reasoning. Every knowledge graph (Wikidata, Freebase), every molecular structure (drug discovery, protein folding), every social network (recommendation systems), every dependency parse tree (NLP), and every computation graph (PyTorch, JAX autograd) is a graph. The adjacency matrix of a graph is a matrix, connecting graph theory directly to linear algebra. The eigenvalues of graph matrices reveal community structure, connecting graph theory to spectral methods. And the message-passing paradigm of Graph Neural Networks (Kipf & Welling, 2017; Velickovic et al., 2018) is a direct formalization of how information propagates through graph structure.
 
-This section builds the foundational vocabulary and core theory of graphs from first principles. We define graphs rigorously, develop the theory of degree, paths, connectivity, and special graph families, and introduce graph isomorphism and coloring. Every concept is connected to its role in modern AI systems. Later sections in this chapter build on this foundation: §02 covers how to store graphs computationally, §03 develops classical algorithms, §04 introduces spectral methods, §05 covers Graph Neural Networks, and §06 explores random graph models.
+This section builds the foundational vocabulary and core theory of graphs from first principles. We define graphs rigorously, develop the theory of degree, paths, connectivity, and special graph families, and introduce graph isomorphism and coloring. Every concept is connected to its role in modern AI systems. Later sections in this chapter build on this foundation: 02 covers how to store graphs computationally, 03 develops classical algorithms, 04 introduces spectral methods, 05 covers Graph Neural Networks, and 06 explores random graph models.
 
 ## Prerequisites
 
-- Set notation, functions, and mappings — [Chapter 1: Mathematical Foundations](../../01-Mathematical-Foundations/02-Sets-and-Logic/notes.md)
-- Basic matrix operations (for adjacency matrix connections) — [Chapter 2: Linear Algebra Basics](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
-- Summation notation $\sum$ — [Chapter 1: Summation Notation](../../01-Mathematical-Foundations/04-Summation-Product-Notation/notes.md)
+- Set notation, functions, and mappings - [Chapter 1: Mathematical Foundations](../../01-Mathematical-Foundations/02-Sets-and-Logic/notes.md)
+- Basic matrix operations (for adjacency matrix connections) - [Chapter 2: Linear Algebra Basics](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
+- Summation notation $\sum$ - [Chapter 1: Summation Notation](../../01-Mathematical-Foundations/04-Summation-Product-Notation/notes.md)
 
 ## Companion Notebooks
 
@@ -117,26 +117,26 @@ After completing this section, you will:
 
 ### 1.1 What Is a Graph?
 
-At its most elemental, a graph is a collection of **things** and **connections between things**. The "things" are called **vertices** (or nodes), and the connections are called **edges** (or links). This definition is deliberately vague about what the things are — and that is exactly the point. The same mathematical framework that describes friendships between people also describes bonds between atoms, links between web pages, and data flow between operations in a neural network.
+At its most elemental, a graph is a collection of **things** and **connections between things**. The "things" are called **vertices** (or nodes), and the connections are called **edges** (or links). This definition is deliberately vague about what the things are - and that is exactly the point. The same mathematical framework that describes friendships between people also describes bonds between atoms, links between web pages, and data flow between operations in a neural network.
 
 Consider a simple social network:
 
 ```
 SOCIAL NETWORK AS A GRAPH
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Alice ─────── Bob              Vertices: {Alice, Bob, Carol, Dave}
-    │          ╱ │               Edges:    {Alice-Bob, Alice-Carol,
-    │        ╱   │                          Bob-Carol, Bob-Dave}
-    │      ╱     │
-  Carol ─╱     Dave              4 vertices, 4 edges
+  Alice ------- Bob              Vertices: {Alice, Bob, Carol, Dave}
+    |          / |               Edges:    {Alice-Bob, Alice-Carol,
+    |        /   |                          Bob-Carol, Bob-Dave}
+    |      /     |
+  Carol -/     Dave              4 vertices, 4 edges
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 The graph abstracts away everything except the relational structure: who knows whom. It doesn't matter whether Alice is 25 or 65, whether she lives in Tokyo or Toronto. The graph captures only the connectivity pattern.
 
-**For AI:** This abstraction is precisely why graphs are so powerful in machine learning. A graph neural network processes the *structure* of relationships, not the raw pixel data or text. When DeepMind's AlphaFold predicts protein structure, it represents amino acid residues as vertices and spatial proximity as edges — the graph structure encodes the physics that determines how the protein folds.
+**For AI:** This abstraction is precisely why graphs are so powerful in machine learning. A graph neural network processes the *structure* of relationships, not the raw pixel data or text. When DeepMind's AlphaFold predicts protein structure, it represents amino acid residues as vertices and spatial proximity as edges - the graph structure encodes the physics that determines how the protein folds.
 
 ### 1.2 Why Graphs Matter for AI
 
@@ -144,28 +144,28 @@ Graphs appear in AI in three fundamentally different roles:
 
 **1. Graphs as input data.** Many real-world datasets are naturally graph-structured: social networks, citation networks, molecular structures, protein interaction networks, scene graphs in computer vision, abstract syntax trees in code analysis. Graph Neural Networks (GNNs) process these directly.
 
-**2. Graphs as computational structure.** Every neural network defines a directed acyclic graph (DAG) — the computation graph. Vertices are operations (matmul, add, activation), edges carry tensors. Backpropagation is reverse topological traversal of this DAG. PyTorch's autograd and JAX's tracing both build and traverse computation graphs.
+**2. Graphs as computational structure.** Every neural network defines a directed acyclic graph (DAG) - the computation graph. Vertices are operations (matmul, add, activation), edges carry tensors. Backpropagation is reverse topological traversal of this DAG. PyTorch's autograd and JAX's tracing both build and traverse computation graphs.
 
 **3. Graphs as knowledge representation.** Knowledge graphs (Wikidata: 100B+ triples, Google Knowledge Graph) represent entities as vertices and relations as labeled edges. Retrieval-augmented generation (RAG) systems traverse these graphs to ground LLM responses in factual knowledge.
 
 ```
 THREE ROLES OF GRAPHS IN AI
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-  │  GRAPHS AS DATA  │   │ GRAPHS AS COMP. │   │ GRAPHS AS       │
-  │                  │   │   STRUCTURE     │   │  KNOWLEDGE      │
-  ├──────────────────┤   ├─────────────────┤   ├─────────────────┤
-  │ Molecules        │   │ Autograd DAGs   │   │ Wikidata        │
-  │ Social networks  │   │ Model arch.     │   │ Google KG       │
-  │ Citation graphs  │   │ Dataflow graphs  │   │ ConceptNet      │
-  │ Scene graphs     │   │ Compiler IR     │   │ RAG retrieval   │
-  └──────────────────┘   └─────────────────┘   └─────────────────┘
+  +-----------------+   +-----------------+   +-----------------+
+  |  GRAPHS AS DATA  |   | GRAPHS AS COMP. |   | GRAPHS AS       |
+  |                  |   |   STRUCTURE     |   |  KNOWLEDGE      |
+  +------------------+   +-----------------+   +-----------------+
+  | Molecules        |   | Autograd DAGs   |   | Wikidata        |
+  | Social networks  |   | Model arch.     |   | Google KG       |
+  | Citation graphs  |   | Dataflow graphs  |   | ConceptNet      |
+  | Scene graphs     |   | Compiler IR     |   | RAG retrieval   |
+  +------------------+   +-----------------+   +-----------------+
        GNNs process           Backprop              LLMs query
        these directly          traverses              these for
                                these                  grounding
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.3 Graphs Are Everywhere
@@ -176,23 +176,23 @@ To build intuition for the diversity of graphs, consider these concrete examples
 
 **Natural Language Processing:** A dependency parse tree is a directed graph where words are vertices and grammatical relationships are edges. The sentence "The cat sat on the mat" produces a tree rooted at "sat" with edges to "cat" (subject) and "on" (preposition). Abstract Meaning Representations (AMRs) are DAGs used in semantic parsing.
 
-**Social Networks:** Facebook's social graph has ~3 billion vertices (users) and hundreds of billions of edges (friendships). The degree distribution follows a power law — most users have few friends, a few "hub" users have thousands.
+**Social Networks:** Facebook's social graph has ~3 billion vertices (users) and hundreds of billions of edges (friendships). The degree distribution follows a power law - most users have few friends, a few "hub" users have thousands.
 
-**The Internet:** The World Wide Web is a directed graph where pages are vertices and hyperlinks are edges. Google's PageRank algorithm (Page et al., 1999) — the foundation of web search — computes the dominant eigenvector of a modified adjacency matrix.
+**The Internet:** The World Wide Web is a directed graph where pages are vertices and hyperlinks are edges. Google's PageRank algorithm (Page et al., 1999) - the foundation of web search - computes the dominant eigenvector of a modified adjacency matrix.
 
-**Biology:** Protein-protein interaction networks, gene regulatory networks, neural connectomes (the wiring diagram of a brain) — all are graphs. The human connectome has ~86 billion vertices (neurons) and ~100 trillion edges (synapses).
+**Biology:** Protein-protein interaction networks, gene regulatory networks, neural connectomes (the wiring diagram of a brain) - all are graphs. The human connectome has ~86 billion vertices (neurons) and ~100 trillion edges (synapses).
 
 ### 1.4 The Language of Connections
 
 Graph theory provides a precise vocabulary for describing structural properties that arise across all these domains:
 
-- **How many connections does each object have?** → Degree
-- **Can we reach any object from any other?** → Connectivity
-- **What is the shortest route between two objects?** → Distance, diameter
-- **Are there natural groupings?** → Components, communities
-- **Can we split objects into two non-interacting groups?** → Bipartiteness
-- **Is there redundancy in connections?** → Cycles
-- **Are two networks "the same" structurally?** → Isomorphism
+- **How many connections does each object have?** -> Degree
+- **Can we reach any object from any other?** -> Connectivity
+- **What is the shortest route between two objects?** -> Distance, diameter
+- **Are there natural groupings?** -> Components, communities
+- **Can we split objects into two non-interacting groups?** -> Bipartiteness
+- **Is there redundancy in connections?** -> Cycles
+- **Are two networks "the same" structurally?** -> Isomorphism
 
 Each of these questions has a rigorous mathematical formalization that we develop in this section. And each has direct consequences for AI: the degree distribution determines how information spreads through a GNN, connectivity determines whether a computation graph can propagate gradients, and the Weisfeiler-Leman isomorphism test is provably equivalent to the expressive power of message-passing GNNs (Xu et al., 2019).
 
@@ -200,7 +200,7 @@ Each of these questions has a rigorous mathematical formalization that we develo
 
 | Year | Milestone | Significance |
 |------|-----------|-------------|
-| 1736 | Euler solves Konigsberg bridge problem | Birth of graph theory — first proof that no Eulerian circuit exists |
+| 1736 | Euler solves Konigsberg bridge problem | Birth of graph theory - first proof that no Eulerian circuit exists |
 | 1852 | Guthrie poses the four color conjecture | Sparked 124 years of research; proved computationally in 1976 |
 | 1878 | Cayley enumerates trees | First systematic study of tree structures |
 | 1936 | Konig publishes first graph theory textbook | Formalised bipartite matching, Konig's theorem |
@@ -219,15 +219,15 @@ Each of these questions has a rigorous mathematical formalization that we develo
 
 ### 1.6 What This Section Covers vs. What Comes Later
 
-This section (§01) is the **vocabulary and core theory** of graph theory. It defines what graphs are, introduces the fundamental properties (degree, paths, connectivity, special families, isomorphism, coloring), and provides the mathematical language used throughout the rest of the chapter.
+This section (01) is the **vocabulary and core theory** of graph theory. It defines what graphs are, introduces the fundamental properties (degree, paths, connectivity, special families, isomorphism, coloring), and provides the mathematical language used throughout the rest of the chapter.
 
 What comes next builds on this vocabulary:
 
-- **§02 Graph Representations** — How to store graphs in memory (adjacency matrix, adjacency list, CSR format)
-- **§03 Graph Algorithms** — Algorithms that compute the properties defined here (BFS, DFS, shortest paths, MST)
-- **§04 Spectral Graph Theory** — The eigenvalues of graph matrices reveal structural properties
-- **§05 Graph Neural Networks** — Neural architectures that learn from graph structure
-- **§06 Random Graphs** — Probabilistic models of graph generation
+- **02 Graph Representations** - How to store graphs in memory (adjacency matrix, adjacency list, CSR format)
+- **03 Graph Algorithms** - Algorithms that compute the properties defined here (BFS, DFS, shortest paths, MST)
+- **04 Spectral Graph Theory** - The eigenvalues of graph matrices reveal structural properties
+- **05 Graph Neural Networks** - Neural architectures that learn from graph structure
+- **06 Random Graphs** - Probabilistic models of graph generation
 
 ---
 
@@ -250,15 +250,15 @@ We write $n = |V|$ for the **order** of $G$ (number of vertices) and $m = |E|$ f
 $$V = \{1, 2, 3\}, \quad E = \{\{1,2\}, \{1,3\}, \{2,3\}\}$$
 
 ```
-THE TRIANGLE GRAPH K₃
-════════════════════════════════════════════════════════════════════════
+THE TRIANGLE GRAPH K_3
+========================================================================
 
       1                 n = 3 (order)
-     ╱ ╲                m = 3 (size)
-    ╱   ╲               Every pair connected → "complete graph"
-   2 ─── 3
+     / \                m = 3 (size)
+    /   \               Every pair connected -> "complete graph"
+   2 --- 3
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Example 2: The path graph $P_4$.**
@@ -266,14 +266,14 @@ THE TRIANGLE GRAPH K₃
 $$V = \{1, 2, 3, 4\}, \quad E = \{\{1,2\}, \{2,3\}, \{3,4\}\}$$
 
 ```
-   1 ── 2 ── 3 ── 4          n = 4, m = 3
+   1 -- 2 -- 3 -- 4          n = 4, m = 3
 ```
 
 **Example 3: The cycle graph $C_5$.**
 
 $$V = \{1, 2, 3, 4, 5\}, \quad E = \{\{1,2\}, \{2,3\}, \{3,4\}, \{4,5\}, \{5,1\}\}$$
 
-**For AI:** When a GNN processes a molecular graph, each atom is a vertex in $V$ and each chemical bond is an edge in $E$. The formal definition ensures that the graph is well-defined regardless of how atoms are labeled — only the connection pattern matters.
+**For AI:** When a GNN processes a molecular graph, each atom is a vertex in $V$ and each chemical bond is an edge in $E$. The formal definition ensures that the graph is well-defined regardless of how atoms are labeled - only the connection pattern matters.
 
 **Key terminology summary:**
 
@@ -295,32 +295,32 @@ $$V = \{1, 2, 3, 4, 5\}, \quad E = \{\{1,2\}, \{2,3\}, \{3,4\}, \{4,5\}, \{5,1\}
 
 **Definition (Directed Graph / Digraph).** A *directed graph* (or *digraph*) is an ordered pair $G = (V, E)$ where $E \subseteq V \times V$ is a set of **ordered** pairs of vertices. An edge $(u, v)$ is called an **arc** directed from $u$ (the *tail*) to $v$ (the *head*).
 
-The key distinction: in an undirected graph, $\{u, v\} = \{v, u\}$ — the edge has no direction. In a digraph, $(u, v) \neq (v, u)$ — the arc goes from $u$ to $v$, not the reverse.
+The key distinction: in an undirected graph, $\{u, v\} = \{v, u\}$ - the edge has no direction. In a digraph, $(u, v) \neq (v, u)$ - the arc goes from $u$ to $v$, not the reverse.
 
 ```
 UNDIRECTED vs. DIRECTED
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Undirected:              Directed:
-   A ─── B                  A ───→ B
-   │     │                  ↑       │
-   │     │                  │       ↓
-   D ─── C                  D ←─── C
+   A --- B                  A ----> B
+   |     |                  up       |
+   |     |                  |       down
+   D --- C                  D <---- C
 
-  {A,B} = {B,A}            (A,B) ≠ (B,A)
+  {A,B} = {B,A}            (A,B) \neq (B,A)
   "A knows B"              "A follows B"
   Symmetric relation        Asymmetric relation
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Example (Undirected):** A social network where friendship is mutual — if Alice is friends with Bob, then Bob is friends with Alice. The edge set is symmetric.
+**Example (Undirected):** A social network where friendship is mutual - if Alice is friends with Bob, then Bob is friends with Alice. The edge set is symmetric.
 
-**Example (Directed):** Twitter's follow graph — Alice can follow Bob without Bob following Alice. Citation networks — paper A cites paper B, but B does not cite A.
+**Example (Directed):** Twitter's follow graph - Alice can follow Bob without Bob following Alice. Citation networks - paper A cites paper B, but B does not cite A.
 
 **Example (Directed, AI-critical):** A computation graph in PyTorch. Each operation node receives input tensors along incoming arcs and produces output tensors along outgoing arcs. The direction encodes dataflow: gradients propagate in the reverse direction during backpropagation.
 
-**Non-example:** A "graph" where edges connect a vertex to itself (self-loop) — this violates the $u \neq v$ requirement for simple graphs. We address self-loops in §2.4.
+**Non-example:** A "graph" where edges connect a vertex to itself (self-loop) - this violates the $u \neq v$ requirement for simple graphs. We address self-loops in 2.4.
 
 ### 2.3 Weighted Graphs
 
@@ -334,11 +334,11 @@ Common weight interpretations:
 
 **For AI:** Attention weights in a transformer define a weighted directed graph over token positions. The attention matrix $\operatorname{softmax}(QK^\top / \sqrt{d_k})$ is precisely the weight matrix of a weighted digraph where $w((i,j))$ is the attention that position $i$ pays to position $j$. Graph Attention Networks (GAT, Velickovic et al., 2018) learn these weights as a function of node features.
 
-**Non-example (not a weighted graph):** A matrix $A \in \mathbb{R}^{n \times n}$ with negative entries — this can be interpreted as a signed weighted graph, but the standard weighted graph definition allows $w: E \to \mathbb{R}$ including negative weights. The distinction matters: negative weights break shortest-path algorithms like Dijkstra but are handled by Bellman-Ford.
+**Non-example (not a weighted graph):** A matrix $A \in \mathbb{R}^{n \times n}$ with negative entries - this can be interpreted as a signed weighted graph, but the standard weighted graph definition allows $w: E \to \mathbb{R}$ including negative weights. The distinction matters: negative weights break shortest-path algorithms like Dijkstra but are handled by Bellman-Ford.
 
 ### 2.4 Simple Graphs, Multigraphs, and Pseudographs
 
-The formal definition in §2.1 defines a **simple graph**: no self-loops and no parallel edges. Real-world graphs often violate these constraints:
+The formal definition in 2.1 defines a **simple graph**: no self-loops and no parallel edges. Real-world graphs often violate these constraints:
 
 **Definition (Self-loop).** A *self-loop* is an edge from a vertex to itself: $\{v, v\}$ or $(v, v)$.
 
@@ -354,21 +354,21 @@ The formal definition in §2.1 defines a **simple graph**: no self-loops and no 
 
 **For AI:** Most GNN frameworks assume simple graphs. Self-loops are added explicitly in GCN: $\tilde{A} = A + I_n$ adds a self-loop to every vertex, ensuring that each node's own features are included in the aggregation step. This is a deliberate design choice, not a property of the input graph.
 
-**Non-example:** A relation "is the same as" on a set — every element is related to itself, producing self-loops on every vertex. This is a pseudograph, not a simple graph.
+**Non-example:** A relation "is the same as" on a set - every element is related to itself, producing self-loops on every vertex. This is a pseudograph, not a simple graph.
 
 ### 2.5 Standard Examples and Non-Examples
 
-**Example 1: The Petersen graph.** A famous graph with 10 vertices and 15 edges, 3-regular (every vertex has degree 3). It is a counterexample to many graph theory conjectures — it is not Hamiltonian, not edge-4-colorable, and not planar.
+**Example 1: The Petersen graph.** A famous graph with 10 vertices and 15 edges, 3-regular (every vertex has degree 3). It is a counterexample to many graph theory conjectures - it is not Hamiltonian, not edge-4-colorable, and not planar.
 
-**Example 2: The Karate Club graph.** Zachary's karate club (1977) — 34 members, 78 edges representing social interactions. The graph split into two communities when the club divided, making it a standard benchmark for community detection. This is the "MNIST of graph learning."
+**Example 2: The Karate Club graph.** Zachary's karate club (1977) - 34 members, 78 edges representing social interactions. The graph split into two communities when the club divided, making it a standard benchmark for community detection. This is the "MNIST of graph learning."
 
 **Example 3: A molecule.** Water ($H_2O$) has 3 vertices (O, H, H) and 2 edges (O-H bonds). Caffeine ($C_8H_{10}N_4O_2$) has 24 vertices and 25 edges.
 
-**Non-example 1: A set without edges.** The pair $(\{1,2,3\}, \emptyset)$ is technically a valid graph (the "empty graph" on 3 vertices), but it has no edges — no relationships are captured.
+**Non-example 1: A set without edges.** The pair $(\{1,2,3\}, \emptyset)$ is technically a valid graph (the "empty graph" on 3 vertices), but it has no edges - no relationships are captured.
 
 **Non-example 2: A "graph" with edges between non-existent vertices.** If $V = \{1,2\}$ and $E = \{\{1,3\}\}$, this is not a valid graph because vertex 3 is not in $V$. Edges must connect vertices in the vertex set.
 
-**Non-example 3: An ordered list.** The sequence $[1, 2, 3, 4]$ is not a graph — it has no explicit edge set. However, we can construct a path graph from it: $V = \{1,2,3,4\}$, $E = \{\{1,2\}, \{2,3\}, \{3,4\}\}$.
+**Non-example 3: An ordered list.** The sequence $[1, 2, 3, 4]$ is not a graph - it has no explicit edge set. However, we can construct a path graph from it: $V = \{1,2,3,4\}$, $E = \{\{1,2\}, \{2,3\}, \{3,4\}\}$.
 
 ### 2.6 The Null Graph, Empty Graph, and Trivial Graph
 
@@ -380,7 +380,7 @@ These edge cases clarify the boundaries of the definition:
 
 **Definition (Null Graph).** The graph with no vertices and no edges: $G = (\emptyset, \emptyset)$. Some authors exclude this, requiring $V \neq \emptyset$. In this curriculum, we require $|V| \geq 1$.
 
-**For AI:** The empty graph $\bar{K}_n$ appears when constructing GNN inputs: before adding edges (via $k$-NN or radius graphs), the initial graph has $n$ nodes with features but no connections. The GCN self-loop trick $\tilde{A} = A + I$ on an empty graph gives $\tilde{A} = I$ — each node only aggregates its own features, equivalent to a standard MLP.
+**For AI:** The empty graph $\bar{K}_n$ appears when constructing GNN inputs: before adding edges (via $k$-NN or radius graphs), the initial graph has $n$ nodes with features but no connections. The GCN self-loop trick $\tilde{A} = A + I$ on an empty graph gives $\tilde{A} = I$ - each node only aggregates its own features, equivalent to a standard MLP.
 
 ---
 
@@ -404,25 +404,25 @@ The total degree of a vertex in a digraph is $\deg(v) = \deg^+(v) + \deg^-(v)$.
 
 ```
 DEGREE EXAMPLES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Undirected:                    Directed:
-      A ─── B ─── C                 A ──→ B ──→ C
-      │           │                 ↑           │
-      D ────────── E                D ←──────── E
+      A --- B --- C                 A ---> B ---> C
+      |           |                 up           |
+      D ---------- E                D <--------- E
 
-  deg(A) = 2  (B, D)           deg⁺(A) = 1, deg⁻(A) = 1
-  deg(B) = 2  (A, C)           deg⁺(B) = 1, deg⁻(B) = 1
-  deg(C) = 2  (B, E)           deg⁺(C) = 0, deg⁻(C) = 1  (sink)
-  deg(D) = 2  (A, E)           deg⁺(D) = 1, deg⁻(D) = 1
-  deg(E) = 2  (C, D)           deg⁺(E) = 1, deg⁻(E) = 1
+  deg(A) = 2  (B, D)           deg^+(A) = 1, deg^-(A) = 1
+  deg(B) = 2  (A, C)           deg^+(B) = 1, deg^-(B) = 1
+  deg(C) = 2  (B, E)           deg^+(C) = 0, deg^-(C) = 1  (sink)
+  deg(D) = 2  (A, E)           deg^+(D) = 1, deg^-(D) = 1
+  deg(E) = 2  (C, D)           deg^+(E) = 1, deg^-(E) = 1
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** In a GNN, a vertex's degree determines how many messages it receives during message passing. Vertices with very high degree (hubs) aggregate information from many neighbours, while vertices with degree 1 (leaves) receive information from a single source. This is why GCN normalises by $1/\sqrt{\deg(u)\deg(v)}$ — to prevent high-degree nodes from dominating the aggregation.
+**For AI:** In a GNN, a vertex's degree determines how many messages it receives during message passing. Vertices with very high degree (hubs) aggregate information from many neighbours, while vertices with degree 1 (leaves) receive information from a single source. This is why GCN normalises by $1/\sqrt{\deg(u)\deg(v)}$ - to prevent high-degree nodes from dominating the aggregation.
 
-**Notation (Adjacency matrix connection).** If $A$ is the adjacency matrix of an undirected graph, then $\deg(v_i) = \sum_{j=1}^n A_{ij}$ — the row sum. The **degree matrix** $D = \operatorname{diag}(\deg(v_1), \ldots, \deg(v_n))$ is the diagonal matrix of degrees. Both $A$ and $D$ are central to spectral graph theory (§04).
+**Notation (Adjacency matrix connection).** If $A$ is the adjacency matrix of an undirected graph, then $\deg(v_i) = \sum_{j=1}^n A_{ij}$ - the row sum. The **degree matrix** $D = \operatorname{diag}(\deg(v_1), \ldots, \deg(v_n))$ is the diagonal matrix of degrees. Both $A$ and $D$ are central to spectral graph theory (04).
 
 ### 3.2 The Handshaking Lemma
 
@@ -465,9 +465,9 @@ $$d_1 \geq d_2 \geq \cdots \geq d_n$$
 
 $$\sum_{i=1}^k d_i \leq k(k-1) + \sum_{i=k+1}^n \min(d_i, k)$$
 
-**Example.** Is $(3, 3, 2, 2, 2)$ graphic? Sum $= 12$ (even). Check $k = 1$: $3 \leq 0 + \min(3,1) + \min(2,1) + \min(2,1) + \min(2,1) = 0 + 1+1+1+1 = 4$. Yes. (Full check confirms graphicality — it is the degree sequence of $K_{2,3}$.)
+**Example.** Is $(3, 3, 2, 2, 2)$ graphic? Sum $= 12$ (even). Check $k = 1$: $3 \leq 0 + \min(3,1) + \min(2,1) + \min(2,1) + \min(2,1) = 0 + 1+1+1+1 = 4$. Yes. (Full check confirms graphicality - it is the degree sequence of $K_{2,3}$.)
 
-**Non-example.** Is $(3, 3, 3, 1)$ graphic? Sum $= 10$ (even), $n = 4$. Check $k = 1$: $3 \leq 0 + \min(3,1) + \min(3,1) + \min(1,1) = 3$. Equality holds. Check $k = 3$: $3+3+3 = 9 \leq 3 \cdot 2 + \min(1,3) = 6 + 1 = 7$. Fails! Not graphic — you cannot build a simple graph on 4 vertices where three vertices have degree 3 and one has degree 1.
+**Non-example.** Is $(3, 3, 3, 1)$ graphic? Sum $= 10$ (even), $n = 4$. Check $k = 1$: $3 \leq 0 + \min(3,1) + \min(3,1) + \min(1,1) = 3$. Equality holds. Check $k = 3$: $3+3+3 = 9 \leq 3 \cdot 2 + \min(1,3) = 6 + 1 = 7$. Fails! Not graphic - you cannot build a simple graph on 4 vertices where three vertices have degree 3 and one has degree 1.
 
 ### 3.4 Regular Graphs
 
@@ -504,7 +504,7 @@ This is called a **scale-free** distribution. It means a few "hub" vertices have
 | Erdos-Renyi | Poisson | N/A |
 | Road networks | Near-uniform | N/A ($\deg \approx 3{-}4$) |
 
-**For AI:** Power-law degree distributions create challenges for GNNs. Hub vertices with degree $>1000$ dominate mini-batch sampling (GraphSAGE, Hamilton et al., 2017) and can cause representation collapse — the "over-squashing" problem. Solutions include degree-based sampling, virtual nodes, and graph transformers that bypass local message passing.
+**For AI:** Power-law degree distributions create challenges for GNNs. Hub vertices with degree $>1000$ dominate mini-batch sampling (GraphSAGE, Hamilton et al., 2017) and can cause representation collapse - the "over-squashing" problem. Solutions include degree-based sampling, virtual nodes, and graph transformers that bypass local message passing.
 
 **Clustering coefficient.** Beyond degree, an important local structural measure is the **clustering coefficient**, which quantifies how clustered a vertex's neighbourhood is.
 
@@ -521,14 +521,14 @@ This is the fraction of possible edges among $v$'s neighbours that actually exis
 | Network type | Typical $C$ | Interpretation |
 |-------------|-------------|----------------|
 | Erdos-Renyi $G(n,p)$ | $\approx p$ | Low, unclustered |
-| Social networks | $0.1$–$0.5$ | High, clustered (friends of friends are friends) |
-| Protein interactions | $0.1$–$0.3$ | Medium clustering |
+| Social networks | $0.1$-$0.5$ | High, clustered (friends of friends are friends) |
+| Protein interactions | $0.1$-$0.3$ | Medium clustering |
 | Regular lattice | High | Very clustered but large diameter |
 | Small-world (Watts-Strogatz) | High | High clustering AND small diameter |
 
-**For AI:** The clustering coefficient is a standard graph-level feature in GNN benchmarks. High clustering indicates the presence of many triangles — triangle-counting is a canonical task that standard 1-WL GNNs cannot perform exactly (triangles require 3-WL). This motivates higher-order GNN architectures that explicitly count triangular motifs.
+**For AI:** The clustering coefficient is a standard graph-level feature in GNN benchmarks. High clustering indicates the presence of many triangles - triangle-counting is a canonical task that standard 1-WL GNNs cannot perform exactly (triangles require 3-WL). This motivates higher-order GNN architectures that explicitly count triangular motifs.
 
-> **Note:** The full theory of degree distributions and random graph models is developed in [§06 Random Graphs](../06-Random-Graphs/notes.md). Here we introduce the concept; there we formalise it.
+> **Note:** The full theory of degree distributions and random graph models is developed in [06 Random Graphs](../06-Random-Graphs/notes.md). Here we introduce the concept; there we formalise it.
 
 ---
 
@@ -546,20 +546,20 @@ These three concepts form a hierarchy of increasing restriction on vertex/edge r
 
 ```
 WALK vs. TRAIL vs. PATH
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Graph:   A ─── B ─── C
-           │     │     │
-           D ─── E ─── F
+  Graph:   A --- B --- C
+           |     |     |
+           D --- E --- F
 
-  Walk:    A → B → E → B → C          (B visited twice — OK for walk)
-  Trail:   A → B → E → D → A → B → C  (no edge repeated, A visited twice)
-  Path:    A → B → E → F → C           (no vertex repeated)
+  Walk:    A -> B -> E -> B -> C          (B visited twice - OK for walk)
+  Trail:   A -> B -> E -> D -> A -> B -> C  (no edge repeated, A visited twice)
+  Path:    A -> B -> E -> F -> C           (no vertex repeated)
 
-  Restriction:   Walk ⊇ Trail ⊇ Path
+  Restriction:   Walk \supseteq Trail \supseteq Path
                  (every path is a trail, every trail is a walk)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Notation.** The **length** of a walk/trail/path is the number of edges traversed (not vertices). A path from $u$ to $v$ is called a *$u$-$v$ path*.
@@ -583,15 +583,15 @@ WALK vs. TRAIL vs. PATH
 
 **Definition (Acyclic Graph).** A graph with no cycles. An undirected acyclic graph is a forest; a connected forest is a tree.
 
-**For AI:** Cycles in computation graphs would create infinite loops during forward pass evaluation. This is why computation graphs are DAGs (directed acyclic graphs) — acyclicity ensures a valid topological ordering for sequential evaluation. Recurrent Neural Networks (RNNs) appear to have cycles, but when "unrolled" over time steps, the computation graph is a DAG.
+**For AI:** Cycles in computation graphs would create infinite loops during forward pass evaluation. This is why computation graphs are DAGs (directed acyclic graphs) - acyclicity ensures a valid topological ordering for sequential evaluation. Recurrent Neural Networks (RNNs) appear to have cycles, but when "unrolled" over time steps, the computation graph is a DAG.
 
 ### 4.3 Shortest Paths and Distance
 
 **Definition (Distance).** The *distance* $d(u, v)$ between vertices $u$ and $v$ is the length of the shortest $u$-$v$ path. If no such path exists (they are in different components), $d(u, v) = \infty$.
 
-**Definition (Eccentricity).** The *eccentricity* of a vertex $v$ is $\varepsilon(v) = \max_{u \in V} d(v, u)$ — the distance to the farthest vertex.
+**Definition (Eccentricity).** The *eccentricity* of a vertex $v$ is $\varepsilon(v) = \max_{u \in V} d(v, u)$ - the distance to the farthest vertex.
 
-**Definition (Diameter).** The *diameter* of a graph is $\operatorname{diam}(G) = \max_{v \in V} \varepsilon(v) = \max_{u, v \in V} d(u, v)$ — the maximum distance between any two vertices.
+**Definition (Diameter).** The *diameter* of a graph is $\operatorname{diam}(G) = \max_{v \in V} \varepsilon(v) = \max_{u, v \in V} d(u, v)$ - the maximum distance between any two vertices.
 
 **Definition (Radius).** The *radius* of a graph is $\operatorname{rad}(G) = \min_{v \in V} \varepsilon(v)$.
 
@@ -618,24 +618,24 @@ This means the vertex set of any connected graph forms a metric space under grap
 **Distance matrix.** The **distance matrix** $D \in \mathbb{N}^{n \times n}$ has entries $D_{ij} = d(v_i, v_j)$. This is distinct from the degree matrix (also sometimes denoted $D$). The distance matrix contains the full pairwise distance information of the graph and is used as a positional encoding in graph transformers (Li et al., 2020).
 
 ```
-DISTANCE MATRIX EXAMPLE (P₄: 1─2─3─4)
-════════════════════════════════════════════════════════════════════════
+DISTANCE MATRIX EXAMPLE (P_4: 1-2-3-4)
+========================================================================
 
   Distance matrix:          Eccentricities:
-       1  2  3  4           ε(1) = 3  (farthest: vertex 4)
-  1 [  0  1  2  3 ]         ε(2) = 2  (farthest: vertex 4)
-  2 [  1  0  1  2 ]         ε(3) = 2  (farthest: vertex 1)
-  3 [  2  1  0  1 ]         ε(4) = 3  (farthest: vertex 1)
+       1  2  3  4           \epsilon(1) = 3  (farthest: vertex 4)
+  1 [  0  1  2  3 ]         \epsilon(2) = 2  (farthest: vertex 4)
+  2 [  1  0  1  2 ]         \epsilon(3) = 2  (farthest: vertex 1)
+  3 [  2  1  0  1 ]         \epsilon(4) = 3  (farthest: vertex 1)
   4 [  3  2  1  0 ]
                             Diameter = 3, Radius = 2
                             Center = {2, 3}
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** The diameter of a graph determines the minimum number of GNN layers needed to propagate information between the two most distant vertices. If $\operatorname{diam}(G) = d$, a GNN with fewer than $d$ layers cannot use the full graph structure for prediction. The "small-world" property — most real-world graphs have $\operatorname{diam}(G) = O(\log n)$ — explains why GNNs with 2-3 layers often suffice in practice.
+**For AI:** The diameter of a graph determines the minimum number of GNN layers needed to propagate information between the two most distant vertices. If $\operatorname{diam}(G) = d$, a GNN with fewer than $d$ layers cannot use the full graph structure for prediction. The "small-world" property - most real-world graphs have $\operatorname{diam}(G) = O(\log n)$ - explains why GNNs with 2-3 layers often suffice in practice.
 
-> **Note:** Algorithms for computing shortest paths (BFS for unweighted, Dijkstra for weighted, Bellman-Ford for negative weights) are developed in [§03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
+> **Note:** Algorithms for computing shortest paths (BFS for unweighted, Dijkstra for weighted, Bellman-Ford for negative weights) are developed in [03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
 
 ### 4.4 Eulerian and Hamiltonian Paths
 
@@ -647,25 +647,25 @@ This was the first theorem of graph theory, proved by Euler to show that the Kon
 
 ```
 THE KONIGSBERG BRIDGE PROBLEM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   The city of Konigsberg (now Kaliningrad) had 7 bridges connecting
   4 landmasses. Can you walk across each bridge exactly once?
 
   Landmasses as vertices, bridges as edges:
 
-       A ──────── B         deg(A) = 3  (odd)
-      ╱│╲        │         deg(B) = 5  (odd)
-     ╱ │ ╲       │         deg(C) = 3  (odd)
-    ╱  │  ╲      │         deg(D) = 3  (odd)
-   C   │   D─────┘
-       │                   All degrees odd → no Eulerian trail exists
-       └───────────D       (Euler's theorem: need 0 or 2 odd-degree vertices)
+       A -------- B         deg(A) = 3  (odd)
+      /|\        |         deg(B) = 5  (odd)
+     / | \       |         deg(C) = 3  (odd)
+    /  |  \      |         deg(D) = 3  (odd)
+   C   |   D-----+
+       |                   All degrees odd -> no Eulerian trail exists
+       +-----------D       (Euler's theorem: need 0 or 2 odd-degree vertices)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Proof sketch (Euler's theorem — necessity).** If a graph has an Eulerian circuit, every time the walk enters a vertex on one edge it must leave on a different edge. So edges at each vertex are paired: enter-leave, enter-leave, ... This means every vertex uses an even number of edges, so $\deg(v)$ is even. For an Eulerian trail (not circuit), the start and end vertices each use one unpaired edge, so exactly two vertices have odd degree. $\square$
+**Proof sketch (Euler's theorem - necessity).** If a graph has an Eulerian circuit, every time the walk enters a vertex on one edge it must leave on a different edge. So edges at each vertex are paired: enter-leave, enter-leave, ... This means every vertex uses an even number of edges, so $\deg(v)$ is even. For an Eulerian trail (not circuit), the start and end vertices each use one unpaired edge, so exactly two vertices have odd degree. $\square$
 
 **Definition (Hamiltonian Path/Cycle).** A *Hamiltonian path* is a path that visits every **vertex** exactly once. A *Hamiltonian cycle* is a cycle that visits every vertex exactly once.
 
@@ -678,7 +678,7 @@ THE KONIGSBERG BRIDGE PROBLEM
 | $K_n$ | Has Eulerian circuit iff $n$ is odd | Always has Hamiltonian cycle ($n \geq 3$) |
 | $K_{m,n}$ | Has Eulerian circuit iff $m, n$ both even | Has Hamiltonian cycle iff $m = n$ |
 
-**For AI:** The Travelling Salesman Problem (TSP) — finding the shortest Hamiltonian cycle in a weighted complete graph — is a canonical NP-hard combinatorial optimization problem. Neural combinatorial optimization (Vinyals et al., 2015; Kool et al., 2019) uses attention-based models to learn heuristic TSP solutions. The graph structure of TSP is $K_n$ with distance weights.
+**For AI:** The Travelling Salesman Problem (TSP) - finding the shortest Hamiltonian cycle in a weighted complete graph - is a canonical NP-hard combinatorial optimization problem. Neural combinatorial optimization (Vinyals et al., 2015; Kool et al., 2019) uses attention-based models to learn heuristic TSP solutions. The graph structure of TSP is $K_n$ with distance weights.
 
 ### 4.5 Counting Walks with the Adjacency Matrix
 
@@ -707,11 +707,11 @@ $(A^3)_{11} = 2$, so vertex 1 is in $2/2 = 1$ triangle. $\operatorname{tr}(A^3) 
 | Edges | $\operatorname{tr}(A^2)/2 = m$ |
 | Triangles | $\operatorname{tr}(A^3)/6$ |
 | Walks of length $k$ (total) | $\mathbf{1}^\top A^k \mathbf{1}$ |
-| Paths of length $k$ | Harder — requires inclusion-exclusion |
+| Paths of length $k$ | Harder - requires inclusion-exclusion |
 
-**Connection to GNN layers.** After $k$ GNN layers, the aggregated representation of vertex $i$ contains information from all vertices reachable by walks of length $\leq k$ from $i$. The contribution of vertex $j$ to vertex $i$'s representation after exactly $k$ layers is proportional to $(A^k)_{ij}$ (in the linear, non-normalised case). The normalised GCN layer uses $\hat{A} = D^{-1/2}AD^{-1/2}$, so the $k$-layer GCN computes $\hat{A}^k X W$ — a matrix whose entries are walks of length $k$ normalised by vertex degrees.
+**Connection to GNN layers.** After $k$ GNN layers, the aggregated representation of vertex $i$ contains information from all vertices reachable by walks of length $\leq k$ from $i$. The contribution of vertex $j$ to vertex $i$'s representation after exactly $k$ layers is proportional to $(A^k)_{ij}$ (in the linear, non-normalised case). The normalised GCN layer uses $\hat{A} = D^{-1/2}AD^{-1/2}$, so the $k$-layer GCN computes $\hat{A}^k X W$ - a matrix whose entries are walks of length $k$ normalised by vertex degrees.
 
-**For AI:** This theorem connects graph theory directly to linear algebra. The spectral decomposition $A = Q\Lambda Q^\top$ gives $A^k = Q\Lambda^k Q^\top$, so the number of walks of length $k$ is controlled by the eigenvalues of $A$. The dominant eigenvalue determines the exponential growth rate of walk counts — this is the mathematical foundation of PageRank (stationary distribution of a random walk = dominant eigenvector of the transition matrix). Full spectral analysis is in [§04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md).
+**For AI:** This theorem connects graph theory directly to linear algebra. The spectral decomposition $A = Q\Lambda Q^\top$ gives $A^k = Q\Lambda^k Q^\top$, so the number of walks of length $k$ is controlled by the eigenvalues of $A$. The dominant eigenvalue determines the exponential growth rate of walk counts - this is the mathematical foundation of PageRank (stationary distribution of a random walk = dominant eigenvector of the transition matrix). Full spectral analysis is in [04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md).
 
 ---
 
@@ -721,31 +721,31 @@ $(A^3)_{11} = 2$, so vertex 1 is in $2/2 = 1$ triangle. $\operatorname{tr}(A^3) 
 
 **Definition (Connected Graph).** An undirected graph $G$ is *connected* if for every pair of vertices $u, v \in V$, there exists a path from $u$ to $v$.
 
-**Definition (Connected Component).** A *connected component* of $G$ is a maximal connected subgraph — a connected subgraph that is not a proper subgraph of any larger connected subgraph.
+**Definition (Connected Component).** A *connected component* of $G$ is a maximal connected subgraph - a connected subgraph that is not a proper subgraph of any larger connected subgraph.
 
 Every graph can be uniquely decomposed into its connected components. If $G$ has $c$ connected components, then $c = 1$ means $G$ is connected.
 
 ```
 CONNECTED COMPONENTS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Component 1:    Component 2:    Component 3:
-  A ─── B         E ─── F         H
-  │   ╱           │
-  │ ╱             G
-  C ─── D
+  A --- B         E --- F         H
+  |   /           |
+  | /             G
+  C --- D
 
   3 connected components
-  Vertices: {A,B,C,D} ∪ {E,F,G} ∪ {H}
+  Vertices: {A,B,C,D} \cup {E,F,G} \cup {H}
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Proposition.** A graph on $n$ vertices is connected if and only if it has at least $n - 1$ edges (necessary but not sufficient — trees achieve exactly $n - 1$).
+**Proposition.** A graph on $n$ vertices is connected if and only if it has at least $n - 1$ edges (necessary but not sufficient - trees achieve exactly $n - 1$).
 
 **Proposition (Component count from Laplacian).** The number of connected components equals the multiplicity of eigenvalue 0 in the graph Laplacian $L = D - A$. This is a deep result connecting connectivity (combinatorial) to spectrum (algebraic).
 
-**For AI:** If a GNN's input graph has multiple connected components, information cannot flow between components through message passing. Each component is processed independently. In molecular graphs, a molecule with disconnected fragments (e.g., a salt like NaCl in solution) has multiple components — the GNN must handle each separately or use a virtual node to connect them.
+**For AI:** If a GNN's input graph has multiple connected components, information cannot flow between components through message passing. Each component is processed independently. In molecular graphs, a molecule with disconnected fragments (e.g., a salt like NaCl in solution) has multiple components - the GNN must handle each separately or use a virtual node to connect them.
 
 ### 5.2 Strongly and Weakly Connected Digraphs
 
@@ -759,25 +759,25 @@ For directed graphs, connectivity bifurcates into two notions:
 
 ```
 STRONG vs. WEAK CONNECTIVITY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  A ──→ B ──→ C ──→ D        Weakly connected: YES (underlying
-  ↑           │                                   undirected graph
-  └───────────┘                                   is connected)
+  A ---> B ---> C ---> D        Weakly connected: YES (underlying
+  up           |                                   undirected graph
+  +-----------+                                   is connected)
 
-  SCCs: {A, B, C} and {D}    Strongly connected: NO (no path D → A)
+  SCCs: {A, B, C} and {D}    Strongly connected: NO (no path D -> A)
   
-  Within {A, B, C}:          A→B→C→A forms a directed cycle
+  Within {A, B, C}:          A->B->C->A forms a directed cycle
                               (strongly connected)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Example:** A citation network is weakly connected (following links in either direction, you can reach most papers) but not strongly connected (you cannot follow citations from a 2024 paper to a 2023 paper — citations only go backward in time).
+**Example:** A citation network is weakly connected (following links in either direction, you can reach most papers) but not strongly connected (you cannot follow citations from a 2024 paper to a 2023 paper - citations only go backward in time).
 
 **Example (Condensation DAG).** Given the SCC decomposition, we can form the **condensation** of a digraph: contract each SCC to a single vertex. The resulting graph is always a DAG (if it had a directed cycle, the SCCs involved would merge into one). This DAG reveals the macroscopic flow structure of the digraph.
 
-**Algorithms for SCCs.** Tarjan's algorithm (1972) and Kosaraju's algorithm both find all SCCs in $O(n + m)$ time using DFS. These are covered in detail in [§03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
+**Algorithms for SCCs.** Tarjan's algorithm (1972) and Kosaraju's algorithm both find all SCCs in $O(n + m)$ time using DFS. These are covered in detail in [03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
 
 **For AI:** The SCC decomposition of a computation graph reveals which operations form feedback loops. In standard feedforward networks, each SCC is a single vertex (the graph is a DAG). In architectures with weight sharing (like RNNs unrolled over time), understanding the SCC structure helps with gradient flow analysis. The condensation DAG of a knowledge graph reveals the hierarchical structure of entity relationships.
 
@@ -789,7 +789,7 @@ STRONG vs. WEAK CONNECTIVITY
 
 **Example:** In the path graph $P_4 = 1{-}2{-}3{-}4$, every edge is a bridge and vertices 2 and 3 are articulation points. Removing edge $\{2,3\}$ disconnects $\{1,2\}$ from $\{3,4\}$.
 
-**Example (non-bridge):** In the cycle $C_4 = 1{-}2{-}3{-}4{-}1$, no edge is a bridge — removing any single edge leaves the graph connected (as a path). No vertex is an articulation point.
+**Example (non-bridge):** In the cycle $C_4 = 1{-}2{-}3{-}4{-}1$, no edge is a bridge - removing any single edge leaves the graph connected (as a path). No vertex is an articulation point.
 
 **Proposition.** An edge $e = \{u,v\}$ is a bridge if and only if $e$ is not contained in any cycle. Equivalently, $e$ is a bridge iff there is no alternative path from $u$ to $v$.
 
@@ -813,14 +813,14 @@ where $\delta(G) = \min_{v \in V} \deg(v)$ is the minimum degree.
 
 This is a max-flow min-cut result: the maximum "flow" of disjoint paths equals the minimum "cut" of vertices. The edge version: the maximum number of edge-disjoint $u$-$v$ paths equals the minimum edge cut separating $u$ from $v$.
 
-**Example of Whitney's inequality.** Consider a graph that is a "book" — two triangles sharing one edge:
+**Example of Whitney's inequality.** Consider a graph that is a "book" - two triangles sharing one edge:
 
 ```text
-  A ─── B         deg(A) = deg(B) = 3
- ╱│╲   ╱│╲        δ(G) = 3  (minimum degree)
-C │ D─E │ F       λ(G) = 2  (remove the two edges at the shared edge)
- ╲│╱   ╲│╱        κ(G) = 1  (remove the shared vertex D or E)
-  └───────┘
+  A --- B         deg(A) = deg(B) = 3
+ /|\   /|\        \delta(G) = 3  (minimum degree)
+C | D-E | F       \lambda(G) = 2  (remove the two edges at the shared edge)
+ \|/   \|/        \kappa(G) = 1  (remove the shared vertex D or E)
+  +-------+
 ```
 
 So $\kappa = 1 \leq \lambda = 2 \leq \delta = 3$. The inequality is strict.
@@ -831,7 +831,7 @@ So $\kappa = 1 \leq \lambda = 2 \leq \delta = 3$. The inequality is strict.
 
 ### 5.5 Connectivity in AI
 
-**Computation graph connectivity.** A computation graph must be connected (in the weakly-connected sense for digraphs) for gradients to flow from the loss to all parameters. If a parameter's computation is disconnected from the loss, its gradient is zero — it cannot be trained. PyTorch detects this and raises warnings.
+**Computation graph connectivity.** A computation graph must be connected (in the weakly-connected sense for digraphs) for gradients to flow from the loss to all parameters. If a parameter's computation is disconnected from the loss, its gradient is zero - it cannot be trained. PyTorch detects this and raises warnings.
 
 **Knowledge graph connectivity.** The "reachability" of entities in a knowledge graph determines what a RAG system can retrieve. If the query entity and the answer entity are in different connected components, no amount of graph traversal will find the answer.
 
@@ -860,20 +860,20 @@ $$E = \binom{V}{2}, \quad |E| = \binom{n}{2} = \frac{n(n-1)}{2}$$
 
 ```
 COMPLETE GRAPHS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  K₁    K₂      K₃        K₄           K₅
-   •    •──•    •         •───•       •─────•
-                │╲        │╲ ╱│      ╱│╲   ╱│
-                │ ╲       │ ╳ │    ╱  │ ╲╱  │
-                •──•      │╱ ╲│   •───•──•──•
-                          •───•       ╲│╱
+  K_1    K_2      K_3        K_4           K_5
+   -    ----    -         -----       -------
+                |\        |\ /|      /|\   /|
+                | \       | x |    /  | \/  |
+                ----      |/ \|   -----------
+                          -----       \|/
   m=0   m=1    m=3       m=6     m=10
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** The fully-connected attention mechanism in transformers computes attention weights over $K_n$ (where $n$ is the sequence length). Every token attends to every other token — this is exactly message passing on the complete graph. The $O(n^2)$ complexity of self-attention is the cost of processing $K_n$.
+**For AI:** The fully-connected attention mechanism in transformers computes attention weights over $K_n$ (where $n$ is the sequence length). Every token attends to every other token - this is exactly message passing on the complete graph. The $O(n^2)$ complexity of self-attention is the cost of processing $K_n$.
 
 ### 6.2 Bipartite Graphs
 
@@ -887,30 +887,30 @@ COMPLETE GRAPHS
 
 ```
 BIPARTITE GRAPH
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  General bipartite:        Complete bipartite K₃,₂:
-  U: ● ─── ○              U: ●───○
-     │   ╱                    │╲ ╱│
-     ● ╱                      │ ╳ │
-     │                        │╱ ╲│
-  W: ○     ○               W: ●───○───●
+  General bipartite:        Complete bipartite K_3,_2:
+  U: * --- o              U: *---o
+     |   /                    |\ /|
+     * /                      | x |
+     |                        |/ \|
+  W: o     o               W: *---o---*
 
   Partition: U (filled), W (open)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Examples:**
 - User-item interaction graphs (recommender systems): users and items are two parts
-- Bipartite matching: job assignment (workers ↔ tasks)
+- Bipartite matching: job assignment (workers <-> tasks)
 - Dependency parse trees are bipartite when arcs alternate between heads and dependents
 
-**Non-example:** $K_3$ (the triangle) is NOT bipartite — it contains an odd cycle of length 3.
+**Non-example:** $K_3$ (the triangle) is NOT bipartite - it contains an odd cycle of length 3.
 
-**Non-example:** $C_5$ (the pentagon) is NOT bipartite — it is an odd cycle of length 5.
+**Non-example:** $C_5$ (the pentagon) is NOT bipartite - it is an odd cycle of length 5.
 
-**Testing bipartiteness.** BFS provides an efficient $O(n + m)$ bipartiteness test: start BFS from any vertex, alternating colours between levels. If any edge connects two same-colour vertices, the graph is not bipartite (and that edge, combined with the BFS tree paths, gives an odd cycle certificate). This is covered in [§03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
+**Testing bipartiteness.** BFS provides an efficient $O(n + m)$ bipartiteness test: start BFS from any vertex, alternating colours between levels. If any edge connects two same-colour vertices, the graph is not bipartite (and that edge, combined with the BFS tree paths, gives an odd cycle certificate). This is covered in [03 Graph Algorithms](../03-Graph-Algorithms/notes.md).
 
 **Theorem (Konig, 1931).** In a bipartite graph, the size of the maximum matching equals the size of the minimum vertex cover.
 
@@ -941,30 +941,30 @@ where $B \in \{0,1\}^{m \times n}$ is the **biadjacency matrix**. This block str
 
 **Proof (1 $\Leftrightarrow$ 2).** ($\Rightarrow$) A connected graph has $\geq n-1$ edges. If it had $\geq n$ edges, by the pigeonhole principle there would be a cycle (contradiction with acyclic). So exactly $n-1$. ($\Leftarrow$) A connected graph with $n-1$ edges has no "spare" edges, so no cycles. $\square$
 
-**Proof (1 $\Rightarrow$ 4).** Suppose $G$ is a tree and there exist two distinct paths $P_1$ and $P_2$ from $u$ to $v$. Since $P_1 \neq P_2$, they diverge at some vertex $w$ and rejoin later at some vertex $x$. The subpaths $w \to x$ via $P_1$ and $w \to x$ via $P_2$ form a cycle — contradicting acyclicity. So the path is unique. $\square$
+**Proof (1 $\Rightarrow$ 4).** Suppose $G$ is a tree and there exist two distinct paths $P_1$ and $P_2$ from $u$ to $v$. Since $P_1 \neq P_2$, they diverge at some vertex $w$ and rejoin later at some vertex $x$. The subpaths $w \to x$ via $P_1$ and $w \to x$ via $P_2$ form a cycle - contradicting acyclicity. So the path is unique. $\square$
 
 **Proof (4 $\Rightarrow$ 5).** If there is exactly one path between every pair, then removing any edge $\{u,v\}$ destroys the unique $u$-$v$ path, disconnecting $u$ from $v$. So every edge is a bridge. $\square$
 
 ```
-TREE EQUIVALENCES — VISUAL SUMMARY
-════════════════════════════════════════════════════════════════════════
+TREE EQUIVALENCES - VISUAL SUMMARY
+========================================================================
 
   Connected + Acyclic        Exactly one       Connected, all
   = TREE                     path between      edges are bridges
-    │                        any pair              │
-    │    n-1 edges           │                     │
-    ▼    (connected)         ▼                     ▼
-  ┌──────────────────────────────────────────────────────┐
-  │              ALL SIX CONDITIONS EQUIVALENT            │
-  │       (any one implies all the others)                │
-  └──────────────────────────────────────────────────────┘
-    ▲                        ▲                     ▲
-    │    n-1 edges           │                     │
-    │    (acyclic)      Adding any edge       Maximal acyclic
-    │                   creates exactly       = minimal connected
+    |                        any pair              |
+    |    n-1 edges           |                     |
+    v    (connected)         v                     v
+  +------------------------------------------------------+
+  |              ALL SIX CONDITIONS EQUIVALENT            |
+  |       (any one implies all the others)                |
+  +------------------------------------------------------+
+    ^                        ^                     ^
+    |    n-1 edges           |                     |
+    |    (acyclic)      Adding any edge       Maximal acyclic
+    |                   creates exactly       = minimal connected
                         one cycle
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Theorem (Cayley's Formula, 1889).** The number of labeled spanning trees of the complete graph $K_n$ is $n^{n-2}$.
@@ -990,10 +990,10 @@ TREE EQUIVALENCES — VISUAL SUMMARY
 - Binary search trees, B-trees, tries
 
 **For AI:** Trees are fundamental structures in AI:
-- **Decision trees** (CART, Random Forest, XGBoost) — each internal node is a split, each leaf is a prediction
-- **Abstract syntax trees (ASTs)** — code represented as trees for program analysis and code generation
-- **Spanning trees of graphs** — GNN approaches sometimes use tree decomposition for efficient message passing
-- **Hierarchical clustering dendrograms** — trees representing cluster merging
+- **Decision trees** (CART, Random Forest, XGBoost) - each internal node is a split, each leaf is a prediction
+- **Abstract syntax trees (ASTs)** - code represented as trees for program analysis and code generation
+- **Spanning trees of graphs** - GNN approaches sometimes use tree decomposition for efficient message passing
+- **Hierarchical clustering dendrograms** - trees representing cluster merging
 
 ### 6.4 DAGs (Directed Acyclic Graphs)
 
@@ -1005,17 +1005,17 @@ A **topological ordering** is a linear ordering of vertices such that for every 
 
 ```
 DAG AND TOPOLOGICAL ORDER
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   DAG:                      Topological orderings:
-  A ──→ B ──→ D             A, B, C, D, E
-  │     │                   A, C, B, D, E
-  ↓     ↓                   A, C, B, E, D   (if C→E exists)
-  C ──→ E
+  A ---> B ---> D             A, B, C, D, E
+  |     |                   A, C, B, D, E
+  down     down                   A, C, B, E, D   (if C->E exists)
+  C ---> E
 
   Every directed path respects the ordering
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **For AI:** DAGs are arguably the most important graph type in AI:
@@ -1032,7 +1032,7 @@ DAG AND TOPOLOGICAL ORDER
 
 ```text
 KAHN'S TOPOLOGICAL SORT
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input: DAG G = (V, E)
   1. Compute in-degree of every vertex
@@ -1046,10 +1046,10 @@ KAHN'S TOPOLOGICAL SORT
 
   Time: O(n + m)     Space: O(n)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Unique topological ordering.** A DAG has a unique topological ordering if and only if it has a Hamiltonian path — a path visiting all vertices. Equivalently, at every step of Kahn's algorithm, there is exactly one vertex with in-degree 0.
+**Unique topological ordering.** A DAG has a unique topological ordering if and only if it has a Hamiltonian path - a path visiting all vertices. Equivalently, at every step of Kahn's algorithm, there is exactly one vertex with in-degree 0.
 
 ### 6.5 Planar Graphs
 
@@ -1074,38 +1074,38 @@ $$n - m + f = 2$$
 - $K_{3,3}$ is NOT planar. Check: $n=6$, $m=9$, bipartite bound $9 > 2(6)-4 = 8$. Violated.
 
 ```text
-K₄ PLANAR EMBEDDING
-════════════════════════════════════════════════════════════════════════
+K_4 PLANAR EMBEDDING
+========================================================================
 
   1                       Euler check:
-  ╱│╲                       n = 4 vertices
- ╱ │ ╲                      m = 6 edges
-2──┼──3                     f = 4 faces (3 triangles + outer)
- ╲ │ ╱                      4 - 6 + 4 = 2  ✓
-  ╲│╱
+  /|\                       n = 4 vertices
+ / | \                      m = 6 edges
+2--+--3                     f = 4 faces (3 triangles + outer)
+ \ | /                      4 - 6 + 4 = 2  OK
+  \|/
    4
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** Planar graphs arise in geographic information systems (road networks, administrative boundaries), VLSI circuit design (wires must not cross), and mesh-based physics simulations (finite element methods for weather prediction and fluid dynamics). Graph drawing algorithms that minimise edge crossings are used in knowledge graph visualisation. The planarity constraint is also useful as a sparsity prior — planar graphs are sparse ($m \leq 3n-6$), making them computationally tractable for exact GNN inference.
+**For AI:** Planar graphs arise in geographic information systems (road networks, administrative boundaries), VLSI circuit design (wires must not cross), and mesh-based physics simulations (finite element methods for weather prediction and fluid dynamics). Graph drawing algorithms that minimise edge crossings are used in knowledge graph visualisation. The planarity constraint is also useful as a sparsity prior - planar graphs are sparse ($m \leq 3n-6$), making them computationally tractable for exact GNN inference.
 
 ### 6.6 Hypergraphs
 
-**Definition (Hypergraph).** A *hypergraph* is a pair $H = (V, \mathcal{E})$ where $\mathcal{E} \subseteq 2^V$ is a set of **hyperedges** — each hyperedge is a subset of $V$ that may contain more than 2 vertices.
+**Definition (Hypergraph).** A *hypergraph* is a pair $H = (V, \mathcal{E})$ where $\mathcal{E} \subseteq 2^V$ is a set of **hyperedges** - each hyperedge is a subset of $V$ that may contain more than 2 vertices.
 
 A standard graph is a hypergraph where every hyperedge has exactly 2 vertices.
 
 **Definition ($k$-uniform hypergraph).** A hypergraph where every hyperedge has exactly $k$ vertices. Standard graphs are 2-uniform hypergraphs.
 
-**Example:** In a co-authorship network, a paper with 5 authors creates a 5-element hyperedge connecting all 5 authors simultaneously — this captures the "group" relationship that pairwise edges cannot.
+**Example:** In a co-authorship network, a paper with 5 authors creates a 5-element hyperedge connecting all 5 authors simultaneously - this captures the "group" relationship that pairwise edges cannot.
 
-**Bipartite representation.** Any hypergraph $H = (V, \mathcal{E})$ can be represented as a bipartite graph $B = (V \cup \mathcal{E}, \{(v, e) : v \in e\})$ — one part for vertices, one for hyperedges, with edges representing membership. This is the **incidence graph** of the hypergraph and enables standard graph algorithms to operate on hypergraphs.
+**Bipartite representation.** Any hypergraph $H = (V, \mathcal{E})$ can be represented as a bipartite graph $B = (V \cup \mathcal{E}, \{(v, e) : v \in e\})$ - one part for vertices, one for hyperedges, with edges representing membership. This is the **incidence graph** of the hypergraph and enables standard graph algorithms to operate on hypergraphs.
 
 **For AI:** Hypergraphs naturally model higher-order interactions:
-- **Attention mechanisms** compute interactions over sets of tokens — multi-head attention can be viewed as a learned hypergraph where each attention head defines hyperedges
+- **Attention mechanisms** compute interactions over sets of tokens - multi-head attention can be viewed as a learned hypergraph where each attention head defines hyperedges
 - **Higher-order message passing** in Hypergraph Neural Networks (Feng et al., 2019) propagates messages along hyperedges
-- **Set functions** like DeepSets (Zaheer et al., 2017) process unordered sets — each set is a hyperedge
+- **Set functions** like DeepSets (Zaheer et al., 2017) process unordered sets - each set is a hyperedge
 
 > **Note:** Hypergraph theory is a deep and active research area. This section provides only an introduction. The key takeaway is that standard graphs capture pairwise relationships; hypergraphs capture group relationships.
 
@@ -1123,25 +1123,25 @@ $$G[S] = (S, \{e \in E : e \subseteq S\})$$
 
 The key difference: a subgraph can choose any subset of edges, but an induced subgraph must include ALL edges between vertices in $S$.
 
-**Definition (Spanning Subgraph).** A subgraph $H$ is *spanning* if $V' = V$ — it has the same vertex set as $G$ but possibly fewer edges.
+**Definition (Spanning Subgraph).** A subgraph $H$ is *spanning* if $V' = V$ - it has the same vertex set as $G$ but possibly fewer edges.
 
 ```
 SUBGRAPH vs. INDUCED SUBGRAPH
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Original G:           Subgraph H:         Induced G[{A,B,C}]:
-  A ─── B               A ─── B             A ─── B
-  │╲    │               │                   │╲
-  │  ╲  │               │                   │  ╲
-  D ─── C               D     C             C
+  A --- B               A --- B             A --- B
+  |\    |               |                   |\
+  |  \  |               |                   |  \
+  D --- C               D     C             C
                                              (includes edge A-C
   All edges present      Missing edges OK     because both endpoints
                                               are in {A,B,C})
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI:** Mini-batch training for GNNs works by sampling induced subgraphs. GraphSAGE (Hamilton et al., 2017) samples $k$-hop neighbourhoods as induced subgraphs. The choice between subgraph and induced subgraph affects whether all edges within the sample are preserved — induced subgraphs preserve all local structure.
+**For AI:** Mini-batch training for GNNs works by sampling induced subgraphs. GraphSAGE (Hamilton et al., 2017) samples $k$-hop neighbourhoods as induced subgraphs. The choice between subgraph and induced subgraph affects whether all edges within the sample are preserved - induced subgraphs preserve all local structure.
 
 ### 7.2 Graph Complement
 
@@ -1176,20 +1176,20 @@ $$G_1 \cup G_2 = (V_1 \cup V_2, E_1 \cup E_2)$$
 **Example:** $P_2 \square P_3$ produces a $2 \times 3$ grid graph. The hypercube $Q_n = K_2 \square K_2 \square \cdots \square K_2$ ($n$ times) has $2^n$ vertices and $n$-bit binary strings as vertex labels.
 
 ```text
-CARTESIAN PRODUCT P₂ □ P₃  (2×3 grid)
-════════════════════════════════════════════════════════════════════════
+CARTESIAN PRODUCT P_2 [] P_3  (2\times3 grid)
+========================================================================
 
-  P₂: A─B      P₃: 1─2─3
+  P_2: A-B      P_3: 1-2-3
 
   Product vertices: (A,1), (A,2), (A,3), (B,1), (B,2), (B,3)
 
-  (A,1)─(A,2)─(A,3)    ← copies of P₃ for each vertex of P₂
-    │     │     │
-  (B,1)─(B,2)─(B,3)    ← copies of P₂ for each vertex of P₃
+  (A,1)-(A,2)-(A,3)    <- copies of P_3 for each vertex of P_2
+    |     |     |
+  (B,1)-(B,2)-(B,3)    <- copies of P_2 for each vertex of P_3
 
-  Result: 6 vertices, 7 edges (a 2×3 grid)
+  Result: 6 vertices, 7 edges (a 2\times3 grid)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Properties of graph products:**
@@ -1205,11 +1205,11 @@ where $n = \lvert V_G \rvert$, $m = \lvert V_H \rvert$, $m_G = \lvert E_G \rvert
 
 **Definition (Tensor (Categorical) Product $G_1 \times G_2$).** Vertex set $V_1 \times V_2$. Two vertices $(u_1, u_2)$ and $(v_1, v_2)$ are adjacent if $\{u_1, v_1\} \in E_1$ AND $\{u_2, v_2\} \in E_2$.
 
-**For AI:** Graph products appear in constructing higher-order graph structures. The tensor product of a graph with itself encodes 2-walk patterns: $(A \otimes A)_{(i,j),(k,l)} = A_{ik} \cdot A_{jl}$, counting simultaneous walks. In the theory of GNN expressiveness, the $k$-WL test colours $k$-tuples of vertices — equivalent to operating on the $k$-fold tensor product $G^{\times k}$. Grid graphs (Cartesian products of paths) arise in image processing (pixels as vertices) and in mesh-based physics simulations.
+**For AI:** Graph products appear in constructing higher-order graph structures. The tensor product of a graph with itself encodes 2-walk patterns: $(A \otimes A)_{(i,j),(k,l)} = A_{ik} \cdot A_{jl}$, counting simultaneous walks. In the theory of GNN expressiveness, the $k$-WL test colours $k$-tuples of vertices - equivalent to operating on the $k$-fold tensor product $G^{\times k}$. Grid graphs (Cartesian products of paths) arise in image processing (pixels as vertices) and in mesh-based physics simulations.
 
 ### 7.4 Graph Minor and Subdivision
 
-**Definition (Subdivision).** A *subdivision* of a graph $G$ is obtained by inserting new vertices into edges — replacing edge $\{u,v\}$ with a path $u{-}w_1{-}w_2{-}\cdots{-}v$.
+**Definition (Subdivision).** A *subdivision* of a graph $G$ is obtained by inserting new vertices into edges - replacing edge $\{u,v\}$ with a path $u{-}w_1{-}w_2{-}\cdots{-}v$.
 
 **Definition (Graph Minor).** A graph $H$ is a *minor* of $G$ if $H$ can be obtained from $G$ by a sequence of vertex deletions, edge deletions, and edge contractions. Edge contraction merges two adjacent vertices into one.
 
@@ -1217,7 +1217,7 @@ where $n = \lvert V_G \rvert$, $m = \lvert V_H \rvert$, $m_G = \lvert E_G \rvert
 
 This is one of the deepest results in graph theory, proved over 20 papers spanning 1983-2004. Kuratowski's planarity theorem is a special case: planarity is characterised by two forbidden minors ($K_5$ and $K_{3,3}$).
 
-**For AI:** Graph minor theory is primarily of theoretical interest in AI, but it provides the foundation for treewidth — a measure of how "tree-like" a graph is. Many NP-hard graph problems become polynomial-time on graphs of bounded treewidth, which is exploited in exact inference for probabilistic graphical models.
+**For AI:** Graph minor theory is primarily of theoretical interest in AI, but it provides the foundation for treewidth - a measure of how "tree-like" a graph is. Many NP-hard graph problems become polynomial-time on graphs of bounded treewidth, which is exploited in exact inference for probabilistic graphical models.
 
 ### 7.5 Line Graphs
 
@@ -1225,7 +1225,7 @@ This is one of the deepest results in graph theory, proved over 20 papers spanni
 
 $$V(L(G)) = E(G), \quad \{e_1, e_2\} \in E(L(G)) \iff e_1 \cap e_2 \neq \emptyset$$
 
-**Example:** If $G$ is the path $1{-}2{-}3{-}4$ with edges $a = \{1,2\}$, $b = \{2,3\}$, $c = \{3,4\}$, then $L(G)$ has vertices $\{a,b,c\}$ with edges $\{a,b\}$ and $\{b,c\}$ — another path!
+**Example:** If $G$ is the path $1{-}2{-}3{-}4$ with edges $a = \{1,2\}$, $b = \{2,3\}$, $c = \{3,4\}$, then $L(G)$ has vertices $\{a,b,c\}$ with edges $\{a,b\}$ and $\{b,c\}$ - another path!
 
 **Properties:**
 - $|V(L(G))| = |E(G)|$
@@ -1244,31 +1244,31 @@ $$V(L(G)) = E(G), \quad \{e_1, e_2\} \in E(L(G)) \iff e_1 \cap e_2 \neq \emptyse
 
 $$\{u, v\} \in E_1 \iff \{\phi(u), \phi(v)\} \in E_2$$
 
-The bijection $\phi$ is called an *isomorphism*. Intuitively, two graphs are isomorphic if they have the same structure — the same connectivity pattern — just with different vertex labels.
+The bijection $\phi$ is called an *isomorphism*. Intuitively, two graphs are isomorphic if they have the same structure - the same connectivity pattern - just with different vertex labels.
 
 ```
 GRAPH ISOMORPHISM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  G₁:             G₂:              Isomorphism φ:
-  A ─── B         1 ─── 3          A ↦ 1
-  │     │         │     │          B ↦ 3
-  │     │         │     │          C ↦ 4
-  D ─── C         2 ─── 4          D ↦ 2
+  G_1:             G_2:              Isomorphism \phi:
+  A --- B         1 --- 3          A -> 1
+  |     |         |     |          B -> 3
+  |     |         |     |          C -> 4
+  D --- C         2 --- 4          D -> 2
 
-  Same structure (cycle C₄), different labels
+  Same structure (cycle C_4), different labels
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Verifying an isomorphism — worked example.**
+**Verifying an isomorphism - worked example.**
 
 ```text
-G₁:           G₂:           Claimed isomorphism φ:
-A ─── B        1 ─── 3        A ↦ 1,  B ↦ 3
-│     │        │     │        C ↦ 4,  D ↦ 2
-│     │        │     │
-D ─── C        2 ─── 4
+G_1:           G_2:           Claimed isomorphism \phi:
+A --- B        1 --- 3        A -> 1,  B -> 3
+|     |        |     |        C -> 4,  D -> 2
+|     |        |     |
+D --- C        2 --- 4
 ```
 
 Verify: for each edge in $G_1$, check that its image is an edge in $G_2$:
@@ -1323,23 +1323,23 @@ Here $\{\!\{\cdot\}\!\}$ denotes a multiset (a set with multiplicities).
 
 ```
 1-WL COLOR REFINEMENT EXAMPLE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Graph G:                  Iteration 0:    Iteration 1:
-  A ─── B                   All vertices    A: (1, {1,1}) → colour 2
-  │     │                   colour 1        B: (1, {1,1}) → colour 2
-  │     │                                   C: (1, {1,1}) → colour 2
-  D ─── C                                   D: (1, {1,1}) → colour 2
+  A --- B                   All vertices    A: (1, {1,1}) -> colour 2
+  |     |                   colour 1        B: (1, {1,1}) -> colour 2
+  |     |                                   C: (1, {1,1}) -> colour 2
+  D --- C                                   D: (1, {1,1}) -> colour 2
 
-  All vertices get the same colour → 1-WL cannot distinguish
-  vertices in a regular graph after iteration 1 (for C₄)
+  All vertices get the same colour -> 1-WL cannot distinguish
+  vertices in a regular graph after iteration 1 (for C_4)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Theorem (Xu et al., 2019; Morris et al., 2019).** Message-passing GNNs are AT MOST as powerful as the 1-WL test. That is, if 1-WL cannot distinguish two graphs, no message-passing GNN can distinguish them either.
 
-Conversely, there exist GNN architectures (GIN — Graph Isomorphism Network, Xu et al., 2019) that are exactly as powerful as 1-WL.
+Conversely, there exist GNN architectures (GIN - Graph Isomorphism Network, Xu et al., 2019) that are exactly as powerful as 1-WL.
 
 **The $k$-WL hierarchy.** The $k$-dimensional WL test ($k$-WL) colours $k$-tuples of vertices rather than individual vertices. Higher $k$ gives strictly more distinguishing power:
 
@@ -1353,25 +1353,25 @@ Higher-order GNNs (Morris et al., 2019) achieve $k$-WL power but at $O(n^k)$ com
 - Some graph structures (e.g., distinguishing regular graphs of the same degree) are provably beyond standard GNNs
 - To exceed 1-WL power, we need architectural innovations: higher-order message passing, random features, subgraph counting, or graph transformers
 
-**What 1-WL cannot distinguish — a concrete example.**
+**What 1-WL cannot distinguish - a concrete example.**
 
 ```text
-Graph G₁ (two triangles sharing no vertex):    Graph G₂ (one 6-cycle):
+Graph G_1 (two triangles sharing no vertex):    Graph G_2 (one 6-cycle):
 
-  1 ─ 2       4 ─ 5                             1 ─ 2
-  │   │       │   │                             │   │
-  3 ──┘       6 ──┘                             6   3
-                                                │   │
-                                                5 ─ 4
+  1 - 2       4 - 5                             1 - 2
+  |   |       |   |                             |   |
+  3 --+       6 --+                             6   3
+                                                |   |
+                                                5 - 4
 ```
 
-Both graphs: 6 vertices, 6 edges, all degrees = 2 (2-regular). The 1-WL test assigns the same colour to all vertices in both graphs at every iteration — it cannot distinguish them. But they are NOT isomorphic: $G_1$ has two components ($C_3 \cup C_3$) while $G_2$ is connected ($C_6$). A standard message-passing GNN also cannot distinguish these two graphs!
+Both graphs: 6 vertices, 6 edges, all degrees = 2 (2-regular). The 1-WL test assigns the same colour to all vertices in both graphs at every iteration - it cannot distinguish them. But they are NOT isomorphic: $G_1$ has two components ($C_3 \cup C_3$) while $G_2$ is connected ($C_6$). A standard message-passing GNN also cannot distinguish these two graphs!
 
 **The Graph Isomorphism Network (GIN, Xu et al., 2019).** GIN achieves 1-WL expressiveness by using the aggregation:
 
 $$\mathbf{h}_v^{(k)} = \operatorname{MLP}^{(k)}\!\left((1 + \varepsilon^{(k)}) \cdot \mathbf{h}_v^{(k-1)} + \sum_{u \in \mathcal{N}(v)} \mathbf{h}_u^{(k-1)}\right)$$
 
-The sum aggregator (not mean or max) is critical — it preserves multiset information about neighbour counts, which is equivalent to the multiset hashing in 1-WL.
+The sum aggregator (not mean or max) is critical - it preserves multiset information about neighbour counts, which is equivalent to the multiset hashing in 1-WL.
 
 ### 8.4 Graph Automorphisms
 
@@ -1380,13 +1380,13 @@ The sum aggregator (not mean or max) is critical — it preserves multiset infor
 **Definition (Automorphism Group).** The set of all automorphisms of $G$ forms a group under composition, denoted $\operatorname{Aut}(G)$.
 
 **Examples:**
-- $\operatorname{Aut}(K_n) = S_n$ (the symmetric group — any permutation preserves complete adjacency)
-- $\operatorname{Aut}(C_n) = D_n$ (the dihedral group — rotations and reflections of the cycle)
+- $\operatorname{Aut}(K_n) = S_n$ (the symmetric group - any permutation preserves complete adjacency)
+- $\operatorname{Aut}(C_n) = D_n$ (the dihedral group - rotations and reflections of the cycle)
 - $\operatorname{Aut}(P_n) = \mathbb{Z}_2$ for $n \geq 2$ (only the identity and reversal)
 
-**Definition (Orbit).** The *orbit* of a vertex $v$ under $\operatorname{Aut}(G)$ is $\{\phi(v) : \phi \in \operatorname{Aut}(G)\}$ — the set of vertices that $v$ can be mapped to. Vertices in the same orbit are "structurally equivalent."
+**Definition (Orbit).** The *orbit* of a vertex $v$ under $\operatorname{Aut}(G)$ is $\{\phi(v) : \phi \in \operatorname{Aut}(G)\}$ - the set of vertices that $v$ can be mapped to. Vertices in the same orbit are "structurally equivalent."
 
-**For AI:** Automorphisms represent graph symmetries. A GNN that is permutation-equivariant respects all graph automorphisms: if two vertices are in the same orbit (structurally identical), the GNN assigns them the same representation (in the absence of distinguishing node features). This is why 1-WL (and standard GNNs) assign the same colour to all vertices in a regular graph — they are all in the same automorphism orbit.
+**For AI:** Automorphisms represent graph symmetries. A GNN that is permutation-equivariant respects all graph automorphisms: if two vertices are in the same orbit (structurally identical), the GNN assigns them the same representation (in the absence of distinguishing node features). This is why 1-WL (and standard GNNs) assign the same colour to all vertices in a regular graph - they are all in the same automorphism orbit.
 
 ### 8.5 Graph Motifs
 
@@ -1451,10 +1451,10 @@ $$C_{\text{global}} = \frac{3 \times \text{number of triangles}}{\text{number of
 
 | Graph | $\chi(G)$ | Reason |
 |-------|----------|--------|
-| $K_n$ | $n$ | Every pair adjacent — all need different colours |
-| $\bar{K}_n$ (empty) | $1$ | No adjacencies — one colour suffices |
-| $C_n$ ($n$ even) | $2$ | Bipartite — alternate two colours |
-| $C_n$ ($n$ odd) | $3$ | Not bipartite — need one extra colour |
+| $K_n$ | $n$ | Every pair adjacent - all need different colours |
+| $\bar{K}_n$ (empty) | $1$ | No adjacencies - one colour suffices |
+| $C_n$ ($n$ even) | $2$ | Bipartite - alternate two colours |
+| $C_n$ ($n$ odd) | $3$ | Not bipartite - need one extra colour |
 | Tree | $2$ | Bipartite (no odd cycles) |
 | Petersen graph | $3$ | 3-regular, girth 5 |
 | Planar graph | $\leq 4$ | Four colour theorem |
@@ -1462,19 +1462,19 @@ $$C_{\text{global}} = \frac{3 \times \text{number of triangles}}{\text{number of
 **Greedy Coloring Algorithm.** Process vertices in some order. Assign each vertex the smallest colour not used by any of its already-coloured neighbours. This uses at most $\Delta(G) + 1$ colours, where $\Delta(G) = \max_v \deg(v)$.
 
 ```text
-GREEDY COLORING EXAMPLE (path 1─2─3─4─5)
-════════════════════════════════════════════════════════════════════════
+GREEDY COLORING EXAMPLE (path 1-2-3-4-5)
+========================================================================
 
   Process in order 1,2,3,4,5:
-  Vertex 1: neighbours = {}        → colour 1    (first available)
-  Vertex 2: neighbours = {1:red}   → colour 2    (red used)
-  Vertex 3: neighbours = {2:blue}  → colour 1    (blue used, red free)
-  Vertex 4: neighbours = {3:red}   → colour 2    (red used)
-  Vertex 5: neighbours = {4:blue}  → colour 1    (blue used, red free)
+  Vertex 1: neighbours = {}        -> colour 1    (first available)
+  Vertex 2: neighbours = {1:red}   -> colour 2    (red used)
+  Vertex 3: neighbours = {2:blue}  -> colour 1    (blue used, red free)
+  Vertex 4: neighbours = {3:red}   -> colour 2    (red used)
+  Vertex 5: neighbours = {4:blue}  -> colour 1    (blue used, red free)
 
-  Result: 2 colours (optimal — path is bipartite)
+  Result: 2 colours (optimal - path is bipartite)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Lower bounds on $\chi(G)$:**
@@ -1499,12 +1499,12 @@ where $G - e$ is $G$ with edge $e$ deleted and $G / e$ is $G$ with edge $e$ cont
 
 **Examples:**
 - $P(K_n, k) = k(k-1)(k-2)\cdots(k-n+1) = k^{(n)}$ (falling factorial)
-- $P(\bar{K}_n, k) = k^n$ (no constraints — each vertex independently chooses from $k$ colours)
+- $P(\bar{K}_n, k) = k^n$ (no constraints - each vertex independently chooses from $k$ colours)
 - $P(T, k) = k(k-1)^{n-1}$ for any tree $T$ on $n$ vertices
 
-**Note:** $\chi(G) = \min\{k : P(G, k) > 0\}$ — the chromatic number is the smallest $k$ for which the chromatic polynomial is positive.
+**Note:** $\chi(G) = \min\{k : P(G, k) > 0\}$ - the chromatic number is the smallest $k$ for which the chromatic polynomial is positive.
 
-**Worked example — computing $P(C_3, k)$ by deletion-contraction.**
+**Worked example - computing $P(C_3, k)$ by deletion-contraction.**
 
 $C_3$ is the triangle graph with vertices $\{1,2,3\}$ and edges $e_{12}, e_{23}, e_{13}$.
 
@@ -1544,18 +1544,18 @@ $$P(C_3, k) = P(P_3, k) - P(K_2, k) = k(k-1)^2 - k(k-1) = k(k-1)(k-2)$$
 
 This theorem is historically significant for two reasons:
 
-1. It was the first major mathematical theorem proved with computer assistance — the proof required checking ~1,500 configurations by computer.
+1. It was the first major mathematical theorem proved with computer assistance - the proof required checking ~1,500 configurations by computer.
 2. It resolved a conjecture open since 1852 (124 years!).
 
 The proof was controversial when published because mathematicians could not verify it by hand. A simplified computer-assisted proof was given by Robertson, Sanders, Seymour, and Thomas (1997), and the result has been formally verified in the Coq proof assistant (Gonthier, 2008).
 
-**Proof idea (Kempe chains, 1879 — flawed but instructive).** Kempe attempted to prove the theorem using "Kempe chains" — maximal connected subgraphs in which only two colours appear. His proof had a flaw (found by Heawood in 1890), but Kempe chains remain a key tool in coloring proofs.
+**Proof idea (Kempe chains, 1879 - flawed but instructive).** Kempe attempted to prove the theorem using "Kempe chains" - maximal connected subgraphs in which only two colours appear. His proof had a flaw (found by Heawood in 1890), but Kempe chains remain a key tool in coloring proofs.
 
 **Five Color Theorem (Kempe/Heawood, 1890).** Every planar graph is 5-colorable. This weaker result is provable by hand:
 
 *Proof sketch.* By induction on $n$. A planar graph on $n \geq 6$ vertices has a vertex $v$ of degree $\leq 5$ (since $m \leq 3n - 6$ implies average degree $< 6$). Remove $v$, 5-color the rest by induction, then try to restore $v$. If its $\leq 5$ neighbours use $\leq 4$ distinct colours, $v$ gets the 5th colour. The key case (5 neighbours using all 5 colours) is handled by a Kempe chain argument. $\square$
 
-**Note:** 4 colours are sometimes necessary — $K_4$ is planar and needs 4 colours. But three colours suffice for most "practical" planar graphs (outerplanar graphs, for example, are always 3-colorable).
+**Note:** 4 colours are sometimes necessary - $K_4$ is planar and needs 4 colours. But three colours suffice for most "practical" planar graphs (outerplanar graphs, for example, are always 3-colorable).
 
 ### 9.4 Coloring in AI
 
@@ -1588,7 +1588,7 @@ This section provides brief pointers to the remaining subsections in the Graph T
 > Sparse Row) combines the benefits of both for sparse graphs and is the standard in
 > large-scale GNN frameworks.
 >
-> → _Full treatment: [Graph Representations](../02-Graph-Representations/notes.md)_
+> -> _Full treatment: [Graph Representations](../02-Graph-Representations/notes.md)_
 
 ### 10.2 Graph Algorithms (Preview)
 
@@ -1600,7 +1600,7 @@ This section provides brief pointers to the remaining subsections in the Graph T
 > finds shortest paths in weighted graphs. **Minimum spanning tree** algorithms (Prim, Kruskal)
 > find the cheapest connected spanning subgraph.
 >
-> → _Full treatment: [Graph Algorithms](../03-Graph-Algorithms/notes.md)_
+> -> _Full treatment: [Graph Algorithms](../03-Graph-Algorithms/notes.md)_
 
 ### 10.3 Spectral Graph Theory (Preview)
 
@@ -1613,7 +1613,7 @@ This section provides brief pointers to the remaining subsections in the Graph T
 > graph bipartition, forming the basis of spectral clustering. The Cheeger inequality
 > connects the algebraic spectrum to combinatorial expansion.
 >
-> → _Full treatment: [Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)_
+> -> _Full treatment: [Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)_
 
 ### 10.4 Graph Neural Networks (Preview)
 
@@ -1624,9 +1624,9 @@ This section provides brief pointers to the remaining subsections in the Graph T
 > The Graph Convolutional Network (GCN, Kipf & Welling, 2017) uses the normalised adjacency
 > matrix: $H^{(l+1)} = \sigma(\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}H^{(l)}W^{(l)})$.
 > Graph Attention Networks (GAT) learn edge weights dynamically. The expressiveness of
-> message-passing GNNs is bounded by the 1-WL test (§8.3).
+> message-passing GNNs is bounded by the 1-WL test (8.3).
 >
-> → _Full treatment: [Graph Neural Networks](../05-Graph-Neural-Networks/notes.md)_
+> -> _Full treatment: [Graph Neural Networks](../05-Graph-Neural-Networks/notes.md)_
 
 ### 10.5 Random Graphs (Preview)
 
@@ -1638,7 +1638,7 @@ This section provides brief pointers to the remaining subsections in the Graph T
 > via preferential attachment. The **Watts-Strogatz model** produces small-world graphs with
 > high clustering and short diameters.
 >
-> → _Full treatment: [Random Graphs](../06-Random-Graphs/notes.md)_
+> -> _Full treatment: [Random Graphs](../06-Random-Graphs/notes.md)_
 
 ---
 
@@ -1655,26 +1655,26 @@ This section provides brief pointers to the remaining subsections in the Graph T
 | 7 | Treating graph complement as "flipping edges" | The complement removes existing edges AND adds all missing edges. It's not "toggle each edge" unless you mean exactly that (which IS the complement). | $\bar{G}$ has edge $\{u,v\}$ iff $G$ does NOT have edge $\{u,v\}$. |
 | 8 | Assuming GNNs can distinguish any two non-isomorphic graphs | Message-passing GNNs are bounded by 1-WL. They fail on regular graphs of the same degree and many other cases. | Use 1-WL as the upper bound. For tasks requiring more power, consider higher-order GNNs or graph transformers. |
 | 9 | Counting edges in $K_n$ as $n^2$ | $K_n$ has $\binom{n}{2} = n(n-1)/2$ edges, not $n^2$. The adjacency matrix has $n^2$ entries but is symmetric with zero diagonal. | Use the formula $\binom{n}{2}$ for undirected, $n(n-1)$ for directed complete graphs. |
-| 10 | Forgetting the handshaking lemma when debugging graph code | If your computed degree sum is odd, the graph is invalid — odd degree sums are impossible. | Always verify $\sum \deg(v) = 2|E|$ as a sanity check after graph construction. |
+| 10 | Forgetting the handshaking lemma when debugging graph code | If your computed degree sum is odd, the graph is invalid - odd degree sums are impossible. | Always verify $\sum \deg(v) = 2|E|$ as a sanity check after graph construction. |
 
 ---
 
 ## 12. Exercises
 
-**Exercise 1** ★ — Handshaking Lemma Verification
+**Exercise 1** * - Handshaking Lemma Verification
 
 Construct three specific graphs (your choice of vertex/edge sets) and verify the handshaking lemma $\sum \deg(v) = 2|E|$ for each.
 (a) A graph with 5 vertices and 7 edges.
-(b) A directed graph with 4 vertices — verify $\sum \deg^+ = \sum \deg^- = |E|$.
-(c) A bipartite graph $K_{3,4}$ — compute degrees of both sides.
+(b) A directed graph with 4 vertices - verify $\sum \deg^+ = \sum \deg^- = |E|$.
+(c) A bipartite graph $K_{3,4}$ - compute degrees of both sides.
 
-**Exercise 2** ★ — Degree Sequences and Graphicality
+**Exercise 2** * - Degree Sequences and Graphicality
 
 (a) Determine whether each sequence is graphic (can be realised as a simple graph): $(4, 3, 3, 2, 2)$, $(3, 3, 3, 1)$, $(5, 3, 2, 2, 2, 2)$.
 (b) For each graphic sequence, construct a graph that realises it.
 (c) Implement the Erdos-Gallai test programmatically.
 
-**Exercise 3** ★ — Paths, Cycles, and Distance
+**Exercise 3** * - Paths, Cycles, and Distance
 
 Given the Petersen graph (look up its edge list):
 (a) Find all shortest paths from vertex 0 to vertex 5.
@@ -1682,33 +1682,33 @@ Given the Petersen graph (look up its edge list):
 (c) Verify the girth is 5 by finding a shortest cycle.
 (d) Show that the Petersen graph has no Hamiltonian cycle (explain why, or try exhaustive search).
 
-**Exercise 4** ★★ — Tree Equivalences
+**Exercise 4** ** - Tree Equivalences
 
 (a) Prove that if $G$ is connected and has exactly $n - 1$ edges, then $G$ is acyclic.
 (b) Prove that in a tree, there is exactly one path between every pair of vertices.
 (c) Compute the number of spanning trees of $K_4$ using Kirchhoff's matrix tree theorem ($\det$ of any cofactor of $L$) and verify against Cayley's formula $4^{4-2} = 16$.
 
-**Exercise 5** ★★ — Bipartiteness Testing
+**Exercise 5** ** - Bipartiteness Testing
 
 (a) Implement a BFS-based algorithm to test whether a graph is bipartite.
 (b) If bipartite, output the bipartition $(U, W)$.
 (c) If not bipartite, output an odd cycle as a certificate.
 (d) Test on: $C_6$ (bipartite), $C_7$ (not bipartite), Petersen (not bipartite), $K_{3,3}$ (bipartite).
 
-**Exercise 6** ★★ — Graph Distance and Eccentricity
+**Exercise 6** ** - Graph Distance and Eccentricity
 
 (a) Compute the all-pairs shortest path distance matrix for a given graph using BFS.
 (b) From the distance matrix, compute eccentricity, diameter, radius, and center.
 (c) Verify: for any connected graph, $\operatorname{rad}(G) \leq \operatorname{diam}(G) \leq 2 \cdot \operatorname{rad}(G)$.
 
-**Exercise 7** ★★★ — Weisfeiler-Leman Test and GNN Expressiveness
+**Exercise 7** *** - Weisfeiler-Leman Test and GNN Expressiveness
 
 (a) Implement the 1-WL color refinement algorithm.
 (b) Run it on two non-isomorphic 3-regular graphs on 6 vertices. Does 1-WL distinguish them?
 (c) Construct a pair of non-isomorphic graphs that 1-WL CANNOT distinguish (hint: use two regular graphs with the same degree sequence and spectrum).
 (d) Explain why this means a standard message-passing GNN cannot distinguish them either.
 
-**Exercise 8** ★★★ — Real-World Graph Analysis
+**Exercise 8** *** - Real-World Graph Analysis
 
 Model a real-world system as a graph and analyse it:
 (a) Choose a domain: social network (use Zachary's karate club), citation network, molecular graph, or small knowledge graph.
@@ -1745,46 +1745,46 @@ Model a real-world system as a graph and analyse it:
 This section builds on the mathematical foundations established in earlier chapters:
 
 - **Sets and functions** (Ch. 01) provide the language for defining vertex sets, edge sets, and the mappings (isomorphisms, colourings) between them
-- **Matrix operations** (Ch. 02) connect through the adjacency matrix $A$ — the handshaking lemma is $\mathbf{1}^\top A \mathbf{1} = 2|E|$, and walk counting uses matrix powers $A^k$
-- **Eigenvalues** (Ch. 03) will become central in the next section — the spectrum of $A$ and $L$ encodes deep structural information about the graph
+- **Matrix operations** (Ch. 02) connect through the adjacency matrix $A$ - the handshaking lemma is $\mathbf{1}^\top A \mathbf{1} = 2|E|$, and walk counting uses matrix powers $A^k$
+- **Eigenvalues** (Ch. 03) will become central in the next section - the spectrum of $A$ and $L$ encodes deep structural information about the graph
 
 ### Looking Forward
 
 The vocabulary and theory developed here is the foundation for the rest of the Graph Theory chapter:
 
-- **§02 Graph Representations** takes the abstract objects defined here (adjacency, degree, connectivity) and asks: how do we store them in memory?
-- **§03 Graph Algorithms** provides efficient algorithms for computing the properties defined here: BFS for distance, DFS for connectivity, Dijkstra for weighted shortest paths
-- **§04 Spectral Graph Theory** analyses the eigenvalues of $A$, $D$, and $L$ — connecting the combinatorial properties (connectivity, bipartiteness, clustering) to algebraic properties (spectrum)
-- **§05 Graph Neural Networks** builds learnable functions on graphs, with the message-passing paradigm directly implementing walk-based aggregation on the structures defined here
-- **§06 Random Graphs** asks: what happens when edges are drawn randomly? The degree sequences, connectivity thresholds, and component structure we defined here become probabilistic phenomena
+- **02 Graph Representations** takes the abstract objects defined here (adjacency, degree, connectivity) and asks: how do we store them in memory?
+- **03 Graph Algorithms** provides efficient algorithms for computing the properties defined here: BFS for distance, DFS for connectivity, Dijkstra for weighted shortest paths
+- **04 Spectral Graph Theory** analyses the eigenvalues of $A$, $D$, and $L$ - connecting the combinatorial properties (connectivity, bipartiteness, clustering) to algebraic properties (spectrum)
+- **05 Graph Neural Networks** builds learnable functions on graphs, with the message-passing paradigm directly implementing walk-based aggregation on the structures defined here
+- **06 Random Graphs** asks: what happens when edges are drawn randomly? The degree sequences, connectivity thresholds, and component structure we defined here become probabilistic phenomena
 
 ### The Big Picture
 
 ```
 GRAPH BASICS IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Ch.01 Sets & Logic ──────────→ Vertex sets, edge sets, mappings
-           │
-  Ch.02 Linear Algebra ────────→ Adjacency matrix, degree matrix
-           │
-           ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │                  §01 GRAPH BASICS                        │
-  │   Definitions · Degree · Paths · Connectivity · Trees    │
-  │   Bipartite · Coloring · Isomorphism · WL Test           │
-  └───────┬───────────┬───────────┬───────────┬─────────────┘
-          │           │           │           │
-          ▼           ▼           ▼           ▼
-       §02          §03        §04         §05
+  Ch.01 Sets & Logic -----------> Vertex sets, edge sets, mappings
+           |
+  Ch.02 Linear Algebra ---------> Adjacency matrix, degree matrix
+           |
+           v
+  +---------------------------------------------------------+
+  |                  01 GRAPH BASICS                        |
+  |   Definitions * Degree * Paths * Connectivity * Trees    |
+  |   Bipartite * Coloring * Isomorphism * WL Test           |
+  +-------+-----------+-----------+-----------+-------------+
+          |           |           |           |
+          v           v           v           v
+       02          03        04         05
     Represent.   Algorithms   Spectral     GNNs
     (storage)   (BFS, DFS)  (eigenvals)  (learning)
-                                           │
-                                           ▼
-                                    §06 Random Graphs
+                                           |
+                                           v
+                                    06 Random Graphs
                                     (probabilistic)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1813,7 +1813,7 @@ The table below collects the key formulas and algorithms from this section for f
 | Graph Laplacian | $L = D - A$ | $D = \operatorname{diag}(A\mathbf{1})$ |
 | Normalised Laplacian | $L_{\text{sym}} = I - D^{-1/2}AD^{-1/2}$ | Eigenvalues in $[0, 2]$ |
 
-### 15.3 Graph Properties — Decision Table
+### 15.3 Graph Properties - Decision Table
 
 | Property | Algorithm | Time complexity |
 |----------|-----------|----------------|
@@ -1868,39 +1868,39 @@ This section covered the full vocabulary of graph theory needed to read modern G
 
 - The *Weisfeiler-Leman test* (1-WL) is the provable upper bound on the expressiveness of all message-passing GNNs, showing that structural indistinguishability in WL implies indistinguishability by GNNs.
 - *Graph motifs* (triangles, stars, paths) are the structural units that standard GNNs cannot count, motivating expressiveness research.
-- *Graph isomorphism*, *automorphisms*, and *invariants* formalise what it means for a graph function to be permutation-invariant — the foundational requirement for graph-level prediction.
+- *Graph isomorphism*, *automorphisms*, and *invariants* formalise what it means for a graph function to be permutation-invariant - the foundational requirement for graph-level prediction.
 
 The **theory notebook** works through all matrix computations, proofs, and visualisations in executable Python. The **exercises notebook** provides graded practice from basic degree calculations to proving WL indistinguishability of specific graph pairs.
 
-**The single most important takeaway:** graphs are simultaneously combinatorial objects (studied via degree, paths, cycles), algebraic objects (studied via matrices and polynomials), and computational objects (studied via algorithms and complexity). GNNs sit at the intersection of all three perspectives — they are learned functions that respect the algebraic symmetries of graphs while computing efficiently on the combinatorial structure. Every concept in this section reappears in that context.
+**The single most important takeaway:** graphs are simultaneously combinatorial objects (studied via degree, paths, cycles), algebraic objects (studied via matrices and polynomials), and computational objects (studied via algorithms and complexity). GNNs sit at the intersection of all three perspectives - they are learned functions that respect the algebraic symmetries of graphs while computing efficiently on the combinatorial structure. Every concept in this section reappears in that context.
 
 ---
 
-<!-- End of §01 Graph Basics main content. See theory.ipynb for executable proofs and exercises.ipynb for graded problems. -->
+<!-- End of 01 Graph Basics main content. See theory.ipynb for executable proofs and exercises.ipynb for graded problems. -->
 
 ## 17. Further Reading
 
 ### Foundational Texts
 
-- **Diestel, R.** *Graph Theory* (5th ed., 2017) — The standard graduate reference. Free PDF at [diestel-graph-theory.com](http://diestel-graph-theory.com). Chapters 1–2 cover the material in this section with full proofs.
-- **West, D.** *Introduction to Graph Theory* (2nd ed., 2001) — Excellent undergraduate text with many exercises. Chapters 1 (Fundamental Concepts) and 2 (Trees and Distance) map directly to §01.
-- **Bondy, J. A. and Murty, U. S. R.** *Graph Theory* (2008, Springer GTM) — Comprehensive coverage including extremal graph theory and Ramsey theory.
+- **Diestel, R.** *Graph Theory* (5th ed., 2017) - The standard graduate reference. Free PDF at [diestel-graph-theory.com](http://diestel-graph-theory.com). Chapters 1-2 cover the material in this section with full proofs.
+- **West, D.** *Introduction to Graph Theory* (2nd ed., 2001) - Excellent undergraduate text with many exercises. Chapters 1 (Fundamental Concepts) and 2 (Trees and Distance) map directly to 01.
+- **Bondy, J. A. and Murty, U. S. R.** *Graph Theory* (2008, Springer GTM) - Comprehensive coverage including extremal graph theory and Ramsey theory.
 
 ### For the AI/ML Connection
 
-- **Hamilton, W. L.** *Graph Representation Learning* (2020, Synthesis Lectures) — The definitive ML-focused introduction. Chapter 2 covers graph basics from an ML perspective. Free draft at cs.mcgill.ca/~wlh/grl_book/.
-- **Xu, K. et al.** "How Powerful are Graph Neural Networks?" *ICLR 2019* — Establishes the 1-WL upper bound on message-passing GNNs. Essential reading before implementing GNNs.
-- **Bronstein, M. et al.** "Geometric Deep Learning: Grids, Groups, Graphs, Geodesics, and Gauges" *arXiv 2021* — Places graphs in the broader context of geometric priors in ML (symmetry, equivariance).
+- **Hamilton, W. L.** *Graph Representation Learning* (2020, Synthesis Lectures) - The definitive ML-focused introduction. Chapter 2 covers graph basics from an ML perspective. Free draft at cs.mcgill.ca/~wlh/grl_book/.
+- **Xu, K. et al.** "How Powerful are Graph Neural Networks?" *ICLR 2019* - Establishes the 1-WL upper bound on message-passing GNNs. Essential reading before implementing GNNs.
+- **Bronstein, M. et al.** "Geometric Deep Learning: Grids, Groups, Graphs, Geodesics, and Gauges" *arXiv 2021* - Places graphs in the broader context of geometric priors in ML (symmetry, equivariance).
 
 ### Historical Papers
 
-- **Euler, L.** "Solutio problematis ad geometriam situs pertinentis" (1736) — The Königsberg bridges paper: the first graph theory result.
-- **Erdős, P. and Rényi, A.** "On Random Graphs I" *Publicationes Mathematicae* (1959) — Founding paper of random graph theory; introduces the $G(n,p)$ model studied in §06.
-- **Appel, K. and Haken, W.** "Every planar map is four colorable" *Illinois J. Math.* (1977) — The first major computer-assisted proof in mathematics.
+- **Euler, L.** "Solutio problematis ad geometriam situs pertinentis" (1736) - The Konigsberg bridges paper: the first graph theory result.
+- **Erdos, P. and Renyi, A.** "On Random Graphs I" *Publicationes Mathematicae* (1959) - Founding paper of random graph theory; introduces the $G(n,p)$ model studied in 06.
+- **Appel, K. and Haken, W.** "Every planar map is four colorable" *Illinois J. Math.* (1977) - The first major computer-assisted proof in mathematics.
 
 ---
 
-[← Back to Graph Theory](../README.md) | [Next: Graph Representations →](../02-Graph-Representations/notes.md)
+[<- Back to Graph Theory](../README.md) | [Next: Graph Representations ->](../02-Graph-Representations/notes.md)
 
 ---
 
@@ -1984,7 +1984,7 @@ A quick-reference table for the notation used throughout this section and the re
 
 ---
 
-## Appendix C: Common Graph Families — Properties at a Glance
+## Appendix C: Common Graph Families - Properties at a Glance
 
 | Graph | $n$ | $m$ | Regular? | Bipartite? | Planar? | $\chi$ | Diameter |
 |-------|-----|-----|----------|-----------|---------|--------|---------|

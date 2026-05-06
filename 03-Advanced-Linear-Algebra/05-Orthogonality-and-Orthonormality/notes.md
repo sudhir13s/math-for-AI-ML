@@ -1,25 +1,25 @@
-[← Back to Advanced Linear Algebra](../README.md) | [← Linear Transformations](../04-Linear-Transformations/notes.md) | [Matrix Norms →](../06-Matrix-Norms/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- Linear Transformations](../04-Linear-Transformations/notes.md) | [Matrix Norms ->](../06-Matrix-Norms/notes.md)
 
 ---
 
 # Orthogonality and Orthonormality
 
-> _"Orthogonality is the single most important idea in applied mathematics. When things are perpendicular, they don't interfere with each other — and that's the key to making computation tractable."_
+> _"Orthogonality is the single most important idea in applied mathematics. When things are perpendicular, they don't interfere with each other - and that's the key to making computation tractable."_
 
 ## Overview
 
-Orthogonality is the mathematical formalization of "not interfering." When two vectors are orthogonal, they carry completely independent information. When a set of basis vectors is orthonormal, coordinates can be computed by simple dot products. When a matrix is orthogonal, it preserves lengths and angles — it cannot distort or amplify errors.
+Orthogonality is the mathematical formalization of "not interfering." When two vectors are orthogonal, they carry completely independent information. When a set of basis vectors is orthonormal, coordinates can be computed by simple dot products. When a matrix is orthogonal, it preserves lengths and angles - it cannot distort or amplify errors.
 
-This section develops the full theory of orthogonality from first principles. We begin with the geometric intuition — right angles, projections, and the remarkable simplification that occurs when bases are orthonormal. We then build the formal machinery: Gram-Schmidt orthogonalization (classical and numerically stable modified form), Householder and Givens methods for QR decomposition, orthogonal projections and least squares, and the spectral theorem for symmetric matrices.
+This section develops the full theory of orthogonality from first principles. We begin with the geometric intuition - right angles, projections, and the remarkable simplification that occurs when bases are orthonormal. We then build the formal machinery: Gram-Schmidt orthogonalization (classical and numerically stable modified form), Householder and Givens methods for QR decomposition, orthogonal projections and least squares, and the spectral theorem for symmetric matrices.
 
-Throughout, the AI connections are direct and structural. Orthogonal weight initialization preserves gradient norms through linear networks. RoPE encodes position via rotation matrices — orthogonal transformations that preserve the inner products needed for attention. Spectral normalization constrains weight matrices to have unit spectral norm. The QR algorithm for eigenvalues underlies every numerical eigensolver. Understanding orthogonality at depth is understanding the numerical backbone of machine learning.
+Throughout, the AI connections are direct and structural. Orthogonal weight initialization preserves gradient norms through linear networks. RoPE encodes position via rotation matrices - orthogonal transformations that preserve the inner products needed for attention. Spectral normalization constrains weight matrices to have unit spectral norm. The QR algorithm for eigenvalues underlies every numerical eigensolver. Understanding orthogonality at depth is understanding the numerical backbone of machine learning.
 
 ## Prerequisites
 
-- Inner products and dot products — [Chapter 2 §01: Vectors and Spaces](../../02-Linear-Algebra-Basics/01-Vectors-and-Spaces/notes.md)
-- Vector spaces, subspaces, dimension — [Chapter 2 §06: Vector Spaces and Subspaces](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md)
-- Linear transformations, kernel, image — [§04: Linear Transformations](../04-Linear-Transformations/notes.md)
-- Eigenvalues and eigenvectors (used in §7) — [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
+- Inner products and dot products - [Chapter 2 01: Vectors and Spaces](../../02-Linear-Algebra-Basics/01-Vectors-and-Spaces/notes.md)
+- Vector spaces, subspaces, dimension - [Chapter 2 06: Vector Spaces and Subspaces](../../02-Linear-Algebra-Basics/06-Vector-Spaces-Subspaces/notes.md)
+- Linear transformations, kernel, image - [04: Linear Transformations](../04-Linear-Transformations/notes.md)
+- Eigenvalues and eigenvectors (used in 7) - [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
 
 ## Companion Notebooks
 
@@ -109,11 +109,11 @@ Orthogonality is the key that makes linear algebra computationally tractable. Wi
 
 **Five computational miracles of orthogonality:**
 
-**Miracle 1: Coordinates become dot products.** In a general basis $\{\mathbf{b}_1, \ldots, \mathbf{b}_n\}$, finding the coordinates of a vector $\mathbf{v} = \sum c_i \mathbf{b}_i$ requires solving an $n \times n$ linear system. In an orthonormal basis $\{\mathbf{q}_1, \ldots, \mathbf{q}_n\}$, the coordinate $c_i = \langle \mathbf{v}, \mathbf{q}_i \rangle$ — just a dot product. No system to solve.
+**Miracle 1: Coordinates become dot products.** In a general basis $\{\mathbf{b}_1, \ldots, \mathbf{b}_n\}$, finding the coordinates of a vector $\mathbf{v} = \sum c_i \mathbf{b}_i$ requires solving an $n \times n$ linear system. In an orthonormal basis $\{\mathbf{q}_1, \ldots, \mathbf{q}_n\}$, the coordinate $c_i = \langle \mathbf{v}, \mathbf{q}_i \rangle$ - just a dot product. No system to solve.
 
-**Miracle 2: Length is preserved component-wise.** In an ONB: $\|\mathbf{v}\|^2 = \sum_i c_i^2$ (Parseval's identity). The squared norm is simply the sum of squared coordinates — no cross terms.
+**Miracle 2: Length is preserved component-wise.** In an ONB: $\|\mathbf{v}\|^2 = \sum_i c_i^2$ (Parseval's identity). The squared norm is simply the sum of squared coordinates - no cross terms.
 
-**Miracle 3: Orthogonal matrices have condition number 1.** The condition number of $Q$ is $\|Q\| \cdot \|Q^{-1}\| = 1 \cdot 1 = 1$. This is the best possible — orthogonal systems are maximally well-conditioned. Solving $Q\mathbf{x} = \mathbf{b}$ is trivially $\mathbf{x} = Q^\top \mathbf{b}$.
+**Miracle 3: Orthogonal matrices have condition number 1.** The condition number of $Q$ is $\|Q\| \cdot \|Q^{-1}\| = 1 \cdot 1 = 1$. This is the best possible - orthogonal systems are maximally well-conditioned. Solving $Q\mathbf{x} = \mathbf{b}$ is trivially $\mathbf{x} = Q^\top \mathbf{b}$.
 
 **Miracle 4: Projection is the best approximation.** The orthogonal projection of $\mathbf{b}$ onto a subspace $S$ gives the closest point in $S$ to $\mathbf{b}$. This is the geometric foundation of least squares, PCA, and low-rank approximation.
 
@@ -121,18 +121,18 @@ Orthogonality is the key that makes linear algebra computationally tractable. Wi
 
 ```
 THE ORTHOGONALITY ADVANTAGE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  General basis {b₁, ..., bₙ}         Orthonormal basis {q₁, ..., qₙ}
-  ─────────────────────────────        ──────────────────────────────────
+  General basis {b_1, ..., b_n}         Orthonormal basis {q_1, ..., q_n}
+  -----------------------------        ----------------------------------
 
-  Coordinates:  solve Bc = v           Coordinates:  cᵢ = <v, qᵢ> (dot!)
-  Norm:         v^T B^T B v            Norm:         Σ cᵢ² (Parseval)
-  Projection:   A(A^T A)⁻¹ A^T b      Projection:   QQ^T b (just Q^T then Q)
+  Coordinates:  solve Bc = v           Coordinates:  c^i = <v, q^i> (dot!)
+  Norm:         v^T B^T B v            Norm:         \Sigma c^i^2 (Parseval)
+  Projection:   A(A^T A)^-^1 A^T b      Projection:   QQ^T b (just Q^T then Q)
   Solve Ax=b:   Gaussian elim.         Solve Qx=b:   x = Q^T b (trivial)
   Condition#:   can be >> 1            Condition#:   exactly 1
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.2 Geometric Picture
@@ -141,9 +141,9 @@ In Euclidean space, two vectors are orthogonal if they meet at a right angle. Th
 
 $$\langle \mathbf{u}, \mathbf{v} \rangle = \|\mathbf{u}\| \|\mathbf{v}\| \cos\theta$$
 
-- $\theta = 0°$: $\langle\mathbf{u},\mathbf{v}\rangle = \|\mathbf{u}\|\|\mathbf{v}\|$ (parallel, maximum alignment)
-- $\theta = 90°$: $\langle\mathbf{u},\mathbf{v}\rangle = 0$ (orthogonal, zero alignment)
-- $\theta = 180°$: $\langle\mathbf{u},\mathbf{v}\rangle = -\|\mathbf{u}\|\|\mathbf{v}\|$ (antiparallel, maximum anti-alignment)
+- $\theta = 0 degrees $: $\langle\mathbf{u},\mathbf{v}\rangle = \|\mathbf{u}\|\|\mathbf{v}\|$ (parallel, maximum alignment)
+- $\theta = 90 degrees $: $\langle\mathbf{u},\mathbf{v}\rangle = 0$ (orthogonal, zero alignment)
+- $\theta = 180 degrees $: $\langle\mathbf{u},\mathbf{v}\rangle = -\|\mathbf{u}\|\|\mathbf{v}\|$ (antiparallel, maximum anti-alignment)
 
 **The projection picture.** The orthogonal projection of $\mathbf{v}$ onto $\mathbf{u}$ is the "shadow" of $\mathbf{v}$ cast perpendicularly onto the line through $\mathbf{u}$:
 
@@ -151,17 +151,17 @@ $$\text{proj}_{\mathbf{u}}\mathbf{v} = \frac{\langle\mathbf{v},\mathbf{u}\rangle
 
 The error $\mathbf{v} - \text{proj}_{\mathbf{u}}\mathbf{v}$ is orthogonal to $\mathbf{u}$. This Pythagorean decomposition is the geometric core of all least-squares theory.
 
-**Orthonormal bases as "rulers."** A set of orthonormal vectors $\{\mathbf{q}_1, \ldots, \mathbf{q}_n\}$ forms a perfect coordinate system: each $\mathbf{q}_i$ is a unit "ruler" pointing in an independent direction. The coordinate of $\mathbf{v}$ along $\mathbf{q}_i$ is exactly $\langle\mathbf{v}, \mathbf{q}_i\rangle$ — how far $\mathbf{v}$ extends in the $i$-th direction.
+**Orthonormal bases as "rulers."** A set of orthonormal vectors $\{\mathbf{q}_1, \ldots, \mathbf{q}_n\}$ forms a perfect coordinate system: each $\mathbf{q}_i$ is a unit "ruler" pointing in an independent direction. The coordinate of $\mathbf{v}$ along $\mathbf{q}_i$ is exactly $\langle\mathbf{v}, \mathbf{q}_i\rangle$ - how far $\mathbf{v}$ extends in the $i$-th direction.
 
 ### 1.3 Why Orthogonality Matters for AI
 
-**PCA finds orthogonal directions of variance.** The principal components are the eigenvectors of the sample covariance matrix $C = X^\top X/(n-1)$. By the spectral theorem (§7), these eigenvectors are orthogonal. PCA is possible — and gives uncorrelated components — precisely because of orthogonality.
+**PCA finds orthogonal directions of variance.** The principal components are the eigenvectors of the sample covariance matrix $C = X^\top X/(n-1)$. By the spectral theorem (7), these eigenvectors are orthogonal. PCA is possible - and gives uncorrelated components - precisely because of orthogonality.
 
 **Attention subspaces.** In multi-head attention, each head projects queries and keys into a $d_k$-dimensional subspace. The heads are designed to attend to different aspects of the input. The more orthogonal the subspaces, the more independent information each head extracts.
 
 **Orthogonal weight initialization** (Saxe et al., 2013) initializes weight matrices as random orthogonal matrices (via QR decomposition of a random Gaussian matrix). This preserves the norm of activations and gradients through linear layers, enabling training of very deep networks without vanishing/exploding gradients.
 
-**RoPE** (Su et al., 2023) encodes position $m$ by rotating the query/key vectors by angle $m\theta_i$ in each 2D subspace. The key property: the dot product between a rotated query at position $m$ and a rotated key at position $n$ depends only on $(m-n)$ — position appears as a relative rotation. This works because rotation is orthogonal: it preserves the magnitude of inner products.
+**RoPE** (Su et al., 2023) encodes position $m$ by rotating the query/key vectors by angle $m\theta_i$ in each 2D subspace. The key property: the dot product between a rotated query at position $m$ and a rotated key at position $n$ depends only on $(m-n)$ - position appears as a relative rotation. This works because rotation is orthogonal: it preserves the magnitude of inner products.
 
 **Numerical stability.** QR decomposition is the backbone of numerical linear algebra. Householder QR is used to solve least-squares problems, compute eigenvalues (QR iteration), and factor matrices. Its superiority over LU (for rectangular systems) stems from orthogonality: the Householder reflectors are orthogonal transformations that never amplify errors.
 
@@ -170,8 +170,8 @@ The error $\mathbf{v} - \text{proj}_{\mathbf{u}}\mathbf{v}$ is orthogonal to $\m
 | Year | Person | Contribution |
 | --- | --- | --- |
 | 1801 | Gauss | Least squares by orthogonal projection (unpublished until 1809) |
-| 1805 | Legendre | Published least squares — minimizing sum of squared residuals |
-| 1883 | Jørgen Gram | Gram-Schmidt process published in Danish |
+| 1805 | Legendre | Published least squares - minimizing sum of squared residuals |
+| 1883 | Jrgen Gram | Gram-Schmidt process published in Danish |
 | 1907 | Erhard Schmidt | Gram-Schmidt republished and popularized |
 | 1958 | Alston Householder | Householder reflections for stable QR factorization |
 | 1961 | J.G.F. Francis | Practical QR algorithm for eigenvalue computation |
@@ -244,11 +244,11 @@ $$\left\|\sum_{i=1}^k \mathbf{v}_i\right\|^2 = \sum_{i=1}^k \|\mathbf{v}_i\|^2$$
 $$\left\langle \sum_i c_i \mathbf{v}_i, \mathbf{v}_j \right\rangle = c_j \langle\mathbf{v}_j,\mathbf{v}_j\rangle = c_j \|\mathbf{v}_j\|^2 = 0$$
 Since $\mathbf{v}_j \neq \mathbf{0}$, we have $\|\mathbf{v}_j\|^2 > 0$, so $c_j = 0$. This holds for all $j$. $\square$
 
-**Remark.** This theorem gives an effortless proof of linear independence for orthogonal sets — no row reduction needed. The inner product "isolates" each coefficient.
+**Remark.** This theorem gives an effortless proof of linear independence for orthogonal sets - no row reduction needed. The inner product "isolates" each coefficient.
 
 **Non-examples:**
 - $\{(1,0), (1,1)\}$ is not orthogonal: $\langle(1,0),(1,1)\rangle = 1 \neq 0$.
-- $\{(1,1,0)/\sqrt{2}, (0,0,1), (1,-1,0)/\sqrt{2}, (1,0,0)\}$ — the last vector breaks orthogonality.
+- $\{(1,1,0)/\sqrt{2}, (0,0,1), (1,-1,0)/\sqrt{2}, (1,0,0)\}$ - the last vector breaks orthogonality.
 
 ### 2.4 Orthonormal Bases
 
@@ -267,7 +267,7 @@ $$\|\mathbf{v}\|^2 = \sum_{i=1}^n |\langle\mathbf{v}, \mathbf{q}_i\rangle|^2 = \
 
 **Proof.** $\|\mathbf{v}\|^2 = \langle\sum_i \hat{v}_i\mathbf{q}_i, \sum_j \hat{v}_j\mathbf{q}_j\rangle = \sum_{i,j} \hat{v}_i\hat{v}_j \langle\mathbf{q}_i,\mathbf{q}_j\rangle = \sum_i \hat{v}_i^2$. $\square$
 
-**Remark.** Parseval's identity says: in an ONB, the squared norm equals the sum of squared coordinates. There are no cross terms — the orthonormality kills them all. This is the high-dimensional Pythagorean theorem.
+**Remark.** Parseval's identity says: in an ONB, the squared norm equals the sum of squared coordinates. There are no cross terms - the orthonormality kills them all. This is the high-dimensional Pythagorean theorem.
 
 **Matrix form.** Assembling the ONB into a matrix $Q = [\mathbf{q}_1 | \cdots | \mathbf{q}_n]$, the Fourier decomposition is simply $\mathbf{v} = Q(Q^\top\mathbf{v})$: first compute coordinates $\hat{\mathbf{v}} = Q^\top\mathbf{v}$, then reconstruct $\mathbf{v} = Q\hat{\mathbf{v}}$.
 
@@ -294,7 +294,7 @@ So $\mathbf{v}_{S^\perp} \perp \mathbf{q}_j$ for all $j$, hence $\mathbf{v}_{S^\
 - $\operatorname{null}(A) = \operatorname{row}(A)^\perp$ in $\mathbb{R}^n$
 - $\operatorname{null}(A^\top) = \operatorname{col}(A)^\perp$ in $\mathbb{R}^m$
 
-These orthogonality relations are the deep structure behind the four fundamental subspaces (see [§04: Linear Transformations §4.5](../04-Linear-Transformations/notes.md#45-the-four-fundamental-subspaces-via-linear-maps)).
+These orthogonality relations are the deep structure behind the four fundamental subspaces (see [04: Linear Transformations 4.5](../04-Linear-Transformations/notes.md#45-the-four-fundamental-subspaces-via-linear-maps)).
 
 ### 2.6 Orthogonality in Complex Inner Product Spaces
 
@@ -350,7 +350,7 @@ This is the distance induced by the inner product $\langle\mathbf{u},\mathbf{v}\
 **Definition.** A square matrix $Q \in \mathbb{R}^{n \times n}$ is **orthogonal** if:
 $$Q^\top Q = QQ^\top = I_n$$
 
-Equivalently, $Q^{-1} = Q^\top$ — the transpose is the inverse.
+Equivalently, $Q^{-1} = Q^\top$ - the transpose is the inverse.
 
 **Characterization via columns.** $Q$ is orthogonal if and only if its columns $\mathbf{q}_1, \ldots, \mathbf{q}_n$ form an orthonormal basis for $\mathbb{R}^n$:
 $$\mathbf{q}_i^\top \mathbf{q}_j = \delta_{ij} = \begin{cases} 1 & i = j \\ 0 & i \neq j \end{cases}$$
@@ -369,7 +369,7 @@ $$\langle Q\mathbf{x}, Q\mathbf{y}\rangle = \langle\mathbf{x},\mathbf{y}\rangle 
 
 *Proof:* $(Q\mathbf{x})^\top(Q\mathbf{y}) = \mathbf{x}^\top Q^\top Q \mathbf{y} = \mathbf{x}^\top \mathbf{y}$. $\square$
 
-This means orthogonal matrices preserve **angles and distances** — they are isometries of Euclidean space.
+This means orthogonal matrices preserve **angles and distances** - they are isometries of Euclidean space.
 
 ### 3.2 The Orthogonal Group and Special Orthogonal Group
 
@@ -384,8 +384,8 @@ $$O(n) = \{Q \in \mathbb{R}^{n \times n} : Q^\top Q = I\}$$
 
 **Determinant.** Since $\det(Q^\top Q) = \det(Q)^2 = \det(I) = 1$, we have $\det(Q) = \pm 1$.
 
-- $\det(Q) = +1$: **rotations** — orientation-preserving isometries
-- $\det(Q) = -1$: **improper rotations** — reflections (or rotation composed with a reflection)
+- $\det(Q) = +1$: **rotations** - orientation-preserving isometries
+- $\det(Q) = -1$: **improper rotations** - reflections (or rotation composed with a reflection)
 
 The **special orthogonal group** $SO(n) = \{Q \in O(n) : \det(Q) = +1\}$ consists of pure rotations.
 
@@ -444,7 +444,7 @@ $$S = (I - Q)(I + Q)^{-1}$$
 **Why this matters:**
 - Skew-symmetric matrices form a vector space (easy to parameterize)
 - The Cayley transform maps this space bijectively to "most" orthogonal matrices
-- This gives a smooth parameterization of $O(n)$ near the identity — useful for Riemannian optimization
+- This gives a smooth parameterization of $O(n)$ near the identity - useful for Riemannian optimization
 
 **Example in 2D:** $S = \begin{pmatrix}0 & -t \\ t & 0\end{pmatrix}$ (skew-symmetric) gives:
 $$Q = \frac{1}{1+t^2}\begin{pmatrix}1-t^2 & -2t \\ 2t & 1-t^2\end{pmatrix}$$
@@ -485,8 +485,8 @@ A matrix $P$ is a **projection** if and only if it is **idempotent**: $P^2 = P$.
 A projection is an **orthogonal projection** if and only if it is also **symmetric**: $P^\top = P$.
 
 **Verification:** For $P = QQ^\top$ with $Q^\top Q = I$:
-- Idempotent: $P^2 = QQ^\top QQ^\top = Q(Q^\top Q)Q^\top = QIQ^\top = QQ^\top = P$ ✓
-- Symmetric: $P^\top = (QQ^\top)^\top = QQ^\top = P$ ✓
+- Idempotent: $P^2 = QQ^\top QQ^\top = Q(Q^\top Q)Q^\top = QIQ^\top = QQ^\top = P$ OK
+- Symmetric: $P^\top = (QQ^\top)^\top = QQ^\top = P$ OK
 
 **Eigenvalues of projections.** $P$ is a projection if and only if its eigenvalues are 0 and 1.
 
@@ -509,7 +509,7 @@ $$= \|\mathbf{v}-\mathbf{v}_S\|^2 + \|\mathbf{v}_S-\mathbf{s}\|^2 \geq \|\mathbf
 
 **This theorem is everywhere in machine learning:**
 - **Least squares:** The normal equations give the projection of $\mathbf{b}$ onto $\operatorname{col}(A)$
-- **PCA:** Principal components are the projection onto the subspace of maximum variance (→ [§03: PCA](../03-PCA-and-Low-Rank-Approximations/notes.md))
+- **PCA:** Principal components are the projection onto the subspace of maximum variance (-> [03: PCA](../03-PCA-and-Low-Rank-Approximations/notes.md))
 - **Attention:** Softmax attention can be viewed as computing a weighted projection of value vectors
 - **Linear regression:** The fitted values $\hat{\mathbf{y}} = H\mathbf{y}$ where $H = X(X^\top X)^{-1}X^\top$ is the hat matrix
 
@@ -521,7 +521,7 @@ $$P_S = \sum_{i=1}^k \mathbf{q}_i\mathbf{q}_i^\top$$
 This is a sum of rank-1 projectors, one per basis direction. The decomposition:
 $$I = P_S + P_{S^\perp} = \sum_{i=1}^k \mathbf{q}_i\mathbf{q}_i^\top + \sum_{i=k+1}^n \mathbf{q}_i\mathbf{q}_i^\top$$
 
-is the **resolution of the identity** — every vector is split into its $S$ and $S^\perp$ components.
+is the **resolution of the identity** - every vector is split into its $S$ and $S^\perp$ components.
 
 ---
 
@@ -543,17 +543,17 @@ $$\mathbf{u}_j = \mathbf{a}_j - \sum_{i=1}^{j-1}\langle\mathbf{a}_j, \mathbf{q}_
 
 **Inductive proof of correctness.** After step $j$, $\{\mathbf{q}_1, \ldots, \mathbf{q}_j\}$ is an ONB for $\operatorname{span}(\mathbf{a}_1, \ldots, \mathbf{a}_j)$.
 
-*Base:* $j=1$: $\mathbf{q}_1 = \mathbf{a}_1/\|\mathbf{a}_1\|$ is a unit vector spanning the same subspace. ✓
+*Base:* $j=1$: $\mathbf{q}_1 = \mathbf{a}_1/\|\mathbf{a}_1\|$ is a unit vector spanning the same subspace. OK
 
 *Step:* Assume true for $j-1$. Then $\mathbf{u}_j = \mathbf{a}_j - P_{j-1}\mathbf{a}_j$ where $P_{j-1}$ projects onto $\operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_{j-1})$.
 
-For any $\ell < j$: $\langle\mathbf{u}_j, \mathbf{q}_\ell\rangle = \langle\mathbf{a}_j,\mathbf{q}_\ell\rangle - \langle\mathbf{a}_j,\mathbf{q}_\ell\rangle = 0$ ✓
+For any $\ell < j$: $\langle\mathbf{u}_j, \mathbf{q}_\ell\rangle = \langle\mathbf{a}_j,\mathbf{q}_\ell\rangle - \langle\mathbf{a}_j,\mathbf{q}_\ell\rangle = 0$ OK
 
 Since $\mathbf{a}_1,\ldots,\mathbf{a}_j$ are independent, $\mathbf{u}_j \neq \mathbf{0}$ (otherwise $\mathbf{a}_j \in \operatorname{span}(\mathbf{a}_1,\ldots,\mathbf{a}_{j-1})$). So $\mathbf{q}_j = \mathbf{u}_j/\|\mathbf{u}_j\|$ is a valid unit vector. $\square$
 
 ### 5.2 Modified Gram-Schmidt
 
-**The numerical problem with CGS.** In floating-point arithmetic, CGS can catastrophically lose orthogonality. This happens when $\mathbf{a}_j$ is nearly in the span of $\{\mathbf{a}_1,\ldots,\mathbf{a}_{j-1}\}$ — rounding errors in the projection subtraction can accumulate, producing a $\mathbf{u}_j$ that isn't truly orthogonal to earlier vectors.
+**The numerical problem with CGS.** In floating-point arithmetic, CGS can catastrophically lose orthogonality. This happens when $\mathbf{a}_j$ is nearly in the span of $\{\mathbf{a}_1,\ldots,\mathbf{a}_{j-1}\}$ - rounding errors in the projection subtraction can accumulate, producing a $\mathbf{u}_j$ that isn't truly orthogonal to earlier vectors.
 
 **Modified Gram-Schmidt (MGS)** reorders the computation to orthogonalize against already-computed $\mathbf{q}_i$ sequentially rather than all at once:
 
@@ -561,13 +561,13 @@ Since $\mathbf{a}_1,\ldots,\mathbf{a}_j$ are independent, $\mathbf{u}_j \neq \ma
 for j = 1 to k:
     v = a_j
     for i = 1 to j-1:
-        v = v - ⟨v, q_i⟩ q_i    # orthogonalize against q_i using CURRENT v
-    q_j = v / ‖v‖
+        v = v - <v, q_i> q_i    # orthogonalize against q_i using CURRENT v
+    q_j = v / ||v||
 ```
 
-**Why MGS is more stable.** In CGS, all projections use the original $\mathbf{a}_j$. In MGS, after each orthogonalization step, the updated $\mathbf{v}$ is used — so numerical errors from the first projection are themselves projected away in subsequent steps.
+**Why MGS is more stable.** In CGS, all projections use the original $\mathbf{a}_j$. In MGS, after each orthogonalization step, the updated $\mathbf{v}$ is used - so numerical errors from the first projection are themselves projected away in subsequent steps.
 
-**Theorem (Björck 1967).** MGS is backward stable: the computed $\hat{\mathbf{q}}_i$ satisfy $\hat{\mathbf{q}}_i^\top \hat{\mathbf{q}}_j = \delta_{ij} + O(\epsilon_{\text{mach}}\kappa(A))$ where $\kappa(A)$ is the condition number of the input matrix. CGS satisfies only $O(\epsilon_{\text{mach}}\kappa(A)^2)$.
+**Theorem (Bjorck 1967).** MGS is backward stable: the computed $\hat{\mathbf{q}}_i$ satisfy $\hat{\mathbf{q}}_i^\top \hat{\mathbf{q}}_j = \delta_{ij} + O(\epsilon_{\text{mach}}\kappa(A))$ where $\kappa(A)$ is the condition number of the input matrix. CGS satisfies only $O(\epsilon_{\text{mach}}\kappa(A)^2)$.
 
 **Practical advice:** Use MGS for explicit basis construction; use Householder for QR factorization (even more stable).
 
@@ -591,15 +591,15 @@ This gives a **unique QR factorization** of $A$ with positive diagonal entries o
 
 ### 6.1 Householder Reflectors
 
-**Motivation.** While Gram-Schmidt produces QR by building $Q$ column by column, Householder applies successive orthogonal transformations to reduce $A$ to upper triangular form $R$ directly — achieving greater numerical stability.
+**Motivation.** While Gram-Schmidt produces QR by building $Q$ column by column, Householder applies successive orthogonal transformations to reduce $A$ to upper triangular form $R$ directly - achieving greater numerical stability.
 
 **Definition.** The **Householder reflector** determined by unit vector $\mathbf{n}$ (the normal to the mirror) is:
 $$H = I - 2\mathbf{n}\mathbf{n}^\top$$
 
 **Properties:**
-- *Symmetric:* $H^\top = H$ ✓
-- *Orthogonal:* $H^\top H = H^2 = (I - 2\mathbf{n}\mathbf{n}^\top)^2 = I - 4\mathbf{n}\mathbf{n}^\top + 4\mathbf{n}\mathbf{n}^\top\mathbf{n}\mathbf{n}^\top = I - 4\mathbf{n}\mathbf{n}^\top + 4\mathbf{n}\mathbf{n}^\top = I$ ✓
-- *Involution:* $H^2 = I$, so $H = H^{-1}$ ✓
+- *Symmetric:* $H^\top = H$ OK
+- *Orthogonal:* $H^\top H = H^2 = (I - 2\mathbf{n}\mathbf{n}^\top)^2 = I - 4\mathbf{n}\mathbf{n}^\top + 4\mathbf{n}\mathbf{n}^\top\mathbf{n}\mathbf{n}^\top = I - 4\mathbf{n}\mathbf{n}^\top + 4\mathbf{n}\mathbf{n}^\top = I$ OK
+- *Involution:* $H^2 = I$, so $H = H^{-1}$ OK
 - *Determinant:* $\det(H) = -1$ (it's a reflection, not a rotation)
 
 **Action:** $H$ reflects any vector across the hyperplane with normal $\mathbf{n}$:
@@ -621,7 +621,7 @@ To factor $A \in \mathbb{R}^{m \times n}$:
 
 Then $Q = H_1 H_2 \cdots H_n$ (product of reflectors, hence orthogonal), and $A = QR$.
 
-**Complexity:** $O(mn^2 - n^3/3)$ flops — same asymptotic complexity as Gram-Schmidt but with better numerical constants.
+**Complexity:** $O(mn^2 - n^3/3)$ flops - same asymptotic complexity as Gram-Schmidt but with better numerical constants.
 
 **Stability:** Householder QR is backward stable, meaning the computed factors satisfy $\hat{Q}\hat{R} = A + E$ where $\|E\| = O(\epsilon_{\text{mach}}\|A\|)$.
 
@@ -675,12 +675,12 @@ This is an upper triangular system, solved by **back substitution** in $O(n^2)$ 
 
 ### 7.3 QR Algorithm for Eigenvalues
 
-**Preview.** The QR algorithm — the standard method for computing eigenvalues of symmetric matrices — works by iterating:
+**Preview.** The QR algorithm - the standard method for computing eigenvalues of symmetric matrices - works by iterating:
 $$A_0 = A, \quad A_{k+1} = R_k Q_k \quad \text{where } A_k = Q_k R_k$$
 
 Under mild conditions, $A_k \to$ upper triangular (Schur form) and the diagonal entries converge to eigenvalues. This connects orthogonal matrices directly to spectral theory.
 
-> **Forward Reference:** The full QR algorithm with shifts is covered in [§08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md). The eigenvalue theory it computes is developed in [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md).
+> **Forward Reference:** The full QR algorithm with shifts is covered in [08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md). The eigenvalue theory it computes is developed in [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md).
 
 ---
 
@@ -734,13 +734,13 @@ A **quadratic form** is $f(\mathbf{x}) = \mathbf{x}^\top A\mathbf{x} = \sum_{i,j
 
 *Proof:* In the eigenbasis, $\mathbf{x}^\top A\mathbf{x} = \sum_i \lambda_i c_i^2$. This is positive for all $\mathbf{x} \neq \mathbf{0}$ iff all $\lambda_i > 0$. $\square$
 
-**For AI:** The Hessian $\nabla^2\mathcal{L}$ of a loss function is symmetric. Its eigenvalues tell us the curvature in each direction — large eigenvalues are "sharp" directions (fast loss change), small eigenvalues are "flat" directions. The Rayleigh quotient appears in sharpness-aware minimization (SAM), gradient clipping analysis, and understanding training dynamics.
+**For AI:** The Hessian $\nabla^2\mathcal{L}$ of a loss function is symmetric. Its eigenvalues tell us the curvature in each direction - large eigenvalues are "sharp" directions (fast loss change), small eigenvalues are "flat" directions. The Rayleigh quotient appears in sharpness-aware minimization (SAM), gradient clipping analysis, and understanding training dynamics.
 
 ---
 
 ## 9. Orthogonality in Function Spaces
 
-### 9.1 The L² Inner Product
+### 9.1 The L^2 Inner Product
 
 Orthogonality extends naturally from finite-dimensional vector spaces to infinite-dimensional **function spaces**. The space $L^2([a,b])$ of square-integrable functions carries the inner product:
 $$\langle f, g\rangle = \int_a^b f(x)g(x)\,dx$$
@@ -752,7 +752,7 @@ $$\int_{-\pi}^{\pi} \sin(nx)\cos(mx)\,dx = 0 \quad \text{for all } n, m$$
 $$\int_{-\pi}^{\pi} \sin(nx)\sin(mx)\,dx = \pi\,\delta_{nm}$$
 $$\int_{-\pi}^{\pi} \cos(nx)\cos(mx)\,dx = \pi\,\delta_{nm} \quad (n, m \geq 1)$$
 
-This is the foundation of **Fourier series** — a basis expansion for $L^2$ functions.
+This is the foundation of **Fourier series** - a basis expansion for $L^2$ functions.
 
 ### 9.2 Fourier Series as Orthonormal Expansion
 
@@ -789,7 +789,7 @@ $$\langle\mathbf{f}_j, \mathbf{f}_k\rangle = \frac{1}{n}\sum_{\ell=0}^{n-1}\omeg
 
 **For AI:** The DFT/FFT appears in:
 - **Signal processing:** Feature extraction from audio (MFCCs, spectrograms)
-- **Efficient convolutions:** $f * g = \mathcal{F}^{-1}(\mathcal{F}(f) \cdot \mathcal{F}(g))$ — used in efficient CNN implementations
+- **Efficient convolutions:** $f * g = \mathcal{F}^{-1}(\mathcal{F}(f) \cdot \mathcal{F}(g))$ - used in efficient CNN implementations
 - **Positional encodings:** Sinusoidal positional embeddings in the original Transformer are Fourier features
 - **SSMs:** State space models (Mamba, S4) use structured orthogonal/unitary matrices
 
@@ -803,7 +803,7 @@ $$\langle\mathbf{f}_j, \mathbf{f}_k\rangle = \frac{1}{n}\sum_{\ell=0}^{n-1}\omeg
 
 **Saxe et al. (2013)** showed that initializing with orthogonal matrices preserves gradient norms through linear networks:
 
-**Theorem.** For a deep linear network with orthogonal weight matrices $W_1, \ldots, W_L$ (each $\in \mathbb{R}^{n \times n}$), the Jacobian of the full network is $W_L \cdots W_1$, which is also orthogonal (product of orthogonal matrices). Hence $\|\partial\mathcal{L}/\partial\mathbf{x}\| = \|\partial\mathcal{L}/\partial\mathbf{y}\|$ — gradients neither explode nor vanish.
+**Theorem.** For a deep linear network with orthogonal weight matrices $W_1, \ldots, W_L$ (each $\in \mathbb{R}^{n \times n}$), the Jacobian of the full network is $W_L \cdots W_1$, which is also orthogonal (product of orthogonal matrices). Hence $\|\partial\mathcal{L}/\partial\mathbf{x}\| = \|\partial\mathcal{L}/\partial\mathbf{y}\|$ - gradients neither explode nor vanish.
 
 **Practical implementation:**
 
@@ -837,7 +837,7 @@ since $R_m^\top R_n = R_{n-m}$ (rotation matrices satisfy $R_a^\top R_b = R_{b-a
 
 **Implementation:** At each forward pass, divide the weight matrix by its spectral norm: $\hat{W} = W/\sigma_1(W)$.
 
-**Connection to orthogonality:** A matrix with $\sigma_1 = \sigma_2 = \cdots = 1$ is exactly an orthogonal matrix. Spectral normalization enforces $\sigma_1 = 1$ while letting other singular values vary freely — it's a "one-sided" orthogonality constraint.
+**Connection to orthogonality:** A matrix with $\sigma_1 = \sigma_2 = \cdots = 1$ is exactly an orthogonal matrix. Spectral normalization enforces $\sigma_1 = 1$ while letting other singular values vary freely - it's a "one-sided" orthogonality constraint.
 
 **Why it helps GANs:** The discriminator $D$ satisfies a Lipschitz condition $\|D(\mathbf{x}) - D(\mathbf{y})\| \leq \|\mathbf{x} - \mathbf{y}\|$ when all weight layers are spectrally normalized. This relates to the Wasserstein GAN objective, which requires a 1-Lipschitz discriminator.
 
@@ -849,7 +849,7 @@ Several modern optimization techniques use orthogonality:
 
 **Muon optimizer** (2024): Orthogonalizes gradient matrices via Newton-Schulz iterations (a matrix-valued version of Newton's method for computing polar decomposition), then applies the orthogonalized gradient as an update. This ensures each weight matrix sees updates with balanced singular values, preventing the accumulation of rank deficiency.
 
-**Gradient orthogonality in continual learning:** Methods like Gradient Episodic Memory (GEM) and Orthogonal Gradient Descent (OGD) project gradients for new tasks onto the orthogonal complement of the gradient space for previous tasks — preserving past performance while learning new tasks.
+**Gradient orthogonality in continual learning:** Methods like Gradient Episodic Memory (GEM) and Orthogonal Gradient Descent (OGD) project gradients for new tasks onto the orthogonal complement of the gradient space for previous tasks - preserving past performance while learning new tasks.
 
 ---
 
@@ -869,7 +869,7 @@ $$\|\mathbf{v} - \mathbf{v}_k\|^2 = \|\mathbf{v}\|^2 - \|\mathbf{v}_k\|^2 = \|\m
 
 The inequality follows immediately. $\square$
 
-**Equality** holds if and only if $\mathbf{v} \in \operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_k)$ — i.e., when $\mathbf{v}$ itself lies in the subspace spanned by the chosen orthonormal vectors.
+**Equality** holds if and only if $\mathbf{v} \in \operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_k)$ - i.e., when $\mathbf{v}$ itself lies in the subspace spanned by the chosen orthonormal vectors.
 
 **Parseval's identity** is the limit case: when $\{\mathbf{q}_i\}$ is a complete ONB:
 $$\sum_{i=1}^\infty |\langle\mathbf{v}, \mathbf{q}_i\rangle|^2 = \|\mathbf{v}\|^2$$
@@ -882,7 +882,7 @@ An orthonormal set $\mathcal{B} = \{\mathbf{q}_i\}$ in a Hilbert space $\mathcal
 2. Parseval's identity holds: $\|\mathbf{v}\|^2 = \sum_i |\langle\mathbf{v},\mathbf{q}_i\rangle|^2$ for all $\mathbf{v}$
 3. $\langle\mathbf{v},\mathbf{q}_i\rangle = 0$ for all $i$ implies $\mathbf{v} = \mathbf{0}$ (no non-zero vector is orthogonal to all $\mathbf{q}_i$)
 
-In finite dimensions, any ONB is automatically complete (by dimension counting). In infinite dimensions, completeness is a non-trivial requirement — this is why Hilbert space theory requires careful treatment.
+In finite dimensions, any ONB is automatically complete (by dimension counting). In infinite dimensions, completeness is a non-trivial requirement - this is why Hilbert space theory requires careful treatment.
 
 **For ML context:** In kernel methods, the RKHS is an infinite-dimensional Hilbert space. A kernel function $k(\mathbf{x},\mathbf{y})$ defines an inner product, and the question of whether the kernel features span the whole space (completeness/universality) determines the expressivity of the corresponding kernel machine.
 
@@ -922,7 +922,7 @@ This is the projection of $\mathbf{y}$ onto $\operatorname{col}(A)$ = the space 
 
 $$A^\top A = \begin{pmatrix}4 & 10 \\ 10 & 30\end{pmatrix}, \quad A^\top\mathbf{y} = \begin{pmatrix}20 \\ 56.8\end{pmatrix}$$
 
-Solving: $\hat{\boldsymbol{\beta}} \approx (0.1, 2.04)^\top$, so $\hat{y} \approx 0.1 + 2.04x$ — a good linear fit.
+Solving: $\hat{\boldsymbol{\beta}} \approx (0.1, 2.04)^\top$, so $\hat{y} \approx 0.1 + 2.04x$ - a good linear fit.
 
 ### 10c.2 Full Worked Example: Gram-Schmidt in $\mathbb{R}^3$
 
@@ -951,9 +951,9 @@ $$= \begin{pmatrix}0\\1\\1\end{pmatrix} - \frac{1}{2}\begin{pmatrix}1\\1\\0\end{
 
 $$\|\mathbf{u}_3\| = \sqrt{4/9+4/9+4/9} = 2/\sqrt{3}, \quad \mathbf{q}_3 = \frac{1}{\sqrt{3}}\begin{pmatrix}-1\\1\\1\end{pmatrix}$$
 
-**Verification:** $\langle\mathbf{q}_1,\mathbf{q}_2\rangle = (1/\sqrt{2})(1/\sqrt{6})(1-1+0) = 0$ ✓
-$\langle\mathbf{q}_1,\mathbf{q}_3\rangle = (1/\sqrt{2})(1/\sqrt{3})(-1+1+0) = 0$ ✓
-$\langle\mathbf{q}_2,\mathbf{q}_3\rangle = (1/\sqrt{6})(1/\sqrt{3})(-1-1+2) = 0$ ✓
+**Verification:** $\langle\mathbf{q}_1,\mathbf{q}_2\rangle = (1/\sqrt{2})(1/\sqrt{6})(1-1+0) = 0$ OK
+$\langle\mathbf{q}_1,\mathbf{q}_3\rangle = (1/\sqrt{2})(1/\sqrt{3})(-1+1+0) = 0$ OK
+$\langle\mathbf{q}_2,\mathbf{q}_3\rangle = (1/\sqrt{6})(1/\sqrt{3})(-1-1+2) = 0$ OK
 
 **QR factorization:** The matrix $R$ is upper triangular with:
 $$R = \begin{pmatrix}\|\mathbf{a}_1\| & \langle\mathbf{a}_2,\mathbf{q}_1\rangle & \langle\mathbf{a}_3,\mathbf{q}_1\rangle \\ 0 & \|\mathbf{u}_2\| & \langle\mathbf{a}_3,\mathbf{q}_2\rangle \\ 0 & 0 & \|\mathbf{u}_3\|\end{pmatrix} = \begin{pmatrix}\sqrt{2} & 1/\sqrt{2} & 1/\sqrt{2} \\ 0 & \sqrt{3/2} & 1/\sqrt{6} \\ 0 & 0 & 2/\sqrt{3}\end{pmatrix}$$
@@ -968,7 +968,7 @@ Let $A = \begin{pmatrix}3 & 1 \\ 1 & 3\end{pmatrix}$ (symmetric).
 - $\lambda_1 = 2$: $(A - 2I)\mathbf{v} = 0 \Rightarrow \begin{pmatrix}1&1\\1&1\end{pmatrix}\mathbf{v} = 0 \Rightarrow \mathbf{v}_1 = (1,-1)^\top/\sqrt{2}$
 - $\lambda_2 = 4$: $(A - 4I)\mathbf{v} = 0 \Rightarrow \begin{pmatrix}-1&1\\1&-1\end{pmatrix}\mathbf{v} = 0 \Rightarrow \mathbf{v}_2 = (1,1)^\top/\sqrt{2}$
 
-**Verify orthogonality:** $\mathbf{v}_1^\top\mathbf{v}_2 = (1)(1) + (-1)(1) = 0$ ✓
+**Verify orthogonality:** $\mathbf{v}_1^\top\mathbf{v}_2 = (1)(1) + (-1)(1) = 0$ OK
 
 **Spectral decomposition:**
 $$A = \lambda_1\mathbf{v}_1\mathbf{v}_1^\top + \lambda_2\mathbf{v}_2\mathbf{v}_2^\top = 2\begin{pmatrix}1/2 & -1/2 \\ -1/2 & 1/2\end{pmatrix} + 4\begin{pmatrix}1/2 & 1/2 \\ 1/2 & 1/2\end{pmatrix}$$
@@ -998,7 +998,7 @@ $$H = I - 2\mathbf{n}\mathbf{n}^\top = \begin{pmatrix}1 & 0 \\ 0 & 1\end{pmatrix
 
 **Verify:** $H\mathbf{a} = \begin{pmatrix}-4/5 & -3/5 \\ -3/5 & 4/5\end{pmatrix}\begin{pmatrix}4\\3\end{pmatrix} = \begin{pmatrix}-16/5-9/5\\-12/5+12/5\end{pmatrix} = \begin{pmatrix}-5\\0\end{pmatrix} = -5\mathbf{e}_1$
 
-This gives $-\|\mathbf{a}\|\mathbf{e}_1$ (a valid Householder result; the sign depends on the convention). $\det(H) = -1$ as expected. ✓
+This gives $-\|\mathbf{a}\|\mathbf{e}_1$ (a valid Householder result; the sign depends on the convention). $\det(H) = -1$ as expected. OK
 
 ---
 
@@ -1008,19 +1008,19 @@ This gives $-\|\mathbf{a}\|\mathbf{e}_1$ (a valid Householder result; the sign d
 
 A single linear layer $\mathbf{y} = W\mathbf{x}$ transforms the input geometry. Understanding this transformation requires decomposing $W$ via its **singular value decomposition** (preview):
 
-$$W = U\Sigma V^\top \qquad \text{(covered fully in §02: SVD)}$$
+$$W = U\Sigma V^\top \qquad \text{(covered fully in 02: SVD)}$$
 
 - $V^\top$: rotate the input space (first orthogonal transformation)
 - $\Sigma$: scale along the new axes by singular values $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$
 - $U$: rotate the output space (second orthogonal transformation)
 
-**For orthogonal $W$:** All singular values are 1, so $\Sigma = I$. The layer is a pure rotation — it doesn't compress or expand the input distribution. Distances and angles are perfectly preserved.
+**For orthogonal $W$:** All singular values are 1, so $\Sigma = I$. The layer is a pure rotation - it doesn't compress or expand the input distribution. Distances and angles are perfectly preserved.
 
 **Implication for gradient flow.** The gradient of the loss with respect to the input is:
 
 $$\frac{\partial\mathcal{L}}{\partial\mathbf{x}} = W^\top\frac{\partial\mathcal{L}}{\partial\mathbf{y}}$$
 
-For orthogonal $W$: $\|W^\top\mathbf{g}\| = \|\mathbf{g}\|$ — gradients are neither amplified nor attenuated. This is the formal reason orthogonal initialization prevents gradient vanishing/explosion in deep linear networks.
+For orthogonal $W$: $\|W^\top\mathbf{g}\| = \|\mathbf{g}\|$ - gradients are neither amplified nor attenuated. This is the formal reason orthogonal initialization prevents gradient vanishing/explosion in deep linear networks.
 
 ### 10d.2 Attention Heads as Orthogonal Projections
 
@@ -1050,7 +1050,7 @@ $$P_{\mathbf{1}^\perp} = I - \frac{\mathbf{1}\mathbf{1}^\top}{d}$$
 
 This is a rank-$(d-1)$ orthogonal projector. Layer normalization first projects out the "mean direction" $\mathbf{1}/\sqrt{d}$, then rescales to unit norm on the remaining $(d-1)$-dimensional subspace.
 
-**Consequence for representational geometry:** After layer normalization, the model's internal representations $\mathbf{h}$ always satisfy $\mathbf{h} \perp \mathbf{1}$. The model can only represent information in the orthogonal complement of the constant vector — this is why all-zero inputs and constant inputs are indistinguishable after layer norm.
+**Consequence for representational geometry:** After layer normalization, the model's internal representations $\mathbf{h}$ always satisfy $\mathbf{h} \perp \mathbf{1}$. The model can only represent information in the orthogonal complement of the constant vector - this is why all-zero inputs and constant inputs are indistinguishable after layer norm.
 
 ### 10d.4 Orthogonal Regularization in Weight Matrices
 
@@ -1058,7 +1058,7 @@ Several training techniques maintain (near-)orthogonality in weight matrices thr
 
 **Orthogonal regularization:** Add a penalty $\lambda\|W^\top W - I\|_F^2$ to the loss. This penalizes deviation from orthogonality without enforcing it exactly.
 
-**Spectral regularization:** Penalize $\lambda \sum_i (\sigma_i - 1)^2$ — penalizes singular values deviating from 1. Stronger than spectral normalization, which only clips the largest singular value.
+**Spectral regularization:** Penalize $\lambda \sum_i (\sigma_i - 1)^2$ - penalizes singular values deviating from 1. Stronger than spectral normalization, which only clips the largest singular value.
 
 **Riemannian optimization on the Stiefel manifold:** The set of $n \times k$ matrices with orthonormal columns, $\text{St}(n,k) = \{Q \in \mathbb{R}^{n \times k} : Q^\top Q = I_k\}$, is a smooth Riemannian manifold. Gradient descent on $\text{St}(n,k)$ uses the Riemannian gradient (projection of Euclidean gradient onto the tangent space) and retracts to the manifold via QR decomposition or Cayley transform after each step.
 
@@ -1070,7 +1070,7 @@ Several training techniques maintain (near-)orthogonality in weight matrices thr
 
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|---------------|-----|
-| 1 | Confusing "orthogonal" and "orthonormal" | Orthogonal means $\langle\mathbf{u},\mathbf{v}\rangle = 0$; orthonormal additionally requires unit length. An orthogonal matrix $Q$ has orthonormal columns, not just orthogonal ones. | Check: orthogonal ↔ zero inner products; orthonormal ↔ zero inner products AND $\|\mathbf{q}_i\| = 1$ |
+| 1 | Confusing "orthogonal" and "orthonormal" | Orthogonal means $\langle\mathbf{u},\mathbf{v}\rangle = 0$; orthonormal additionally requires unit length. An orthogonal matrix $Q$ has orthonormal columns, not just orthogonal ones. | Check: orthogonal <-> zero inner products; orthonormal <-> zero inner products AND $\|\mathbf{q}_i\| = 1$ |
 | 2 | Assuming $QQ^\top = I$ implies $Q^\top Q = I$ without checking square | For non-square $Q \in \mathbb{R}^{m \times n}$ ($m > n$), $Q^\top Q = I_n$ but $QQ^\top \neq I_m$ (it's a rank-$n$ projection). Only square orthogonal matrices satisfy both. | Specify dimensions: "thin Q" ($Q^\top Q = I_n$) vs "full Q" ($QQ^\top = I_m = Q^\top Q$) |
 | 3 | Thinking Gram-Schmidt preserves span ordering | CGS does: $\operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_k) = \operatorname{span}(\mathbf{a}_1,\ldots,\mathbf{a}_k)$. But with pivoting or reordering, this property is lost. | Track column ordering explicitly when pivoting QR is used |
 | 4 | Using CGS when numerical stability matters | Classical Gram-Schmidt squares the error: $O(\epsilon_\text{mach}\kappa(A)^2)$ vs MGS's $O(\epsilon_\text{mach}\kappa(A))$. For ill-conditioned $A$, CGS can produce non-orthogonal "orthonormal" vectors. | Use Modified Gram-Schmidt (MGS) or Householder QR for production code |
@@ -1078,7 +1078,7 @@ Several training techniques maintain (near-)orthogonality in weight matrices thr
 | 6 | Thinking $P^2 = P$ is sufficient for orthogonal projection | Idempotence $P^2 = P$ only guarantees $P$ is *some* projection. Orthogonal projections additionally require $P^\top = P$ (symmetry). Oblique projections satisfy idempotence but not symmetry. | An orthogonal projection must be both idempotent ($P^2 = P$) and symmetric ($P^\top = P$) |
 | 7 | Claiming eigenvectors are always orthogonal | Eigenvectors of different eigenvalues are orthogonal only for **symmetric** matrices. For general matrices, eigenvectors can be arbitrary non-orthogonal vectors (or even non-real). | The spectral theorem applies to symmetric/Hermitian matrices; general matrices need Schur decomposition |
 | 8 | Forgetting the sign convention in Householder | When computing $\mathbf{n} = (\mathbf{a} \pm \|\mathbf{a}\|\mathbf{e}_1)/\|\cdots\|$, the sign should be chosen as $+\operatorname{sign}(a_1)$ to avoid cancellation when $a_1 > 0$. | Always choose the sign of $\pm\|\mathbf{a}\|\mathbf{e}_1$ to be opposite the sign of $a_1$: $\mathbf{n} = (\mathbf{a} + \operatorname{sign}(a_1)\|\mathbf{a}\|\mathbf{e}_1)/\|\cdots\|$ |
-| 9 | Misinterpreting Parseval's identity as an approximation | $\|\mathbf{v}\|^2 = \sum_i \hat{v}_i^2$ is an equality when $\{\mathbf{q}_i\}$ is a complete orthonormal basis for the whole space. If it's only a basis for a subspace, you get Bessel's inequality: $\sum_i \hat{v}_i^2 \leq \|\mathbf{v}\|^2$. | Distinguish: complete ONB → Parseval's equality; partial ONB → Bessel's inequality |
+| 9 | Misinterpreting Parseval's identity as an approximation | $\|\mathbf{v}\|^2 = \sum_i \hat{v}_i^2$ is an equality when $\{\mathbf{q}_i\}$ is a complete orthonormal basis for the whole space. If it's only a basis for a subspace, you get Bessel's inequality: $\sum_i \hat{v}_i^2 \leq \|\mathbf{v}\|^2$. | Distinguish: complete ONB -> Parseval's equality; partial ONB -> Bessel's inequality |
 | 10 | Assuming QR is always better than Cholesky for normal equations | QR avoids squaring the condition number but costs more flops ($O(mn^2)$ vs $O(mn^2/2 + n^3/6)$ for Cholesky). For well-conditioned problems with large $m$, Cholesky on $A^\top A$ may be faster. | Choose based on condition number: if $\kappa(A) \gg 1$, use QR; if $\kappa(A) \approx 1$, Cholesky is acceptable and faster |
 | 11 | Using $\det(Q) = 1$ as the definition of orthogonal | $\det(Q) = \pm 1$ is a **consequence** of orthogonality, not the definition. A matrix can have determinant 1 without being orthogonal (e.g., any upper triangular matrix with diagonal product 1). | Definition is $Q^\top Q = I$. Determinant $= \pm 1$ follows from this. |
 | 12 | Thinking orthogonal initialization prevents gradient problems throughout training | Orthogonal initialization helps at initialization. As training proceeds, weights deviate from orthogonality. Maintaining orthogonality throughout training requires explicit regularization (e.g., spectral normalization, orthogonal regularization loss). | Use orthogonal init as a starting point; for persistent orthogonality through training, use explicit constraints |
@@ -1087,7 +1087,7 @@ Several training techniques maintain (near-)orthogonality in weight matrices thr
 
 ## 12. Exercises
 
-**Exercise 1 ★ — Projection and Decomposition**
+**Exercise 1 * - Projection and Decomposition**
 
 Given $\mathbf{v} = (3, 1, 2)^\top$ and the subspace $S = \operatorname{span}\{(1, 1, 0)^\top, (0, 1, 1)^\top\}$:
 
@@ -1101,7 +1101,7 @@ Given $\mathbf{v} = (3, 1, 2)^\top$ and the subspace $S = \operatorname{span}\{(
 
 ---
 
-**Exercise 2 ★ — Gram-Schmidt and QR**
+**Exercise 2 * - Gram-Schmidt and QR**
 
 Let $A = \begin{pmatrix}1 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1\end{pmatrix}$.
 
@@ -1115,7 +1115,7 @@ Let $A = \begin{pmatrix}1 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1\end{pmatrix}$.
 
 ---
 
-**Exercise 3 ★ — Orthogonal Matrices**
+**Exercise 3 * - Orthogonal Matrices**
 
 **(a)** Verify that the $2\times 2$ rotation matrix $R_\theta = \begin{pmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{pmatrix}$ is orthogonal for $\theta = \pi/4$.
 
@@ -1127,7 +1127,7 @@ Let $A = \begin{pmatrix}1 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1\end{pmatrix}$.
 
 ---
 
-**Exercise 4 ★★ — Modified Gram-Schmidt**
+**Exercise 4 ** - Modified Gram-Schmidt**
 
 **(a)** Implement both Classical and Modified Gram-Schmidt.
 
@@ -1135,11 +1135,11 @@ Let $A = \begin{pmatrix}1 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1\end{pmatrix}$.
 
 **(c)** Plot orthogonality error ($\|Q^\top Q - I\|_F$) vs matrix size $n$ for both methods. What do you observe?
 
-**(d)** Explain why MGS is more stable using the error analysis from §5.2.
+**(d)** Explain why MGS is more stable using the error analysis from 5.2.
 
 ---
 
-**Exercise 5 ★★ — Least Squares Stability**
+**Exercise 5 ** - Least Squares Stability**
 
 Given the Vandermonde system fitting a degree-$d$ polynomial through $m$ points:
 
@@ -1153,7 +1153,7 @@ Given the Vandermonde system fitting a degree-$d$ polynomial through $m$ points:
 
 ---
 
-**Exercise 6 ★★ — Spectral Theorem**
+**Exercise 6 ** - Spectral Theorem**
 
 Let $A = \begin{pmatrix}4 & 2 \\ 2 & 1\end{pmatrix}$.
 
@@ -1169,7 +1169,7 @@ Let $A = \begin{pmatrix}4 & 2 \\ 2 & 1\end{pmatrix}$.
 
 ---
 
-**Exercise 7 ★★★ — Orthogonal Weight Initialization**
+**Exercise 7 *** - Orthogonal Weight Initialization**
 
 **(a)** Generate 100 random matrices $W_1, \ldots, W_L \in \mathbb{R}^{64 \times 64}$ with i.i.d. Gaussian entries (standard init). Compute the spectral norm of their product $\|W_L \cdots W_1\|_2$ for $L = 1, 5, 10, 20$.
 
@@ -1181,7 +1181,7 @@ Let $A = \begin{pmatrix}4 & 2 \\ 2 & 1\end{pmatrix}$.
 
 ---
 
-**Exercise 8 ★★★ — Rayleigh Quotient Iteration**
+**Exercise 8 *** - Rayleigh Quotient Iteration**
 
 **Rayleigh Quotient Iteration** is a method for finding eigenvectors with cubic convergence:
 
@@ -1229,18 +1229,18 @@ where $Q \in \mathbb{R}^{m \times n}$ has orthonormal columns ($Q^\top Q = I_n$)
 
 **Uniqueness:** If $A$ has full column rank, $Q$ and $S$ are unique, with $S = (A^\top A)^{1/2}$ (the matrix square root) and $Q = A(A^\top A)^{-1/2}$.
 
-**Geometric meaning:** $S$ captures the "stretching" and $Q$ captures the "rotation" — this is the matrix analog of writing a complex number as $re^{i\theta}$.
+**Geometric meaning:** $S$ captures the "stretching" and $Q$ captures the "rotation" - this is the matrix analog of writing a complex number as $re^{i\theta}$.
 
 **Relation to SVD:** If $A = U\Sigma V^\top$ (thin SVD), then:
 $$A = (UV^\top)(V\Sigma V^\top) = Q \cdot S$$
 
 So $Q = UV^\top$ (the "nearest orthogonal matrix" to $A$) and $S = V\Sigma V^\top$.
 
-**For AI:** The Muon optimizer computes $Q = UV^\top$ from the SVD of the gradient matrix $G$, then applies $Q$ as the weight update — this is exactly the orthogonal factor of the polar decomposition of $G$.
+**For AI:** The Muon optimizer computes $Q = UV^\top$ from the SVD of the gradient matrix $G$, then applies $Q$ as the weight update - this is exactly the orthogonal factor of the polar decomposition of $G$.
 
 ### 14.2 Orthogonality in Hilbert Spaces
 
-All finite-dimensional results extend to **Hilbert spaces** — complete inner product spaces, possibly infinite-dimensional.
+All finite-dimensional results extend to **Hilbert spaces** - complete inner product spaces, possibly infinite-dimensional.
 
 **Orthogonal Projection Theorem (Hilbert spaces).** If $\mathcal{H}$ is a Hilbert space and $\mathcal{M} \subseteq \mathcal{H}$ is a closed subspace, then every $\mathbf{v} \in \mathcal{H}$ has a unique decomposition $\mathbf{v} = \mathbf{v}_\mathcal{M} + \mathbf{v}_{\mathcal{M}^\perp}$ with $\mathbf{v}_\mathcal{M} \in \mathcal{M}$ and $\mathbf{v}_{\mathcal{M}^\perp} \in \mathcal{M}^\perp$.
 
@@ -1272,54 +1272,54 @@ In matrix form: $G = XX^\top$ where $X = [\mathbf{x}_1|\cdots|\mathbf{x}_m]^\top
 
 The theory developed in this section builds directly on foundations from earlier chapters:
 
-- **Vectors and inner products** ([§01: Vectors and Spaces](../../02-Linear-Algebra-Basics/01-Vectors-and-Spaces/notes.md)): The inner product $\langle\mathbf{u},\mathbf{v}\rangle$ is the primitive notion from which orthogonality, angles, and projections all derive.
-- **Linear transformations** ([§04: Linear Transformations](../04-Linear-Transformations/notes.md)): Orthogonal matrices are the isometric linear maps — those that preserve both angles and distances. The kernel and image of projection operators are orthogonal complements.
-- **Matrix rank** ([§02-LA: Matrix Rank](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md)): The rank-nullity theorem and the four fundamental subspaces are unified by orthogonality: $\operatorname{null}(A) = \operatorname{row}(A)^\perp$.
-- **Eigenvalues** ([§01: Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)): The spectral theorem tells us that symmetric matrices are diagonalizable with an orthonormal eigenbasis — the connection between orthogonality and spectral theory.
+- **Vectors and inner products** ([01: Vectors and Spaces](../../02-Linear-Algebra-Basics/01-Vectors-and-Spaces/notes.md)): The inner product $\langle\mathbf{u},\mathbf{v}\rangle$ is the primitive notion from which orthogonality, angles, and projections all derive.
+- **Linear transformations** ([04: Linear Transformations](../04-Linear-Transformations/notes.md)): Orthogonal matrices are the isometric linear maps - those that preserve both angles and distances. The kernel and image of projection operators are orthogonal complements.
+- **Matrix rank** ([02-LA: Matrix Rank](../../02-Linear-Algebra-Basics/05-Matrix-Rank/notes.md)): The rank-nullity theorem and the four fundamental subspaces are unified by orthogonality: $\operatorname{null}(A) = \operatorname{row}(A)^\perp$.
+- **Eigenvalues** ([01: Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)): The spectral theorem tells us that symmetric matrices are diagonalizable with an orthonormal eigenbasis - the connection between orthogonality and spectral theory.
 
 ### Looking Forward: What This Enables
 
 Orthogonality and orthonormality are not endpoints but foundations:
 
-- **Singular Value Decomposition** ([§02: SVD](../02-Singular-Value-Decomposition/notes.md)): The SVD $A = U\Sigma V^\top$ is built from two orthogonal matrices. The right singular vectors $V$ form an ONB for the row space; the left singular vectors $U$ form an ONB for the column space. Without the theory developed here, SVD cannot be understood.
-- **Matrix Decompositions** ([§08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md)): LU, QR, Cholesky, Schur — QR is the central algorithm among these, and the QR algorithm for eigenvalues iterates orthogonal similarity transformations.
-- **Matrix Norms** ([§06: Matrix Norms](../06-Matrix-Norms/notes.md)): The spectral norm $\|A\|_2 = \sigma_1(A)$ is defined via orthogonal invariance. The condition number $\kappa(Q) = 1$ for orthogonal $Q$.
+- **Singular Value Decomposition** ([02: SVD](../02-Singular-Value-Decomposition/notes.md)): The SVD $A = U\Sigma V^\top$ is built from two orthogonal matrices. The right singular vectors $V$ form an ONB for the row space; the left singular vectors $U$ form an ONB for the column space. Without the theory developed here, SVD cannot be understood.
+- **Matrix Decompositions** ([08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md)): LU, QR, Cholesky, Schur - QR is the central algorithm among these, and the QR algorithm for eigenvalues iterates orthogonal similarity transformations.
+- **Matrix Norms** ([06: Matrix Norms](../06-Matrix-Norms/notes.md)): The spectral norm $\|A\|_2 = \sigma_1(A)$ is defined via orthogonal invariance. The condition number $\kappa(Q) = 1$ for orthogonal $Q$.
 - **Optimization** ([Chapter 08](../../08-Optimization/README.md)): Gradient methods, second-order methods, and their variants all navigate spaces equipped with inner products. The geometry of the loss landscape is described using the spectral theory developed here.
 
 ```
 CURRICULUM POSITION: ORTHOGONALITY AND ORTHONORMALITY
-═══════════════════════════════════════════════════════════════════════════
+===========================================================================
 
   FOUNDATIONS                    THIS SECTION                  FORWARD
-  ───────────                    ────────────                  ───────
-  ┌─────────────────┐            ┌─────────────────────────┐   ┌──────────────────┐
-  │ Inner Products  │──────────▶ │ Orthogonality (§05)     │──▶│ SVD (§02)        │
-  │ Vectors/Spaces  │            │ ├─ Gram-Schmidt          │   │ low-rank approx  │
-  └─────────────────┘            │ ├─ QR Decomposition      │   └──────────────────┘
-                                 │ ├─ Orthogonal Matrices   │
-  ┌─────────────────┐            │ ├─ Projections           │   ┌──────────────────┐
-  │ Eigenvalues     │──────────▶ │ ├─ Spectral Theorem      │──▶│ Matrix Norms     │
-  │ (§01)           │            │ └─ ML Applications       │   │ (§06)            │
-  └─────────────────┘            └─────────────────────────┘   └──────────────────┘
-                                          │
-  ┌─────────────────┐                     │                     ┌──────────────────┐
-  │ Linear Transf.  │──────────▶──────────┘                  ──▶│ Decompositions   │
-  │ (§04)           │                                            │ (§08) QR alg.    │
-  └─────────────────┘                                            └──────────────────┘
+  -----------                    ------------                  -------
+  +-----------------+            +-------------------------+   +------------------+
+  | Inner Products  |----------> | Orthogonality (05)     |-->| SVD (02)        |
+  | Vectors/Spaces  |            | +- Gram-Schmidt          |   | low-rank approx  |
+  +-----------------+            | +- QR Decomposition      |   +------------------+
+                                 | +- Orthogonal Matrices   |
+  +-----------------+            | +- Projections           |   +------------------+
+  | Eigenvalues     |----------> | +- Spectral Theorem      |-->| Matrix Norms     |
+  | (01)           |            | +- ML Applications       |   | (06)            |
+  +-----------------+            +-------------------------+   +------------------+
+                                          |
+  +-----------------+                     |                     +------------------+
+  | Linear Transf.  |---------->----------+                  -->| Decompositions   |
+  | (04)           |                                            | (08) QR alg.    |
+  +-----------------+                                            +------------------+
 
   AI CONNECTIONS:
-  ┌──────────────────────────────────────────────────────────────────┐
-  │  RoPE embeddings → Gram-Schmidt  → Muon optimizer  → OGD/GEM    │
-  │  Orthogonal init → Spectral norm → Rayleigh quotient → SAM      │
-  │  QR least squares → DFT (unitary) → Kernel Gram matrix → NTK    │
-  └──────────────────────────────────────────────────────────────────┘
+  +------------------------------------------------------------------+
+  |  RoPE embeddings -> Gram-Schmidt  -> Muon optimizer  -> OGD/GEM    |
+  |  Orthogonal init -> Spectral norm -> Rayleigh quotient -> SAM      |
+  |  QR least squares -> DFT (unitary) -> Kernel Gram matrix -> NTK    |
+  +------------------------------------------------------------------+
 
-═══════════════════════════════════════════════════════════════════════════
+===========================================================================
 ```
 
 ---
 
-[← Back to Advanced Linear Algebra](../README.md) | [Next: Matrix Norms →](../06-Matrix-Norms/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [Next: Matrix Norms ->](../06-Matrix-Norms/notes.md)
 
 ---
 
@@ -1361,7 +1361,7 @@ $$\|\mathbf{u}+\mathbf{v}\|^2 + \|\mathbf{u}-\mathbf{v}\|^2 = 2(\|\mathbf{u}\|^2
 This law **characterizes** inner product spaces: a norm satisfying the parallelogram law comes from an inner product via the **polarization identity**:
 $$\langle\mathbf{u},\mathbf{v}\rangle = \frac{1}{4}\left(\|\mathbf{u}+\mathbf{v}\|^2 - \|\mathbf{u}-\mathbf{v}\|^2\right)$$
 
-**Practical importance:** The $\ell^1$ and $\ell^\infty$ norms do NOT satisfy the parallelogram law, confirming they do not arise from inner products. This is why optimization in $\ell^1$ (LASSO) has different geometry from $\ell^2$ (ridge regression) — there is no meaningful notion of "orthogonality" in $\ell^1$.
+**Practical importance:** The $\ell^1$ and $\ell^\infty$ norms do NOT satisfy the parallelogram law, confirming they do not arise from inner products. This is why optimization in $\ell^1$ (LASSO) has different geometry from $\ell^2$ (ridge regression) - there is no meaningful notion of "orthogonality" in $\ell^1$.
 
 ### A.3 Weyl's Inequality for Eigenvalue Perturbation
 
@@ -1393,9 +1393,9 @@ In IEEE double precision ($\epsilon_\text{mach} \approx 2.2 \times 10^{-16}$), t
 
 $$\|\hat{Q}^\top\hat{Q} - I\|_F \lesssim n \cdot \epsilon_\text{mach} \cdot \kappa(A)^2$$
 
-For a well-conditioned matrix ($\kappa = 10$): error $\approx n \cdot 10^{-14}$ — acceptable.
+For a well-conditioned matrix ($\kappa = 10$): error $\approx n \cdot 10^{-14}$ - acceptable.
 
-For an ill-conditioned matrix ($\kappa = 10^8$): error $\approx n \cdot 1$ — completely non-orthogonal!
+For an ill-conditioned matrix ($\kappa = 10^8$): error $\approx n \cdot 1$ - completely non-orthogonal!
 
 MGS improves this to $\lesssim n \cdot \epsilon_\text{mach} \cdot \kappa(A)$, and Householder to $\lesssim n \cdot \epsilon_\text{mach}$ regardless of $\kappa$.
 
@@ -1427,7 +1427,7 @@ For very large matrices on parallel hardware, **block Gram-Schmidt** processes c
 1. Orthogonalize within each block using MGS or Householder
 2. Orthogonalize each new block against all previous blocks using a BLAS-3 matrix operation
 
-The key advantage: step 2 uses matrix-matrix products ($O(nb^2)$ flops, BLAS Level 3) rather than matrix-vector products ($O(nb)$ flops, BLAS Level 1/2). On modern hardware with SIMD and caching, this gives 10-100× speedup for large $n$.
+The key advantage: step 2 uses matrix-matrix products ($O(nb^2)$ flops, BLAS Level 3) rather than matrix-vector products ($O(nb)$ flops, BLAS Level 1/2). On modern hardware with SIMD and caching, this gives 10-100\times speedup for large $n$.
 
 ---
 
@@ -1492,144 +1492,144 @@ def apply_householder_sequence(v_list, tau_list, x):
     return x
 ```
 
-This is how LAPACK and NumPy store $Q$ internally — only the Householder vectors are saved, not the explicit matrix.
+This is how LAPACK and NumPy store $Q$ internally - only the Householder vectors are saved, not the explicit matrix.
 
 
 ---
 
-## Appendix D: The Geometry of Projection — Visual Summary
+## Appendix D: The Geometry of Projection - Visual Summary
 
 ```
 ORTHOGONAL DECOMPOSITION THEOREM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  The Euclidean space ℝⁿ splits into complementary orthogonal subspaces:
+  The Euclidean space \mathbb{R}^n splits into complementary orthogonal subspaces:
 
-  For any subspace S ⊆ ℝⁿ:
+  For any subspace S \subseteq \mathbb{R}^n:
 
-           ℝⁿ = S ⊕ S⊥
+           \mathbb{R}^n = S \oplus S\perp
 
-           ┌──────────────────────────────────────────┐
-           │                  ℝⁿ                      │
-           │         ┌────────────────┐               │
-           │         │       S        │               │
-           │         │    v_S = Pv   │               │
-           │         │      •        │               │
-           │         │    /         │               │
-           │         │  /           │               │
-           │  v•     │/  ← v_S      │               │
-           │   \     └────────────────┘               │
-           │    \          |  orthogonal               │
-           │     \         |  complement               │
-           │      \        |  S⊥                      │
-           │       •────── + ───────────────────────── │
-           │    v - v_S    |  (v - v_S ⊥ every s ∈ S) │
-           └──────────────────────────────────────────┘
+           +------------------------------------------+
+           |                  \mathbb{R}^n                      |
+           |         +----------------+               |
+           |         |       S        |               |
+           |         |    v_S = Pv   |               |
+           |         |      -        |               |
+           |         |    /         |               |
+           |         |  /           |               |
+           |  v-     |/  <- v_S      |               |
+           |   \     +----------------+               |
+           |    \          |  orthogonal               |
+           |     \         |  complement               |
+           |      \        |  S\perp                      |
+           |       ------- + ------------------------- |
+           |    v - v_S    |  (v - v_S \perp every s \in S) |
+           +------------------------------------------+
 
-  Properties of projection matrix P = QQ⊤ (Q has ONB for S):
+  Properties of projection matrix P = QQ^T (Q has ONB for S):
 
-    Symmetric:    P⊤ = P         (orthogonal, not oblique)
-    Idempotent:   P² = P         (projecting twice = projecting once)
+    Symmetric:    P^T = P         (orthogonal, not oblique)
+    Idempotent:   P^2 = P         (projecting twice = projecting once)
     Range:        col(P) = S     (maps into S)
-    Null space:   null(P) = S⊥  (annihilates complement)
+    Null space:   null(P) = S\perp  (annihilates complement)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ```
-GRAM-SCHMIDT PROCESS — STEP BY STEP
-════════════════════════════════════════════════════════════════════════
+GRAM-SCHMIDT PROCESS - STEP BY STEP
+========================================================================
 
-  Input: linearly independent vectors a₁, a₂, a₃ (not orthogonal)
-  Output: orthonormal basis q₁, q₂, q₃ for same subspace
+  Input: linearly independent vectors a_1, a_2, a_3 (not orthogonal)
+  Output: orthonormal basis q_1, q_2, q_3 for same subspace
 
-  STEP 1:  q₁ = a₁ / ‖a₁‖
-           ────────────────────────────────────
-           a₁  ──────────────────────────▶ q₁ (unit vector)
+  STEP 1:  q_1 = a_1 / ||a_1||
+           ------------------------------------
+           a_1  --------------------------> q_1 (unit vector)
 
-  STEP 2:  u₂ = a₂ - ⟨a₂,q₁⟩q₁   (subtract projection onto q₁)
-           q₂ = u₂ / ‖u₂‖
-           ────────────────────────────────────
-           a₂  ──→  remove q₁ component  ──→ u₂ ──→ q₂
+  STEP 2:  u_2 = a_2 - <a_2,q_1>q_1   (subtract projection onto q_1)
+           q_2 = u_2 / ||u_2||
+           ------------------------------------
+           a_2  --->  remove q_1 component  ---> u_2 ---> q_2
 
-                     a₂
+                     a_2
                     /
-                   / ↑ ⟨a₂,q₁⟩q₁ (this part removed)
+                   / up <a_2,q_1>q_1 (this part removed)
                   /
-           q₁ ──────────── q₁ direction
-                  u₂ (perpendicular remainder) ──▶ q₂
+           q_1 ------------ q_1 direction
+                  u_2 (perpendicular remainder) --> q_2
 
-  STEP 3:  u₃ = a₃ - ⟨a₃,q₁⟩q₁ - ⟨a₃,q₂⟩q₂
-           q₃ = u₃ / ‖u₃‖
-           ────────────────────────────────────
-           Remove projections onto BOTH q₁ and q₂
+  STEP 3:  u_3 = a_3 - <a_3,q_1>q_1 - <a_3,q_2>q_2
+           q_3 = u_3 / ||u_3||
+           ------------------------------------
+           Remove projections onto BOTH q_1 and q_2
 
-  RESULT: {q₁, q₂, q₃} is an ONB with same span as {a₁, a₂, a₃}
+  RESULT: {q_1, q_2, q_3} is an ONB with same span as {a_1, a_2, a_3}
 
-  QR FACTORIZATION: A = [a₁|a₂|a₃] = [q₁|q₂|q₃] · R
+  QR FACTORIZATION: A = [a_1|a_2|a_3] = [q_1|q_2|q_3] * R
   where R is upper triangular with positive diagonal.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ```
-SPECTRAL THEOREM: SYMMETRIC ↔ ORTHOGONAL EIGENBASIS
-════════════════════════════════════════════════════════════════════════
+SPECTRAL THEOREM: SYMMETRIC <-> ORTHOGONAL EIGENBASIS
+========================================================================
 
-  A = Aᵀ  (symmetric)
-       ↕
-  A has orthonormal eigenbasis {q₁, ..., qₙ}
-       ↕
-  A = QΛQᵀ  where  Q = [q₁|...|qₙ] ∈ O(n),  Λ = diag(λ₁,...,λₙ)
-       ↕
-  Quadratic form:  xᵀAx = Σᵢ λᵢ(xᵀqᵢ)² = weighted sum of squared projections
+  A = A^T  (symmetric)
+       <->
+  A has orthonormal eigenbasis {q_1, ..., q_n}
+       <->
+  A = Q\LambdaQ^T  where  Q = [q_1|...|q_n] \in O(n),  \Lambda = diag(\lambda_1,...,\lambda_n)
+       <->
+  Quadratic form:  x^TAx = \Sigma^i \lambda^i(x^Tq^i)^2 = weighted sum of squared projections
 
   INTERPRETATION:
-  ┌─────────────────────────────────────────────────────────────────┐
-  │  Qᵀ: Express x in eigenbasis  →  Λ: Scale each component  →   │
-  │  Q: Return to standard basis                                    │
-  │                                                                  │
-  │  λᵢ > 0: stretch in qᵢ direction  (positive definite: all λᵢ>0)│
-  │  λᵢ = 0: collapse in qᵢ direction  (singular matrix)           │
-  │  λᵢ < 0: reflection in qᵢ direction  (indefinite: mixed signs) │
-  └─────────────────────────────────────────────────────────────────┘
+  +-----------------------------------------------------------------+
+  |  Q^T: Express x in eigenbasis  ->  \Lambda: Scale each component  ->   |
+  |  Q: Return to standard basis                                    |
+  |                                                                  |
+  |  \lambda^i > 0: stretch in q^i direction  (positive definite: all \lambda^i>0)|
+  |  \lambda^i = 0: collapse in q^i direction  (singular matrix)           |
+  |  \lambda^i < 0: reflection in q^i direction  (indefinite: mixed signs) |
+  +-----------------------------------------------------------------+
 
-  AI CONNECTION: Hessian ∇²ℒ is symmetric. Its eigenvectors are the
+  AI CONNECTION: Hessian \nabla^2\mathcal{L} is symmetric. Its eigenvectors are the
   "principal curvature directions" of the loss surface. Eigenvalues
   tell us how curved the loss is in each direction.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ```
 ORTHOGONAL MATRICES: STRUCTURE AND CLASSIFICATION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  QᵀQ = I  (definition)   ⟹   det(Q) = ±1
+  Q^TQ = I  (definition)   =>   det(Q) = \pm1
 
   det(Q) = +1:  ROTATIONS (SO(n))      det(Q) = -1:  REFLECTIONS
-  ────────────────────────────         ──────────────────────────
+  ----------------------------         --------------------------
   Preserve orientation                 Reverse orientation
-  Examples in 2D: R_θ for all θ        Example: diag(1,...,1,-1)
+  Examples in 2D: R_\theta for all \theta        Example: diag(1,...,1,-1)
   Compose to give rotations            Compose to give rotations
 
-  O(n) = SO(n) ∪ {reflections}   (two connected components)
+  O(n) = SO(n) \cup {reflections}   (two connected components)
 
-  EIGENVALUES: always on unit circle ∈ ℂ
-  ┌─────────────────────────────────────────────────────────────────┐
-  │   Real eigenvalues: ±1 only                                     │
-  │   Complex eigenvalues: e^{iθ}, e^{-iθ} pairs → 2D rotations    │
-  │                                                                  │
-  │   So(2n) block structure:                                        │
-  │   ┌──────────┬───────┐                                          │
-  │   │ R_{θ₁}  │       │  each block is a 2×2 rotation           │
-  │   ├──────────┤ R_{θ₂}│  with its own angle θᵢ                 │
-  │   │          ├───────┤                                          │
-  │   │          │  ...  │                                          │
-  │   └──────────┴───────┘                                          │
-  └─────────────────────────────────────────────────────────────────┘
+  EIGENVALUES: always on unit circle \in \mathbb{C}
+  +-----------------------------------------------------------------+
+  |   Real eigenvalues: \pm1 only                                     |
+  |   Complex eigenvalues: e^{i\theta}, e^{-i\theta} pairs -> 2D rotations    |
+  |                                                                  |
+  |   So(2n) block structure:                                        |
+  |   +----------+-------+                                          |
+  |   | R_{\theta_1}  |       |  each block is a 2\times2 rotation           |
+  |   +----------+ R_{\theta_2}|  with its own angle \theta^i                 |
+  |   |          +-------+                                          |
+  |   |          |  ...  |                                          |
+  |   +----------+-------+                                          |
+  +-----------------------------------------------------------------+
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1683,22 +1683,22 @@ ORTHOGONAL MATRICES: STRUCTURE AND CLASSIFICATION
 
 ## Appendix F: Connections to Other Chapters
 
-### F.1 From Eigenvalues (§01) to Orthogonality
+### F.1 From Eigenvalues (01) to Orthogonality
 
-The spectral theorem shows that symmetric matrices are the matrices that are *diagonalizable by orthogonal transformations*. Non-symmetric matrices may still be diagonalizable, but with a non-orthogonal change of basis — making computations numerically less stable.
+The spectral theorem shows that symmetric matrices are the matrices that are *diagonalizable by orthogonal transformations*. Non-symmetric matrices may still be diagonalizable, but with a non-orthogonal change of basis - making computations numerically less stable.
 
-The **QR algorithm** for computing eigenvalues (§01) is built entirely on orthogonal matrix iterations:
+The **QR algorithm** for computing eigenvalues (01) is built entirely on orthogonal matrix iterations:
 
 ```
-A₀ = A
+A_0 = A
 for k = 0, 1, 2, ...:
     A_k = Q_k R_k    (QR factorization of current iterate)
     A_{k+1} = R_k Q_k  (swap factors)
 ```
 
-Each iterate is orthogonally similar to the previous: $A_{k+1} = Q_k^\top A_k Q_k$ (since $R_k = Q_k^\top A_k$ and $A_{k+1} = R_k Q_k = Q_k^\top A_k Q_k$). The iterates converge to the Schur form — upper triangular, with eigenvalues on the diagonal. The entire algorithm is numerically stable precisely because it uses only orthogonal transformations.
+Each iterate is orthogonally similar to the previous: $A_{k+1} = Q_k^\top A_k Q_k$ (since $R_k = Q_k^\top A_k$ and $A_{k+1} = R_k Q_k = Q_k^\top A_k Q_k$). The iterates converge to the Schur form - upper triangular, with eigenvalues on the diagonal. The entire algorithm is numerically stable precisely because it uses only orthogonal transformations.
 
-### F.2 From SVD (§02) to Orthogonality
+### F.2 From SVD (02) to Orthogonality
 
 The SVD $A = U\Sigma V^\top$ can be viewed as the "orthogonality structure" of $A$:
 
@@ -1708,7 +1708,7 @@ The SVD $A = U\Sigma V^\top$ can be viewed as the "orthogonality structure" of $
 
 The polar decomposition $A = (U V^\top)(V \Sigma V^\top)$ isolates the orthogonal factor $Q = UV^\top$ from the symmetric factor $S = V\Sigma V^\top$. This factorization requires all the tools developed in this section.
 
-### F.3 Orthogonality Enables Low-Rank Approximation (§02, §03)
+### F.3 Orthogonality Enables Low-Rank Approximation (02, 03)
 
 **Eckart-Young-Mirsky theorem:** The best rank-$k$ approximation to $A$ in both spectral and Frobenius norms is:
 $$A_k = \sum_{i=1}^k \sigma_i\mathbf{u}_i\mathbf{v}_i^\top$$
@@ -1720,7 +1720,7 @@ This result requires:
 
 All three are developed in this section. The Eckart-Young theorem is the mathematical foundation for PCA, LoRA, and any other low-rank approximation method.
 
-### F.4 Orthogonality and Matrix Norms (§06)
+### F.4 Orthogonality and Matrix Norms (06)
 
 **Unitarily invariant norms:** A matrix norm $\|A\|$ is **unitarily invariant** if $\|UAV\| = \|A\|$ for all unitary $U, V$. The three most important matrix norms are all unitarily invariant:
 
@@ -1728,17 +1728,17 @@ All three are developed in this section. The Eckart-Young theorem is the mathema
 - **Frobenius norm:** $\|A\|_F = \sqrt{\sum_{i,j}A_{ij}^2} = \sqrt{\sum_i\sigma_i^2}$ (sum of squared singular values)
 - **Nuclear norm:** $\|A\|_* = \sum_i\sigma_i$ (sum of singular values)
 
-These norms are "orthogonality-aware" — they don't change when the matrix is multiplied by orthogonal matrices. This property is what allows the Eckart-Young theorem to work: the error in low-rank approximation depends only on the discarded singular values, not on the choice of orthogonal bases.
+These norms are "orthogonality-aware" - they don't change when the matrix is multiplied by orthogonal matrices. This property is what allows the Eckart-Young theorem to work: the error in low-rank approximation depends only on the discarded singular values, not on the choice of orthogonal bases.
 
 ### F.5 Orthogonality in Optimization (Chapter 08)
 
 Modern optimization methods for training large neural networks increasingly exploit orthogonal structure:
 
-**Sharpness-Aware Minimization (SAM):** The sharpness of a minimum is $\lambda_\text{max}(\nabla^2\mathcal{L})$. SAM perturbs parameters in the direction of the *eigenvector of the Hessian corresponding to $\lambda_\text{max}$* — computed approximately using power iteration. Power iteration produces a sequence of normalized vectors converging to the top eigenvector, each step involving a matrix-vector product with the Hessian and a re-normalization (orthogonalization against zero-dimensional subspace = normalization).
+**Sharpness-Aware Minimization (SAM):** The sharpness of a minimum is $\lambda_\text{max}(\nabla^2\mathcal{L})$. SAM perturbs parameters in the direction of the *eigenvector of the Hessian corresponding to $\lambda_\text{max}$* - computed approximately using power iteration. Power iteration produces a sequence of normalized vectors converging to the top eigenvector, each step involving a matrix-vector product with the Hessian and a re-normalization (orthogonalization against zero-dimensional subspace = normalization).
 
 **SOAP optimizer (2024):** Maintains a factored approximation of the Adam preconditioner in which the "rotation" and "scaling" factors are tracked separately. The rotation factor is updated via QR decomposition to maintain orthogonality, while the scaling factor tracks the second moments in the rotating basis.
 
-**K-FAC and its variants:** The Kronecker-Factored Approximate Curvature approximates the Fisher information matrix as a Kronecker product $F \approx A \otimes G$. Computing the update requires inverting these factors, which can be done via their eigendecompositions — the eigenvectors are orthonormal matrices.
+**K-FAC and its variants:** The Kronecker-Factored Approximate Curvature approximates the Fisher information matrix as a Kronecker product $F \approx A \otimes G$. Computing the update requires inverting these factors, which can be done via their eigendecompositions - the eigenvectors are orthonormal matrices.
 
 ---
 
@@ -1755,10 +1755,10 @@ Modern optimization methods for training large neural networks increasingly expl
 | 1902 | Schmidt | Finite-dimensional Gram-Schmidt for $\ell^2$ |
 | 1907 | Parseval | Parseval's theorem for Fourier series |
 | 1908 | Hilbert | Abstract Hilbert spaces; orthogonal projection theorem |
-| 1915–1927 | Weyl, von Neumann | Spectral theorem in infinite dimensions |
+| 1915-1927 | Weyl, von Neumann | Spectral theorem in infinite dimensions |
 | 1954 | Householder | Householder reflectors for numerically stable QR |
 | 1965 | Francis | QR algorithm for eigenvalues (with implicit shifts) |
-| 1967 | Björck | Numerical analysis of Gram-Schmidt stability |
+| 1967 | Bjorck | Numerical analysis of Gram-Schmidt stability |
 | 1983 | Saxe, McClelland, Ganguli | Orthogonal initialization for deep linear networks |
 | 2014 | Mishkin, Matas | LSUV initialization using SVD/QR |
 | 2018 | Miyato et al. | Spectral normalization for GANs |
@@ -1767,13 +1767,13 @@ Modern optimization methods for training large neural networks increasingly expl
 
 ### Key References
 
-1. **Golub & Van Loan**, *Matrix Computations* (4th ed., 2013) — Definitive reference on numerical linear algebra including Gram-Schmidt, Householder, and QR algorithms
-2. **Axler**, *Linear Algebra Done Right* (3rd ed., 2015) — Elegant proof-based treatment of inner product spaces and spectral theorem
-3. **Trefethen & Bau**, *Numerical Linear Algebra* (1997) — Excellent coverage of QR, projections, and stability from computational perspective
-4. **Saxe et al.** (2013), "Exact solutions to the nonlinear dynamics of learning in deep linear neural networks" — Theoretical foundation for orthogonal initialization
-5. **Miyato et al.** (2018), "Spectral Normalization for GANs" — Seminal paper on spectral normalization in deep learning
-6. **Su et al.** (2021), "RoFormer: Enhanced Transformer with Rotary Position Embedding" — RoPE using orthogonal rotation matrices
-7. **Jordan et al.** (2024), "Muon: An optimizer for hidden layers in neural networks" — Newton-Schulz orthogonalization for gradients
+1. **Golub & Van Loan**, *Matrix Computations* (4th ed., 2013) - Definitive reference on numerical linear algebra including Gram-Schmidt, Householder, and QR algorithms
+2. **Axler**, *Linear Algebra Done Right* (3rd ed., 2015) - Elegant proof-based treatment of inner product spaces and spectral theorem
+3. **Trefethen & Bau**, *Numerical Linear Algebra* (1997) - Excellent coverage of QR, projections, and stability from computational perspective
+4. **Saxe et al.** (2013), "Exact solutions to the nonlinear dynamics of learning in deep linear neural networks" - Theoretical foundation for orthogonal initialization
+5. **Miyato et al.** (2018), "Spectral Normalization for GANs" - Seminal paper on spectral normalization in deep learning
+6. **Su et al.** (2021), "RoFormer: Enhanced Transformer with Rotary Position Embedding" - RoPE using orthogonal rotation matrices
+7. **Jordan et al.** (2024), "Muon: An optimizer for hidden layers in neural networks" - Newton-Schulz orthogonalization for gradients
 
 
 ---
@@ -1810,7 +1810,7 @@ $$\langle\mathbf{u},\mathbf{v}\rangle^2 \leq \langle\mathbf{u},\mathbf{u}\rangle
 
 *Proof by induction on $j$.*
 
-**Base case ($j=1$):** $\mathbf{q}_1 = \mathbf{a}_1/\|\mathbf{a}_1\|$ is a unit vector (since $\mathbf{a}_1 \neq \mathbf{0}$ by independence). $\operatorname{span}(\mathbf{q}_1) = \operatorname{span}(\mathbf{a}_1)$. ✓
+**Base case ($j=1$):** $\mathbf{q}_1 = \mathbf{a}_1/\|\mathbf{a}_1\|$ is a unit vector (since $\mathbf{a}_1 \neq \mathbf{0}$ by independence). $\operatorname{span}(\mathbf{q}_1) = \operatorname{span}(\mathbf{a}_1)$. OK
 
 **Inductive step:** Assume the claim holds for $j-1$. Define $S_{j-1} = \operatorname{span}(\mathbf{a}_1,\ldots,\mathbf{a}_{j-1}) = \operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_{j-1})$.
 
@@ -1819,9 +1819,9 @@ $$\langle\mathbf{u},\mathbf{v}\rangle^2 \leq \langle\mathbf{u},\mathbf{u}\rangle
 **(ii) $\mathbf{q}_j \perp \mathbf{q}_\ell$ for $\ell < j$:** For any $\ell < j$:
 $$\langle\mathbf{u}_j, \mathbf{q}_\ell\rangle = \langle\mathbf{a}_j, \mathbf{q}_\ell\rangle - \sum_{i<j}\langle\mathbf{a}_j,\mathbf{q}_i\rangle\langle\mathbf{q}_i,\mathbf{q}_\ell\rangle = \langle\mathbf{a}_j,\mathbf{q}_\ell\rangle - \langle\mathbf{a}_j,\mathbf{q}_\ell\rangle\cdot 1 = 0$$
 
-(using the inductive hypothesis $\langle\mathbf{q}_i,\mathbf{q}_\ell\rangle = \delta_{i\ell}$). Since $\mathbf{q}_j = \mathbf{u}_j/\|\mathbf{u}_j\|$, we also have $\langle\mathbf{q}_j,\mathbf{q}_\ell\rangle = 0$. ✓
+(using the inductive hypothesis $\langle\mathbf{q}_i,\mathbf{q}_\ell\rangle = \delta_{i\ell}$). Since $\mathbf{q}_j = \mathbf{u}_j/\|\mathbf{u}_j\|$, we also have $\langle\mathbf{q}_j,\mathbf{q}_\ell\rangle = 0$. OK
 
-**(iii) Same span:** $\mathbf{q}_j = \mathbf{u}_j/\|\mathbf{u}_j\|$ is in $\operatorname{span}(\mathbf{a}_j, \mathbf{q}_1,\ldots,\mathbf{q}_{j-1}) = \operatorname{span}(\mathbf{a}_1,\ldots,\mathbf{a}_j)$. Conversely, $\mathbf{a}_j = \mathbf{u}_j + \sum_{i<j}\langle\mathbf{a}_j,\mathbf{q}_i\rangle\mathbf{q}_i = \|\mathbf{u}_j\|\mathbf{q}_j + \sum_{i<j}\langle\mathbf{a}_j,\mathbf{q}_i\rangle\mathbf{q}_i \in \operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_j)$. ✓
+**(iii) Same span:** $\mathbf{q}_j = \mathbf{u}_j/\|\mathbf{u}_j\|$ is in $\operatorname{span}(\mathbf{a}_j, \mathbf{q}_1,\ldots,\mathbf{q}_{j-1}) = \operatorname{span}(\mathbf{a}_1,\ldots,\mathbf{a}_j)$. Conversely, $\mathbf{a}_j = \mathbf{u}_j + \sum_{i<j}\langle\mathbf{a}_j,\mathbf{q}_i\rangle\mathbf{q}_i = \|\mathbf{u}_j\|\mathbf{q}_j + \sum_{i<j}\langle\mathbf{a}_j,\mathbf{q}_i\rangle\mathbf{q}_i \in \operatorname{span}(\mathbf{q}_1,\ldots,\mathbf{q}_j)$. OK
 
 By induction, the claim holds for all $j \leq k$. $\square$
 
@@ -1840,9 +1840,9 @@ The set of $n \times k$ matrices with orthonormal columns is the **Stiefel manif
 $$\text{St}(n, k) = \{Q \in \mathbb{R}^{n \times k} : Q^\top Q = I_k\}$$
 
 Special cases:
-- $\text{St}(n, n) = O(n)$ — the full orthogonal group
-- $\text{St}(n, 1) = S^{n-1}$ — the unit sphere in $\mathbb{R}^n$
-- $\text{St}(n, k)$ for $1 < k < n$ — Stiefel manifolds proper
+- $\text{St}(n, n) = O(n)$ - the full orthogonal group
+- $\text{St}(n, 1) = S^{n-1}$ - the unit sphere in $\mathbb{R}^n$
+- $\text{St}(n, k)$ for $1 < k < n$ - Stiefel manifolds proper
 
 **Dimension:** $\dim(\text{St}(n,k)) = nk - k(k+1)/2$
 
@@ -1898,7 +1898,7 @@ which converges quadratically to the orthogonal factor of the polar decompositio
 
 ---
 
-## Appendix J: Quick Reference — Orthogonality Vocabulary
+## Appendix J: Quick Reference - Orthogonality Vocabulary
 
 | Term | Definition | Key Formula |
 |------|-----------|-------------|
@@ -1917,7 +1917,7 @@ which converges quadratically to the orthogonal factor of the polar decompositio
 | Spectral theorem | Symmetric $A$ has ONB of eigenvectors | $A = Q\Lambda Q^\top$ |
 | Isometry | Norm-preserving linear map | $\|Q\mathbf{x}\| = \|\mathbf{x}\|$ |
 | Stiefel manifold | Matrices with orthonormal columns | $\text{St}(n,k) = \{Q: Q^\top Q = I_k\}$ |
-| Polar decomposition | Orthogonal × symmetric factorization | $A = QS$ |
+| Polar decomposition | Orthogonal \times symmetric factorization | $A = QS$ |
 | Unitary matrix | Complex analog of orthogonal | $U^*U = I$, entries $\in \mathbb{C}$ |
 
 
@@ -2003,7 +2003,7 @@ def grad_norm_experiment(n=64, L=20, trials=100):
     print(f"Orthogonal: mean={np.mean(results['orthogonal']):.3e}, "
           f"std={np.std(results['orthogonal']):.3e}")
     # Expected: Gaussian shows extreme variance (very large or very small)
-    #           Orthogonal shows norm ≈ 1.0 with tiny variance
+    #           Orthogonal shows norm \approx 1.0 with tiny variance
 
 grad_norm_experiment()
 ```

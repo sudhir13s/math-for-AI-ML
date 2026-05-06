@@ -1,33 +1,33 @@
-[← Back to Chapter 6: Probability Theory](../README.md) | [Next: Chapter 7 Statistics →](../../07-Statistics/README.md)
+[<- Back to Chapter 6: Probability Theory](../README.md) | [Next: Chapter 7 Statistics ->](../../07-Statistics/README.md)
 
 ---
 
 # Markov Chains
 
 > _"A sequence of experiments forms a simple Markov chain if the conditional distribution of each experiment, given all preceding ones, depends only on the immediately preceding experiment."_
-> — Andrei Markov, 1906
+> - Andrei Markov, 1906
 
 ## Overview
 
-A **Markov chain** is a stochastic process with a single, powerful property: the future depends on the past only through the present. This memorylessness — the **Markov property** — is both a mathematical simplification and a profound modelling insight. It says: knowing the current state is a complete sufficient statistic for predicting what comes next.
+A **Markov chain** is a stochastic process with a single, powerful property: the future depends on the past only through the present. This memorylessness - the **Markov property** - is both a mathematical simplification and a profound modelling insight. It says: knowing the current state is a complete sufficient statistic for predicting what comes next.
 
-This simplicity conceals enormous richness. Markov chains model language (every autoregressive LLM generates tokens one at a time, conditioning on the current state of the context), web structure (PageRank computes the stationary distribution of a Markov chain on the web graph), Bayesian computation (MCMC algorithms construct Markov chains whose stationary distribution is the target posterior), reinforcement learning (MDPs are Markov chains with actions), and speech recognition (HMMs). The mathematics of Markov chains — transition matrices, stationary distributions, mixing times — is the engine beneath all of these.
+This simplicity conceals enormous richness. Markov chains model language (every autoregressive LLM generates tokens one at a time, conditioning on the current state of the context), web structure (PageRank computes the stationary distribution of a Markov chain on the web graph), Bayesian computation (MCMC algorithms construct Markov chains whose stationary distribution is the target posterior), reinforcement learning (MDPs are Markov chains with actions), and speech recognition (HMMs). The mathematics of Markov chains - transition matrices, stationary distributions, mixing times - is the engine beneath all of these.
 
 This section builds the complete theory from first principles: formal definitions, state classification, existence and uniqueness of stationary distributions via Perron-Frobenius, convergence to stationarity and mixing times, reversibility and detailed balance, continuous-time chains, and the MCMC algorithms central to Bayesian ML.
 
 ## Prerequisites
 
-- [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md) — filtrations, adapted processes, the Markov property preview, random walks
-- [§03 Joint Distributions](../03-Joint-Distributions/notes.md) — conditional distributions, conditional independence, Bayes' theorem
-- [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) — conditional expectation, tower property
-- [§02 Common Distributions](../02-Common-Distributions/notes.md) — Poisson distribution (for CTMC); Gaussian (for MCMC targets)
+- [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md) - filtrations, adapted processes, the Markov property preview, random walks
+- [Section03 Joint Distributions](../03-Joint-Distributions/notes.md) - conditional distributions, conditional independence, Bayes' theorem
+- [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) - conditional expectation, tower property
+- [Section02 Common Distributions](../02-Common-Distributions/notes.md) - Poisson distribution (for CTMC); Gaussian (for MCMC targets)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations: transition matrices, power iteration, classification, stationary distributions, mixing times, Metropolis-Hastings, Gibbs, PageRank, HMMs |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from state classification to PageRank and HMM decoding |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from state classification to PageRank and HMM decoding |
 
 ## Learning Objectives
 
@@ -116,7 +116,7 @@ $$P(X_{n+1} = j \mid X_0, X_1, \ldots, X_n) = P(X_{n+1} = j \mid X_n)$$
 
 This is the **Markov property**: the current state $X_n$ is a sufficient statistic for predicting $X_{n+1}$. No matter how long the history, knowing only the present gives as much information about the future as knowing the entire past trajectory.
 
-**Why memorylessness is powerful.** At first glance, the Markov property looks like a restriction — real systems do have memory. But three things make it useful:
+**Why memorylessness is powerful.** At first glance, the Markov property looks like a restriction - real systems do have memory. But three things make it useful:
 
 1. **Many systems genuinely satisfy it.** A fair die, re-rolled at each step, is Markov (no memory). A chess position captures all relevant game state (Markov). An LLM's key-value cache provides sufficient statistics for the next token (Markov, given the KV cache).
 
@@ -124,7 +124,7 @@ This is the **Markov property**: the current state $X_n$ is a sufficient statist
 
 3. **The mathematics is tractable.** Transition probabilities only involve pairs of states, so the full dynamics are captured by a matrix rather than an exponentially large conditional probability table.
 
-**The mental picture:** Imagine a particle hopping between states on a graph. At each step, it looks only at which node it currently occupies, then jumps to a neighbouring node with probability given by the edge weights. The history of how it got to the current node is irrelevant — only where it is now matters.
+**The mental picture:** Imagine a particle hopping between states on a graph. At each step, it looks only at which node it currently occupies, then jumps to a neighbouring node with probability given by the edge weights. The history of how it got to the current node is irrelevant - only where it is now matters.
 
 **For AI:** Every autoregressive language model generates tokens one at a time, each conditioned on all previous tokens. Given a context window of length $n$, the distribution over the next token is fully specified by the current state (the context). This is precisely the Markov property with state space = all possible contexts of length $\leq n$.
 
@@ -132,17 +132,17 @@ This is the **Markov property**: the current state $X_n$ is a sufficient statist
 
 Markov chains appear as the backbone of several major AI paradigms:
 
-**Language generation:** GPT, LLaMA, and every autoregressive transformer generates text via a Markov chain. The state is the current context (the key-value cache), the transition is the softmax over the vocabulary, and the stationary distribution — if it exists — characterises what the model "talks about" at equilibrium.
+**Language generation:** GPT, LLaMA, and every autoregressive transformer generates text via a Markov chain. The state is the current context (the key-value cache), the transition is the softmax over the vocabulary, and the stationary distribution - if it exists - characterises what the model "talks about" at equilibrium.
 
 **PageRank:** Google's original ranking algorithm computes the stationary distribution of a Markov chain on the web graph, where each page links to others. A page is important if the random surfer spends a lot of time there at stationarity. Power iteration on the transition matrix gives the PageRank vector.
 
-**Reinforcement learning:** A Markov Decision Process (MDP) is a Markov chain with actions. The agent's policy induces a Markov chain over states, and the value function is the expected discounted return from each state — computable from the stationary properties of this chain. TD-learning, Q-learning, and policy gradient methods all exploit the Markov structure.
+**Reinforcement learning:** A Markov Decision Process (MDP) is a Markov chain with actions. The agent's policy induces a Markov chain over states, and the value function is the expected discounted return from each state - computable from the stationary properties of this chain. TD-learning, Q-learning, and policy gradient methods all exploit the Markov structure.
 
 **Bayesian inference via MCMC:** When the posterior distribution $\pi(\theta | \mathcal{D})$ is intractable, MCMC constructs a Markov chain whose stationary distribution is exactly $\pi$. Running the chain for long enough generates samples that represent the posterior. Metropolis-Hastings and Gibbs sampling are the two canonical MCMC algorithms.
 
 **Speech and sequence modelling:** Hidden Markov Models (HMMs) model sequences where the true state (e.g., phoneme) is latent. The forward-backward algorithm and Viterbi decoder exploit the Markov structure to perform efficient inference.
 
-**Diffusion models:** The DDPM forward process $x_0 \to x_1 \to \cdots \to x_T$ is a Markov chain where each step adds Gaussian noise. The learned reverse process is a Markov chain running backwards in time. The SDE perspective ([§06 Stochastic Processes](../06-Stochastic-Processes/notes.md)) gives the continuous-time version.
+**Diffusion models:** The DDPM forward process $x_0 \to x_1 \to \cdots \to x_T$ is a Markov chain where each step adds Gaussian noise. The learned reverse process is a Markov chain running backwards in time. The SDE perspective ([Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md)) gives the continuous-time version.
 
 ### 1.3 Historical Timeline
 
@@ -154,7 +154,7 @@ Markov chains appear as the backbone of several major AI paradigms:
 | 1928 | Andrei Kolmogorov | Backward equations for Markov processes; rigorous foundation |
 | 1936 | Oskar Perron, Georg Frobenius | Perron-Frobenius theorem (positive matrices have unique dominant eigenvector) |
 | 1950 | Nicholas Metropolis et al. | Monte Carlo method; Metropolis algorithm for statistical mechanics |
-| 1953 | Metropolis, Rosenbluth×2, Teller×2 | Metropolis-Hastings algorithm published; first MCMC |
+| 1953 | Metropolis, Rosenbluthx2, Tellerx2 | Metropolis-Hastings algorithm published; first MCMC |
 | 1970 | W.K. Hastings | Generalized Metropolis to asymmetric proposals |
 | 1984 | Geman & Geman | Gibbs sampling for image restoration |
 | 1996 | Levin, Peres, Wilmer | Systematic mixing time theory; coupling and spectral gap bounds |
@@ -168,15 +168,15 @@ Markov chains are classified along two dimensions:
 
 **State space:** Finite ($\mathcal{S} = \{1,\ldots,N\}$), countably infinite ($\mathcal{S} = \mathbb{Z}^+$), or continuous ($\mathcal{S} = \mathbb{R}^d$). Most of this section treats finite or countably infinite state spaces; MCMC typically targets continuous spaces.
 
-**Time:** Discrete ($n = 0, 1, 2, \ldots$) or continuous ($t \geq 0$). Discrete-time chains are developed in §2–§6; continuous-time chains in §7.
+**Time:** Discrete ($n = 0, 1, 2, \ldots$) or continuous ($t \geq 0$). Discrete-time chains are developed in Section2-Section6; continuous-time chains in Section7.
 
 | | Discrete Time | Continuous Time |
 | --- | --- | --- |
-| **Finite states** | Finite DTMC — PageRank, HMM | CTMC — queueing theory |
+| **Finite states** | Finite DTMC - PageRank, HMM | CTMC - queueing theory |
 | **Countable states** | SRW, birth-death chain | Poisson process |
-| **Continuous states** | MCMC on $\mathbb{R}^d$ | Diffusion SDE (§06) |
+| **Continuous states** | MCMC on $\mathbb{R}^d$ | Diffusion SDE (Section06) |
 
-**Time-homogeneous vs. inhomogeneous:** If transition probabilities do not depend on $n$ — $P(X_{n+1}=j|X_n=i) = P_{ij}$ for all $n$ — the chain is **time-homogeneous**. Almost all chains in this section are time-homogeneous.
+**Time-homogeneous vs. inhomogeneous:** If transition probabilities do not depend on $n$ - $P(X_{n+1}=j|X_n=i) = P_{ij}$ for all $n$ - the chain is **time-homogeneous**. Almost all chains in this section are time-homogeneous.
 
 ---
 
@@ -184,7 +184,7 @@ Markov chains are classified along two dimensions:
 
 ### 2.1 The Markov Property
 
-> **Recall:** Conditional independence $X \perp Y \mid Z$ was defined in [§03 Joint Distributions](../03-Joint-Distributions/notes.md#conditional-independence). The Markov property is conditional independence of the future from the past, given the present.
+> **Recall:** Conditional independence $X \perp Y \mid Z$ was defined in [Section03 Joint Distributions](../03-Joint-Distributions/notes.md#conditional-independence). The Markov property is conditional independence of the future from the past, given the present.
 
 **Definition (Discrete-Time Markov Chain).** A sequence $\{X_n\}_{n \geq 0}$ of random variables on a measurable state space $(\mathcal{S}, \mathcal{B})$ is a **(time-homogeneous) Markov chain** if for all $n \geq 0$ and all measurable $B \subseteq \mathcal{S}$:
 $$P(X_{n+1} \in B \mid X_0, X_1, \ldots, X_n) = P(X_{n+1} \in B \mid X_n) =: K(X_n, B)$$
@@ -224,7 +224,7 @@ Computing $P^n$ via matrix exponentiation (eigendecomposition or repeated squari
 **Theorem (Chapman-Kolmogorov).** For any $m, n \geq 0$ and states $i, j$:
 $$P^{(m+n)}_{ij} = \sum_{k \in \mathcal{S}} P^{(m)}_{ik} P^{(n)}_{kj}$$
 
-In matrix form: $P^{m+n} = P^m P^n$. This is simply the rule for matrix multiplication — to go from $i$ to $j$ in $m+n$ steps, sum over all intermediate states $k$ at the midpoint.
+In matrix form: $P^{m+n} = P^m P^n$. This is simply the rule for matrix multiplication - to go from $i$ to $j$ in $m+n$ steps, sum over all intermediate states $k$ at the midpoint.
 
 **Proof:** By the law of total probability and the Markov property:
 $$P(X_{m+n}=j \mid X_0=i) = \sum_k P(X_{m+n}=j \mid X_m=k) P(X_m=k \mid X_0=i) = \sum_k P^{(n)}_{kj} P^{(m)}_{ik}$$
@@ -265,13 +265,13 @@ For the Ising model on two spins, $P$ is a $4 \times 4$ matrix constructed by ra
 
 Communication is an equivalence relation, and its equivalence classes are called **communicating classes**. A communicating class $C$ is **closed** if no state outside $C$ is accessible from any state inside $C$: $i \in C$ and $i \to j$ implies $j \in C$.
 
-**Definition (Irreducible Chain).** A Markov chain is **irreducible** if it has exactly one communicating class — every state communicates with every other. Equivalently, for every pair $(i,j)$, there exists $n$ with $P^{(n)}_{ij} > 0$.
+**Definition (Irreducible Chain).** A Markov chain is **irreducible** if it has exactly one communicating class - every state communicates with every other. Equivalently, for every pair $(i,j)$, there exists $n$ with $P^{(n)}_{ij} > 0$.
 
 Irreducibility is the "connectivity" condition for Markov chains. An irreducible chain cannot get trapped in a subset of states. Most of the theory (stationary distributions, convergence) requires irreducibility.
 
 **Decomposition theorem:** Any finite Markov chain decomposes into transient states (a particle eventually leaves forever) and one or more closed communicating classes of recurrent states. Once the chain enters a closed class, it stays there forever.
 
-**For AI:** A language model's transition matrix is nearly irreducible: any token sequence of sufficient length can be generated (in principle). Practical degeneracy (zero-probability transitions due to softmax temperatures → 0) creates absorbing states.
+**For AI:** A language model's transition matrix is nearly irreducible: any token sequence of sufficient length can be generated (in principle). Practical degeneracy (zero-probability transitions due to softmax temperatures -> 0) creates absorbing states.
 
 ### 3.2 Recurrence and Transience
 
@@ -290,7 +290,7 @@ $$f_i = P(T_i < \infty \mid X_0 = i)$$
 - **Positive recurrent**: $f_i = 1$ and $\mu_i < \infty$ (returns in finite average time)
 - **Null recurrent**: $f_i = 1$ but $\mu_i = \infty$ (certain to return, but takes forever on average)
 
-All recurrent states in a finite irreducible chain are positive recurrent (finite chains cannot be null-recurrent). The simple random walk on $\mathbb{Z}$ is null-recurrent in 1D and 2D, transient in 3D and above (Pólya's theorem).
+All recurrent states in a finite irreducible chain are positive recurrent (finite chains cannot be null-recurrent). The simple random walk on $\mathbb{Z}$ is null-recurrent in 1D and 2D, transient in 3D and above (Polya's theorem).
 
 **For AI:** In MCMC, we want the chain to be recurrent (it returns to every region of the posterior). A transient MCMC chain would drift away from the posterior, giving biased samples.
 
@@ -305,11 +305,11 @@ State $i$ is **aperiodic** if $d(i) = 1$; otherwise it is **periodic** with peri
 1. All states in the same communicating class have the same period
 2. A chain is called **aperiodic** if all states have period 1
 3. If $P_{ii} > 0$ for some $i$, then $d(i) = 1$ (self-loops force aperiodicity)
-4. An irreducible aperiodic chain converges to its stationary distribution (§4.3)
+4. An irreducible aperiodic chain converges to its stationary distribution (Section4.3)
 
 **Example:** A two-state chain $0 \leftrightarrow 1$ with $P_{01}=P_{10}=1$ is periodic with period 2: the chain alternates 0,1,0,1,... and $P^{(n)}_{00} = 1$ only for even $n$.
 
-**Periodicity breaks convergence:** If a chain has period $d > 1$, then $P^{(n)}_{ij}$ does not converge as $n \to \infty$ — it oscillates. Adding any self-loop probability $\varepsilon > 0$ makes the chain aperiodic.
+**Periodicity breaks convergence:** If a chain has period $d > 1$, then $P^{(n)}_{ij}$ does not converge as $n \to \infty$ - it oscillates. Adding any self-loop probability $\varepsilon > 0$ makes the chain aperiodic.
 
 **For AI:** Metropolis-Hastings with a symmetric proposal that includes the possibility of staying put is automatically aperiodic (self-loops happen when a proposal is rejected). This is why MCMC chains converge.
 
@@ -324,14 +324,14 @@ where $Q$ is the $t \times t$ sub-matrix of transitions among transient states, 
 
 **Fundamental matrix:** $N = (I - Q)^{-1}$. The $(i,j)$ entry of $N$ is the expected number of times the chain visits transient state $j$ before absorption, starting from transient state $i$.
 
-**Absorption probabilities:** $B = NR$ gives the probability of being absorbed into each absorbing state. The gambler's ruin formula $P(\text{reach } N \mid \text{start at } a) = a/N$ (derived via OST in §06) follows directly from this formula.
+**Absorption probabilities:** $B = NR$ gives the probability of being absorbed into each absorbing state. The gambler's ruin formula $P(\text{reach } N \mid \text{start at } a) = a/N$ (derived via OST in Section06) follows directly from this formula.
 
 ### 3.5 Ergodic Chains
 
 **Definition (Ergodic Chain).** A Markov chain is **ergodic** if it is:
-1. **Irreducible** — every state communicates with every other
-2. **Positive recurrent** — mean return time is finite for all states
-3. **Aperiodic** — all states have period 1
+1. **Irreducible** - every state communicates with every other
+2. **Positive recurrent** - mean return time is finite for all states
+3. **Aperiodic** - all states have period 1
 
 Ergodic chains are the "nice" chains: they have a unique stationary distribution, and the chain converges to it from any starting state.
 
@@ -357,7 +357,7 @@ Equivalently, $\pi$ is a left eigenvector of $P$ with eigenvalue 1. If the chain
 
 **Existence:** Every finite irreducible Markov chain has a unique stationary distribution $\pi$ with $\pi_i > 0$ for all $i$. For infinite chains, existence requires positive recurrence.
 
-**Non-uniqueness when reducible:** A chain with multiple closed communicating classes has infinitely many stationary distributions — any convex combination of the stationary distributions within each closed class is stationary.
+**Non-uniqueness when reducible:** A chain with multiple closed communicating classes has infinitely many stationary distributions - any convex combination of the stationary distributions within each closed class is stationary.
 
 **The mean return time formula:** For a positive recurrent chain, $\pi_i = 1/\mu_i$ where $\mu_i = \mathbb{E}[T_i \mid X_0=i]$ is the mean return time. States visited more often (smaller $\mu_i$) get higher stationary probability.
 
@@ -373,7 +373,7 @@ The Perron-Frobenius theorem is the fundamental result guaranteeing existence an
 
 If additionally $P$ is **primitive** (irreducible and aperiodic), then $\lambda = 1$ is the **unique** eigenvalue on the unit circle, and $|\lambda_2| < 1$ strictly. This gap drives convergence.
 
-**Proof sketch (uniqueness):** Suppose $\pi$ and $\nu$ are both stationary. Then $\mu = (\pi - \nu)$ satisfies $\mu P = \mu$ with $\sum_i \mu_i = 0$. If any $\mu_i \neq 0$, irreducibility implies all $\mu_i \neq 0$. But then $\pi - \nu$ cannot be a probability vector minus a probability vector with the right sign everywhere — contradiction.
+**Proof sketch (uniqueness):** Suppose $\pi$ and $\nu$ are both stationary. Then $\mu = (\pi - \nu)$ satisfies $\mu P = \mu$ with $\sum_i \mu_i = 0$. If any $\mu_i \neq 0$, irreducibility implies all $\mu_i \neq 0$. But then $\pi - \nu$ cannot be a probability vector minus a probability vector with the right sign everywhere - contradiction.
 
 **For AI:** PageRank power iteration converges because the damped PageRank matrix is primitive (the teleportation term makes it irreducible and the self-loops make it aperiodic). The dominant eigenvalue is 1, and all other eigenvalues are $< \alpha < 1$ in magnitude, guaranteeing geometric convergence.
 
@@ -389,13 +389,13 @@ $$\|P^n(i,\cdot) - \pi\|_{\text{TV}} \leq \frac{1}{2\sqrt{\pi_i}} \lambda_*^n$$
 
 The rate $\lambda_*$ is called the **second largest eigenvalue modulus (SLEM)**. The **spectral gap** is $1 - \lambda_*$; a large gap means fast convergence.
 
-**Periodic chains:** If $P$ is irreducible but periodic with period $d$, then $P^{(n)}_{ij}$ does not converge — it cycles. However, $P^d$ (the $d$-step chain) is aperiodic and does converge. In practice, a small perturbation (adding laziness) kills periodicity.
+**Periodic chains:** If $P$ is irreducible but periodic with period $d$, then $P^{(n)}_{ij}$ does not converge - it cycles. However, $P^d$ (the $d$-step chain) is aperiodic and does converge. In practice, a small perturbation (adding laziness) kills periodicity.
 
 **The lazy chain:** Replace $P$ with $(I + P)/2$. This halves the spectral gap but makes the chain aperiodic with all eigenvalues non-negative, ensuring monotone convergence.
 
 ### 4.4 Null-Recurrent Chains
 
-The simple random walk on $\mathbb{Z}$ returns to the origin with probability 1 (recurrent) but takes infinitely long on average (null-recurrent). Such chains have no stationary probability distribution — the "stationary measure" $\pi_i$ is not normalisable.
+The simple random walk on $\mathbb{Z}$ returns to the origin with probability 1 (recurrent) but takes infinitely long on average (null-recurrent). Such chains have no stationary probability distribution - the "stationary measure" $\pi_i$ is not normalisable.
 
 The 1D random walk has $\pi_i = 1$ for all $i$, which gives infinite total mass $\sum_i \pi_i = \infty$. The chain visits every state infinitely often, but spends a vanishing fraction of time at any fixed state.
 
@@ -417,7 +417,7 @@ Starting from any distribution $\pi^{(0)} > 0$, iterating converges to $\pi$ at 
 Compute the left eigenvector of $P$ corresponding to eigenvalue 1. For symmetric or reversible chains, this is equivalent to finding the dominant eigenvector.
 
 **Method 4: MCMC (for continuous state spaces)**
-For distributions $\pi(x) \propto \exp(-f(x))$ on $\mathbb{R}^d$, construct a Markov chain with stationary distribution $\pi$ and run it — the empirical distribution of the chain approximates $\pi$ by the ergodic theorem.
+For distributions $\pi(x) \propto \exp(-f(x))$ on $\mathbb{R}^d$, construct a Markov chain with stationary distribution $\pi$ and run it - the empirical distribution of the chain approximates $\pi$ by the ergodic theorem.
 
 ---
 
@@ -435,7 +435,7 @@ Detailed balance says: the probability flux from $i$ to $j$ at stationarity equa
 *Proof:*
 $$\sum_i \pi_i P_{ij} = \sum_i \pi_j P_{ji} = \pi_j \sum_i P_{ji} = \pi_j \cdot 1 = \pi_j$$
 
-So $\pi P = \pi$. The converse is false — a stationary distribution need not satisfy detailed balance.
+So $\pi P = \pi$. The converse is false - a stationary distribution need not satisfy detailed balance.
 
 **Significance:** Detailed balance is easier to verify than stationarity (it's a pairwise condition rather than a global one), and it characterises **reversible** chains. All Metropolis-Hastings algorithms are constructed to satisfy detailed balance by design.
 
@@ -449,7 +449,7 @@ So $\pi P = \pi$. The converse is false — a stationary distribution need not s
 
 **Non-reversible example:** The chain $1 \to 2 \to 3 \to 1$ (cyclic with $P_{12}=P_{23}=P_{31}=1$) has uniform stationary distribution but is NOT reversible: it has a preferred direction of rotation.
 
-**For AI:** Reversibility is a sufficient condition for correctness of MCMC algorithms. A Metropolis-Hastings chain with target $\pi$ satisfies detailed balance — it's reversible — and therefore has $\pi$ as stationary distribution. Non-reversible MCMC (e.g., lifting methods, HMC) can mix faster but is harder to analyse.
+**For AI:** Reversibility is a sufficient condition for correctness of MCMC algorithms. A Metropolis-Hastings chain with target $\pi$ satisfies detailed balance - it's reversible - and therefore has $\pi$ as stationary distribution. Non-reversible MCMC (e.g., lifting methods, HMC) can mix faster but is harder to analyse.
 
 ### 5.3 Birth-Death Chains
 
@@ -479,7 +479,7 @@ where $\phi_k$ are the eigenfunctions (normalised in $L^2(\pi)$). As $n \to \inf
 **Dirichlet form:** For reversible chains, the spectral gap equals:
 $$\text{gap} = \min_{f \perp \mathbf{1}} \frac{\mathcal{E}(f,f)}{\text{Var}_\pi(f)}$$
 
-where $\mathcal{E}(f,f) = \frac{1}{2}\sum_{i,j} \pi_i P_{ij}(f(j)-f(i))^2$ is the Dirichlet form. This variational characterisation is the basis for Poincaré inequality methods.
+where $\mathcal{E}(f,f) = \frac{1}{2}\sum_{i,j} \pi_i P_{ij}(f(j)-f(i))^2$ is the Dirichlet form. This variational characterisation is the basis for Poincare inequality methods.
 
 ---
 
@@ -595,14 +595,14 @@ $$\pi_n = \pi_0 \prod_{k=0}^{n-1} \frac{\lambda_k}{\mu_{k+1}}$$
 
 ### 7.4 Poisson Process as CTMC
 
-> **Recall from [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md#5-poisson-processes):** The Poisson process $N_t$ counts arrivals up to time $t$ with independent Poisson increments. Inter-arrival times are $\text{Exp}(\lambda)$.
+> **Recall from [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md#5-poisson-processes):** The Poisson process $N_t$ counts arrivals up to time $t$ with independent Poisson increments. Inter-arrival times are $\text{Exp}(\lambda)$.
 
 The Poisson process is the simplest CTMC: states $\{0,1,2,\ldots\}$, jump rates $q_{n,n+1} = \lambda$ (arrivals only), generator:
 $$Q = \begin{pmatrix} -\lambda & \lambda & & \\ & -\lambda & \lambda & \\ & & \ddots & \ddots \end{pmatrix}$$
 
-The Poisson process is **transient** — it drifts to $+\infty$ with no stationary distribution. An $M/M/1$ queue (arrivals at rate $\lambda$, service at rate $\mu > \lambda$) modifies the Poisson process by adding downward jumps (service completions), yielding a birth-death CTMC with geometric stationary distribution $\pi_n = (1-\rho)\rho^n$ where $\rho = \lambda/\mu$.
+The Poisson process is **transient** - it drifts to $+\infty$ with no stationary distribution. An $M/M/1$ queue (arrivals at rate $\lambda$, service at rate $\mu > \lambda$) modifies the Poisson process by adding downward jumps (service completions), yielding a birth-death CTMC with geometric stationary distribution $\pi_n = (1-\rho)\rho^n$ where $\rho = \lambda/\mu$.
 
-**For AI:** The Poisson process models token arrivals at an LLM serving endpoint. At high load ($\rho \to 1$), the queue length distribution becomes heavy-tailed, leading to high-percentile latency spikes. The M/M/1 formula $\mathbb{E}[\text{queue}] = \rho/(1-\rho)$ quantifies this: 90% utilisation means 9× the base queue length.
+**For AI:** The Poisson process models token arrivals at an LLM serving endpoint. At high load ($\rho \to 1$), the queue length distribution becomes heavy-tailed, leading to high-percentile latency spikes. The M/M/1 formula $\mathbb{E}[\text{queue}] = \rho/(1-\rho)$ quantifies this: 90% utilisation means 9x the base queue length.
 
 ---
 
@@ -650,11 +650,11 @@ $$\pi(\theta) q(\theta' \mid \theta) a(\theta, \theta') = \pi(\theta') q(\theta 
 3. $\vdots$
 4. Sample $\theta_d^{(t+1)} \sim \pi(\theta_d \mid \theta_1^{(t+1)}, \ldots, \theta_{d-1}^{(t+1)})$
 
-**Correctness:** Gibbs sampling is a special case of Metropolis-Hastings where each coordinate update is a MH step with proposal equal to the full conditional. The acceptance ratio is always 1 — every proposal is accepted. This requires the ability to sample from full conditionals $\pi(\theta_k \mid \theta_{-k})$.
+**Correctness:** Gibbs sampling is a special case of Metropolis-Hastings where each coordinate update is a MH step with proposal equal to the full conditional. The acceptance ratio is always 1 - every proposal is accepted. This requires the ability to sample from full conditionals $\pi(\theta_k \mid \theta_{-k})$.
 
 **Block Gibbs:** Instead of updating one coordinate at a time, update a block of coordinates jointly. More efficient when coordinates within a block are highly correlated.
 
-**For AI:** Gibbs sampling is used in latent Dirichlet allocation (LDA) for topic modelling — the full conditionals for topic assignments are available in closed form. In RL, it can be used to sample from the Q-function distribution for exploration.
+**For AI:** Gibbs sampling is used in latent Dirichlet allocation (LDA) for topic modelling - the full conditionals for topic assignments are available in closed form. In RL, it can be used to sample from the Q-function distribution for exploration.
 
 ### 8.4 Convergence Diagnostics
 
@@ -686,7 +686,7 @@ Running an MCMC chain for a finite number of steps gives an approximate (not exa
 
 ### 9.1 Language Model Generation
 
-Every autoregressive language model — GPT, LLaMA, PaLM, Gemini — generates text as a Markov chain on the vocabulary. The state at step $n$ is the entire generated sequence $(w_1,\ldots,w_n)$ (treated as a single token in the KV cache), and the transition is:
+Every autoregressive language model - GPT, LLaMA, PaLM, Gemini - generates text as a Markov chain on the vocabulary. The state at step $n$ is the entire generated sequence $(w_1,\ldots,w_n)$ (treated as a single token in the KV cache), and the transition is:
 $$P(w_{n+1} = v \mid w_1,\ldots,w_n) = \text{softmax}(\text{LM}(w_1,\ldots,w_n))_v$$
 
 **Temperature and the stationary distribution:** At temperature $\tau$:
@@ -695,7 +695,7 @@ $$P_\tau(w_{n+1} = v \mid \text{context}) = \frac{\exp(\text{logit}_v / \tau)}{\
 - $\tau \to 0$: greedy decoding (deterministic); $\tau = 1$: standard sampling; $\tau \to \infty$: uniform
 - The generated sequence is a Markov chain; its stationary distribution (if the chain were infinite) would represent the model's "preferred" discourse
 
-**Mixing time of language models:** For a well-trained LLM, the Markov chain mixes quickly — the model "forgets" its starting state within a few hundred tokens for most topics. This reflects the inductive bias toward coherent text: the chain has a large spectral gap.
+**Mixing time of language models:** For a well-trained LLM, the Markov chain mixes quickly - the model "forgets" its starting state within a few hundred tokens for most topics. This reflects the inductive bias toward coherent text: the chain has a large spectral gap.
 
 **Top-$k$ and nucleus sampling:** Top-$k$ sampling restricts transitions to the $k$ highest-probability tokens; nucleus (top-$p$) sampling restricts to the minimal set of tokens whose cumulative probability exceeds $p$. Both modify the transition matrix to improve mixing (reduce probability of stuck low-quality loops).
 
@@ -740,7 +740,7 @@ In matrix form: $\mathbf{V}^\pi = \mathbf{r}^\pi + \gamma P^\pi \mathbf{V}^\pi$,
 
 **Policy evaluation = linear system:** Given a fixed policy $\pi$, computing $V^\pi$ requires inverting $(I - \gamma P^\pi)$. This is guaranteed well-conditioned since $\gamma < 1$ implies all eigenvalues of $\gamma P^\pi$ have magnitude $< 1$.
 
-**RLHF as MDP:** Reinforcement learning from human feedback trains a language model (policy $\pi_\theta$) to maximise a reward model $r_\phi$ — an MDP with the KV cache as state, vocabulary as actions, and the human preference model as reward.
+**RLHF as MDP:** Reinforcement learning from human feedback trains a language model (policy $\pi_\theta$) to maximise a reward model $r_\phi$ - an MDP with the KV cache as state, vocabulary as actions, and the human preference model as reward.
 
 ### 9.4 Hidden Markov Models
 
@@ -770,12 +770,12 @@ $$q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}\,x_{t-1},\, \beta_t I)
 
 The marginal $q(x_t \mid x_0) = \mathcal{N}(\sqrt{\bar\alpha_t}x_0, (1-\bar\alpha_t)I)$ with $\bar\alpha_t = \prod_{s=1}^t (1-\beta_s)$.
 
-> **Recall from [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md#6-brownian-motion):** In the SDE formulation (Song et al., 2021), the continuous-time version is a CTMC/SDE: $dx = f(x,t)\,dt + g(t)\,dB_t$.
+> **Recall from [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md#6-brownian-motion):** In the SDE formulation (Song et al., 2021), the continuous-time version is a CTMC/SDE: $dx = f(x,t)\,dt + g(t)\,dB_t$.
 
 **The reverse process:** By time-reversal of Markov chains (Anderson, 1982), the reverse of an ergodic CTMC is also a CTMC. The reverse diffusion has:
 $$p_\theta(x_{t-1} \mid x_t) = \mathcal{N}(x_{t-1};\, \mu_\theta(x_t, t),\, \Sigma_\theta(t))$$
 
-The neural network learns to parameterise the reverse transitions — equivalently, to approximate the score function $\nabla_x \log q_t(x)$.
+The neural network learns to parameterise the reverse transitions - equivalently, to approximate the score function $\nabla_x \log q_t(x)$.
 
 ---
 
@@ -785,22 +785,22 @@ The neural network learns to parameterise the reverse transitions — equivalent
 | --- | --- | --- | --- |
 | 1 | Confusing stationarity with convergence | Stationarity ($\pi P = \pi$) is a property of a distribution; convergence ($\mu^{(n)} \to \pi$) is about the chain's trajectory. The chain may start at $\pi$ and be stationary without "converging" (it's already there). | Distinguish: stationarity is the destination; convergence is the journey. |
 | 2 | Assuming irreducibility implies unique stationary distribution | An irreducible chain on an infinite state space may be null-recurrent (no normalisable stationary distribution), e.g., SRW on $\mathbb{Z}$. | Unique stationary distribution requires irreducibility + positive recurrence. |
-| 3 | Forgetting aperiodicity for convergence | An irreducible positive-recurrent but periodic chain has a unique stationary distribution but $P^{(n)}_{ij}$ does NOT converge — it oscillates. | Convergence to stationarity requires ergodicity = irreducible + positive recurrent + aperiodic. |
+| 3 | Forgetting aperiodicity for convergence | An irreducible positive-recurrent but periodic chain has a unique stationary distribution but $P^{(n)}_{ij}$ does NOT converge - it oscillates. | Convergence to stationarity requires ergodicity = irreducible + positive recurrent + aperiodic. |
 | 4 | Treating detailed balance as necessary for stationarity | Detailed balance ($\pi_i P_{ij} = \pi_j P_{ji}$) is sufficient but not necessary for $\pi P = \pi$. Many chains (e.g., cyclic chains) have stationary distributions without satisfying detailed balance. | Detailed balance $\Rightarrow$ stationarity, but stationarity $\not\Rightarrow$ detailed balance. |
 | 5 | Confusing the transition matrix orientation | Some books write $P_{ij}$ as probability from $j$ to $i$ (column stochastic); others write it as probability from $i$ to $j$ (row stochastic). This flips $\pi P = \pi$ vs. $P\pi = \pi$. | Fix a convention: row stochastic means rows sum to 1 and $\pi P = \pi$ (left eigenvector). |
 | 6 | Ignoring burn-in in MCMC | The first $B$ MCMC samples come from a distribution close to $\mu^{(0)}$ (initial distribution), not $\pi$. Including them biases posterior estimates. | Always discard a burn-in period. Use $\hat{R}$ and ESS to assess convergence. |
 | 7 | Confusing mixing time with burn-in | Mixing time $t_{\text{mix}}$ is a property of the chain (how long until the worst-case distribution is close to $\pi$). Burn-in is a practical heuristic. They are related but not equal. | Burn-in should be at least $t_{\text{mix}}$; more if starting far from $\pi$. |
-| 8 | Assuming high acceptance rate = well-mixed MCMC | A chain that always accepts (tiny step size in MH) explores very slowly; acceptance rate ~1 with step size → 0 gives high acceptance but poor mixing. | Target ~23% acceptance in high dimensions (optimal for Gaussian targets). |
+| 8 | Assuming high acceptance rate = well-mixed MCMC | A chain that always accepts (tiny step size in MH) explores very slowly; acceptance rate ~1 with step size -> 0 gives high acceptance but poor mixing. | Target ~23% acceptance in high dimensions (optimal for Gaussian targets). |
 | 9 | Using $P^n$ to compute stationary distribution for large $n$ | Matrix exponentiation $P^n$ converges to the rank-1 matrix $\mathbf{1}\pi$, but floating-point errors accumulate. | Use power iteration on the distribution vector: $\pi^{(k+1)} = \pi^{(k)} P$, which is numerically stable. |
 | 10 | Misidentifying the state space for LLM generation | A bigram LM has states = vocabulary (size $V$). A full autoregressive LM has states = entire context = exponential in context length. | The Markov chain for a transformer is on the context window, not the vocabulary alone. |
 | 11 | Confusing transient and absorbing | A transient state will eventually be left for good; an absorbing state is one from which the chain never leaves. Every absorbing state is recurrent (trivially), not transient. | Transient: $P(\text{return}) < 1$; absorbing: $P_{ii}=1$. Absorbing states are recurrent. |
-| 12 | Expecting MCMC samples to be independent | MCMC samples are correlated (autocorrelated) — consecutive samples are not independent. ESS < T measures effective independence. | Report ESS, not raw sample count. Use thinning to reduce autocorrelation if needed. |
+| 12 | Expecting MCMC samples to be independent | MCMC samples are correlated (autocorrelated) - consecutive samples are not independent. ESS < T measures effective independence. | Report ESS, not raw sample count. Use thinning to reduce autocorrelation if needed. |
 
 ---
 
 ## 11. Exercises
 
-**Exercise 1 ★ — Transition Matrix and Distribution Evolution**
+**Exercise 1 * - Transition Matrix and Distribution Evolution**
 
 A weather model has two states: Sunny (1) and Rainy (2), with transition matrix $P = \begin{pmatrix}0.8 & 0.2 \\ 0.4 & 0.6\end{pmatrix}$.
 
@@ -814,7 +814,7 @@ A weather model has two states: Sunny (1) and Rainy (2), with transition matrix 
 
 ---
 
-**Exercise 2 ★ — State Classification**
+**Exercise 2 * - State Classification**
 
 Consider the Markov chain on $\{1,2,3,4,5\}$ with transition matrix:
 $$P = \begin{pmatrix}
@@ -835,7 +835,7 @@ $$P = \begin{pmatrix}
 
 ---
 
-**Exercise 3 ★ — Computing Stationary Distributions**
+**Exercise 3 * - Computing Stationary Distributions**
 
 (a) Implement `stationary_power_iteration(P, n_iter=1000)` that starts from a uniform distribution and returns $\pi^{(n)}$ after $n$ iterations. Apply to the $3\times3$ chain with $P_{ij} = 1/3$ for all $i,j$ and a $4\times4$ random row-stochastic matrix.
 
@@ -847,7 +847,7 @@ $$P = \begin{pmatrix}
 
 ---
 
-**Exercise 4 ★★ — Detailed Balance and Birth-Death Chains**
+**Exercise 4 ** - Detailed Balance and Birth-Death Chains**
 
 (a) Verify that the two-state chain $P = \begin{pmatrix}1-p&p\\q&1-q\end{pmatrix}$ satisfies detailed balance with $\pi = (q/(p+q), p/(p+q))$.
 
@@ -859,7 +859,7 @@ $$P = \begin{pmatrix}
 
 ---
 
-**Exercise 5 ★★ — Mixing Time and Spectral Gap**
+**Exercise 5 ** - Mixing Time and Spectral Gap**
 
 (a) For the two-state chain in Exercise 1, compute the eigenvalues of $P$. What is the spectral gap?
 
@@ -871,7 +871,7 @@ $$P = \begin{pmatrix}
 
 ---
 
-**Exercise 6 ★★ — Metropolis-Hastings**
+**Exercise 6 ** - Metropolis-Hastings**
 
 (a) Implement Metropolis-Hastings with a Gaussian random walk proposal $q(\theta'|\theta) = \mathcal{N}(\theta, \sigma^2)$ for target $\pi(\theta) \propto \exp(-\theta^4/4 + \theta^2/2)$ (double-well potential). Run for $T=50000$ steps with $\sigma=0.5$.
 
@@ -883,7 +883,7 @@ $$P = \begin{pmatrix}
 
 ---
 
-**Exercise 7 ★★★ — PageRank**
+**Exercise 7 *** - PageRank**
 
 (a) Implement PageRank power iteration for the 5-node graph with adjacency matrix:
 $$A = \begin{pmatrix}0&1&1&0&0\\0&0&1&1&0\\0&0&0&1&1\\1&0&0&0&1\\0&1&0&0&0\end{pmatrix}$$
@@ -897,7 +897,7 @@ with damping factor $\alpha=0.85$. Handle dangling nodes.
 
 ---
 
-**Exercise 8 ★★★ — HMM Forward Algorithm and Viterbi**
+**Exercise 8 *** - HMM Forward Algorithm and Viterbi**
 
 An HMM models DNA sequences with 2 hidden states (CpG island: $H$, non-CpG: $L$) and 4 observations (A, C, G, T).
 
@@ -934,47 +934,47 @@ An HMM models DNA sequences with 2 hidden states (CpG island: $H$, non-CpG: $L$)
 
 ## 13. Conceptual Bridge
 
-Markov chains occupy the central position in the probability curriculum: they are the first class of stochastic processes with nontrivial structure — neither completely independent (iid) nor completely dependent. The Markov property gives just enough memory to model real sequential phenomena while remaining mathematically tractable.
+Markov chains occupy the central position in the probability curriculum: they are the first class of stochastic processes with nontrivial structure - neither completely independent (iid) nor completely dependent. The Markov property gives just enough memory to model real sequential phenomena while remaining mathematically tractable.
 
-**Looking backward:** Markov chains build on everything in Chapters 1–6. The transition matrix is a row-stochastic matrix — linear algebra from Chapters 2–3. The stationary distribution is an eigenvector problem solved by Perron-Frobenius. Computing stationary distributions uses the conditional probability machinery from §03. The ergodic theorem is a strengthening of the law of large numbers (§06). The Metropolis-Hastings acceptance ratio uses Bayes' theorem (§03). Mixing times use concentration inequalities (§05) through the spectral gap. The stochastic process framework of filtrations and stopping times (§06) provides the rigorous foundation.
+**Looking backward:** Markov chains build on everything in Chapters 1-6. The transition matrix is a row-stochastic matrix - linear algebra from Chapters 2-3. The stationary distribution is an eigenvector problem solved by Perron-Frobenius. Computing stationary distributions uses the conditional probability machinery from Section03. The ergodic theorem is a strengthening of the law of large numbers (Section06). The Metropolis-Hastings acceptance ratio uses Bayes' theorem (Section03). Mixing times use concentration inequalities (Section05) through the spectral gap. The stochastic process framework of filtrations and stopping times (Section06) provides the rigorous foundation.
 
-**Looking forward:** Markov chains are the gateway to Chapter 7 (Statistics), where MCMC enables Bayesian inference with intractable posteriors; Chapter 8 (Optimisation), where Markov chain mixing theory explains why SGD finds flat minima; and Chapter 9 (Information Theory), where the entropy of a stationary distribution connects to compression. Markov Decision Processes — the reinforcement learning setting — are a direct extension requiring optimisation over policies.
+**Looking forward:** Markov chains are the gateway to Chapter 7 (Statistics), where MCMC enables Bayesian inference with intractable posteriors; Chapter 8 (Optimisation), where Markov chain mixing theory explains why SGD finds flat minima; and Chapter 9 (Information Theory), where the entropy of a stationary distribution connects to compression. Markov Decision Processes - the reinforcement learning setting - are a direct extension requiring optimisation over policies.
 
-**The deep connection:** The central theorem of Markov chain theory — ergodicity implies $\mu^{(n)} \to \pi$ — is the probabilistic analogue of the contraction mapping theorem from analysis: repeated application of the transition operator contracts all distributions toward the unique fixed point $\pi$. The spectral gap quantifies the contraction rate, just as the Lipschitz constant does in the deterministic setting. This structural parallel runs through SGD convergence theory, where the gradient operator acts as a stochastic contraction.
+**The deep connection:** The central theorem of Markov chain theory - ergodicity implies $\mu^{(n)} \to \pi$ - is the probabilistic analogue of the contraction mapping theorem from analysis: repeated application of the transition operator contracts all distributions toward the unique fixed point $\pi$. The spectral gap quantifies the contraction rate, just as the Lipschitz constant does in the deterministic setting. This structural parallel runs through SGD convergence theory, where the gradient operator acts as a stochastic contraction.
 
 ```
 MARKOV CHAINS IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §01 Random Variables ─────────────────────────────────────┐
-  §02 Distributions ──────────────────────────────────────┐  │
-  §03 Joint Distributions  ───────────────────────────┐   │  │
-  §04 Expectation & Moments ──────────────────────┐   │   │  │
-  §05 Concentration Inequalities ─────────────┐   │   │   │  │
-  §06 Stochastic Processes ───────────────┐   │   │   │   │  │
-                                           ↓   ↓   ↓   ↓  ↓  ↓
-                              ┌─────────────────────────────────┐
-                              │   §07  MARKOV  CHAINS           │
-                              │                                 │
-                              │  Markov property                │
-                              │  Transition matrices            │
-                              │  Stationary distributions       │
-                              │  Mixing times, spectral gap     │
-                              │  MCMC (MH, Gibbs, HMC)         │
-                              │  PageRank, MDP, HMM             │
-                              └──────────────┬──────────────────┘
-                                             │
-               ┌─────────────────────────────┼────────────────────┐
-               ↓                             ↓                    ↓
+  Section01 Random Variables -------------------------------------+
+  Section02 Distributions --------------------------------------+  |
+  Section03 Joint Distributions  ---------------------------+   |  |
+  Section04 Expectation & Moments ----------------------+   |   |  |
+  Section05 Concentration Inequalities -------------+   |   |   |  |
+  Section06 Stochastic Processes ---------------+   |   |   |   |  |
+                                           v   v   v   v  v  v
+                              +---------------------------------+
+                              |   Section07  MARKOV  CHAINS           |
+                              |                                 |
+                              |  Markov property                |
+                              |  Transition matrices            |
+                              |  Stationary distributions       |
+                              |  Mixing times, spectral gap     |
+                              |  MCMC (MH, Gibbs, HMC)         |
+                              |  PageRank, MDP, HMM             |
+                              +--------------+------------------+
+                                             |
+               +-----------------------------+--------------------+
+               v                             v                    v
     Ch7: Statistics               Ch8: Optimisation        Ch9: Info Theory
-    (MCMC for Bayes,              (SGD mixing theory,      (Entropy of π,
+    (MCMC for Bayes,              (SGD mixing theory,      (Entropy of \\pi,
      posterior inference)          Langevin dynamics)       KL from stationarity)
-               ↓                             ↓
+               v                             v
     RL/RLHF: MDP                  Diffusion models
     (policy eval,                 (DDPM as CTMC,
      value functions)              reverse Markov)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 
@@ -985,16 +985,16 @@ MARKOV CHAINS IN THE CURRICULUM
 A function $h : \mathcal{S} \to \mathbb{R}$ is **harmonic** for a Markov chain at state $i$ if:
 $$h(i) = \sum_j P_{ij} h(j) = (Ph)(i)$$
 
-That is, $h(i)$ equals the expected value of $h$ one step later. Harmonic functions are the "conserved quantities" of Markov chains — if $h(X_0)$ is the starting value, then $h(X_n)$ forms a martingale.
+That is, $h(i)$ equals the expected value of $h$ one step later. Harmonic functions are the "conserved quantities" of Markov chains - if $h(X_0)$ is the starting value, then $h(X_n)$ forms a martingale.
 
 **Maximum principle:** For an irreducible chain on a finite state space, the only bounded harmonic functions are constants. This is the probabilistic analogue of the maximum principle for harmonic functions in PDE theory.
 
 **Dirichlet problem:** On a chain with absorbing boundary $\partial \mathcal{S}$ and interior $\mathcal{S}^\circ$, the function $h(i) = E_i[f(X_{\tau_\partial})]$ (expected boundary value at hitting time) is the unique solution to:
 $$h(i) = (Ph)(i) \text{ for } i \in \mathcal{S}^\circ, \quad h(i) = f(i) \text{ for } i \in \partial\mathcal{S}$$
 
-**Application — gambler's ruin:** Let $h(i) = P(\text{reach } N \mid X_0=i)$. Then $h$ is harmonic on $\{1,\ldots,N-1\}$ with boundary conditions $h(0)=0$, $h(N)=1$. For the simple random walk: $h(i) = i/N$.
+**Application - gambler's ruin:** Let $h(i) = P(\text{reach } N \mid X_0=i)$. Then $h$ is harmonic on $\{1,\ldots,N-1\}$ with boundary conditions $h(0)=0$, $h(N)=1$. For the simple random walk: $h(i) = i/N$.
 
-**For AI:** Value functions in reinforcement learning are harmonic: $V^\pi(s) = \sum_a \pi(a|s)[r(s,a) + \gamma \sum_{s'}P(s'|s,a)V^\pi(s')]$ is a Bellman equation — a discrete-time analogue of the Dirichlet problem with discount factor $\gamma$.
+**For AI:** Value functions in reinforcement learning are harmonic: $V^\pi(s) = \sum_a \pi(a|s)[r(s,a) + \gamma \sum_{s'}P(s'|s,a)V^\pi(s')]$ is a Bellman equation - a discrete-time analogue of the Dirichlet problem with discount factor $\gamma$.
 
 ---
 
@@ -1014,7 +1014,7 @@ For non-reversible chains, eigenvalues of $P$ can be complex (though all have $|
 
 ### C.1 Stochastic Gradient Langevin Dynamics (SGLD)
 
-For Bayesian inference on large datasets, standard MH requires evaluating $\log\pi(\theta)$ at the full dataset — too expensive. SGLD combines SGD with Gaussian noise:
+For Bayesian inference on large datasets, standard MH requires evaluating $\log\pi(\theta)$ at the full dataset - too expensive. SGLD combines SGD with Gaussian noise:
 $$\theta_{t+1} = \theta_t - \frac{\eta_t}{2}\nabla \tilde{L}(\theta_t) + \sqrt{\eta_t}\,\xi_t, \quad \xi_t \sim \mathcal{N}(0,I)$$
 
 where $\tilde{L}(\theta) = -\frac{N}{n}\sum_{i \in \text{minibatch}} \log p(x_i|\theta) - \log p(\theta)$ is the mini-batch stochastic gradient.
@@ -1048,7 +1048,7 @@ Transition matrix (with no damping for clarity):
 $$P = \begin{pmatrix}0&1/2&1/2&0\\0&0&0&1\\0&1&0&0\\1/2&0&1/2&0\end{pmatrix}$$
 
 Stationary distribution (solve $\pi P = \pi$, $\sum\pi_i=1$):
-$\pi = (4/13, 3/13, 4/13, 2/13)$ — verified by direct computation.
+$\pi = (4/13, 3/13, 4/13, 2/13)$ - verified by direct computation.
 
 With damping $\alpha=0.85$: $P' = 0.85 P + 0.15 \cdot J/4$ where $J$ is the all-ones matrix. Power iteration converges in ~30 iterations.
 
@@ -1116,7 +1116,7 @@ Taking supremum over $A$ gives the result.
 ```python
 import numpy as np
 
-# ── 1. Power iteration for stationary distribution
+# -- 1. Power iteration for stationary distribution
 def stationary(P, tol=1e-12, max_iter=10000):
     pi = np.ones(P.shape[0]) / P.shape[0]
     for _ in range(max_iter):
@@ -1126,7 +1126,7 @@ def stationary(P, tol=1e-12, max_iter=10000):
         pi = pi_new
     return pi
 
-# ── 2. Simulate a Markov chain
+# -- 2. Simulate a Markov chain
 def simulate_chain(P, x0, n_steps):
     N = P.shape[0]
     x = x0
@@ -1136,7 +1136,7 @@ def simulate_chain(P, x0, n_steps):
         trajectory.append(x)
     return np.array(trajectory)
 
-# ── 3. Metropolis-Hastings for 1D target
+# -- 3. Metropolis-Hastings for 1D target
 def metropolis_hastings(log_pi, n_steps, sigma=0.5, x0=0.0):
     x = x0
     samples = []
@@ -1148,7 +1148,7 @@ def metropolis_hastings(log_pi, n_steps, sigma=0.5, x0=0.0):
         samples.append(x)
     return np.array(samples)
 
-# ── 4. PageRank
+# -- 4. PageRank
 def pagerank(A, alpha=0.85, tol=1e-8):
     N = A.shape[0]
     out_degree = A.sum(axis=1, keepdims=True)
@@ -1167,9 +1167,9 @@ def pagerank(A, alpha=0.85, tol=1e-8):
         pi = pi_new
     return pi
 
-# ── 5. HMM forward algorithm
+# -- 5. HMM forward algorithm
 def hmm_forward(obs, T, E, pi0):
-    """obs: list of observations, T: N×N transition, E: N×M emission, pi0: initial."""
+    """obs: list of observations, T: NxN transition, E: NxM emission, pi0: initial."""
     N = T.shape[0]
     alpha = np.zeros((len(obs), N))
     alpha[0] = pi0 * E[:, obs[0]]
@@ -1214,17 +1214,17 @@ Before moving to Chapter 7 (Statistics), verify you can:
 
 ---
 
-## Appendix I: Detailed Proofs — Perron-Frobenius and Mixing
+## Appendix I: Detailed Proofs - Perron-Frobenius and Mixing
 
 ### I.1 Perron-Frobenius Theorem (Complete Proof)
 
 We prove the Perron-Frobenius theorem for primitive stochastic matrices.
 
-**Step 1: Eigenvalue 1 exists.** For any stochastic matrix $P$, $P\mathbf{1} = \mathbf{1}$ (column vector of ones). So $\mathbf{1}^T P = \mathbf{1}^T$ iff $P$ is doubly stochastic. More relevantly: by the Brouwer fixed-point theorem on $\Delta^{N-1}$, the map $\pi \mapsto \pi P$ has a fixed point — the stationary distribution. This fixed point is a left eigenvector with eigenvalue 1.
+**Step 1: Eigenvalue 1 exists.** For any stochastic matrix $P$, $P\mathbf{1} = \mathbf{1}$ (column vector of ones). So $\mathbf{1}^T P = \mathbf{1}^T$ iff $P$ is doubly stochastic. More relevantly: by the Brouwer fixed-point theorem on $\Delta^{N-1}$, the map $\pi \mapsto \pi P$ has a fixed point - the stationary distribution. This fixed point is a left eigenvector with eigenvalue 1.
 
 **Step 2: $|\lambda| \leq 1$ for all eigenvalues.** Let $\lambda$ be an eigenvalue with (right) eigenvector $v$ ($Pv = \lambda v$). Pick $v_{\max} = \max_i |v_i|$. Then $|\lambda||v_{\max}| = |\lambda v_{i^*}| = |(Pv)_{i^*}| = |\sum_j P_{i^*j}v_j| \leq \sum_j P_{i^*j}|v_j| \leq v_{\max}$. So $|\lambda| \leq 1$.
 
-**Step 3: $|\lambda| = 1$ implies $\lambda = 1$ for primitive $P$.** For a primitive matrix, $P^m > 0$ (all entries strictly positive) for some $m$. Suppose $|\lambda| = 1$, $\lambda \neq 1$, with $Pv = \lambda v$ and $v_{\max} = 1$. The equality case in Step 2 requires $|v_j| = 1$ for all $j$ and all rows of $P$ to "align" the phases of $v_j$. But for $P^m > 0$, all rows of $P^m$ are strictly positive, and the alignment condition forces $\lambda^m = 1$ and all $v_j$ equal — meaning $v = c\mathbf{1}$ and $\lambda = 1$. Contradiction.
+**Step 3: $|\lambda| = 1$ implies $\lambda = 1$ for primitive $P$.** For a primitive matrix, $P^m > 0$ (all entries strictly positive) for some $m$. Suppose $|\lambda| = 1$, $\lambda \neq 1$, with $Pv = \lambda v$ and $v_{\max} = 1$. The equality case in Step 2 requires $|v_j| = 1$ for all $j$ and all rows of $P$ to "align" the phases of $v_j$. But for $P^m > 0$, all rows of $P^m$ are strictly positive, and the alignment condition forces $\lambda^m = 1$ and all $v_j$ equal - meaning $v = c\mathbf{1}$ and $\lambda = 1$. Contradiction.
 
 **Step 4: Convergence.** Since $\lambda = 1$ is the unique eigenvalue on the unit circle for primitive $P$, all other eigenvalues $\lambda_k$ satisfy $|\lambda_k| \leq 1 - \delta$ for some $\delta > 0$. The spectral decomposition gives $P^n = \mathbf{1}\pi + \sum_{k \geq 2} \lambda_k^n \phi_k \psi_k^T$ where $|\lambda_k|^n \to 0$ at rate $(1-\delta)^n$.
 
@@ -1260,7 +1260,7 @@ $$\frac{h^2}{2} \leq \text{gap} \leq 2h$$
 
 The lower bound is the harder direction and gives: $\text{gap} \geq h^2/2$. In words: a large bottleneck (small $h$) implies a small spectral gap (slow mixing). Conversely, if $h$ is bounded below, the chain mixes in $O(1/h^2)$ steps (vs. $O(1/h)$ for the tighter bound $\text{gap} \leq 2h$).
 
-**For AI:** The Cheeger inequality provides the tightest practical bounds for MCMC convergence. For neural network posteriors, the conductance can be estimated using gradient information — a well-conditioned posterior (no sharp barriers) has high conductance.
+**For AI:** The Cheeger inequality provides the tightest practical bounds for MCMC convergence. For neural network posteriors, the conductance can be estimated using gradient information - a well-conditioned posterior (no sharp barriers) has high conductance.
 
 ---
 
@@ -1279,16 +1279,16 @@ This follows from the data processing inequality: applying the stochastic map $P
 
 ### J.2 Entropy of the Stationary Distribution
 
-The Shannon entropy of $\pi$ is $H(\pi) = -\sum_i \pi_i \log \pi_i$. For a uniform distribution (doubly stochastic $P$), $H(\pi) = \log N$ is maximised. For PageRank, the entropy of $\pi$ measures how "concentrated" web traffic is — low entropy means a few pages dominate.
+The Shannon entropy of $\pi$ is $H(\pi) = -\sum_i \pi_i \log \pi_i$. For a uniform distribution (doubly stochastic $P$), $H(\pi) = \log N$ is maximised. For PageRank, the entropy of $\pi$ measures how "concentrated" web traffic is - low entropy means a few pages dominate.
 
-**Maximum entropy interpretation:** The stationary distribution of a reversible chain with detailed balance can be interpreted as the maximum entropy distribution subject to the constraint that the detailed balance equations hold. This connects Markov chains to the exponential family (§02).
+**Maximum entropy interpretation:** The stationary distribution of a reversible chain with detailed balance can be interpreted as the maximum entropy distribution subject to the constraint that the detailed balance equations hold. This connects Markov chains to the exponential family (Section02).
 
 ### J.3 Kullback-Leibler and MCMC Acceptance
 
 The Metropolis-Hastings acceptance ratio has an information-theoretic interpretation:
 $$a(\theta, \theta') = \min\left(1, \frac{\pi(\theta')q(\theta|\theta')}{\pi(\theta)q(\theta'|\theta)}\right) = \min\left(1, e^{\log\pi(\theta')-\log\pi(\theta)-\log q(\theta'|\theta)+\log q(\theta|\theta')}\right)$$
 
-The exponent is the log-ratio of probability densities — related to the KL divergence between the proposal and target. When the proposal $q$ matches $\pi$ well, most proposals are accepted.
+The exponent is the log-ratio of probability densities - related to the KL divergence between the proposal and target. When the proposal $q$ matches $\pi$ well, most proposals are accepted.
 
 ---
 
@@ -1374,7 +1374,7 @@ This is a **constrained Markov chain optimisation problem**: the state space is 
 The optimal policy has an explicit closed form:
 $$\pi^*(y|x) = \pi_{\text{ref}}(y|x) \cdot \frac{e^{r_\phi(x,y)/\beta}}{Z(x)}$$
 
-where $Z(x)$ is a normalising constant. This is a **Gibbs distribution** with the reward as energy function — exactly the target distribution for MCMC.
+where $Z(x)$ is a normalising constant. This is a **Gibbs distribution** with the reward as energy function - exactly the target distribution for MCMC.
 
 **Implication:** The RLHF optimal policy can be sampled by constructing a Markov chain with the above stationary distribution. Recent work uses Langevin-type MCMC to directly sample from $\pi^*$ without RL.
 
@@ -1390,30 +1390,30 @@ where $\bar{B}_t$ is a Brownian motion running backwards in time. The **score fu
 
 ### N.3 MCMC for LLM Sampling
 
-Standard autoregressive LLM decoding (top-$k$, nucleus) can be viewed as Markov chain sampling from a specific transition matrix. Recent **speculative decoding** methods (Chen et al., 2023; Leviathan et al., 2023) use a smaller "draft" model as a proposal and the large model as the acceptance criterion — this is precisely **independence Metropolis-Hastings**:
+Standard autoregressive LLM decoding (top-$k$, nucleus) can be viewed as Markov chain sampling from a specific transition matrix. Recent **speculative decoding** methods (Chen et al., 2023; Leviathan et al., 2023) use a smaller "draft" model as a proposal and the large model as the acceptance criterion - this is precisely **independence Metropolis-Hastings**:
 
 - Proposal: $q(x_{n+1}|\text{context}) = \text{small\_LM}(x_{n+1}|\text{context})$
 - Acceptance: $a = \min(1, \text{large\_LM}/\text{small\_LM})$
 - Guarantees: the accepted tokens have the same distribution as large-LM-only sampling
 
-This is MCMC applied to language model decoding — Markov chain theory directly yields correctness of speculative decoding.
+This is MCMC applied to language model decoding - Markov chain theory directly yields correctness of speculative decoding.
 
 ### N.4 Graph Neural Networks and Random Walks
 
 Graph Neural Networks (GNNs) can be understood through the lens of Markov chains. A single GNN layer performs:
 $$h_v^{(k+1)} = f\left(h_v^{(k)},\, \text{AGGREGATE}\left(\{h_u^{(k)} : u \in \mathcal{N}(v)\}\right)\right)$$
 
-For the simple mean-aggregation GNN: $h_v^{(k+1)} = \sigma(W h_v^{(k)} + W'\frac{1}{d_v}\sum_{u \sim v} h_u^{(k)})$. The aggregation step is applying the random walk transition matrix $D^{-1}A$ to the feature matrix. $k$ layers of GNN = applying the random walk $k$ times — the receptive field grows as the $k$-step neighbourhood.
+For the simple mean-aggregation GNN: $h_v^{(k+1)} = \sigma(W h_v^{(k)} + W'\frac{1}{d_v}\sum_{u \sim v} h_u^{(k)})$. The aggregation step is applying the random walk transition matrix $D^{-1}A$ to the feature matrix. $k$ layers of GNN = applying the random walk $k$ times - the receptive field grows as the $k$-step neighbourhood.
 
-**Over-smoothing:** After many layers, all node features converge to the stationary distribution of the random walk (uniform for regular graphs). This is **over-smoothing** — the GNN loses discriminative power because the Markov chain mixes. Mixing time bounds from §6 directly bound the number of useful GNN layers.
+**Over-smoothing:** After many layers, all node features converge to the stationary distribution of the random walk (uniform for regular graphs). This is **over-smoothing** - the GNN loses discriminative power because the Markov chain mixes. Mixing time bounds from Section6 directly bound the number of useful GNN layers.
 
 ### N.5 Token Position Encoding as Markov Chain
 
 The self-attention mechanism with rotary position encoding (RoPE) can be viewed as computing a position-dependent Markov chain over tokens. Each attention head defines a stochastic matrix over token positions (the attention weights), and information flows along this chain.
 
-**Attention as ergodic averaging:** In multi-head attention, each head computes $\text{softmax}(QK^T/\sqrt{d})V$. The softmax weights form a row-stochastic matrix — a one-step Markov transition. The output is the expected value of $V$ under this distribution. Stacking attention layers is like composing Markov kernels.
+**Attention as ergodic averaging:** In multi-head attention, each head computes $\text{softmax}(QK^T/\sqrt{d})V$. The softmax weights form a row-stochastic matrix - a one-step Markov transition. The output is the expected value of $V$ under this distribution. Stacking attention layers is like composing Markov kernels.
 
-**Information bottleneck:** The rank of the attention matrix limits the "state space" of the Markov chain. Low-rank attention (as in linear attention / Performer) corresponds to a Markov chain with restricted state space — mixing may be faster but with less expressivity.
+**Information bottleneck:** The rank of the attention matrix limits the "state space" of the Markov chain. Low-rank attention (as in linear attention / Performer) corresponds to a Markov chain with restricted state space - mixing may be faster but with less expressivity.
 
 ---
 
@@ -1449,23 +1449,23 @@ When $\pi(\theta) \propto \exp(-f(\theta))$, the gradient $\nabla f$ drives Lang
 
 ## Appendix Q: Further Reading
 
-1. **Levin, Peres, Wilmer** — *Markov Chains and Mixing Times* (AMS, 2nd ed., 2017) — the definitive reference for mixing times and coupling; freely available online
+1. **Levin, Peres, Wilmer** - *Markov Chains and Mixing Times* (AMS, 2nd ed., 2017) - the definitive reference for mixing times and coupling; freely available online
 
-2. **Norris, J.R.** — *Markov Chains* (Cambridge, 1997) — rigorous treatment of discrete and continuous-time chains with clean proofs
+2. **Norris, J.R.** - *Markov Chains* (Cambridge, 1997) - rigorous treatment of discrete and continuous-time chains with clean proofs
 
-3. **Brooks, Gelman, Jones, Meng** — *Handbook of Markov Chain Monte Carlo* (CRC Press, 2011) — comprehensive MCMC reference; includes HMC, NUTS, diagnostics
+3. **Brooks, Gelman, Jones, Meng** - *Handbook of Markov Chain Monte Carlo* (CRC Press, 2011) - comprehensive MCMC reference; includes HMC, NUTS, diagnostics
 
-4. **Betancourt, M.** — "A Conceptual Introduction to Hamiltonian Monte Carlo" (arXiv, 2017) — outstanding intuitive treatment of HMC geometry
+4. **Betancourt, M.** - "A Conceptual Introduction to Hamiltonian Monte Carlo" (arXiv, 2017) - outstanding intuitive treatment of HMC geometry
 
-5. **Page et al.** — "The PageRank Citation Ranking: Bringing Order to the Web" (Stanford Technical Report, 1999) — original PageRank paper
+5. **Page et al.** - "The PageRank Citation Ranking: Bringing Order to the Web" (Stanford Technical Report, 1999) - original PageRank paper
 
-6. **Rabiner, L.R.** — "A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition" (Proc. IEEE, 1989) — classic HMM reference
+6. **Rabiner, L.R.** - "A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition" (Proc. IEEE, 1989) - classic HMM reference
 
-7. **Song et al.** — "Score-Based Generative Modeling through Stochastic Differential Equations" (ICLR 2021) — connects diffusion models to CTMC theory
+7. **Song et al.** - "Score-Based Generative Modeling through Stochastic Differential Equations" (ICLR 2021) - connects diffusion models to CTMC theory
 
-8. **Welling & Teh** — "Bayesian Learning via Stochastic Gradient Langevin Dynamics" (ICML 2011) — introduces SGLD for large-scale Bayesian inference
+8. **Welling & Teh** - "Bayesian Learning via Stochastic Gradient Langevin Dynamics" (ICML 2011) - introduces SGLD for large-scale Bayesian inference
 
-9. **Sutton & Barto** — *Reinforcement Learning: An Introduction* (MIT Press, 2nd ed., 2018) — MDPs, Bellman equations, TD-learning; free online
+9. **Sutton & Barto** - *Reinforcement Learning: An Introduction* (MIT Press, 2nd ed., 2018) - MDPs, Bellman equations, TD-learning; free online
 
 
 ---
@@ -1483,7 +1483,7 @@ For transition matrices arising in PageRank ($N \sim 10^{10}$ web pages), direct
 
 For the web graph, $|\lambda_2| \leq \alpha = 0.85$ (damping), so ~70 iterations give $\varepsilon = 10^{-8}$ precision.
 
-**Randomised SVD:** For low-rank approximation of $P^n$ (needed for long-range transition probability estimation), randomised methods can approximate the top-$r$ singular vectors in $O(N r \log r)$ time — much cheaper than full SVD.
+**Randomised SVD:** For low-rank approximation of $P^n$ (needed for long-range transition probability estimation), randomised methods can approximate the top-$r$ singular vectors in $O(N r \log r)$ time - much cheaper than full SVD.
 
 ### R.2 Multi-Scale Markov Chains
 
@@ -1502,7 +1502,7 @@ This decomposition is exact when the chain is "nearly lumpable" (within-cluster 
 Any Markov chain can be made reversible by considering the **Doob $h$-transform** or by **multiplicative reversibilisation**:
 $$\tilde{P}_{ij} = \frac{1}{2}(P_{ij} + \pi_j P_{ji} / \pi_i)$$
 
-The resulting $\tilde{P}$ is reversible with the same stationary distribution $\pi$. Reversibilisation can speed up or slow down convergence depending on the chain — it destroys the directional bias that non-reversible chains use for faster mixing.
+The resulting $\tilde{P}$ is reversible with the same stationary distribution $\pi$. Reversibilisation can speed up or slow down convergence depending on the chain - it destroys the directional bias that non-reversible chains use for faster mixing.
 
 ---
 
@@ -1528,7 +1528,7 @@ $$\|K^n(x, \cdot) - \pi\|_{\text{TV}} \leq C(x)\,\rho^n \quad \text{for all } x$
 Geometric ergodicity implies a central limit theorem for MCMC estimators:
 $$\sqrt{n}\left(\frac{1}{n}\sum_{t=1}^n f(X_t) - \mathbb{E}_\pi[f]\right) \xrightarrow{d} \mathcal{N}(0, \sigma_f^2)$$
 
-where $\sigma_f^2 = \text{Var}_\pi(f) + 2\sum_{k=1}^\infty \text{Cov}_\pi(f(X_0), f(X_k))$ is the asymptotic variance. This is the **Markov chain CLT** — it justifies asymptotic confidence intervals for MCMC estimates.
+where $\sigma_f^2 = \text{Var}_\pi(f) + 2\sum_{k=1}^\infty \text{Cov}_\pi(f(X_0), f(X_k))$ is the asymptotic variance. This is the **Markov chain CLT** - it justifies asymptotic confidence intervals for MCMC estimates.
 
 **For AI:** Geometric ergodicity of the Langevin algorithm for log-concave targets gives polynomial bounds on the number of gradient evaluations needed for $\varepsilon$-accurate posterior estimates. This is the theoretical basis for Bayesian deep learning via SGLD.
 
@@ -1552,13 +1552,13 @@ $$V^*(s) = \min_{a_2} \max_{a_1} \left[r(s,a_1,a_2) + \gamma \sum_{s'} P(s'|s,a_
 
 In dynamic games, a **Markov perfect equilibrium** (MPE) is a Nash equilibrium where strategies depend only on the current state (Markov property on the strategy). MPE is the game-theoretic analogue of the optimal policy in MDPs.
 
-Computing MPE requires solving a system of coupled Bellman equations — one per player. For two-player zero-sum games, this reduces to linear programming (minimax theorem). For general-sum games, this is PPAD-complete.
+Computing MPE requires solving a system of coupled Bellman equations - one per player. For two-player zero-sum games, this reduces to linear programming (minimax theorem). For general-sum games, this is PPAD-complete.
 
 ---
 
 ## Appendix U: Temporal Difference Learning and Martingales
 
-Connecting back to [§06 Stochastic Processes §3.7](../06-Stochastic-Processes/notes.md), the **TD(0) algorithm** is:
+Connecting back to [Section06 Stochastic Processes Section3.7](../06-Stochastic-Processes/notes.md), the **TD(0) algorithm** is:
 $$V(s_t) \leftarrow V(s_t) + \alpha_t [r_t + \gamma V(s_{t+1}) - V(s_t)]$$
 
 The update direction $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$ is the **TD error**. Under the true value function $V^*$, $\mathbb{E}[\delta_t | s_t] = 0$ (martingale difference). TD learning is a **stochastic approximation** algorithm for finding the fixed point of the Bellman operator $T^\pi V = r^\pi + \gamma P^\pi V$.
@@ -1574,7 +1574,7 @@ where $M_{t+1} = r_t + \gamma V^*(s_{t+1}) - V^*(s_t)$ is a martingale differenc
 
 **Before running MCMC:**
 - [ ] Identify the target: is $\pi(\theta | \mathcal{D})$ proper? Is $\log\pi$ evaluable efficiently?
-- [ ] Choose algorithm: log-concave → Langevin/HMC; multimodal → parallel tempering; discrete → Gibbs
+- [ ] Choose algorithm: log-concave -> Langevin/HMC; multimodal -> parallel tempering; discrete -> Gibbs
 - [ ] Set proposal scale: tune to ~23% acceptance (MH) or ~65% (HMC)
 - [ ] Run multiple chains ($\geq 4$) from diverse starting points
 
@@ -1598,7 +1598,7 @@ where $M_{t+1} = r_t + \gamma V^*(s_{t+1}) - V^*(s_t)$ is a martingale differenc
 
 ---
 
-## Appendix W: Worked Computation — Two-State Chain
+## Appendix W: Worked Computation - Two-State Chain
 
 ### Full Analysis
 
@@ -1617,7 +1617,7 @@ So $\mu^{(n)} = \mu^{(0)}P^n = (5/8 + 3/8 \cdot (0.2)^n,\ 3/8 - 3/8 \cdot (0.2)^
 
 **Step 4: TV distance.** $\|\mu^{(n)} - \pi\|_{\text{TV}} = \frac{1}{2}|{3/8 \cdot (0.2)^n}| + \frac{1}{2}|{3/8 \cdot (0.2)^n}| = 3/8 \cdot (0.2)^n$.
 
-At $n=5$: $3/8 \times 0.00032 = 0.00012$ — essentially converged. Spectral gap $= 1 - 0.2 = 0.8$, so mixing is fast.
+At $n=5$: $3/8 \times 0.00032 = 0.00012$ - essentially converged. Spectral gap $= 1 - 0.2 = 0.8$, so mixing is fast.
 
 **Step 5: Verify detailed balance.**
 $$\pi_1 P_{12} = 5/8 \times 0.3 = 0.1875, \quad \pi_2 P_{21} = 3/8 \times 0.5 = 0.1875 \checkmark$$
@@ -1661,15 +1661,15 @@ Lumping enables dimensionality reduction: replace a large chain with a smaller a
 
 The **Gibbs distribution** $\pi(x) \propto e^{-H(x)/(k_BT)}$ (Boltzmann distribution) is the equilibrium distribution of a physical system with Hamiltonian $H$ at temperature $T$. This is the canonical target distribution for MCMC in physics.
 
-The Metropolis algorithm was originally designed to sample from Gibbs distributions of particle systems (Metropolis et al., 1953). MCMC methods in ML directly descended from statistical mechanics — including the energy-based models (EBMs) that predate modern deep learning.
+The Metropolis algorithm was originally designed to sample from Gibbs distributions of particle systems (Metropolis et al., 1953). MCMC methods in ML directly descended from statistical mechanics - including the energy-based models (EBMs) that predate modern deep learning.
 
-**Temperature annealing:** Starting at high $T$ (flat, easy-to-sample distribution) and gradually cooling to $T=0$ (greedy optimisation) is **simulated annealing** — a probabilistic optimisation algorithm. The connection between MCMC sampling and optimisation at $T \to 0$ is the bridge between Bayesian inference and MAP estimation.
+**Temperature annealing:** Starting at high $T$ (flat, easy-to-sample distribution) and gradually cooling to $T=0$ (greedy optimisation) is **simulated annealing** - a probabilistic optimisation algorithm. The connection between MCMC sampling and optimisation at $T \to 0$ is the bridge between Bayesian inference and MAP estimation.
 
 ### Y.2 Detailed Balance and Thermodynamic Equilibrium
 
 Detailed balance in physics is called **microscopic reversibility** or **time-reversal symmetry**. A physical system is at thermodynamic equilibrium iff its microscopic dynamics satisfy detailed balance. Systems out of equilibrium (driven by energy flows) violate detailed balance and maintain directed probability currents.
 
-**Non-equilibrium steady states:** Some biological systems (motor proteins, gene regulatory networks) maintain non-reversible Markov chains in steady state — driven by ATP hydrolysis. These are "out-of-equilibrium" in the thermodynamic sense. Non-reversible MCMC is inspired by this physics.
+**Non-equilibrium steady states:** Some biological systems (motor proteins, gene regulatory networks) maintain non-reversible Markov chains in steady state - driven by ATP hydrolysis. These are "out-of-equilibrium" in the thermodynamic sense. Non-reversible MCMC is inspired by this physics.
 
 ### Y.3 Renormalization Group and Multi-Scale Chains
 
@@ -1775,7 +1775,7 @@ In ML, **knowledge distillation** (training a small model to mimic a large model
 
 (a) $P(\text{reach 6} | \text{start at 3}) = \frac{1 - r^3}{1 - r^6} = \frac{1 - (11/9)^3}{1 - (11/9)^6} \approx \frac{1-1.521}{1-5.354} \approx \frac{-0.521}{-4.354} \approx 0.120$
 
-Only 12% chance of reaching the goal from the midpoint — the bias significantly hurts the gambler.
+Only 12% chance of reaching the goal from the midpoint - the bias significantly hurts the gambler.
 
 (b) Expected duration: $\mathbb{E}[\tau] = \frac{1}{q-p}\left[6 \cdot \frac{1 - r^3}{1-r^6} - 3\right] \approx \frac{1}{0.1}[6 \times 0.120 - 3] = 10 \times (-2.28) = ...$
 
@@ -1798,7 +1798,7 @@ $$P = 0.8 P_0 + 0.2 \times \frac{1}{3}J = \begin{pmatrix}1/15&2/5+1/15&2/5+1/15\
 
 Solving $\pi P = \pi$ with $\pi_1+\pi_2+\pi_3=1$: by symmetry of the network (1 has out-degree 2, others 1) and solving the $3\times3$ system: $\pi \approx (0.390, 0.211, 0.399)$.
 
-Page 3 has highest PageRank — it's the target of all paths through the cycle $1\to2\to3\to1$, plus direct link from 1.
+Page 3 has highest PageRank - it's the target of all paths through the cycle $1\to2\to3\to1$, plus direct link from 1.
 
 ### AA.3 HMM Forward Algorithm Computation
 
@@ -1819,7 +1819,7 @@ Likelihood: $P(\text{obs}=(A,B)) = \alpha_2(H) + \alpha_2(L) = 0.0355 + 0.156 = 
 
 Posterior: $P(Z_2=H|\text{obs}) = 0.0355/0.1915 \approx 18.5\%$; $P(Z_2=L|\text{obs}) \approx 81.5\%$.
 
-Interpretation: Observing (A,B) — first high-emission then low-emission — suggests state L at time 2.
+Interpretation: Observing (A,B) - first high-emission then low-emission - suggests state L at time 2.
 
 ---
 
@@ -1827,21 +1827,21 @@ Interpretation: Observing (A,B) — first high-emission then low-emission — su
 
 | Theorem / Result | Where Proved | Key Implication |
 | --- | --- | --- |
-| Perron-Frobenius | §4.2, App. I.1 | Unique stationary distribution for ergodic chains |
-| Ergodic theorem | §3.5, App. E | Time averages converge to $\mathbb{E}_\pi[f]$; justifies MCMC |
-| Chapman-Kolmogorov | §2.3 | $n$-step transitions: $P^{m+n} = P^m P^n$ |
-| Convergence theorem | §4.3 | $\|\mu^{(n)} - \pi\|_{\text{TV}} \to 0$ for ergodic chains |
-| Detailed balance $\Rightarrow$ stationarity | §5.1, App. E.2 | Sufficient condition; easier to verify |
-| Spectral gap bound | §6.3 | $t_{\text{mix}} \leq \log(\pi_{\min}^{-1}/\varepsilon)/\text{gap}$ |
-| Cheeger inequality | §6.3, App. I.3 | $h^2/2 \leq \text{gap} \leq 2h$ |
-| Coupling inequality | §6.1, App. I.2 | $\|P^n(x,\cdot)-\pi\|_{\text{TV}} \leq P(\tau > n)$ |
-| MH correctness | §8.2 | Detailed balance implies $\pi$ is stationary |
-| MH acceptance optimality | §8.2 | ~23% acceptance optimal in high dimensions |
+| Perron-Frobenius | Section4.2, App. I.1 | Unique stationary distribution for ergodic chains |
+| Ergodic theorem | Section3.5, App. E | Time averages converge to $\mathbb{E}_\pi[f]$; justifies MCMC |
+| Chapman-Kolmogorov | Section2.3 | $n$-step transitions: $P^{m+n} = P^m P^n$ |
+| Convergence theorem | Section4.3 | $\|\mu^{(n)} - \pi\|_{\text{TV}} \to 0$ for ergodic chains |
+| Detailed balance $\Rightarrow$ stationarity | Section5.1, App. E.2 | Sufficient condition; easier to verify |
+| Spectral gap bound | Section6.3 | $t_{\text{mix}} \leq \log(\pi_{\min}^{-1}/\varepsilon)/\text{gap}$ |
+| Cheeger inequality | Section6.3, App. I.3 | $h^2/2 \leq \text{gap} \leq 2h$ |
+| Coupling inequality | Section6.1, App. I.2 | $\|P^n(x,\cdot)-\pi\|_{\text{TV}} \leq P(\tau > n)$ |
+| MH correctness | Section8.2 | Detailed balance implies $\pi$ is stationary |
+| MH acceptance optimality | Section8.2 | ~23% acceptance optimal in high dimensions |
 | Markov chain CLT | App. S.2 | $\sqrt{n}(\text{MCMC avg} - \mathbb{E}_\pi[f]) \to \mathcal{N}(0,\sigma_f^2)$ |
 | Dirichlet problem / OST | App. A | Value function = expected boundary value |
-| Mean return time formula | §4.1 | $\pi_i = 1/\mu_i$; occupancy = reciprocal return time |
-| Absorption formula | §3.4 | $B = (I-Q)^{-1}R$; absorption probabilities from fundamental matrix |
-| Viterbi optimality | §9.4 | DP gives exact most likely path in $O(T|\mathcal{S}|^2)$ |
+| Mean return time formula | Section4.1 | $\pi_i = 1/\mu_i$; occupancy = reciprocal return time |
+| Absorption formula | Section3.4 | $B = (I-Q)^{-1}R$; absorption probabilities from fundamental matrix |
+| Viterbi optimality | Section9.4 | DP gives exact most likely path in $O(T|\mathcal{S}|^2)$ |
 
 
 ---
@@ -1866,8 +1866,8 @@ A reference table of known mixing time results for important chains:
 
 Key observations:
 - **Dimension scaling:** Random walk MH scales as $O(d)$ (diffusive), HMC as $O(d^{1/4})$ (much better)
-- **Phase transitions:** Near critical temperature, MCMC for Ising model has exponential mixing time — a computational hard phase
-- **Expander graphs:** $\Omega(1)$ spectral gap means $O(\log n)$ mixing — the best possible for non-trivial graphs
+- **Phase transitions:** Near critical temperature, MCMC for Ising model has exponential mixing time - a computational hard phase
+- **Expander graphs:** $\Omega(1)$ spectral gap means $O(\log n)$ mixing - the best possible for non-trivial graphs
 
 ---
 
@@ -1876,25 +1876,25 @@ Key observations:
 The following Python libraries implement the algorithms in this section:
 
 **MCMC and Probabilistic Programming:**
-- `PyMC` — full-featured Bayesian modelling with NUTS/HMC sampler
-- `Stan` (via `cmdstanpy`/`pystan`) — the gold standard for Bayesian modelling; generates C++ code for fast sampling
-- `NumPyro` — JAX-based; supports GPU-accelerated HMC and NUTS
-- `blackjax` — modular MCMC library (JAX); easy to extend with custom kernels
+- `PyMC` - full-featured Bayesian modelling with NUTS/HMC sampler
+- `Stan` (via `cmdstanpy`/`pystan`) - the gold standard for Bayesian modelling; generates C++ code for fast sampling
+- `NumPyro` - JAX-based; supports GPU-accelerated HMC and NUTS
+- `blackjax` - modular MCMC library (JAX); easy to extend with custom kernels
 
 **Markov Chain Simulation:**
-- `networkx` — graph operations; random walks on graphs
-- `numpy` — transition matrix operations; power iteration; eigendecomposition
+- `networkx` - graph operations; random walks on graphs
+- `numpy` - transition matrix operations; power iteration; eigendecomposition
 
 **Hidden Markov Models:**
-- `hmmlearn` — sklearn-compatible HMM; Baum-Welch training, Viterbi decoding
-- `pomegranate` — probabilistic models including HMMs with GPU support
+- `hmmlearn` - sklearn-compatible HMM; Baum-Welch training, Viterbi decoding
+- `pomegranate` - probabilistic models including HMMs with GPU support
 
 **Reinforcement Learning (MDP):**
-- `gymnasium` (formerly OpenAI Gym) — RL environments as MDPs
-- `stable-baselines3` — RL algorithms (PPO, SAC, TD3) implementing policy optimisation
+- `gymnasium` (formerly OpenAI Gym) - RL environments as MDPs
+- `stable-baselines3` - RL algorithms (PPO, SAC, TD3) implementing policy optimisation
 
 **Diffusion Models:**
-- `diffusers` (HuggingFace) — implements DDPM, DDIM, and score-based models as CTMCs
+- `diffusers` (HuggingFace) - implements DDPM, DDIM, and score-based models as CTMCs
 
 ---
 
@@ -1902,7 +1902,7 @@ The following Python libraries implement the algorithms in this section:
 
 **Ehrenfest Model:** $N$ balls in two urns, uniform random ball moved at each step. State = number of balls in urn 1. Birth-death chain; stationary distribution: Binomial$(N, 1/2)$. Models diffusion/thermodynamic equilibrium.
 
-**Polya Urn:** Start with $a$ red and $b$ blue balls; each step add a ball of the drawn colour. Path-dependent; NOT Markov without extended state. But $X_n = \text{fraction red}$ satisfies $\mathbb{E}[X_{n+1}|X_n] = X_n$ — a martingale.
+**Polya Urn:** Start with $a$ red and $b$ blue balls; each step add a ball of the drawn colour. Path-dependent; NOT Markov without extended state. But $X_n = \text{fraction red}$ satisfies $\mathbb{E}[X_{n+1}|X_n] = X_n$ - a martingale.
 
 **Bernoulli-Laplace Diffusion:** $N$ balls total, $k$ red and $N-k$ blue, split between two urns of size $N/2$. State = number of red in urn 1. Symmetric birth-death chain; used to model genetics and combinatorics.
 
@@ -1932,7 +1932,7 @@ The eigenvalues of $\mathcal{L}$ are $0 = \lambda_1 \leq \lambda_2 \leq \cdots \
 
 **Graph attention networks:** GAT attention coefficients $e_{ij} = a(\mathbf{W}h_i, \mathbf{W}h_j)$ (learnable) create a data-dependent transition matrix over the graph. The spectral properties of this attention-weighted adjacency matrix determine the GNN's ability to propagate information.
 
-**Label propagation:** Semi-supervised learning via label propagation: $F \leftarrow \alpha PF + (1-\alpha)Y$ where $P=D^{-1}A$ is the random walk matrix, $F$ are labels, $Y$ are known labels, and $\alpha$ is a damping parameter. This is exactly the PageRank recursion applied to labels — convergence follows from the same Perron-Frobenius analysis.
+**Label propagation:** Semi-supervised learning via label propagation: $F \leftarrow \alpha PF + (1-\alpha)Y$ where $P=D^{-1}A$ is the random walk matrix, $F$ are labels, $Y$ are known labels, and $\alpha$ is a damping parameter. This is exactly the PageRank recursion applied to labels - convergence follows from the same Perron-Frobenius analysis.
 
 **Spectral clustering:** The $k$ smallest eigenvectors of $\mathcal{L}$ embed the graph into $\mathbb{R}^k$ such that well-connected clusters map to nearby points. This exploits the fact that slow-mixing chains (small spectral gap) correspond to loosely connected clusters.
 
@@ -1947,15 +1947,15 @@ $$P(X_n | X_0,\ldots,X_{n-1}) = P(X_n | X_{n-k},\ldots,X_{n-1})$$
 
 This can always be reduced to a first-order chain on the augmented state $(X_{n-k+1},\ldots,X_n)$ with state space size $|\mathcal{S}|^k$.
 
-**Trade-off:** Higher-order captures more dependencies but exponentially increases state space. N-gram language models are $k$th-order Markov chains on the vocabulary — trigram models ($k=2$) are common in classical NLP.
+**Trade-off:** Higher-order captures more dependencies but exponentially increases state space. N-gram language models are $k$th-order Markov chains on the vocabulary - trigram models ($k=2$) are common in classical NLP.
 
-**For transformers:** A transformer with context length $L$ has an effective $L$th-order Markov chain for token generation. The KV cache stores the sufficient statistics (the last $L$ tokens) — first-order Markov in the augmented state space.
+**For transformers:** A transformer with context length $L$ has an effective $L$th-order Markov chain for token generation. The KV cache stores the sufficient statistics (the last $L$ tokens) - first-order Markov in the augmented state space.
 
 ### GG.2 Variable-Length Markov Chains (VLMC)
 
 **VLMCs** use a context tree to specify the order dynamically: some contexts require deep history, others only shallow. The transition probability $P(X_n | X_{n-1},\ldots) = P(X_n | \text{suffix}(X_{n-1},\ldots,X_{n-k}))$ where $k$ depends on the context.
 
-VLMCs provide compact representations of processes with heterogeneous memory. Related to suffix trees and compressed suffix arrays — efficient data structures for sequential data.
+VLMCs provide compact representations of processes with heterogeneous memory. Related to suffix trees and compressed suffix arrays - efficient data structures for sequential data.
 
 ### GG.3 Hidden Non-Markovian Processes
 
@@ -1978,7 +1978,7 @@ A **renewal process** is a sequence of times $T_1, T_2, \ldots$ where $T_k - T_{
 
 ### HH.2 Excursions from a State
 
-An **excursion** from state $i$ is the portion of the trajectory between two consecutive visits to $i$. Excursions are iid by the strong Markov property. The distribution of the excursion — its length, states visited, and path structure — encodes rich information about the chain.
+An **excursion** from state $i$ is the portion of the trajectory between two consecutive visits to $i$. Excursions are iid by the strong Markov property. The distribution of the excursion - its length, states visited, and path structure - encodes rich information about the chain.
 
 **For AI:** In RLHF, the "excursions" of the LM's generation from topic to topic form a renewal-like structure. Understanding the statistics of these excursions (how long the LM stays on-topic, how it transitions between topics) is important for reward model design.
 
@@ -1989,43 +1989,43 @@ An **excursion** from state $i$ is the portion of the trajectory between two con
 
 ```
 MARKOV CHAIN THEORY SUMMARY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   CHAIN PROPERTIES                   IMPLICATIONS
-  ────────────────                   ────────────
-  Irreducible ─────────────────────→ Every state reachable from every other
-  + Positive Recurrent ─────────────→ Stationary distribution π exists
-  + Aperiodic ──────────────────────→ π unique; P^n → 1·π^T (convergence)
+  ----------------                   ------------
+  Irreducible ----------------------> Every state reachable from every other
+  + Positive Recurrent --------------> Stationary distribution \\pi exists
+  + Aperiodic -----------------------> \\pi unique; P^n -> 1\\cdot\\pi^T (convergence)
   (= Ergodic)
 
-  Reversible ──────────────────────→ Detailed balance π_i P_ij = π_j P_ji
-                                     Real eigenvalues; symmetric in L²(π)
+  Reversible -----------------------> Detailed balance \\pi_i P_ij = \\pi_j P_ji
+                                     Real eigenvalues; symmetric in L^2(\\pi)
                                      MH, Gibbs, HMC all reversible
 
   MIXING SPEED HIERARCHY
-  ───────────────────────
-  Spectral gap large ──────────────→ Fast mixing (t_mix = O(1/gap))
-  Cheeger constant large ──────────→ Large spectral gap (Cheeger inequality)
-  Non-reversible + directed ────────→ Potentially faster than any reversible
-  HMC gradient steps ──────────────→ O(d^{1/4}) vs O(d) for random walk
+  -----------------------
+  Spectral gap large ---------------> Fast mixing (t_mix = O(1/gap))
+  Cheeger constant large -----------> Large spectral gap (Cheeger inequality)
+  Non-reversible + directed ---------> Potentially faster than any reversible
+  HMC gradient steps ---------------> O(d^{1/4}) vs O(d) for random walk
 
-  COMPUTING π
-  ───────────
-  Small N: solve π P = π, ‖π‖₁ = 1 (linear system)
-  Large N: power iteration π^{k+1} = π^{k} P (PageRank)
+  COMPUTING \\pi
+  -----------
+  Small N: solve \\pi P = \\pi, \\Vert\\pi\\Vert_1 = 1 (linear system)
+  Large N: power iteration \\pi^{k+1} = \\pi^{k} P (PageRank)
   Continuous space: MCMC (Metropolis-Hastings, HMC)
   Birth-death: explicit formula via detailed balance
 
   ML APPLICATIONS
-  ───────────────
-  Language generation ─────────────→ Markov chain on vocabulary (or context)
-  PageRank ────────────────────────→ Stationary dist of web graph walk
-  MCMC ────────────────────────────→ Bayesian posterior sampling
-  RL (MDP) ────────────────────────→ Policy induces Markov chain; Bellman eqn
-  HMM ─────────────────────────────→ Latent Markov chain with observations
-  Diffusion models ────────────────→ Forward = CTMC; reverse = learned CTMC
-  GNNs ────────────────────────────→ Message passing = transition matrix power
+  ---------------
+  Language generation --------------> Markov chain on vocabulary (or context)
+  PageRank -------------------------> Stationary dist of web graph walk
+  MCMC -----------------------------> Bayesian posterior sampling
+  RL (MDP) -------------------------> Policy induces Markov chain; Bellman eqn
+  HMM ------------------------------> Latent Markov chain with observations
+  Diffusion models -----------------> Forward = CTMC; reverse = learned CTMC
+  GNNs -----------------------------> Message passing = transition matrix power
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 

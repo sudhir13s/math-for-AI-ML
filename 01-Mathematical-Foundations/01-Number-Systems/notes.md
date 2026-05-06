@@ -1,16 +1,16 @@
-[← Back to Mathematical Foundations](../README.md) | [Next: Sets and Logic →](../02-Sets-and-Logic/notes.md)
+[<- Back to Mathematical Foundations](../README.md) | [Next: Sets and Logic ->](../02-Sets-and-Logic/notes.md)
 
 ---
 
 # Number Systems
 
-> _"Every weight, every gradient, every activation in a neural network is ultimately a finite string of bits. The choice of how to interpret those bits — the number system — determines what a model can represent, how fast it trains, and whether it trains at all."_
+> _"Every weight, every gradient, every activation in a neural network is ultimately a finite string of bits. The choice of how to interpret those bits - the number system - determines what a model can represent, how fast it trains, and whether it trains at all."_
 
 ## Overview
 
 A number system is a formal framework for representing, storing, and computing with numerical quantities using a finite set of symbols. Every number stored in a computer is an approximation: real numbers are infinite; bits are finite. The choice of number system determines what values can be represented, how precisely, at what memory cost, and how fast arithmetic can be performed.
 
-For AI and LLMs specifically, the number system used for weights, activations, and gradients is one of the most consequential engineering decisions. A seemingly small change — from FP32 to BF16 — can halve memory, double throughput, and change training dynamics in ways that took the research community years to fully understand.
+For AI and LLMs specifically, the number system used for weights, activations, and gradients is one of the most consequential engineering decisions. A seemingly small change - from FP32 to BF16 - can halve memory, double throughput, and change training dynamics in ways that took the research community years to fully understand.
 
 This chapter covers number systems from first principles through to the frontier formats used in 2026-era LLM training and inference. Every concept is grounded in how it affects real neural network computation.
 
@@ -74,7 +74,7 @@ After completing this section, you will:
     - [3.7 Kahan Summation Algorithm](#37-kahan-summation-algorithm)
   - [4. Floating-Point Formats for AI](#4-floating-point-formats-for-ai)
     - [4.1 FP64 (Double Precision)](#41-fp64-double-precision)
-    - [4.2 FP32 (Single Precision) — Detailed](#42-fp32-single-precision--detailed)
+    - [4.2 FP32 (Single Precision) - Detailed](#42-fp32-single-precision--detailed)
     - [4.3 TF32 (TensorFloat-32)](#43-tf32-tensorfloat-32)
     - [4.4 FP16 (Half Precision)](#44-fp16-half-precision)
     - [4.5 BF16 (Brain Float 16)](#45-bf16-brain-float-16)
@@ -82,10 +82,10 @@ After completing this section, you will:
     - [4.7 FP8 Formats (E4M3 and E5M2)](#47-fp8-formats-e4m3-and-e5m2)
     - [4.8 FP8 Scaling Strategies](#48-fp8-scaling-strategies)
   - [5. Integer Formats for AI](#5-integer-formats-for-ai)
-    - [5.1 INT32 — Full Precision Integer](#51-int32--full-precision-integer)
+    - [5.1 INT32 - Full Precision Integer](#51-int32--full-precision-integer)
     - [5.2 INT16](#52-int16)
     - [5.3 INT8](#53-int8)
-    - [5.4 UINT8 — Unsigned Integer 8-bit](#54-uint8--unsigned-integer-8-bit)
+    - [5.4 UINT8 - Unsigned Integer 8-bit](#54-uint8--unsigned-integer-8-bit)
     - [5.5 INT4](#55-int4)
     - [5.6 INT2 and INT1 (Binary)](#56-int2-and-int1-binary)
     - [5.7 Packed Integer Formats](#57-packed-integer-formats)
@@ -93,8 +93,8 @@ After completing this section, you will:
     - [6.1 Normal Float 4-bit (NF4)](#61-normal-float-4-bit-nf4)
     - [6.2 Log Number System (LNS)](#62-log-number-system-lns)
     - [6.3 Posit Number System (Unum Type III)](#63-posit-number-system-unum-type-iii)
-    - [6.4 Microscaling Formats (MX — OCP Standard 2023)](#64-microscaling-formats-mx--ocp-standard-2023)
-    - [6.5 Ternary Weights {−1, 0, +1}](#65-ternary-weights-1-0-1)
+    - [6.4 Microscaling Formats (MX - OCP Standard 2023)](#64-microscaling-formats-mx--ocp-standard-2023)
+    - [6.5 Ternary Weights {-1, 0, +1}](#65-ternary-weights-1-0-1)
   - [7. Floating-Point Arithmetic Deep Dive](#7-floating-point-arithmetic-deep-dive)
     - [7.1 Floating-Point Addition](#71-floating-point-addition)
     - [7.2 Floating-Point Multiplication](#72-floating-point-multiplication)
@@ -105,17 +105,17 @@ After completing this section, you will:
   - [8. Numerical Precision in Neural Networks](#8-numerical-precision-in-neural-networks)
     - [8.1 Forward Pass Precision Requirements](#81-forward-pass-precision-requirements)
     - [8.2 Backward Pass Precision Requirements](#82-backward-pass-precision-requirements)
-    - [8.3 Mixed Precision Training — Complete Picture](#83-mixed-precision-training--complete-picture)
+    - [8.3 Mixed Precision Training - Complete Picture](#83-mixed-precision-training--complete-picture)
     - [8.4 Numerical Stability of Softmax](#84-numerical-stability-of-softmax)
     - [8.5 Log-Sum-Exp Trick](#85-log-sum-exp-trick)
     - [8.6 Numerical Stability of Layer Normalisation](#86-numerical-stability-of-layer-normalisation)
-    - [8.7 Gradient Vanishing and Exploding — Numerical View](#87-gradient-vanishing-and-exploding--numerical-view)
+    - [8.7 Gradient Vanishing and Exploding - Numerical View](#87-gradient-vanishing-and-exploding--numerical-view)
   - [9. Quantization Mathematics](#9-quantization-mathematics)
-    - [9.1 Uniform Quantization Formulas — Derivation and Intuition](#91-uniform-quantization-formulas--derivation-and-intuition)
+    - [9.1 Uniform Quantization Formulas - Derivation and Intuition](#91-uniform-quantization-formulas--derivation-and-intuition)
     - [9.2 Signal-to-Quantization-Noise Ratio (SQNR)](#92-signal-to-quantization-noise-ratio-sqnr)
     - [9.3 Block Floating-Point and Group Quantization](#93-block-floating-point-and-group-quantization)
-    - [9.4 Optimal Quantization Levels — Lloyd-Max Algorithm](#94-optimal-quantization-levels--lloyd-max-algorithm)
-    - [9.5 Hadamard Transform for Quantization — QuIP and QuaRot](#95-hadamard-transform-for-quantization--quip-and-quarot)
+    - [9.4 Optimal Quantization Levels - Lloyd-Max Algorithm](#94-optimal-quantization-levels--lloyd-max-algorithm)
+    - [9.5 Hadamard Transform for Quantization - QuIP and QuaRot](#95-hadamard-transform-for-quantization--quip-and-quarot)
     - [9.6 Quantization Error Propagation Through Layers](#96-quantization-error-propagation-through-layers)
   - [10. Number Systems for Specific AI Operations](#10-number-systems-for-specific-ai-operations)
     - [10.1 Embedding Tables](#101-embedding-tables)
@@ -125,19 +125,19 @@ After completing this section, you will:
     - [10.5 Optimizer State Precision](#105-optimizer-state-precision)
     - [10.6 Gradient Communication Precision](#106-gradient-communication-precision)
   - [11. Hardware Implementation of Number Systems](#11-hardware-implementation-of-number-systems)
-    - [11.1 Integer ALUs — Simple and Fast](#111-integer-alus--simple-and-fast)
-    - [11.2 Floating-Point Units — Complex and Power-Hungry](#112-floating-point-units--complex-and-power-hungry)
-    - [11.3 Tensor Cores — Systolic Arrays for AI](#113-tensor-cores--systolic-arrays-for-ai)
-    - [11.4 Memory Bandwidth — The True Bottleneck](#114-memory-bandwidth--the-true-bottleneck)
+    - [11.1 Integer ALUs - Simple and Fast](#111-integer-alus--simple-and-fast)
+    - [11.2 Floating-Point Units - Complex and Power-Hungry](#112-floating-point-units--complex-and-power-hungry)
+    - [11.3 Tensor Cores - Systolic Arrays for AI](#113-tensor-cores--systolic-arrays-for-ai)
+    - [11.4 Memory Bandwidth - The True Bottleneck](#114-memory-bandwidth--the-true-bottleneck)
     - [11.5 Energy Cost per Operation](#115-energy-cost-per-operation)
     - [11.6 Format Conversion Hardware](#116-format-conversion-hardware)
   - [12. Precision and the Training Stability Connection](#12-precision-and-the-training-stability-connection)
     - [12.1 Loss Landscape and Precision](#121-loss-landscape-and-precision)
-    - [12.2 Precision Cliffs — When Training Suddenly Diverges](#122-precision-cliffs--when-training-suddenly-diverges)
-    - [12.3 Stochastic Rounding — A Precision Amplifier](#123-stochastic-rounding--a-precision-amplifier)
+    - [12.2 Precision Cliffs - When Training Suddenly Diverges](#122-precision-cliffs--when-training-suddenly-diverges)
+    - [12.3 Stochastic Rounding - A Precision Amplifier](#123-stochastic-rounding--a-precision-amplifier)
     - [12.4 Adam Optimizer Numerical Error Analysis](#124-adam-optimizer-numerical-error-analysis)
     - [12.5 Attention Logit Growth](#125-attention-logit-growth)
-  - [13. Practical Guide — Choosing Number Formats](#13-practical-guide--choosing-number-formats)
+  - [13. Practical Guide - Choosing Number Formats](#13-practical-guide--choosing-number-formats)
     - [13.1 Decision Framework for Training](#131-decision-framework-for-training)
     - [13.2 Decision Framework for Inference](#132-decision-framework-for-inference)
     - [13.3 Per-Layer Sensitivity Table](#133-per-layer-sensitivity-table)
@@ -163,35 +163,35 @@ After completing this section, you will:
 
 A number system is a formal framework for representing, storing, and computing with numerical quantities using a finite set of symbols. At its core, a number system answers four questions:
 
-1. **What values can be represented?** — The range of the system
-2. **How precisely?** — The resolution or granularity between representable values
-3. **At what memory cost?** — The number of bits required per value
-4. **How fast can arithmetic be performed?** — Hardware throughput for the format
+1. **What values can be represented?** - The range of the system
+2. **How precisely?** - The resolution or granularity between representable values
+3. **At what memory cost?** - The number of bits required per value
+4. **How fast can arithmetic be performed?** - Hardware throughput for the format
 
-Every number stored in a computer is an approximation. Real numbers ($\mathbb{R}$) are uncountably infinite — there are infinitely many real numbers between any two real numbers. But a computer register has a fixed number of bits. A 32-bit register can represent at most $2^{32} = 4{,}294{,}967{,}296$ distinct values. A 16-bit register: $2^{16} = 65{,}536$. An 8-bit register: $2^8 = 256$. A 4-bit register: $2^4 = 16$.
+Every number stored in a computer is an approximation. Real numbers ($\mathbb{R}$) are uncountably infinite - there are infinitely many real numbers between any two real numbers. But a computer register has a fixed number of bits. A 32-bit register can represent at most $2^{32} = 4{,}294{,}967{,}296$ distinct values. A 16-bit register: $2^{16} = 65{,}536$. An 8-bit register: $2^8 = 256$. A 4-bit register: $2^4 = 16$.
 
-The art of number system design is choosing **which** $2^b$ values to represent — how to distribute those discrete points across the real number line to minimise error for the intended application.
+The art of number system design is choosing **which** $2^b$ values to represent - how to distribute those discrete points across the real number line to minimise error for the intended application.
 
 ```
 THE NUMBER SYSTEM DESIGN PROBLEM
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Real number line (continuous, infinite):
-───────────────────────────────────────────────────────────────────►
+------------------------------------------------------------------->
 
 4-bit representation (only 16 values available):
-──●──●──●──●──●──●──●──●──●──●──●──●──●──●──●──●──────────────────►
+--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*------------------>
 
 Where do you place those 16 dots?
 
-  Uniform spacing (INT4):      ●──●──●──●──●──●──●──●──●──●──●──●──●──●──●──●
-  Dense near zero (NF4):       ●●●●●●●──●──●──●────●────●────●─────●──────●
-  Logarithmic spacing (FP4):   ●●●●●──●──●──●────●────●────●────────●────────●
+  Uniform spacing (INT4):      *--*--*--*--*--*--*--*--*--*--*--*--*--*--*--*
+  Dense near zero (NF4):       *******--*--*--*----*----*----*-----*------*
+  Logarithmic spacing (FP4):   *****--*--*--*----*----*----*--------*--------*
 
 Each choice optimises for different distributions of real-world data.
 ```
 
-For neural networks, the data we need to represent — weights, activations, gradients — follows specific statistical distributions. Transformer weights are approximately normally distributed with small variance. Activations have heavier tails. Gradients span many orders of magnitude. The "right" number system is the one that best matches the statistical distribution of the data it represents.
+For neural networks, the data we need to represent - weights, activations, gradients - follows specific statistical distributions. Transformer weights are approximately normally distributed with small variance. Activations have heavier tails. Gradients span many orders of magnitude. The "right" number system is the one that best matches the statistical distribution of the data it represents.
 
 ### 1.2 Why Number Systems Matter for AI
 
@@ -201,100 +201,100 @@ The impact of number system choice on LLM development is immediate and quantifia
 
 | Format | Bytes/param | Total Weight Memory | GPU Requirement   |
 | ------ | ----------- | ------------------- | ----------------- |
-| FP32   | 4           | 280 GB              | 4× A100 80 GB     |
-| BF16   | 2           | 140 GB              | 2× A100 80 GB     |
-| INT8   | 1           | 70 GB               | 1× A100 80 GB     |
-| INT4   | 0.5         | 35 GB               | 1× RTX 4090 24 GB |
-| INT2   | 0.25        | 17.5 GB             | 1× RTX 3090 24 GB |
+| FP32   | 4           | 280 GB              | 4\times A100 80 GB     |
+| BF16   | 2           | 140 GB              | 2\times A100 80 GB     |
+| INT8   | 1           | 70 GB               | 1\times A100 80 GB     |
+| INT4   | 0.5         | 35 GB               | 1\times RTX 4090 24 GB |
+| INT2   | 0.25        | 17.5 GB             | 1\times RTX 3090 24 GB |
 
 **Training cost impact:**
 
-- Training a 70B model in FP32: ~280 GB just for weights; optimizer states (Adam $m$ and $v$) add another 560 GB; total ~840 GB — requires a full node of 8× A100s or more
-- Training the same model in BF16 mixed precision: ~140 GB weights + 560 GB optimizer (FP32) + 140 GB gradients; total ~840 GB still (optimizer dominates), but forward/backward pass is 2× faster due to BF16 matmul throughput
+- Training a 70B model in FP32: ~280 GB just for weights; optimizer states (Adam $m$ and $v$) add another 560 GB; total ~840 GB - requires a full node of 8\times A100s or more
+- Training the same model in BF16 mixed precision: ~140 GB weights + 560 GB optimizer (FP32) + 140 GB gradients; total ~840 GB still (optimizer dominates), but forward/backward pass is 2\times faster due to BF16 matmul throughput
 - Inference in INT4: 35 GB; fits on a single consumer GPU; enables local AI on laptops
 
 **What goes wrong with the wrong number system:**
 
-- FP16 training without loss scaling → gradient underflow → weights stop updating → training stalls silently
-- BF16 accumulation instead of FP32 → precision loss in gradient sums → training diverges after millions of steps
-- Naive INT8 quantization of transformers → activation outliers clip → catastrophic quality degradation
-- INT4 quantization of first/last layers → disproportionate quality loss → model produces gibberish
+- FP16 training without loss scaling -> gradient underflow -> weights stop updating -> training stalls silently
+- BF16 accumulation instead of FP32 -> precision loss in gradient sums -> training diverges after millions of steps
+- Naive INT8 quantization of transformers -> activation outliers clip -> catastrophic quality degradation
+- INT4 quantization of first/last layers -> disproportionate quality loss -> model produces gibberish
 
 **The history of AI progress is partly a history of number system engineering:**
 
 ```
 EVOLUTION OF NUMBER FORMATS IN DEEP LEARNING
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-2012 ─── FP32 ──────── AlexNet; all computation in single precision
-  │
-2017 ─── FP16 ──────── NVIDIA Volta tensor cores; first hardware-accelerated
-  │                    reduced precision; required loss scaling
-  │
-2018 ─── BF16 ──────── Google Brain introduces Brain Float 16; same range
-  │                    as FP32; no loss scaling needed; game changer
-  │
-2020 ─── Mixed ─────── BF16 forward + FP32 master weights becomes standard
-  │     Precision      for all large-scale training
-  │
-2022 ─── FP8 ───────── NVIDIA H100 adds FP8 tensor cores; 2× throughput
-  │                    vs BF16; per-tensor scaling required
-  │
-2023 ─── INT4 ──────── GPTQ, AWQ enable high-quality 4-bit inference;
-  │                    70B models on consumer GPUs for the first time
-  │
-2024 ─── Ternary ───── BitNet b1.58: {-1,0,+1} weights trained from scratch;
-  │                    eliminates multiplication entirely
-  │
-2024 ─── FP8 Train ─── DeepSeek-V3: entire training in FP8; commercial
-  │                    frontier model; massive cost reduction
-  │
-2025-26 ─ MXFP/Sub-4 ─ Microscaling formats; sub-4-bit active research;
+2012 --- FP32 -------- AlexNet; all computation in single precision
+  |
+2017 --- FP16 -------- NVIDIA Volta tensor cores; first hardware-accelerated
+  |                    reduced precision; required loss scaling
+  |
+2018 --- BF16 -------- Google Brain introduces Brain Float 16; same range
+  |                    as FP32; no loss scaling needed; game changer
+  |
+2020 --- Mixed ------- BF16 forward + FP32 master weights becomes standard
+  |     Precision      for all large-scale training
+  |
+2022 --- FP8 --------- NVIDIA H100 adds FP8 tensor cores; 2\times throughput
+  |                    vs BF16; per-tensor scaling required
+  |
+2023 --- INT4 -------- GPTQ, AWQ enable high-quality 4-bit inference;
+  |                    70B models on consumer GPUs for the first time
+  |
+2024 --- Ternary ----- BitNet b1.58: {-1,0,+1} weights trained from scratch;
+  |                    eliminates multiplication entirely
+  |
+2024 --- FP8 Train --- DeepSeek-V3: entire training in FP8; commercial
+  |                    frontier model; massive cost reduction
+  |
+2025-26 - MXFP/Sub-4 - Microscaling formats; sub-4-bit active research;
                         hardware co-designed with number formats
 ```
 
 ### 1.3 The Precision-Efficiency Frontier
 
-The fundamental trade-off: **more bits → higher precision → better model quality**, but **fewer bits → less memory → faster compute → wider hardware access**.
+The fundamental trade-off: **more bits -> higher precision -> better model quality**, but **fewer bits -> less memory -> faster compute -> wider hardware access**.
 
 The engineering challenge is finding the **minimum precision that preserves acceptable quality** for each operation. The key insight is that different operations have vastly different precision requirements:
 
 ```
 PRECISION REQUIREMENTS BY OPERATION
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
                           More Bits Needed
-                               ▲
-                               │
-                               │    Gradient accumulation (FP32)
-                               │    ■ Small errors compound over millions
-                               │      of steps; must be high precision
-                               │
-                               │    Optimizer states (FP32)
-                               │    ■ Adam m, v track subtle gradient
-                               │      statistics; precision critical
-                               │
-                               │    Loss computation (FP32)
-                               │    ■ Cross-entropy involves log/exp;
-                               │      overflow/underflow risk
-                               │
-                               │    Weight storage — training (BF16)
-                               │    ■ Weights change slowly; moderate
-                               │      precision sufficient
-                               │
-                               │    Activation computation (BF16/FP8)
-                               │    ■ Errors localised per forward pass;
-                               │      don't compound across steps
-                               │
-                               │    KV cache storage (INT8/INT4)
-                               │    ■ Small reconstruction error per token;
-                               │      acceptable quality trade-off
-                               │
-                               │    Weight-only inference (INT4/INT2)
-                               │    ■ Weights static; error bounded;
-                               │      no accumulation across steps
-                               │
-                               ▼
+                               ^
+                               |
+                               |    Gradient accumulation (FP32)
+                               |    # Small errors compound over millions
+                               |      of steps; must be high precision
+                               |
+                               |    Optimizer states (FP32)
+                               |    # Adam m, v track subtle gradient
+                               |      statistics; precision critical
+                               |
+                               |    Loss computation (FP32)
+                               |    # Cross-entropy involves log/exp;
+                               |      overflow/underflow risk
+                               |
+                               |    Weight storage - training (BF16)
+                               |    # Weights change slowly; moderate
+                               |      precision sufficient
+                               |
+                               |    Activation computation (BF16/FP8)
+                               |    # Errors localised per forward pass;
+                               |      don't compound across steps
+                               |
+                               |    KV cache storage (INT8/INT4)
+                               |    # Small reconstruction error per token;
+                               |      acceptable quality trade-off
+                               |
+                               |    Weight-only inference (INT4/INT2)
+                               |    # Weights static; error bounded;
+                               |      no accumulation across steps
+                               |
+                               v
                           Fewer Bits Needed
 ```
 
@@ -315,69 +315,69 @@ A modern LLM uses **multiple number systems simultaneously** in different parts 
 
 ```
 MIXED-PRECISION LLM ARCHITECTURE (2026 Standard)
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 TRAINING:
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  ┌──────────────────┐    ┌──────────────────┐                   │
-│  │ Master Weights   │    │ Adam m (moment)  │                   │
-│  │     FP32         │    │     FP32         │                   │
-│  │  (4 bytes/param) │    │  (4 bytes/param) │                   │
-│  └────────┬─────────┘    └──────────────────┘                   │
-│           │ cast                                                │
-│           ▼                ┌──────────────────┐                  │
-│  ┌──────────────────┐     │ Adam v (variance)│                  │
-│  │ Working Weights  │     │     FP32         │                  │
-│  │     BF16         │     │  (4 bytes/param) │                  │
-│  │  (2 bytes/param) │     └──────────────────┘                  │
-│  └────────┬─────────┘                                           │
-│           │                                                     │
-│           ▼                                                     │
-│  ┌──────────────────┐     ┌──────────────────┐                  │
-│  │  Forward Pass    │────►│  Activations     │                  │
-│  │     BF16         │     │     BF16         │                  │
-│  │  matmul in BF16  │     │  (for backward)  │                  │
-│  │  accum in FP32   │     └──────────────────┘                  │
-│  └────────┬─────────┘                                           │
-│           │                                                     │
-│           ▼                                                     │
-│  ┌──────────────────┐     ┌──────────────────┐                  │
-│  │  Backward Pass   │────►│  Gradient Accum  │                  │
-│  │     BF16         │     │     FP32         │                  │
-│  │  gradient compute│     │  (critical!)     │                  │
-│  └──────────────────┘     └────────┬─────────┘                  │
-│                                    │                            │
-│                                    ▼                            │
-│                           ┌──────────────────┐                  │
-│                           │  Weight Update   │                  │
-│                           │     FP32         │                  │
-│                           │  θ ← θ - η·m̂/√v̂ │                  │
-│                           └──────────────────┘                  │
-│                                                                 │
-│  Total per parameter: 4 + 4 + 4 + 2 = 14 bytes (FP32 master    │
-│  + FP32 Adam m + FP32 Adam v + BF16 working copy)              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|                                                                 |
+|  +------------------+    +------------------+                   |
+|  | Master Weights   |    | Adam m (moment)  |                   |
+|  |     FP32         |    |     FP32         |                   |
+|  |  (4 bytes/param) |    |  (4 bytes/param) |                   |
+|  +--------+---------+    +------------------+                   |
+|           | cast                                                |
+|           v                +------------------+                  |
+|  +------------------+     | Adam v (variance)|                  |
+|  | Working Weights  |     |     FP32         |                  |
+|  |     BF16         |     |  (4 bytes/param) |                  |
+|  |  (2 bytes/param) |     +------------------+                  |
+|  +--------+---------+                                           |
+|           |                                                     |
+|           v                                                     |
+|  +------------------+     +------------------+                  |
+|  |  Forward Pass    |---->|  Activations     |                  |
+|  |     BF16         |     |     BF16         |                  |
+|  |  matmul in BF16  |     |  (for backward)  |                  |
+|  |  accum in FP32   |     +------------------+                  |
+|  +--------+---------+                                           |
+|           |                                                     |
+|           v                                                     |
+|  +------------------+     +------------------+                  |
+|  |  Backward Pass   |---->|  Gradient Accum  |                  |
+|  |     BF16         |     |     FP32         |                  |
+|  |  gradient compute|     |  (critical!)     |                  |
+|  +------------------+     +--------+---------+                  |
+|                                    |                            |
+|                                    v                            |
+|                           +------------------+                  |
+|                           |  Weight Update   |                  |
+|                           |     FP32         |                  |
+|                           |  \theta <- \theta - \eta*m/\sqrtv |                  |
+|                           +------------------+                  |
+|                                                                 |
+|  Total per parameter: 4 + 4 + 4 + 2 = 14 bytes (FP32 master    |
+|  + FP32 Adam m + FP32 Adam v + BF16 working copy)              |
+|                                                                 |
++-----------------------------------------------------------------+
 
 INFERENCE:
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  ┌──────────────────┐     ┌──────────────────┐                  │
-│  │  Weights         │     │  KV Cache        │                  │
-│  │  INT4 (GPTQ/AWQ) │     │  INT8 or FP8     │                  │
-│  │  0.5 bytes/param │     │  1 byte/scalar   │                  │
-│  │  dequant → BF16  │     │                  │                  │
-│  └────────┬─────────┘     └──────────────────┘                  │
-│           │                                                     │
-│           ▼                                                     │
-│  ┌──────────────────┐     ┌──────────────────┐                  │
-│  │  Matmul          │     │  Softmax         │                  │
-│  │  BF16 compute    │     │  FP32 (stable)   │                  │
-│  │  FP32 accum      │     │                  │                  │
-│  └──────────────────┘     └──────────────────┘                  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|                                                                 |
+|  +------------------+     +------------------+                  |
+|  |  Weights         |     |  KV Cache        |                  |
+|  |  INT4 (GPTQ/AWQ) |     |  INT8 or FP8     |                  |
+|  |  0.5 bytes/param |     |  1 byte/scalar   |                  |
+|  |  dequant -> BF16  |     |                  |                  |
+|  +--------+---------+     +------------------+                  |
+|           |                                                     |
+|           v                                                     |
+|  +------------------+     +------------------+                  |
+|  |  Matmul          |     |  Softmax         |                  |
+|  |  BF16 compute    |     |  FP32 (stable)   |                  |
+|  |  FP32 accum      |     |                  |                  |
+|  +------------------+     +------------------+                  |
+|                                                                 |
++-----------------------------------------------------------------+
 ```
 
 ### 1.5 Historical Timeline
@@ -389,63 +389,63 @@ INFERENCE:
 | 1985    | **IEEE 754 standard** published: defines FP32 and FP64        | Universal standard; all modern hardware and software agrees on FP format                         |
 | 2008    | IEEE 754-2008 revision: adds FP16 (binary16)                  | Half-precision officially standardised; enables GPU compute                                      |
 | 2012    | AlexNet wins ImageNet using FP32 on GPUs                      | Deep learning revolution begins; all training in FP32                                            |
-| 2017    | **NVIDIA Volta GPU**: FP16 tensor cores                       | First hardware acceleration for reduced precision ML; 8× throughput vs FP32                      |
+| 2017    | **NVIDIA Volta GPU**: FP16 tensor cores                       | First hardware acceleration for reduced precision ML; 8\times throughput vs FP32                      |
 | 2018    | **Google Brain introduces BF16** (Brain Float 16)             | Same exponent range as FP32 with 7-bit mantissa; eliminates loss scaling                         |
 | 2018    | Mixed precision training paper (Micikevicius et al.)          | FP16 forward + FP32 master weights formalised as standard practice                               |
 | 2019    | INT8 inference widely deployed                                | LLM.int8() predecessor methods; production quantization begins                                   |
 | 2020    | **A100 GPU**: native BF16 tensor cores                        | BF16 becomes the default training format for all large models                                    |
 | 2022    | **FP8 proposed for training** (Micikevicius et al. 2022)      | Two complementary 8-bit formats: E4M3 (precision) and E5M2 (range)                               |
-| 2022    | **NVIDIA H100**: first hardware with FP8 tensor cores         | 4× throughput vs BF16; enables FP8 training at scale                                             |
+| 2022    | **NVIDIA H100**: first hardware with FP8 tensor cores         | 4\times throughput vs BF16; enables FP8 training at scale                                             |
 | 2023    | GPTQ, AWQ: INT4 post-training quantization for LLMs           | 70B models on consumer GPUs; democratises large model access                                     |
 | 2023    | QLoRA introduces NF4 (Normal Float 4)                         | Quantile-based 4-bit format optimal for normally-distributed weights                             |
 | 2023    | OCP Microscaling (MX) standard published                      | Industry-wide block floating-point standard (AMD, ARM, Intel, Meta, Microsoft, NVIDIA, Qualcomm) |
-| 2024    | **BitNet b1.58**: ternary weights {−1,0,+1} (1.58 bits)       | Eliminates multiply; addition/subtraction only; trained from scratch                             |
+| 2024    | **BitNet b1.58**: ternary weights {-1,0,+1} (1.58 bits)       | Eliminates multiply; addition/subtraction only; trained from scratch                             |
 | 2024    | **DeepSeek-V3**: FP8 training at scale                        | Commercial frontier model trained entirely in FP8; massive cost reduction                        |
 | 2025    | NVIDIA B200 (Blackwell): MXFP8 native support                 | Hardware designed around block floating-point; format and silicon co-evolution                   |
-| 2025–26 | FP8 training standard; sub-4-bit quantization active research | Industry converges on FP8 for training; INT4/INT2/ternary for inference                          |
+| 2025-26 | FP8 training standard; sub-4-bit quantization active research | Industry converges on FP8 for training; INT4/INT2/ternary for inference                          |
 
 ### 1.6 The Role of Hardware
 
-Number systems are not purely mathematical abstractions — they are **hardware capabilities**. A format that has no hardware support executes in software at full precision, gaining no speed advantage.
+Number systems are not purely mathematical abstractions - they are **hardware capabilities**. A format that has no hardware support executes in software at full precision, gaining no speed advantage.
 
 **GPU tensor core throughput by format (NVIDIA H100 SXM):**
 
 | Format | Throughput   | Relative to FP32 | Hardware Unit                 |
 | ------ | ------------ | ---------------- | ----------------------------- |
-| FP64   | 67 TFLOPS    | 1×               | CUDA cores (double precision) |
-| FP32   | 67 TFLOPS    | 1×               | CUDA cores                    |
-| TF32   | 989 TFLOPS   | 15×              | Tensor cores                  |
-| BF16   | 989 TFLOPS   | 15×              | Tensor cores                  |
-| FP16   | 989 TFLOPS   | 15×              | Tensor cores                  |
-| FP8    | 1,979 TFLOPS | 30×              | Tensor cores                  |
-| INT8   | 1,979 TOPS   | 30×              | Tensor cores                  |
+| FP64   | 67 TFLOPS    | 1\times               | CUDA cores (double precision) |
+| FP32   | 67 TFLOPS    | 1\times               | CUDA cores                    |
+| TF32   | 989 TFLOPS   | 15\times              | Tensor cores                  |
+| BF16   | 989 TFLOPS   | 15\times              | Tensor cores                  |
+| FP16   | 989 TFLOPS   | 15\times              | Tensor cores                  |
+| FP8    | 1,979 TFLOPS | 30\times              | Tensor cores                  |
+| INT8   | 1,979 TOPS   | 30\times              | Tensor cores                  |
 
-The throughput gap is enormous: FP8 operations are 30× faster than FP32 on the same hardware. This means a format change from FP32 to FP8 can potentially deliver a 30× speedup for matmul-bound operations — far more impactful than any algorithmic optimisation.
+The throughput gap is enormous: FP8 operations are 30\times faster than FP32 on the same hardware. This means a format change from FP32 to FP8 can potentially deliver a 30\times speedup for matmul-bound operations - far more impactful than any algorithmic optimisation.
 
 **Hardware design co-evolves with number format needs:**
 
 - NVIDIA added BF16 tensor cores to A100 because the ML community needed wider dynamic range than FP16
 - NVIDIA added FP8 tensor cores to H100 specifically because 8-bit training research showed viability
 - NVIDIA added MXFP support to B200 because block floating-point emerged as the optimal scaling strategy
-- Google designed TPU v2+ with native BF16 from the start — BF16 was literally invented for TPUs
+- Google designed TPU v2+ with native BF16 from the start - BF16 was literally invented for TPUs
 
-The implication: when choosing a number format, you must check whether your target hardware has native support. Running FP8 arithmetic on A100 (which has no FP8 tensor cores) gains nothing — the computation falls back to BF16 or FP32.
+The implication: when choosing a number format, you must check whether your target hardware has native support. Running FP8 arithmetic on A100 (which has no FP8 tensor cores) gains nothing - the computation falls back to BF16 or FP32.
 
 ```
 HARDWARE-FORMAT SUPPORT MATRIX
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-              │ FP64 │ FP32 │ TF32 │ BF16 │ FP16 │ FP8  │ INT8 │ INT4
-══════════════╪══════╪══════╪══════╪══════╪══════╪══════╪══════╪═════
-V100 (2017)   │  ✓   │  ✓   │  ✗   │  ✗   │  ✓TC │  ✗   │  ✗   │  ✗
-A100 (2020)   │  ✓   │  ✓   │  ✓TC │  ✓TC │  ✓TC │  ✗   │  ✓TC │  ✗
-H100 (2022)   │  ✓   │  ✓   │  ✓TC │  ✓TC │  ✓TC │  ✓TC │  ✓TC │  ✗
-B200 (2025)   │  ✓   │  ✓   │  ✓TC │  ✓TC │  ✓TC │  ✓TC │  ✓TC │  ✓TC
-RTX 4090      │  ✓   │  ✓   │  ✓TC │  ✓TC │  ✓TC │  ✓TC │  ✓TC │  ✓TC
+              | FP64 | FP32 | TF32 | BF16 | FP16 | FP8  | INT8 | INT4
+==============+======+======+======+======+======+======+======+=====
+V100 (2017)   |  OK   |  OK   |  NO   |  NO   |  OKTC |  NO   |  NO   |  NO
+A100 (2020)   |  OK   |  OK   |  OKTC |  OKTC |  OKTC |  NO   |  OKTC |  NO
+H100 (2022)   |  OK   |  OK   |  OKTC |  OKTC |  OKTC |  OKTC |  OKTC |  NO
+B200 (2025)   |  OK   |  OK   |  OKTC |  OKTC |  OKTC |  OKTC |  OKTC |  OKTC
+RTX 4090      |  OK   |  OK   |  OKTC |  OKTC |  OKTC |  OKTC |  OKTC |  OKTC
 
 TC = Tensor Core accelerated (high throughput)
-✓  = Supported via CUDA cores (standard throughput)
-✗  = Not supported at hardware level
+OK  = Supported via CUDA cores (standard throughput)
+NO  = Not supported at hardware level
 ```
 
 ---
@@ -465,7 +465,7 @@ where:
 - The **radix point** separates the integer part ($i \geq 0$) from the fractional part ($i < 0$)
 - Any real number representable exactly may require infinitely many digits
 
-The value of a digit depends on its **position** — this is what "positional" means. The digit 3 in position 2 of a base-10 number represents $3 \times 10^2 = 300$, not simply 3.
+The value of a digit depends on its **position** - this is what "positional" means. The digit 3 in position 2 of a base-10 number represents $3 \times 10^2 = 300$, not simply 3.
 
 **Example in base 10:**
 
@@ -475,10 +475,10 @@ $$= 4000 + 700 + 20 + 5 + 0.3 + 0.08 = 4725.38$$
 
 ```
 POSITIONAL VALUE IN BASE 10
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Position:    3       2       1       0    .   -1      -2
-Power:     10³     10²     10¹     10⁰       10⁻¹    10⁻²
+Power:     10^3     10^2     10^1     10^0       10^-^1    10^-^2
 Weight:   1000     100      10       1        0.1     0.01
 Digit:      4       7       2       5    .    3       8
 Value:   4000     700      20       5        0.3     0.08
@@ -493,7 +493,7 @@ Binary is the foundational number system for all digital computation:
 
 - Base $b = 2$; digits $\in \{0, 1\}$; each digit is one **bit** (binary digit)
 - Natural representation for digital hardware: a transistor is either on (1) or off (0)
-- Every number stored in a computer — every weight, every activation, every token ID — is ultimately a binary string
+- Every number stored in a computer - every weight, every activation, every token ID - is ultimately a binary string
 
 **Integer binary representation:**
 
@@ -504,67 +504,67 @@ $$x = \sum_{i=0}^{n} d_i \cdot 2^i$$
 $$1011_2 = 1 \times 2^3 + 0 \times 2^2 + 1 \times 2^1 + 1 \times 2^0 = 8 + 0 + 2 + 1 = 11_{10}$$
 
 ```
-BINARY TO DECIMAL CONVERSION  (1011₂ → 11₁₀)
-═══════════════════════════════════════════════════════════════════════
+BINARY TO DECIMAL CONVERSION  (1011_2 -> 11_1_0)
+=======================================================================
 
 Bit position:    3       2       1       0
-Power of 2:      2³      2²      2¹      2⁰
+Power of 2:      2^3      2^2      2^1      2^0
 Weight:          8       4       2       1
 Bit value:       1       0       1       1
-Contribution:    8       0       2       1     →  Total: 11₁₀
+Contribution:    8       0       2       1     ->  Total: 11_1_0
 ```
 
 **Binary fraction:**
 
 $$0.101_2 = 1 \times 2^{-1} + 0 \times 2^{-2} + 1 \times 2^{-3} = 0.5 + 0 + 0.125 = 0.625_{10}$$
 
-**The critical limitation — infinite binary expansions:**
+**The critical limitation - infinite binary expansions:**
 
 Most decimal fractions have **infinite** binary representations. This is the root cause of floating-point "errors" that every programmer encounters:
 
 $$0.1_{10} = 0.0\overline{0011}_2 = 0.000110011001100110011\ldots_2$$
 
-This is not a bug — it is a fundamental mathematical fact. The number $0.1$ cannot be represented exactly in any finite number of binary digits, just as $1/3 = 0.333\ldots$ cannot be represented exactly in any finite number of decimal digits.
+This is not a bug - it is a fundamental mathematical fact. The number $0.1$ cannot be represented exactly in any finite number of binary digits, just as $1/3 = 0.333\ldots$ cannot be represented exactly in any finite number of decimal digits.
 
-**AI implication:** when a learning rate is set to `lr = 0.001`, the actual value stored in memory is the nearest binary floating-point approximation, not exactly $10^{-3}$. For FP32, this is $0.001000000047497\ldots$ — close enough that it doesn't matter, but the principle underlies all numerical precision analysis.
+**AI implication:** when a learning rate is set to `lr = 0.001`, the actual value stored in memory is the nearest binary floating-point approximation, not exactly $10^{-3}$. For FP32, this is $0.001000000047497\ldots$ - close enough that it doesn't matter, but the principle underlies all numerical precision analysis.
 
 **Common powers of 2 (essential for parameter counting and memory estimation):**
 
 | Power    | Value              | Common Usage                                    |
 | -------- | ------------------ | ----------------------------------------------- |
-| $2^{10}$ | 1,024 ≈ 1K         | Kilobyte                                        |
-| $2^{20}$ | 1,048,576 ≈ 1M     | Megabyte                                        |
-| $2^{30}$ | 1,073,741,824 ≈ 1B | Gigabyte                                        |
+| $2^{10}$ | 1,024 \approx 1K         | Kilobyte                                        |
+| $2^{20}$ | 1,048,576 \approx 1M     | Megabyte                                        |
+| $2^{30}$ | 1,073,741,824 \approx 1B | Gigabyte                                        |
 | $2^{32}$ | 4,294,967,296      | Max UINT32; max token count for most frameworks |
-| $2^{40}$ | ≈ 1T               | Terabyte; large training datasets               |
+| $2^{40}$ | \approx 1T               | Terabyte; large training datasets               |
 
 ### 2.3 Hexadecimal (Base 16)
 
 Hexadecimal (hex) provides a compact human-readable representation of binary data:
 
 - Base $b = 16$; digits $\in \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F\}$
-- Each hex digit corresponds to **exactly 4 bits** — this is why hex is used
+- Each hex digit corresponds to **exactly 4 bits** - this is why hex is used
 - A 32-bit value requires only 8 hex digits instead of 32 binary digits
 - Standard for representing memory addresses, byte patterns, and floating-point bit representations
 
-**Conversion — binary to hex:** group binary digits in groups of 4 from the right; convert each group:
+**Conversion - binary to hex:** group binary digits in groups of 4 from the right; convert each group:
 
 $$10111010_2 = \underbrace{1011}_{B_{16}} \; \underbrace{1010}_{A_{16}} = \text{BA}_{16}$$
 
 ```
 BINARY-HEX CONVERSION TABLE
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Binary │ Hex │ Decimal     Binary │ Hex │ Decimal
-───────┼─────┼─────────    ───────┼─────┼─────────
- 0000  │  0  │   0          1000  │  8  │   8
- 0001  │  1  │   1          1001  │  9  │   9
- 0010  │  2  │   2          1010  │  A  │  10
- 0011  │  3  │   3          1011  │  B  │  11
- 0100  │  4  │   4          1100  │  C  │  12
- 0101  │  5  │   5          1101  │  D  │  13
- 0110  │  6  │   6          1110  │  E  │  14
- 0111  │  7  │   7          1111  │  F  │  15
+Binary | Hex | Decimal     Binary | Hex | Decimal
+-------+-----+---------    -------+-----+---------
+ 0000  |  0  |   0          1000  |  8  |   8
+ 0001  |  1  |   1          1001  |  9  |   9
+ 0010  |  2  |   2          1010  |  A  |  10
+ 0011  |  3  |   3          1011  |  B  |  11
+ 0100  |  4  |   4          1100  |  C  |  12
+ 0101  |  5  |   5          1101  |  D  |  13
+ 0110  |  6  |   6          1110  |  E  |  14
+ 0111  |  7  |   7          1111  |  F  |  15
 ```
 
 **AI usage:** when inspecting raw model weight files (`.safetensors`, `.bin`), memory dumps, or CUDA kernel outputs, values are displayed in hex. For example, the FP32 bit pattern for `1.0` is `0x3F800000`:
@@ -590,34 +590,34 @@ Two's complement is the universal standard for representing negative integers in
 | INT32 (32-bit) | $[-2{,}147{,}483{,}648, \; 2{,}147{,}483{,}647]$               | Accumulator for INT8 matmul    |
 | INT64 (64-bit) | $[\approx -9.2 \times 10^{18}, \; \approx 9.2 \times 10^{18}]$ | Dataset sizes, file offsets    |
 
-**Worked example — representing −42 in INT8:**
+**Worked example - representing -42 in INT8:**
 
 ```
 STEP 1: Start with +42
-  42₁₀ = 00101010₂
+  42_1_0 = 00101010_2
 
 STEP 2: Flip all bits (one's complement)
-  00101010  →  11010101
+  00101010  ->  11010101
 
 STEP 3: Add 1
   11010101 + 1 = 11010110
 
-RESULT: -42₁₀ = 11010110₂
+RESULT: -42_1_0 = 11010110_2
 
 VERIFICATION: 42 + (-42) should equal 0 (mod 256)
   00101010
 + 11010110
-─────────
- 100000000  →  Discard carry bit  →  00000000 = 0  ✓
+---------
+ 100000000  ->  Discard carry bit  ->  00000000 = 0  OK
 ```
 
 **Key properties for hardware design:**
 
-1. **Same hardware for signed and unsigned addition** — the adder doesn't need to know about signs; two's complement arithmetic "just works" with the same circuit
-2. **Asymmetry:** there is one more negative value than positive — $-128$ has no positive counterpart in INT8. This matters for symmetric quantization: the range $[-127, 127]$ wastes one code point
+1. **Same hardware for signed and unsigned addition** - the adder doesn't need to know about signs; two's complement arithmetic "just works" with the same circuit
+2. **Asymmetry:** there is one more negative value than positive - $-128$ has no positive counterpart in INT8. This matters for symmetric quantization: the range $[-127, 127]$ wastes one code point
 3. **Overflow detection:** carry into sign bit $\neq$ carry out of sign bit indicates overflow
 
-**AI relevance — quantization:** when quantizing FP32 weights to INT8, we map continuous values to $\{-128, \ldots, 127\}$. Symmetric quantization uses $\{-127, \ldots, 127\}$ (wastes one level) for simplicity; asymmetric uses all 256 levels for better coverage.
+**AI relevance - quantization:** when quantizing FP32 weights to INT8, we map continuous values to $\{-128, \ldots, 127\}$. Symmetric quantization uses $\{-127, \ldots, 127\}$ (wastes one level) for simplicity; asymmetric uses all 256 levels for better coverage.
 
 ### 2.5 Fixed-Point Representation
 
@@ -632,36 +632,36 @@ $$\text{value} = \frac{\text{stored integer}}{2^n}$$
 **Properties:**
 
 - **Range:** $[-2^m, \; 2^m - 2^{-n}]$
-- **Precision:** uniform spacing of $2^{-n}$ across the entire range — every representable value is exactly $2^{-n}$ apart from its neighbours
+- **Precision:** uniform spacing of $2^{-n}$ across the entire range - every representable value is exactly $2^{-n}$ apart from its neighbours
 - **No exponent:** unlike floating-point, there is no exponent field; the radix point position is fixed and implicit
 
-**Example — Q3.4 format (8-bit):**
+**Example - Q3.4 format (8-bit):**
 
 ```
 Q3.4 FIXED-POINT (8-BIT)
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Bit layout: [S][I₂ I₁ I₀][F₃ F₂ F₁ F₀]
-             │     │            │
+Bit layout: [S][I_2 I_1 I_0][F_3 F_2 F_1 F_0]
+             |     |            |
           Sign   Integer     Fraction
           (1)    (3 bits)    (4 bits)
 
 Range:        [-8,  7.9375]    (= [-8, 8 - 1/16])
 Resolution:   1/16 = 0.0625
 
-Example: 01011100₂
+Example: 01011100_2
   Sign = 0 (positive)
-  Integer = 101₂ = 5
-  Fraction = 1100₂ = 12/16 = 0.75
+  Integer = 101_2 = 5
+  Fraction = 1100_2 = 12/16 = 0.75
   Value = 5.75
 
 REPRESENTABLE VALUES NEAR ZERO:
   ... -0.1875  -0.125  -0.0625  0  0.0625  0.125  0.1875 ...
-       │         │        │      │     │       │       │
+       |         |        |      |     |       |       |
      Uniform spacing of 0.0625 everywhere
 ```
 
-**Contrast with floating-point:** fixed-point has **uniform** spacing everywhere — the gap between representable values near zero is the same as between large values. Floating-point has **non-uniform** spacing — very dense near zero, sparse for large values. For neural network weights (which cluster near zero), floating-point is generally better.
+**Contrast with floating-point:** fixed-point has **uniform** spacing everywhere - the gap between representable values near zero is the same as between large values. Floating-point has **non-uniform** spacing - very dense near zero, sparse for large values. For neural network weights (which cluster near zero), floating-point is generally better.
 
 **Fixed-point in AI:**
 
@@ -683,33 +683,33 @@ $$x = (-1)^s \times m \times 2^e$$
 where:
 
 - **Sign bit** $s \in \{0, 1\}$: $0$ for positive, $1$ for negative
-- **Mantissa** (significand) $m \in [1, 2)$: normalised so the leading digit is always 1 (and therefore can be stored implicitly — the "hidden bit")
+- **Mantissa** (significand) $m \in [1, 2)$: normalised so the leading digit is always 1 (and therefore can be stored implicitly - the "hidden bit")
 - **Exponent** $e \in$ integer range: stored with a **bias** so that both negative and positive exponents can be represented as unsigned integers
 
-**The key property:** floating-point provides **the same number of significant bits** regardless of value magnitude. A number near $10^{-30}$ and a number near $10^{30}$ both have the same relative precision. This is exactly what neural networks need — weights near zero and weights near the maximum both get the same relative accuracy.
+**The key property:** floating-point provides **the same number of significant bits** regardless of value magnitude. A number near $10^{-30}$ and a number near $10^{30}$ both have the same relative precision. This is exactly what neural networks need - weights near zero and weights near the maximum both get the same relative accuracy.
 
 **Contrast with fixed-point:**
 
 ```
 FIXED-POINT vs FLOATING-POINT DISTRIBUTION
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Fixed-point (Q7.8, 16-bit):
 Representable values uniformly spaced by 1/256:
-│ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │ │
+| | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
 0                                                               128
 
-Near zero: same spacing 1/256  →  relative precision: high
-Near 128:  same spacing 1/256  →  relative precision: low
+Near zero: same spacing 1/256  ->  relative precision: high
+Near 128:  same spacing 1/256  ->  relative precision: low
 
 
 Floating-point (FP16):
 Representable values DENSE near zero, SPARSE far from zero:
-│││││││││ │ │ │ │ │ │  │  │  │   │   │    │    │      │      │
+||||||||| | | | | | |  |  |  |   |   |    |    |      |      |
 0                                                           65504
 
-Near zero: spacing ~2⁻²⁴  →  very fine resolution
-Near 65504: spacing ~32    →  coarse but same relative precision
+Near zero: spacing ~2^-^2^4  ->  very fine resolution
+Near 65504: spacing ~32    ->  coarse but same relative precision
 
 Same NUMBER of representable values between 1 and 2
     as between 1024 and 2048 (mantissa bits = 10 for FP16)
@@ -725,13 +725,13 @@ $$\underbrace{s}_{1\text{ bit}} \quad \underbrace{E_7 E_6 E_5 E_4 E_3 E_2 E_1 E_
 
 ```
 FP32 BIT LAYOUT (32 BITS)
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Bit:  31  30────────23  22────────────────────────────────────0
-      ┌──┬────────────┬──────────────────────────────────────────┐
-      │ s│  Exponent  │              Mantissa                    │
-      │  │  (8 bits)  │             (23 bits)                    │
-      └──┴────────────┴──────────────────────────────────────────┘
+Bit:  31  30--------23  22------------------------------------0
+      +--+------------+------------------------------------------+
+      | s|  Exponent  |              Mantissa                    |
+      |  |  (8 bits)  |             (23 bits)                    |
+      +--+------------+------------------------------------------+
        1      8 bits                   23 bits             = 32 bits
 ```
 
@@ -743,8 +743,8 @@ where:
 
 - $E$ is the **stored exponent** (unsigned 8-bit integer, $0 \leq E \leq 255$)
 - **Exponent bias** = 127: the true exponent is $e = E - 127$, giving $e \in [-126, 127]$ for normal numbers
-- $E = 0$ and $E = 255$ are reserved for special values (see §3.3)
-- The leading $1.$ before the mantissa is **implicit** (not stored) — this gives 24 bits of significand precision using only 23 stored bits
+- $E = 0$ and $E = 255$ are reserved for special values (see 3.3)
+- The leading $1.$ before the mantissa is **implicit** (not stored) - this gives 24 bits of significand precision using only 23 stored bits
 
 **Numerical properties:**
 
@@ -762,34 +762,34 @@ where:
 | Decimal precision             | ~7.2 significant digits                |
 | Min positive subnormal        | $\approx 1.401 \times 10^{-45}$        |
 
-**Machine epsilon** ($\varepsilon$) is the smallest value such that $1 + \varepsilon \neq 1$ in the floating-point system. For FP32, $\varepsilon = 2^{-23}$. This determines the **relative precision** — when you add a value smaller than $\varepsilon \times x$ to $x$, the result rounds back to $x$ and the addition is lost.
+**Machine epsilon** ($\varepsilon$) is the smallest value such that $1 + \varepsilon \neq 1$ in the floating-point system. For FP32, $\varepsilon = 2^{-23}$. This determines the **relative precision** - when you add a value smaller than $\varepsilon \times x$ to $x$, the result rounds back to $x$ and the addition is lost.
 
-**Worked example — decoding a bit pattern:**
+**Worked example - decoding a bit pattern:**
 
 Decode: `0 10000001 01000000000000000000000`
 
 ```
 STEP-BY-STEP FP32 DECODING
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Given:  0  10000001  01000000000000000000000
 
 Step 1: Sign bit
-  s = 0  →  positive
+  s = 0  ->  positive
 
 Step 2: Exponent
-  E = 10000001₂ = 128 + 1 = 129
+  E = 10000001_2 = 128 + 1 = 129
   True exponent: e = 129 - 127 = 2
 
 Step 3: Mantissa (implicit leading 1)
-  m = 1.01000000000000000000000₂
-    = 1 + 0×2⁻¹ + 1×2⁻² + 0×2⁻³ + ...
+  m = 1.01000000000000000000000_2
+    = 1 + 0\times2^-^1 + 1\times2^-^2 + 0\times2^-^3 + ...
     = 1 + 0.25
     = 1.25
 
 Step 4: Combine
-  x = (-1)⁰ × 1.25 × 2²
-    = 1 × 1.25 × 4
+  x = (-1)^0 \times 1.25 \times 2^2
+    = 1 \times 1.25 \times 4
     = 5.0
 
 ANSWER: The bit pattern represents 5.0
@@ -809,15 +809,15 @@ IEEE 754 reserves certain exponent-mantissa combinations for special mathematica
 
 ```
 IEEE 754 SPECIAL VALUES
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Exponent E │ Mantissa m │ Value              │ Purpose
-═══════════╪════════════╪════════════════════╪══════════════════════════
-    0       │     0      │ ±0                 │ Signed zero; +0 = -0
-    0       │    ≠ 0     │ ±subnormal         │ Gradual underflow
-  1–254     │   any      │ ±normal number     │ Standard representation
-   255      │     0      │ ±∞ (infinity)      │ Overflow result
-   255      │    ≠ 0     │ NaN (Not a Number) │ Invalid operations
+Exponent E | Mantissa m | Value              | Purpose
+===========+============+====================+==========================
+    0       |     0      | \pm0                 | Signed zero; +0 = -0
+    0       |    \neq 0     | \pmsubnormal         | Gradual underflow
+  1-254     |   any      | \pmnormal number     | Standard representation
+   255      |     0      | \pm\infty (infinity)      | Overflow result
+   255      |    \neq 0     | NaN (Not a Number) | Invalid operations
 ```
 
 **Zero ($\pm 0$):**
@@ -831,10 +831,10 @@ Exponent E │ Mantissa m │ Value              │ Purpose
 
 - Exponent $E = 0$, mantissa $m \neq 0$
 - Value: $x = (-1)^s \times 0.m \times 2^{-126}$ (no implicit leading 1; exponent fixed at $-126$)
-- Purpose: **gradual underflow** — fills the gap between zero and the smallest normal number
+- Purpose: **gradual underflow** - fills the gap between zero and the smallest normal number
 - Without subnormals: there would be a gap from $0$ to $1.175 \times 10^{-38}$ with nothing in between
 - With subnormals: smallest representable positive value = $2^{-149} \approx 1.4 \times 10^{-45}$
-- **Hardware cost:** subnormal arithmetic is slower on GPUs (10–100× penalty); many GPU "fast-math" modes **flush subnormals to zero** (`--ftz=true`)
+- **Hardware cost:** subnormal arithmetic is slower on GPUs (10-100\times penalty); many GPU "fast-math" modes **flush subnormals to zero** (`--ftz=true`)
 - AI implication: gradients below the subnormal threshold become exactly zero; this is a form of gradient underflow
 
 **Infinity ($\pm\infty$):**
@@ -848,28 +848,28 @@ Exponent E │ Mantissa m │ Value              │ Purpose
 
 - Exponent $E = 255$, mantissa $m \neq 0$
 - Two types:
-  - **Quiet NaN (qNaN):** propagates silently through all arithmetic — $\text{qNaN} + x = \text{qNaN}$, $\text{qNaN} \times x = \text{qNaN}$, $\text{qNaN} > x = \text{false}$. **Extremely dangerous in training** — loss appears to be a number but all weights are corrupted
+  - **Quiet NaN (qNaN):** propagates silently through all arithmetic - $\text{qNaN} + x = \text{qNaN}$, $\text{qNaN} \times x = \text{qNaN}$, $\text{qNaN} > x = \text{false}$. **Extremely dangerous in training** - loss appears to be a number but all weights are corrupted
   - **Signalling NaN (sNaN):** raises a hardware exception when used in arithmetic; useful for debugging but rarely used in GPU code
 - Produced by: $0/0$, $\infty - \infty$, $\sqrt{-1}$, $\log(-x)$
-- AI relevance: NaN in loss → all subsequent gradients are NaN → all weights become NaN → model destroyed. Must check for NaN explicitly; PyTorch `torch.autograd.detect_anomaly()` helps
+- AI relevance: NaN in loss -> all subsequent gradients are NaN -> all weights become NaN -> model destroyed. Must check for NaN explicitly; PyTorch `torch.autograd.detect_anomaly()` helps
 
 **Ordering of all special values:**
 
 $$-\infty < \text{negative normals} < \text{negative subnormals} < -0 = +0 < \text{positive subnormals} < \text{positive normals} < +\infty$$
 
-NaN is **unordered** — $\text{NaN} \neq \text{NaN}$ (NaN is not equal to itself!). This is the standard way to check for NaN: `x != x` is true only if `x` is NaN.
+NaN is **unordered** - $\text{NaN} \neq \text{NaN}$ (NaN is not equal to itself!). This is the standard way to check for NaN: `x != x` is true only if `x` is NaN.
 
 ### 3.4 FP32 Arithmetic Properties
 
 Floating-point arithmetic violates several "obvious" algebraic properties that hold for real numbers. These violations have direct consequences for neural network training:
 
-**1. Associativity failure** — $(a + b) + c \neq a + (b + c)$ in general:
+**1. Associativity failure** - $(a + b) + c \neq a + (b + c)$ in general:
 
 $$\text{Consider: } a = 10^8, \; b = 1, \; c = -10^8$$
 
 $$(a + b) + c = (10^8 + 1) + (-10^8)$$
 
-In FP32, $10^8 + 1 = 10^8$ because $1 < \varepsilon \times 10^8 = 10^8 \times 1.19 \times 10^{-7} \approx 11.9$. Wait — $1 < 11.9$, so $1$ IS below the relative precision threshold. The result is $10^8$, and then $10^8 - 10^8 = 0$.
+In FP32, $10^8 + 1 = 10^8$ because $1 < \varepsilon \times 10^8 = 10^8 \times 1.19 \times 10^{-7} \approx 11.9$. Wait - $1 < 11.9$, so $1$ IS below the relative precision threshold. The result is $10^8$, and then $10^8 - 10^8 = 0$.
 
 But:
 
@@ -879,21 +879,21 @@ Here $1 - 10^8 = -99{,}999{,}999$, and $10^8 + (-99{,}999{,}999) = 1$.
 
 **Result:** $(a + b) + c = 0$ but $a + (b + c) = 1$. The "correct" mathematical answer is 1.
 
-**AI impact:** multi-GPU training performs parallel reduction (summing gradients across GPUs) in different orders depending on timing → different results each run. **This is why multi-GPU training is non-deterministic even with the same seed.**
+**AI impact:** multi-GPU training performs parallel reduction (summing gradients across GPUs) in different orders depending on timing -> different results each run. **This is why multi-GPU training is non-deterministic even with the same seed.**
 
-**2. Commutativity — always holds:** $a + b = b + a$ and $a \times b = b \times a$ in IEEE 754. The order of two operands does not matter. (But the order of three or more does, because associativity fails.)
+**2. Commutativity - always holds:** $a + b = b + a$ and $a \times b = b \times a$ in IEEE 754. The order of two operands does not matter. (But the order of three or more does, because associativity fails.)
 
-**3. Distributivity failure** — $a \times (b + c) \neq a \times b + a \times c$ in general. Each intermediate operation rounds independently, accumulating different errors.
+**3. Distributivity failure** - $a \times (b + c) \neq a \times b + a \times c$ in general. Each intermediate operation rounds independently, accumulating different errors.
 
 ### 3.5 Rounding Modes
 
 IEEE 754 defines five rounding modes. The choice of rounding mode affects the bias and variance of numerical errors:
 
-**1. Round to Nearest, Ties to Even (RNE) — the default:**
+**1. Round to Nearest, Ties to Even (RNE) - the default:**
 
 - Round to the nearest representable value
 - When the value is exactly midway between two representable values, round to the one whose last mantissa bit is 0 (even)
-- **Why ties-to-even?** Eliminates statistical bias — ties-to-up would systematically inflate values over many operations; ties-to-even has zero expected bias
+- **Why ties-to-even?** Eliminates statistical bias - ties-to-up would systematically inflate values over many operations; ties-to-even has zero expected bias
 - This is the default for FP32, BF16, and all standard GPU computation
 
 **2. Round Toward Zero (Truncation):**
@@ -923,7 +923,7 @@ IEEE 754 defines five rounding modes. The choice of rounding mode affects the bi
 - Not part of IEEE 754 but increasingly important for low-precision training
 - Round up or down **randomly** with probability proportional to the fractional position
 - $P(\text{round up}) = x - \lfloor x \rfloor$, $P(\text{round down}) = \lceil x \rceil - x$
-- **Unbiased:** $E[\text{SR}(x)] = x$ — preserves small gradient updates in expectation
+- **Unbiased:** $E[\text{SR}(x)] = x$ - preserves small gradient updates in expectation
 - Used in: some FP8 training implementations; Graphcore IPU hardware
 - Cost: requires random number generation per operation
 
@@ -937,7 +937,7 @@ Consider $a = 1.0000001$ and $b = 1.0000000$ stored in FP32 (which has ~7 decima
 
 $$a - b = 0.0000001 = 1 \times 10^{-7}$$
 
-Both $a$ and $b$ have 7 significant digits. Their difference has only **1 significant digit** — the other 6 significant digits cancelled. The result is represented as $1.0 \times 10^{-7}$ with the remaining mantissa bits filled with garbage (the hardware doesn't know what the true value would have been beyond the stored precision).
+Both $a$ and $b$ have 7 significant digits. Their difference has only **1 significant digit** - the other 6 significant digits cancelled. The result is represented as $1.0 \times 10^{-7}$ with the remaining mantissa bits filled with garbage (the hardware doesn't know what the true value would have been beyond the stored precision).
 
 **Formal statement:** if $a$ and $b$ agree to $k$ significant bits, then $a - b$ has at most $(\text{mantissa bits} - k)$ significant bits. For FP32 with 24-bit significand:
 
@@ -954,9 +954,9 @@ Both $a$ and $b$ have 7 significant digits. Their difference has only **1 signif
 
 **Mitigations:**
 
-1. **Log-sum-exp trick** for softmax (§8.4): avoids computing exp of very large/small numbers
-2. **Kahan summation** (§3.7): maintains error correction term to recover lost precision
-3. **RMSNorm instead of LayerNorm** (§8.6): avoids mean subtraction entirely
+1. **Log-sum-exp trick** for softmax (8.4): avoids computing exp of very large/small numbers
+2. **Kahan summation** (3.7): maintains error correction term to recover lost precision
+3. **RMSNorm instead of LayerNorm** (8.6): avoids mean subtraction entirely
 4. **Reordering operations:** compute $(a^2 - b^2) = (a+b)(a-b)$ instead of direct subtraction when $a \approx b$
 
 ### 3.7 Kahan Summation Algorithm
@@ -967,16 +967,16 @@ Both $a$ and $b$ have 7 significant digits. Their difference has only **1 signif
 
 ```
 KAHAN SUMMATION ALGORITHM
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Input: values x₁, x₂, ..., xₙ
-Output: sum with O(ε) error (instead of O(nε))
+Input: values x_1, x_2, ..., x_n
+Output: sum with O(\epsilon) error (instead of O(n\epsilon))
 
     sum = 0.0          // Running total
     c   = 0.0          // Compensation for lost low-order bits
 
-    for each xᵢ:
-        y = xᵢ - c         // Compensate: add back what was lost last time
+    for each x^i:
+        y = x^i - c         // Compensate: add back what was lost last time
         t = sum + y         // Tentative new sum (rounding happens here)
         c = (t - sum) - y   // Recover rounding error: what was lost
         sum = t             // Update running total
@@ -984,36 +984,36 @@ Output: sum with O(ε) error (instead of O(nε))
     return sum
 ```
 
-**How it works — step by step with FP32 (7 decimal digits):**
+**How it works - step by step with FP32 (7 decimal digits):**
 
 ```
 KAHAN SUMMATION TRACE
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Sum: [1.0,  1e-7,  1e-7,  1e-7,  1e-7]
 
 NAIVE SUMMATION:
   sum = 1.0
-  sum = 1.0 + 1e-7 = 1.0000001     ← barely fits in FP32
-  sum = 1.0000001 + 1e-7 = 1.0000002   ← may round
-  sum = 1.0000002 + 1e-7 = 1.0000003   ← each step loses precision
+  sum = 1.0 + 1e-7 = 1.0000001     <- barely fits in FP32
+  sum = 1.0000001 + 1e-7 = 1.0000002   <- may round
+  sum = 1.0000002 + 1e-7 = 1.0000003   <- each step loses precision
   sum = 1.0000003 + 1e-7 = 1.0000004
   Result: 1.0000004  (limited by FP32 precision near 1.0)
 
 KAHAN SUMMATION:
-  Step 1: x₁ = 1.0
+  Step 1: x_1 = 1.0
     y = 1.0 - 0 = 1.0
     t = 0 + 1.0 = 1.0
     c = (1.0 - 0) - 1.0 = 0    // no error
     sum = 1.0
 
-  Step 2: x₂ = 1e-7
+  Step 2: x_2 = 1e-7
     y = 1e-7 - 0 = 1e-7
     t = 1.0 + 1e-7 = 1.0000001
     c = (1.0000001 - 1.0) - 1e-7    // recovers rounding error
     sum = 1.0000001
 
-  Step 3: x₃ = 1e-7
+  Step 3: x_3 = 1e-7
     y = 1e-7 - c                // compensates for error from step 2
     t = 1.0000001 + y
     c = (t - 1.0000001) - y     // captures new error
@@ -1025,8 +1025,8 @@ KAHAN SUMMATION:
 
 **Error analysis:**
 
-- Naive summation: error = $O(n\varepsilon)$ — grows linearly with number of terms
-- Kahan summation: error = $O(\varepsilon)$ — **independent of $n$**; dramatic improvement for large sums
+- Naive summation: error = $O(n\varepsilon)$ - grows linearly with number of terms
+- Kahan summation: error = $O(\varepsilon)$ - **independent of $n$**; dramatic improvement for large sums
 - Cost: approximately 4 FLOPs per element instead of 1; worth the overhead for numerical stability
 
 **AI applications:**
@@ -1040,7 +1040,7 @@ KAHAN SUMMATION:
 
 ## 4. Floating-Point Formats for AI
 
-This section covers every floating-point format relevant to modern AI systems, from the rarely-used FP64 down to the frontier FP8 formats that power 2024–2026 era training.
+This section covers every floating-point format relevant to modern AI systems, from the rarely-used FP64 down to the frontier FP8 formats that power 2024-2026 era training.
 
 ### 4.1 FP64 (Double Precision)
 
@@ -1053,40 +1053,40 @@ This section covers every floating-point format relevant to modern AI systems, f
 | Max value             | $\approx 1.798 \times 10^{308}$                       |
 | Min positive normal   | $\approx 2.225 \times 10^{-308}$                      |
 | Machine epsilon       | $\varepsilon = 2^{-52} \approx 2.220 \times 10^{-16}$ |
-| Decimal precision     | ~15–17 significant digits                             |
+| Decimal precision     | ~15-17 significant digits                             |
 
-**AI relevance — mostly irrelevant for neural networks:**
+**AI relevance - mostly irrelevant for neural networks:**
 
-- GPU throughput: A100 FP64 = 19.5 TFLOPS vs FP32 = 19.5 TFLOPS (scalar) vs BF16 = 312 TFLOPS (tensor core). FP64 is 16× slower than BF16.
+- GPU throughput: A100 FP64 = 19.5 TFLOPS vs FP32 = 19.5 TFLOPS (scalar) vs BF16 = 312 TFLOPS (tensor core). FP64 is 16\times slower than BF16.
 - No neural network operation requires 15-digit precision. The signal-to-noise ratio of gradient estimates (due to mini-batch sampling) is far larger than FP32 precision errors.
 - **Niche uses:** eigenvalue decomposition in research; high-precision statistical hypothesis tests; numerical ODE/SDE solvers for diffusion models; Gram matrix condition number analysis
 - **Rule of thumb:** if you think you need FP64 for neural networks, you probably have a numerical stability bug that should be fixed structurally (better algorithm) rather than with more bits
 
-### 4.2 FP32 (Single Precision) — Detailed
+### 4.2 FP32 (Single Precision) - Detailed
 
 FP32 was the **unquestioned standard** for deep learning from 2012 to approximately 2018. All early frameworks (Theano, Caffe, early TensorFlow, early PyTorch) used FP32 by default.
 
 ```
 FP32 ROLE IN MODERN LLM TRAINING (2026)
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Still used for:
-  ✓ Master weights (authoritative copy)
-  ✓ Optimizer states (Adam m, v)
-  ✓ Gradient accumulation (sum of gradients)
-  ✓ Loss and metrics computation
-  ✓ Learning rate and hyperparameters
-  ✓ Numerical stability fallback (softmax intermediate)
+  OK Master weights (authoritative copy)
+  OK Optimizer states (Adam m, v)
+  OK Gradient accumulation (sum of gradients)
+  OK Loss and metrics computation
+  OK Learning rate and hyperparameters
+  OK Numerical stability fallback (softmax intermediate)
 
 NO LONGER used for (replaced by BF16/FP8):
-  ✗ Forward pass matmul computation
-  ✗ Backward pass gradient computation
-  ✗ Activation storage
-  ✗ Weight communication across GPUs
-  ✗ Inference of any kind
+  NO Forward pass matmul computation
+  NO Backward pass gradient computation
+  NO Activation storage
+  NO Weight communication across GPUs
+  NO Inference of any kind
 ```
 
-**Why FP32 persists for certain operations:** gradient accumulation sums millions of small values. With BF16 ($\varepsilon = 7.8 \times 10^{-3}$), a gradient contribution smaller than $0.78\%$ of the current sum is lost. Over millions of steps, these lost contributions compound. FP32 ($\varepsilon = 1.19 \times 10^{-7}$) resolves contributions as small as $0.0000119\%$ of the sum — 65,000× more precise.
+**Why FP32 persists for certain operations:** gradient accumulation sums millions of small values. With BF16 ($\varepsilon = 7.8 \times 10^{-3}$), a gradient contribution smaller than $0.78\%$ of the current sum is lost. Over millions of steps, these lost contributions compound. FP32 ($\varepsilon = 1.19 \times 10^{-7}$) resolves contributions as small as $0.0000119\%$ of the sum - 65,000\times more precise.
 
 **Memory cost for a 70B model in pure FP32:**
 
@@ -1098,23 +1098,23 @@ NO LONGER used for (replaced by BF16/FP8):
 
 ### 4.3 TF32 (TensorFloat-32)
 
-TF32 is an **NVIDIA-proprietary** format that exists only inside tensor core hardware. It is not an IEEE standard and cannot be stored in memory — it is a computational format.
+TF32 is an **NVIDIA-proprietary** format that exists only inside tensor core hardware. It is not an IEEE standard and cannot be stored in memory - it is a computational format.
 
 **Bit layout:** 19 bits = 1 sign + 8 exponent + 10 mantissa
 
 ```
-TF32 — A HYBRID FORMAT
-═══════════════════════════════════════════════════════════════════════
+TF32 - A HYBRID FORMAT
+=======================================================================
 
-FP32:  [1 sign][8 exponent][23 mantissa]     ← 32 bits
-TF32:  [1 sign][8 exponent][10 mantissa]     ← 19 bits
-BF16:  [1 sign][8 exponent][ 7 mantissa]     ← 16 bits
-FP16:  [1 sign][5 exponent][10 mantissa]     ← 16 bits
+FP32:  [1 sign][8 exponent][23 mantissa]     <- 32 bits
+TF32:  [1 sign][8 exponent][10 mantissa]     <- 19 bits
+BF16:  [1 sign][8 exponent][ 7 mantissa]     <- 16 bits
+FP16:  [1 sign][5 exponent][10 mantissa]     <- 16 bits
 
 TF32 takes:
-  • Exponent from FP32 (8 bits → same range as FP32)
-  • Mantissa from FP16 (10 bits → same precision as FP16)
-  • Result: FP32 range with FP16 precision
+  - Exponent from FP32 (8 bits -> same range as FP32)
+  - Mantissa from FP16 (10 bits -> same precision as FP16)
+  - Result: FP32 range with FP16 precision
 ```
 
 **How it works in practice:**
@@ -1122,9 +1122,9 @@ TF32 takes:
 - When you call a FP32 matmul on an A100 or H100, cuBLAS **automatically** uses TF32 internally
 - Inputs are FP32; tensor core truncates mantissa to 10 bits for multiply; accumulates in FP32
 - Output is FP32
-- Throughput: A100 TF32 = 156 TFLOPS vs FP32 scalar = 19.5 TFLOPS — **8× faster**
+- Throughput: A100 TF32 = 156 TFLOPS vs FP32 scalar = 19.5 TFLOPS - **8\times faster**
 
-**Implication:** if you're running "FP32 training" on an A100/H100, your matmuls are actually TF32 matmuls unless you explicitly disable it (`torch.backends.cuda.matmul.allow_tf32 = False`). This is fine for virtually all training — the precision loss from 23→10 mantissa bits in the multiply step is negligible because accumulation is still FP32.
+**Implication:** if you're running "FP32 training" on an A100/H100, your matmuls are actually TF32 matmuls unless you explicitly disable it (`torch.backends.cuda.matmul.allow_tf32 = False`). This is fine for virtually all training - the precision loss from 23->10 mantissa bits in the multiply step is negligible because accumulation is still FP32.
 
 ### 4.4 FP16 (Half Precision)
 
@@ -1141,45 +1141,45 @@ TF32 takes:
 | Machine epsilon       | $\varepsilon = 2^{-10} \approx 9.766 \times 10^{-4}$ |
 | Decimal precision     | ~3.3 significant digits                              |
 
-**The critical limitation — narrow dynamic range:**
+**The critical limitation - narrow dynamic range:**
 
 FP16 can represent values from $6.1 \times 10^{-5}$ to $65{,}504$. This range is **far too narrow** for LLM training:
 
 ```
 FP16 FAILURE MODES IN LLM TRAINING
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-OVERFLOW: values > 65,504 become ∞
-  • Loss values in early training often > 10
-  • Attention logits (before softmax) can reach 100+
-  • If any intermediate value exceeds 65,504 → ∞ → NaN → training dead
+OVERFLOW: values > 65,504 become \infty
+  - Loss values in early training often > 10
+  - Attention logits (before softmax) can reach 100+
+  - If any intermediate value exceeds 65,504 -> \infty -> NaN -> training dead
 
-UNDERFLOW: values < 6.1×10⁻⁵ become 0
-  • Gradients are often ~10⁻⁷
-  • In FP16, these gradients → 0
-  • Zero gradients → weights don't update → training stalls
-  • This is SILENT — loss appears stable but model isn't learning
+UNDERFLOW: values < 6.1\times10^-^5 become 0
+  - Gradients are often ~10^-^7
+  - In FP16, these gradients -> 0
+  - Zero gradients -> weights don't update -> training stalls
+  - This is SILENT - loss appears stable but model isn't learning
 
                     FP16 representable range
-                    ┌──────────────────────┐
-  gradient zone     │                      │     loss zone
-  (10⁻⁷ to 10⁻⁴)   │  6.1×10⁻⁵  →  65504  │    (1 to 100+)
-  ████████░░░░░░░░░│██████████████████████│░░░░░░░████████
-  underflow!        │                      │     overflow!
+                    +----------------------+
+  gradient zone     |                      |     loss zone
+  (10^-^7 to 10^-^4)   |  6.1\times10^-^5  ->  65504  |    (1 to 100+)
+  ########         |######################|       ########
+  underflow!        |                      |     overflow!
 ```
 
-**Loss scaling — the FP16 workaround:**
+**Loss scaling - the FP16 workaround:**
 
 1. Before backward pass: multiply loss by a large constant $S$ (e.g., 128, 1024, or dynamic)
-2. All gradients are scaled by $S$ → shifted into representable range
+2. All gradients are scaled by $S$ -> shifted into representable range
 3. After gradient computation: divide all gradients by $S$ before optimizer step
 4. Dynamic loss scaling: start with large $S$; if overflow (Inf/NaN) detected, halve $S$; if no overflow for $N$ steps, double $S$
 
-**2026 status:** FP16 is **largely replaced by BF16** for training. Still used in some inference engines and legacy code. The loss scaling machinery made FP16 training possible but fragile — BF16 eliminates the need entirely.
+**2026 status:** FP16 is **largely replaced by BF16** for training. Still used in some inference engines and legacy code. The loss scaling machinery made FP16 training possible but fragile - BF16 eliminates the need entirely.
 
 ### 4.5 BF16 (Brain Float 16)
 
-BF16 is **the most important number format innovation for deep learning** in the 2018–2026 era. Invented by Google Brain for TPU hardware, it was specifically designed for neural network training.
+BF16 is **the most important number format innovation for deep learning** in the 2018-2026 era. Invented by Google Brain for TPU hardware, it was specifically designed for neural network training.
 
 **Bit layout:** 16 = 1 sign + 8 exponent + 7 mantissa
 
@@ -1193,45 +1193,45 @@ BF16 is **the most important number format innovation for deep learning** in the
 | Machine epsilon     | $\varepsilon = 2^{-7} \approx 7.813 \times 10^{-3}$ |
 | Decimal precision   | ~2.4 significant digits                             |
 
-**Why BF16 dominates — the key insight:**
+**Why BF16 dominates - the key insight:**
 
 BF16 has the **same 8-bit exponent as FP32**, giving it identical dynamic range ($10^{-38}$ to $10^{38}$). This single design choice eliminates both overflow and underflow problems that plague FP16:
 
 ```
-BF16 vs FP16 — THE RANGE ADVANTAGE
-═══════════════════════════════════════════════════════════════════════
+BF16 vs FP16 - THE RANGE ADVANTAGE
+=======================================================================
 
                 FP16 range                    FAILS for AI
-        ┌───────────────────────┐
-   6×10⁻⁵                  65,504
-        │███████████████████████│
+        +-----------------------+
+   6\times10^-^5                  65,504
+        |#######################|
 
         BF16 range                            WORKS for AI
-┌───────────────────────────────────────────────────────────────┐
-1.2×10⁻³⁸                                              3.4×10³⁸
-│███████████████████████████████████████████████████████████████│
++---------------------------------------------------------------+
+1.2\times10^-^3^8                                              3.4\times10^3^8
+|###############################################################|
 
         FP32 range (identical to BF16!)
-┌───────────────────────────────────────────────────────────────┐
-1.2×10⁻³⁸                                              3.4×10³⁸
-│███████████████████████████████████████████████████████████████│
++---------------------------------------------------------------+
+1.2\times10^-^3^8                                              3.4\times10^3^8
+|###############################################################|
 
-Gradients at 10⁻⁷?    In BF16 range ✓     In FP16? UNDERFLOW ✗
-Large logits at 200?   In BF16 range ✓     In FP16? OVERFLOW  ✗
+Gradients at 10^-^7?    In BF16 range OK     In FP16? UNDERFLOW NO
+Large logits at 200?   In BF16 range OK     In FP16? OVERFLOW  NO
 ```
 
 **The precision trade-off:**
 
-- BF16 has only 7 mantissa bits vs FP32's 23 — it is $2^{16} = 65{,}536\times$ less precise in relative terms
+- BF16 has only 7 mantissa bits vs FP32's 23 - it is $2^{16} = 65{,}536\times$ less precise in relative terms
 - Machine epsilon $\varepsilon = 7.8 \times 10^{-3}$: any value smaller than $0.78\%$ of the current number is lost when added
 - This means BF16 can only represent $\sim 2.4$ decimal digits of precision
 
-**Why this is acceptable for ML:** the noise from mini-batch gradient estimation (which typically has variance on the order of the gradient magnitude) far exceeds BF16 precision error. The gradient itself is a noisy estimate — adding $0.78\%$ numerical noise to a signal that already has $\sim 10\%$ statistical noise is negligible.
+**Why this is acceptable for ML:** the noise from mini-batch gradient estimation (which typically has variance on the order of the gradient magnitude) far exceeds BF16 precision error. The gradient itself is a noisy estimate - adding $0.78\%$ numerical noise to a signal that already has $\sim 10\%$ statistical noise is negligible.
 
-**FP32 ↔ BF16 conversion:**
+**FP32 <-> BF16 conversion:**
 
-- BF16 to FP32: pad 16 zero bits to the mantissa → trivial; free in hardware
-- FP32 to BF16: drop the lower 16 mantissa bits (with rounding) → trivial; 1 cycle
+- BF16 to FP32: pad 16 zero bits to the mantissa -> trivial; free in hardware
+- FP32 to BF16: drop the lower 16 mantissa bits (with rounding) -> trivial; 1 cycle
 - This simplicity is by design: the exponent field is identical, so no exponent conversion needed
 
 **Hardware support:**
@@ -1241,7 +1241,7 @@ Large logits at 200?   In BF16 range ✓     In FP16? OVERFLOW  ✗
 - NVIDIA H100 (2022): BF16 tensor cores at 989 TFLOPS
 - All modern training hardware supports BF16 at full tensor core speed
 
-**BF16 matmul accumulation:** NVIDIA tensor cores compute BF16 × BF16 but **accumulate the intermediate sums in FP32**. The result is then optionally converted back to BF16 for storage. This means the matmul output quality is much better than naive BF16 arithmetic — the FP32 accumulation prevents precision loss in long dot products.
+**BF16 matmul accumulation:** NVIDIA tensor cores compute BF16 \times BF16 but **accumulate the intermediate sums in FP32**. The result is then optionally converted back to BF16 for storage. This means the matmul output quality is much better than naive BF16 arithmetic - the FP32 accumulation prevents precision loss in long dot products.
 
 ### 4.6 FP16 vs BF16 Head-to-Head
 
@@ -1265,9 +1265,9 @@ Large logits at 200?   In BF16 range ✓     In FP16? OVERFLOW  ✗
 
 ### 4.7 FP8 Formats (E4M3 and E5M2)
 
-FP8 is the **frontier training format** as of 2024–2026. NVIDIA H100 was the first GPU with FP8 tensor cores, enabling 2× throughput over BF16. There are two complementary 8-bit floating-point formats:
+FP8 is the **frontier training format** as of 2024-2026. NVIDIA H100 was the first GPU with FP8 tensor cores, enabling 2\times throughput over BF16. There are two complementary 8-bit floating-point formats:
 
-**FP8 E4M3 — optimised for precision (forward pass):**
+**FP8 E4M3 - optimised for precision (forward pass):**
 
 | Property                | Value                                                  |
 | ----------------------- | ------------------------------------------------------ |
@@ -1279,7 +1279,7 @@ FP8 is the **frontier training format** as of 2024–2026. NVIDIA H100 was the f
 | Use case                | Weights and activations in forward pass                |
 | Special: no $\pm\infty$ | NaN is the only special value (S=1, E=1111, M=111)     |
 
-**FP8 E5M2 — optimised for range (gradients):**
+**FP8 E5M2 - optimised for range (gradients):**
 
 | Property                | Value                                               |
 | ----------------------- | --------------------------------------------------- |
@@ -1293,18 +1293,18 @@ FP8 is the **frontier training format** as of 2024–2026. NVIDIA H100 was the f
 
 ```
 FP8 FORMAT COMPARISON
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-E4M3 — more mantissa bits → better precision
-┌──┬────────┬──────┐
-│ s│  EEEE  │ MMM  │    4 exponent + 3 mantissa
-└──┴────────┴──────┘    Range: ±448; good precision for weights
+E4M3 - more mantissa bits -> better precision
++--+--------+------+
+| s|  EEEE  | MMM  |    4 exponent + 3 mantissa
++--+--------+------+    Range: \pm448; good precision for weights
                         Use: forward pass (activations, weights)
 
-E5M2 — more exponent bits → wider range
-┌──┬──────────┬────┐
-│ s│  EEEEE   │ MM │    5 exponent + 2 mantissa
-└──┴──────────┴────┘    Range: ±57,344; wider range for gradients
+E5M2 - more exponent bits -> wider range
++--+----------+----+
+| s|  EEEEE   | MM |    5 exponent + 2 mantissa
++--+----------+----+    Range: \pm57,344; wider range for gradients
                         Use: backward pass (gradients)
 
 WHY TWO FORMATS?
@@ -1312,11 +1312,11 @@ WHY TWO FORMATS?
   Backward pass: gradients span many orders of magnitude; range matters more
 ```
 
-**The FP8 challenge — extreme quantization noise:**
+**The FP8 challenge - extreme quantization noise:**
 
-FP8 E4M3 has $\varepsilon = 0.125$: every value has up to 12.5% relative error. This is enormous — for comparison, BF16 has 0.78%. At this precision level, **per-tensor or per-block scaling** is mandatory to keep values within the representable range.
+FP8 E4M3 has $\varepsilon = 0.125$: every value has up to 12.5% relative error. This is enormous - for comparison, BF16 has 0.78%. At this precision level, **per-tensor or per-block scaling** is mandatory to keep values within the representable range.
 
-**Hardware throughput:** H100 FP8 = 3,958 TOPS — that's 4× BF16 throughput and 60× FP32 scalar throughput. This massive speed advantage drives the push toward FP8 training.
+**Hardware throughput:** H100 FP8 = 3,958 TOPS - that's 4\times BF16 throughput and 60\times FP32 scalar throughput. This massive speed advantage drives the push toward FP8 training.
 
 **DeepSeek-V3 (2024):** trained the entire model (forward and backward) in FP8 with tile-wise scaling. This was the first commercial frontier model to demonstrate FP8 training at scale, achieving massive cost reduction vs BF16 baseline.
 
@@ -1328,14 +1328,14 @@ $$\text{FP8\_value} = \text{round\_to\_FP8}\!\left(\frac{\text{real\_value}}{S}\
 
 $$\text{real\_value} \approx \text{FP8\_value} \times S$$
 
-**1. Per-tensor scaling — simplest:**
+**1. Per-tensor scaling - simplest:**
 
 - One scalar $S$ per entire tensor
 - $S = \max(|\text{tensor}|) / \text{max\_FP8\_value}$
 - Fast; minimal overhead; poor when tensor has outliers
 - If one element is $100\times$ larger than the rest, all other elements lose precision because $S$ is set by the outlier
 
-**2. Per-block (tile) scaling — optimal for training:**
+**2. Per-block (tile) scaling - optimal for training:**
 
 - One scale $S$ per $B \times B$ block of the matrix (e.g., $B = 128$)
 - Each block has its own scale, matching its local value range
@@ -1344,25 +1344,25 @@ $$\text{real\_value} \approx \text{FP8\_value} \times S$$
 
 ```
 PER-TENSOR vs PER-BLOCK SCALING
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Matrix with outlier:
-┌─────────────────────────────────────────┐
-│  0.01  0.02  0.01  0.03  0.02  │ 100.0 │  ← outlier
-│  0.02  0.01  0.03  0.01  0.02  │  0.01 │
-│  0.01  0.03  0.02  0.01  0.01  │  0.02 │
-│  0.02  0.01  0.01  0.02  0.03  │  0.01 │
-└─────────────────────────────────────────┘
++-----------------------------------------+
+|  0.01  0.02  0.01  0.03  0.02  | 100.0 |  <- outlier
+|  0.02  0.01  0.03  0.01  0.02  |  0.01 |
+|  0.01  0.03  0.02  0.01  0.01  |  0.02 |
+|  0.02  0.01  0.01  0.02  0.03  |  0.01 |
++-----------------------------------------+
 
-Per-tensor scaling: S = 100.0 / 448 ≈ 0.223
-  All 0.01 values → 0.01/0.223 = 0.045 → rounds to FP8: 0.0 or 0.0625
+Per-tensor scaling: S = 100.0 / 448 \approx 0.223
+  All 0.01 values -> 0.01/0.223 = 0.045 -> rounds to FP8: 0.0 or 0.0625
   MASSIVE precision loss for small values!
 
-Per-block scaling (2×3 blocks shown):
-  Block1 (top-left 2×3): max=0.03; S₁ = 0.03/448 ≈ 6.7×10⁻⁵
-    0.01 → 0.01/6.7×10⁻⁵ ≈ 149 → FP8: 152  ← good precision!
-  Block2 (top-right 2×3): max=100; S₂ = 100/448 ≈ 0.223
-    100.0 → 448 → FP8: 448  ← full range for outlier
+Per-block scaling (2\times3 blocks shown):
+  Block1 (top-left 2\times3): max=0.03; S_1 = 0.03/448 \approx 6.7\times10^-^5
+    0.01 -> 0.01/6.7\times10^-^5 \approx 149 -> FP8: 152  <- good precision!
+  Block2 (top-right 2\times3): max=100; S_2 = 100/448 \approx 0.223
+    100.0 -> 448 -> FP8: 448  <- full range for outlier
 ```
 
 **3. Delayed scaling:**
@@ -1381,7 +1381,7 @@ Per-block scaling (2×3 blocks shown):
 
 - Standard round-to-nearest introduces systematic bias at low precision
 - Stochastic rounding: round up with probability = fractional position; round down otherwise
-- $E[\text{SR}(x)] = x$ — unbiased in expectation
+- $E[\text{SR}(x)] = x$ - unbiased in expectation
 - Critical for gradient accumulation in FP8: small gradient updates are preserved probabilistically
 - Cost: requires hardware random number generation per operation
 
@@ -1389,19 +1389,19 @@ Per-block scaling (2×3 blocks shown):
 
 ## 5. Integer Formats for AI
 
-Integer formats have become central to AI inference through quantization. Unlike floating-point, integers have no exponent — all values are uniformly spaced. This simplicity makes integer arithmetic faster, cheaper, and more energy-efficient.
+Integer formats have become central to AI inference through quantization. Unlike floating-point, integers have no exponent - all values are uniformly spaced. This simplicity makes integer arithmetic faster, cheaper, and more energy-efficient.
 
-### 5.1 INT32 — Full Precision Integer
+### 5.1 INT32 - Full Precision Integer
 
 - **32-bit two's complement**; range $[-2{,}147{,}483{,}648, \; 2{,}147{,}483{,}647]$
-- **AI role: accumulator.** When multiplying two INT8 values, the product can be up to $127 \times 127 = 16{,}129$ — this fits in INT16. But a dot product of 4096-dimensional INT8 vectors produces partial sums up to $4096 \times 16{,}129 \approx 66$ million — requires INT32 to avoid overflow.
-- **Pipeline:** INT8 matmul → INT32 accumulation → scale to FP32 → output as BF16 or INT8
+- **AI role: accumulator.** When multiplying two INT8 values, the product can be up to $127 \times 127 = 16{,}129$ - this fits in INT16. But a dot product of 4096-dimensional INT8 vectors produces partial sums up to $4096 \times 16{,}129 \approx 66$ million - requires INT32 to avoid overflow.
+- **Pipeline:** INT8 matmul -> INT32 accumulation -> scale to FP32 -> output as BF16 or INT8
 - GPU supports INT32 natively; standard for index operations, loop counters, and token IDs in CUDA kernels
 
 ### 5.2 INT16
 
 - **16-bit two's complement**; range $[-32{,}768, \; 32{,}767]$
-- **Rare in AI** — too narrow for accumulation (INT8 × INT8 summed over $>2$ elements overflows) and too wide for weight storage (twice the memory of INT8)
+- **Rare in AI** - too narrow for accumulation (INT8 \times INT8 summed over $>2$ elements overflows) and too wide for weight storage (twice the memory of INT8)
 - **Usage:** token IDs are often stored as INT16 when vocabulary size $< 65{,}536$ (using UINT16). GPT-2's vocabulary of 50,257 tokens fits in UINT16.
 - Some DSP-based inference engines use INT16 for activations
 
@@ -1410,10 +1410,10 @@ Integer formats have become central to AI inference through quantization. Unlike
 INT8 is the **workhorse format for production LLM inference** in 2026:
 
 - **8-bit two's complement**; range $[-128, 127]$; 1 byte per value
-- **GPU throughput:** A100 INT8 = 624 TOPS; 2× FP16/BF16 tensor core throughput
-- **Memory:** 2× compression vs BF16; 4× vs FP32
+- **GPU throughput:** A100 INT8 = 624 TOPS; 2\times FP16/BF16 tensor core throughput
+- **Memory:** 2\times compression vs BF16; 4\times vs FP32
 
-**Quantization — mapping float to INT8:**
+**Quantization - mapping float to INT8:**
 
 $$q = \text{clamp}\!\left(\text{round}\!\left(\frac{x}{S}\right) + Z, \; -128, \; 127\right)$$
 
@@ -1428,29 +1428,29 @@ $$\hat{x} = S \cdot (q - Z)$$
 
 **Quantization granularity:**
 
-- **Per-tensor:** one $S$, $Z$ for entire weight matrix — simple but outliers dominate
-- **Per-channel (per-row/column):** one $S$, $Z$ per output channel — standard for weight matrices
-- **Per-group:** one $S$, $Z$ per group of $g$ values (e.g., $g = 128$) — better for activations
-- **Per-token:** one $S$, $Z$ per token's activation vector — handles dynamic range well
+- **Per-tensor:** one $S$, $Z$ for entire weight matrix - simple but outliers dominate
+- **Per-channel (per-row/column):** one $S$, $Z$ per output channel - standard for weight matrices
+- **Per-group:** one $S$, $Z$ per group of $g$ values (e.g., $g = 128$) - better for activations
+- **Per-token:** one $S$, $Z$ per token's activation vector - handles dynamic range well
 
 **Activation quantization is harder than weight quantization:**
 
 - Weights are static (computed once during quantization); activations change every forward pass
-- Transformer activations have **outlier channels** — a few channels have values 10–100× larger than others
+- Transformer activations have **outlier channels** - a few channels have values 10-100\times larger than others
 - **SmoothQuant (Xiao et al. 2023):** migrate difficulty from activations to weights by per-channel scaling:
 
   $$Y = (X \cdot \text{diag}(s)^{-1}) \cdot (\text{diag}(s) \cdot W) = \hat{X} \cdot \hat{W}$$
 
   where $s_j = \max(|X_{:,j}|)^\alpha / \max(|W_{j,:}|)^{1-\alpha}$ with $\alpha = 0.5$
 
-**LLM.int8() (Dettmers et al. 2022):** handles outlier features by computing them in FP16 while the rest uses INT8 — mixed-precision decomposition at the feature level
+**LLM.int8() (Dettmers et al. 2022):** handles outlier features by computing them in FP16 while the rest uses INT8 - mixed-precision decomposition at the feature level
 
-### 5.4 UINT8 — Unsigned Integer 8-bit
+### 5.4 UINT8 - Unsigned Integer 8-bit
 
 - **Range:** $[0, 255]$; no negative values
 - **AI uses:**
   - **Activations after ReLU:** always non-negative; UINT8 matches perfectly
-  - **Image pixel values:** standard image format (0–255 per channel)
+  - **Image pixel values:** standard image format (0-255 per channel)
   - **Asymmetric quantization zero point:** $Z \in [0, 255]$ stored as UINT8
 - **Asymmetric activation quantization** often uses UINT8: maps $[x_{\min}, x_{\max}] \to [0, 255]$ with the conceptual zero mapped to UINT8 value $Z$
 
@@ -1459,29 +1459,29 @@ $$\hat{x} = S \cdot (q - Z)$$
 INT4 is the **primary format for consumer-GPU LLM inference** in 2026:
 
 - **4-bit two's complement**; range $[-8, 7]$; 0.5 bytes per value
-- **Memory:** 4× compression vs BF16; 8× vs FP32
-- LLaMA-3 70B in INT4: ~35 GB — fits on a single RTX 4090 (24 GB VRAM, with offloading) or 2× RTX 3090
+- **Memory:** 4\times compression vs BF16; 8\times vs FP32
+- LLaMA-3 70B in INT4: ~35 GB - fits on a single RTX 4090 (24 GB VRAM, with offloading) or 2\times RTX 3090
 
 **Hardware status:**
 
-- Not natively supported by standard tensor cores for compute on H100 — must be **dequantized to BF16** before matmul
-- NVIDIA Ada Lovelace (RTX 4090): INT4 tensor cores with 2× INT8 throughput
-- Typical deployment: **W4A16** (Weight INT4, Activation BF16) — weights stored in INT4, dequantized to BF16 on the fly before each matmul
+- Not natively supported by standard tensor cores for compute on H100 - must be **dequantized to BF16** before matmul
+- NVIDIA Ada Lovelace (RTX 4090): INT4 tensor cores with 2\times INT8 throughput
+- Typical deployment: **W4A16** (Weight INT4, Activation BF16) - weights stored in INT4, dequantized to BF16 on the fly before each matmul
 
 ```
 INT4 DEQUANTIZE-ON-THE-FLY PIPELINE
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Memory (HBM)          GPU Compute (SM)
-┌────────────┐        ┌──────────────────────────────┐
-│ INT4 weight│──load─→│  Unpack INT4 → INT8          │
-│ (0.5 B/val)│        │  Dequantize: INT8 × S → BF16 │
-│            │        │  BF16 matmul with activation  │
-│            │        │  FP32 accumulation            │
-│            │        │  Output BF16                  │
-└────────────┘        └──────────────────────────────┘
++------------+        +------------------------------+
+| INT4 weight|--load-->|  Unpack INT4 -> INT8          |
+| (0.5 B/val)|        |  Dequantize: INT8 \times S -> BF16 |
+|            |        |  BF16 matmul with activation  |
+|            |        |  FP32 accumulation            |
+|            |        |  Output BF16                  |
++------------+        +------------------------------+
 
-Benefit: 4× less memory bandwidth (bandwidth-bound → 4× faster)
+Benefit: 4\times less memory bandwidth (bandwidth-bound -> 4\times faster)
 Cost: dequantization overhead (small; amortised over matmul compute)
 ```
 
@@ -1494,16 +1494,16 @@ Cost: dequantization overhead (small; amortised over matmul compute)
 
 ### 5.6 INT2 and INT1 (Binary)
 
-**INT2 — 2-bit quantization:**
+**INT2 - 2-bit quantization:**
 
 - Range: $[-2, 1]$ (signed) or $\{0, 1, 2, 3\}$ (unsigned)
-- 4× compression vs INT8; 16× vs FP32
+- 4\times compression vs INT8; 16\times vs FP32
 - **QuIP# (Tseng et al. 2024):** achieves usable 2-bit quantization using incoherence processing (random orthogonal transforms to distribute weight magnitudes more uniformly)
-- Quality: significant degradation; 2–8 points PPL increase over BF16; research-grade only
+- Quality: significant degradation; 2-8 points PPL increase over BF16; research-grade only
 
-**INT1 — binary neural networks:**
+**INT1 - binary neural networks:**
 
-- 1 bit: $\{0, 1\}$ or $\{-1, +1\}$; 8× compression vs INT8; 32× vs FP32
+- 1 bit: $\{0, 1\}$ or $\{-1, +1\}$; 8\times compression vs INT8; 32\times vs FP32
 - **XNOR-popcount matmul:** binary weights transform multiply-accumulate into bitwise XNOR followed by popcount (counting set bits); extremely fast hardware implementation:
   - Standard matmul: $y = \sum_i w_i x_i$ (multiply + add)
   - Binary matmul: $y = \text{popcount}(\text{XNOR}(\mathbf{w}, \mathbf{x}))$ (bitwise + count)
@@ -1522,28 +1522,28 @@ Low-bit integers are packed into larger registers for efficient storage and SIMD
 
 ```
 INT4 PACKING IN A 32-BIT REGISTER
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-32-bit word: [v₇][v₆][v₅][v₄][v₃][v₂][v₁][v₀]
+32-bit word: [v_7][v_6][v_5][v_4][v_3][v_2][v_1][v_0]
               MSB                            LSB
 
-Each vᵢ is 4 bits (one INT4 value)
+Each v^i is 4 bits (one INT4 value)
 
 Extraction in Python/CUDA:
   value_i = (int32_word >> (4 * i)) & 0xF    # Extract i-th INT4
 
   # For signed INT4, sign-extend:
   if value_i >= 8:
-      value_i -= 16    # Convert [0,15] → [-8, 7]
+      value_i -= 16    # Convert [0,15] -> [-8, 7]
 ```
 
 **INT2 packing:** 16 values per 32-bit word
-**INT1 packing:** 32 values per 32-bit word — entire binary weight vector in one register
+**INT1 packing:** 32 values per 32-bit word - entire binary weight vector in one register
 
 **SIMD unpacking:**
 
 - Modern GPUs and CPUs can unpack and process multiple packed values per instruction
-- AVX-512: 512-bit register → 128 packed INT4 values per register
+- AVX-512: 512-bit register -> 128 packed INT4 values per register
 - Key performance consideration: unpacking overhead must be amortised over computation; fine-grained per-element unpacking kills performance
 
 ---
@@ -1558,7 +1558,7 @@ NF4 is an **information-theoretically optimal** 4-bit format for normally distri
 
 **Key insight:** transformer weights are approximately normally distributed $w \sim \mathcal{N}(0, \sigma^2)$. A uniform quantization grid (INT4) places equal numbers of levels across the range, but most weights cluster near zero. NF4 places **more levels near zero** (where the density is highest) and **fewer levels at the tails** (where few weights exist).
 
-**Construction — quantile-based level placement:**
+**Construction - quantile-based level placement:**
 
 1. Compute the quantiles $q_1, q_2, \ldots, q_{15}$ of the standard normal distribution $\mathcal{N}(0, 1)$ that divide the probability mass into 16 equal regions
 2. The level for each region is the expected value (centroid) of the distribution within that region
@@ -1571,25 +1571,25 @@ $$0.0796, 0.1609, 0.2461, 0.3379, 0.4407, 0.5626, 0.7229, 1.0\}$$
 
 ```
 NF4 vs INT4 LEVEL DISTRIBUTION
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Normal distribution of weights:
-                        ████
-                      ████████
-                    ████████████
-                  ████████████████
-               █████████████████████
-           ███████████████████████████████
-  ──────────────────────────────────────────────────────
+                        ####
+                      ########
+                    ############
+                  ################
+               #####################
+           ###############################
+  ------------------------------------------------------
  -1.0                    0                           1.0
 
 INT4 levels (uniform spacing):
-  ●     ●     ●     ●     ●     ●     ●     ●     ●     ●
+  *     *     *     *     *     *     *     *     *     *
  -1.0  -0.78  -0.56  -0.33  -0.11  0.11  0.33  0.56  0.78  1.0
   Wasted precision in tails; insufficient detail near zero
 
 NF4 levels (quantile-based):
-  ●  ●  ● ● ● ●●●●●●● ● ● ●  ●  ●
+  *  *  * * * ******* * * *  *  *
  -1.0            0            1.0
   Dense near zero (where most weights are); sparse in tails
 ```
@@ -1602,9 +1602,9 @@ For each weight $w$, find the NF4 level $q_k$ minimising $|w/\sigma - q_k|$ and 
 
 - NF4 minimises the expected quantization mean squared error (MSE) for $\mathcal{N}(0, \sigma^2)$
 - Theory: for a Gaussian source, quantile-based quantization approaches the Lloyd-Max optimum
-- Practice: NF4 achieves 0.3–1.5 PPL increase over BF16 vs 0.5–2.0 for INT4 AWQ on equivalent models
+- Practice: NF4 achieves 0.3-1.5 PPL increase over BF16 vs 0.5-2.0 for INT4 AWQ on equivalent models
 
-**Usage:** QLoRA fine-tuning — base model weights stored in NF4 (frozen); LoRA adapter weights in BF16 (trainable). This enables fine-tuning a 65B model on a single 48 GB GPU.
+**Usage:** QLoRA fine-tuning - base model weights stored in NF4 (frozen); LoRA adapter weights in BF16 (trainable). This enables fine-tuning a 65B model on a single 48 GB GPU.
 
 ### 6.2 Log Number System (LNS)
 
@@ -1616,7 +1616,7 @@ $$\text{Store: } \tilde{x} = \log_2(|x|) \quad \text{plus sign bit}$$
 
 $$\log_2(a \times b) = \log_2(a) + \log_2(b) = \tilde{a} + \tilde{b}$$
 
-A single addition in log space replaces a multiplication in linear space — a major hardware simplification.
+A single addition in log space replaces a multiplication in linear space - a major hardware simplification.
 
 **Addition becomes complex:**
 
@@ -1627,7 +1627,7 @@ This requires a lookup table or approximation for the function $\log_2(1 + 2^x)$
 **Properties:**
 
 - Range: theoretically unbounded in both directions (limited only by the precision of the stored logarithm)
-- Precision: **uniform in log space** — constant relative precision across all magnitudes
+- Precision: **uniform in log space** - constant relative precision across all magnitudes
 - Contrast with floating-point: FP also has approximately logarithmic spacing, but LNS makes this exact
 
 **AI relevance:** LNS is rarely used in mainstream ML. Research interest exists for extremely low-bit hardware where multiplication is the dominant energy cost. Some custom accelerator designs use LNS internally.
@@ -1640,16 +1640,16 @@ The posit system (Gustafson, 2017) is an alternative to IEEE 754 that claims sup
 
 $$[\text{sign}][\text{regime}][\text{exponent}][\text{fraction}]$$
 
-- **Regime:** unary encoding of the exponent range — runs of 0s or 1s terminated by the opposite bit
+- **Regime:** unary encoding of the exponent range - runs of 0s or 1s terminated by the opposite bit
 - **Variable allocation:** bits not used by the regime are available for the exponent and fraction
-- Near $\pm 1$: regime is short → more bits for fraction → **higher precision near 1.0**
-- Far from $\pm 1$: regime is long → fewer fraction bits → lower precision but wider range
+- Near $\pm 1$: regime is short -> more bits for fraction -> **higher precision near 1.0**
+- Far from $\pm 1$: regime is long -> fewer fraction bits -> lower precision but wider range
 
 **Properties:**
 
 - Only one representation of zero (no $\pm 0$)
 - Only one NaN (called "Not-a-Real", or NaR)
-- No gradual underflow or overflow — tapers smoothly
+- No gradual underflow or overflow - tapers smoothly
 - Higher accuracy per bit than IEEE 754 for values near 1.0; worse for extremes
 
 **AI evaluation:** multiple research groups evaluated posits for neural network training:
@@ -1660,7 +1660,7 @@ $$[\text{sign}][\text{regime}][\text{exponent}][\text{fraction}]$$
 
 **2026 status:** academic interest only. Not deployed in any production ML system.
 
-### 6.4 Microscaling Formats (MX — OCP Standard 2023)
+### 6.4 Microscaling Formats (MX - OCP Standard 2023)
 
 Microscaling (MX) is an **industry-standard block floating-point format** published by the Open Compute Project (OCP) in 2023, co-authored by AMD, ARM, Intel, Meta, Microsoft, NVIDIA, and Qualcomm.
 
@@ -1668,17 +1668,17 @@ Microscaling (MX) is an **industry-standard block floating-point format** publis
 
 ```
 MICROSCALING BLOCK STRUCTURE
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Block of N values (e.g., N = 32):
 
-┌─────────────────┐ ┌──┬──┬──┬──┬──┬──┬──┬──┬───────┬──┬──┐
-│ Shared Exponent  │ │v₁│v₂│v₃│v₄│v₅│v₆│v₇│v₈│  ...  │v₃₁│v₃₂│
-│   (8 bits)       │ │  │  │  │  │  │  │  │  │       │   │   │
-└─────────────────┘ └──┴──┴──┴──┴──┴──┴──┴──┴───────┴──┴──┘
-                     Each vᵢ: sign + mantissa (element format)
++-----------------+ +--+--+--+--+--+--+--+--+-------+--+--+
+| Shared Exponent  | |v_1|v_2|v_3|v_4|v_5|v_6|v_7|v_8|  ...  |v_3_1|v_3_2|
+|   (8 bits)       | |  |  |  |  |  |  |  |  |       |   |   |
++-----------------+ +--+--+--+--+--+--+--+--+-------+--+--+
+                     Each v^i: sign + mantissa (element format)
 
-value_i = vᵢ × 2^(shared_exponent)
+value_i = v^i \times 2^(shared_exponent)
 ```
 
 **MX format variants:**
@@ -1694,43 +1694,43 @@ value_i = vᵢ × 2^(shared_exponent)
 
 **Why MX is better than per-element floating-point:**
 
-- The exponent storage is **amortised** over $N$ values: instead of each value needing its own 4–8 bit exponent, $N$ values share one 8-bit exponent
-- Effective bits per value: element bits + (8 shared exponent bits / $N$ values) ≈ element bits + 0.25
-- Result: more bits available for mantissa → better precision per total storage bit
+- The exponent storage is **amortised** over $N$ values: instead of each value needing its own 4-8 bit exponent, $N$ values share one 8-bit exponent
+- Effective bits per value: element bits + (8 shared exponent bits / $N$ values) \approx element bits + 0.25
+- Result: more bits available for mantissa -> better precision per total storage bit
 
 **Hardware adoption:**
 
 - NVIDIA B200 (Blackwell, 2025): native MXFP8 support
 - AMD, Intel, Qualcomm: committed to MX hardware support
-- Training: MXFP8 block scaling for both forward and backward — better than per-tensor FP8
+- Training: MXFP8 block scaling for both forward and backward - better than per-tensor FP8
 
-### 6.5 Ternary Weights {−1, 0, +1}
+### 6.5 Ternary Weights {-1, 0, +1}
 
 Ternary quantization represents weights using only three values:
 
 $$w_i \in \{-1, 0, +1\}$$
 
-**Information content:** $\log_2(3) \approx 1.585$ bits per weight — hence the name "1.58-bit" quantization.
+**Information content:** $\log_2(3) \approx 1.585$ bits per weight - hence the name "1.58-bit" quantization.
 
-**The arithmetic revolution — no multiplication:**
+**The arithmetic revolution - no multiplication:**
 
-- Standard matmul: $y_j = \sum_i w_i \cdot x_i$ — requires multiply + accumulate per element
-- Ternary matmul: $y_j = \sum_{w_i=+1} x_i - \sum_{w_i=-1} x_i$ — only additions, subtractions, and skips
+- Standard matmul: $y_j = \sum_i w_i \cdot x_i$ - requires multiply + accumulate per element
+- Ternary matmul: $y_j = \sum_{w_i=+1} x_i - \sum_{w_i=-1} x_i$ - only additions, subtractions, and skips
 - If $w_i = 0$: skip entirely (natural sparsity, typically ~50% of weights)
 - If $w_i = +1$: add $x_i$
 - If $w_i = -1$: subtract $x_i$
 
 ```
 TERNARY vs STANDARD MATMUL
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Standard FP16 matmul (one output element):
-  y = w₁×x₁ + w₂×x₂ + w₃×x₃ + w₄×x₄ + w₅×x₅ + w₆×x₆
+  y = w_1\timesx_1 + w_2\timesx_2 + w_3\timesx_3 + w_4\timesx_4 + w_5\timesx_5 + w_6\timesx_6
   Operations: 6 multiplies + 5 adds = 11 FLOPs
 
 Ternary matmul (w = [+1, 0, -1, +1, 0, -1]):
-  y = x₁ + 0 - x₃ + x₄ + 0 - x₆
-  y = (x₁ + x₄) - (x₃ + x₆)
+  y = x_1 + 0 - x_3 + x_4 + 0 - x_6
+  y = (x_1 + x_4) - (x_3 + x_6)
   Operations: 3 adds + 1 subtract = 4 integer ops (NO multiplies)
 ```
 
@@ -1743,8 +1743,8 @@ Ternary matmul (w = [+1, 0, -1, +1, 0, -1]):
 
 - Ternary weights trained from scratch (not quantized from a float model)
 - Competitive with FP16 baselines at 3B+ parameter scale
-- Key innovation: uses **absmean quantization** — scale weights by $1/\bar{|w|}$ before ternarizing
-- Energy advantage: ternary addition $\approx 0.9$ pJ vs FP16 multiply $\approx 3.7$ pJ — 4× energy savings per operation
+- Key innovation: uses **absmean quantization** - scale weights by $1/\bar{|w|}$ before ternarizing
+- Energy advantage: ternary addition $\approx 0.9$ pJ vs FP16 multiply $\approx 3.7$ pJ - 4\times energy savings per operation
 
 **Limitation:** ternary models must be trained from scratch with ternarization-aware methods. Post-training ternarization of float models produces unusable quality.
 
@@ -1761,36 +1761,36 @@ Adding two floating-point numbers is more complex than integer addition because 
 **Algorithm for $x + y$ (assuming $|x| \geq |y|$):**
 
 ```
-FLOATING-POINT ADDITION — STEP BY STEP
-═══════════════════════════════════════════════════════════════════════
+FLOATING-POINT ADDITION - STEP BY STEP
+=======================================================================
 
-Input: x = 1.000 × 2³  and  y = 1.011 × 2⁰
+Input: x = 1.000 \times 2^3  and  y = 1.011 \times 2^0
 
 Step 1: ALIGN EXPONENTS
   Shift y's significand RIGHT by (e_x - e_y) = 3 - 0 = 3 positions:
-  y = 1.011 × 2⁰ → 0.001011 × 2³
-                          ↑↑↑ These bits shifted right
+  y = 1.011 \times 2^0 -> 0.001011 \times 2^3
+                          upupup These bits shifted right
                           GRS  (Guard, Round, Sticky bits)
 
 Step 2: ADD ALIGNED SIGNIFICANDS
-    1.000000 × 2³     (x)
-  + 0.001011 × 2³     (y, aligned)
-  ──────────────
-    1.001011 × 2³
+    1.000000 \times 2^3     (x)
+  + 0.001011 \times 2^3     (y, aligned)
+  --------------
+    1.001011 \times 2^3
 
 Step 3: NORMALISE
-  Already normalised (leading 1 present) → no adjustment needed
+  Already normalised (leading 1 present) -> no adjustment needed
   If needed: shift significand and adjust exponent
 
 Step 4: ROUND
   Result has more bits than mantissa allows
   Apply rounding mode (default: RNE) to fit into mantissa width
-  Round 1.001011 to 24 bits (FP32) → 1.00101100000000000000000 × 2³
+  Round 1.001011 to 24 bits (FP32) -> 1.00101100000000000000000 \times 2^3
 
-RESULT: x + y = 1.001011 × 2³ = 9.375₁₀
+RESULT: x + y = 1.001011 \times 2^3 = 9.375_1_0
 ```
 
-**Guard, Round, and Sticky bits — critical for rounding accuracy:**
+**Guard, Round, and Sticky bits - critical for rounding accuracy:**
 
 When shifting $y$'s significand during alignment, bits shift beyond the mantissa width. The hardware keeps three extra bits to improve rounding decisions:
 
@@ -1802,7 +1802,7 @@ When shifting $y$'s significand during alignment, bits shift beyond the mantissa
 
 These three bits provide enough information for the hardware to implement all IEEE 754 rounding modes correctly. Without them, rounding accuracy would be significantly worse.
 
-**Precision loss during alignment:** when exponents differ significantly, shifting $y$ right discards its low-order bits. If $e_x - e_y > 24$ (for FP32), then $y$'s entire significand is shifted away and $x + y = x$. This is why adding a small number to a large number does nothing — the small number is below the precision of the large number.
+**Precision loss during alignment:** when exponents differ significantly, shifting $y$ right discards its low-order bits. If $e_x - e_y > 24$ (for FP32), then $y$'s entire significand is shifted away and $x + y = x$. This is why adding a small number to a large number does nothing - the small number is below the precision of the large number.
 
 ### 7.2 Floating-Point Multiplication
 
@@ -1812,14 +1812,14 @@ Multiplication is simpler than addition because no alignment is needed:
 
 ```
 FLOATING-POINT MULTIPLICATION
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Input: x = (-1)^s_x × m_x × 2^e_x
-       y = (-1)^s_y × m_y × 2^e_y
+Input: x = (-1)^s_x \times m_x \times 2^e_x
+       y = (-1)^s_y \times m_y \times 2^e_y
 
 Step 1: XOR SIGN BITS
   s_result = s_x XOR s_y
-  (positive × positive = positive; positive × negative = negative)
+  (positive \times positive = positive; positive \times negative = negative)
 
 Step 2: ADD EXPONENTS
   e_result = e_x + e_y - bias
@@ -1827,18 +1827,18 @@ Step 2: ADD EXPONENTS
    without correction, result would have double bias)
 
 Step 3: MULTIPLY SIGNIFICANDS
-  m_result = m_x × m_y
-  Each significand has p bits → product has 2p bits
-  (For FP32: 24 × 24 = 48-bit product)
+  m_result = m_x \times m_y
+  Each significand has p bits -> product has 2p bits
+  (For FP32: 24 \times 24 = 48-bit product)
 
 Step 4: NORMALISE AND ROUND
-  If m_result ≥ 2.0: shift right by 1; increment exponent
+  If m_result \geq 2.0: shift right by 1; increment exponent
   Round to fit mantissa width (24 bits for FP32)
 ```
 
-**Hardware cost:** the significand multiplier is the largest component — an $n \times n$ bit multiplier requires $O(n^2)$ hardware area. This is why reducing mantissa width (BF16: 7 bits vs FP32: 23 bits) dramatically reduces multiplication hardware cost and energy.
+**Hardware cost:** the significand multiplier is the largest component - an $n \times n$ bit multiplier requires $O(n^2)$ hardware area. This is why reducing mantissa width (BF16: 7 bits vs FP32: 23 bits) dramatically reduces multiplication hardware cost and energy.
 
-**Key advantage over addition:** no alignment step → simpler circuit → faster in hardware. This is why GPU throughput for multiply is typically the same or better than for addition.
+**Key advantage over addition:** no alignment step -> simpler circuit -> faster in hardware. This is why GPU throughput for multiply is typically the same or better than for addition.
 
 ### 7.3 Floating-Point Division and Square Root
 
@@ -1847,7 +1847,7 @@ Step 4: NORMALISE AND ROUND
 - Compute significand quotient: $m_{\text{result}} = m_x / m_y$
 - Subtract exponents: $e_{\text{result}} = e_x - e_y + \text{bias}$
 - Iterative algorithms: **Newton-Raphson** (converges quadratically; computes $1/m_y$ then multiplies) or **SRT algorithm** (produces one quotient digit per cycle)
-- Hardware: slower than multiply; separate functional unit on GPU; typically 4–20× slower
+- Hardware: slower than multiply; separate functional unit on GPU; typically 4-20\times slower
 
 **Square root:**
 
@@ -1858,7 +1858,7 @@ $$\sqrt{x} = \sqrt{m \times 2^e} = \sqrt{m} \times 2^{e/2}$$
 - Significand square root: Newton-Raphson iteration $y_{n+1} = \frac{1}{2}(y_n + m/y_n)$
   - 2 iterations sufficient for FP32; 3 for FP64
 
-**Fast inverse square root — the famous Quake III trick (historical interest):**
+**Fast inverse square root - the famous Quake III trick (historical interest):**
 
 ```c
 float Q_rsqrt(float number) {
@@ -1886,23 +1886,23 @@ $$\text{FMA}(a, b, c) = \text{round}(a \times b + c)$$
 
 Compare to the unfused version:
 
-$$\text{Unfused: } \text{round}(\text{round}(a \times b) + c) \quad \text{→ two rounding errors}$$
+$$\text{Unfused: } \text{round}(\text{round}(a \times b) + c) \quad \text{-> two rounding errors}$$
 
 **Why FMA matters:**
 
-1. **More accurate:** one rounding error instead of two. For a single operation, the difference is small. But a dot product of length $n$ performs $n$ FMAs — the error savings compound.
+1. **More accurate:** one rounding error instead of two. For a single operation, the difference is small. But a dot product of length $n$ performs $n$ FMAs - the error savings compound.
 
 2. **Foundation of dot products:** the inner product $\mathbf{x} \cdot \mathbf{y} = \sum_i x_i y_i$ is computed as a chain of FMAs:
 
    ```
    acc = 0
-   acc = FMA(x₁, y₁, acc)    // acc = x₁·y₁ + 0
-   acc = FMA(x₂, y₂, acc)    // acc = x₂·y₂ + x₁·y₁
-   acc = FMA(x₃, y₃, acc)    // acc = x₃·y₃ + (x₂·y₂ + x₁·y₁)
+   acc = FMA(x_1, y_1, acc)    // acc = x_1*y_1 + 0
+   acc = FMA(x_2, y_2, acc)    // acc = x_2*y_2 + x_1*y_1
+   acc = FMA(x_3, y_3, acc)    // acc = x_3*y_3 + (x_2*y_2 + x_1*y_1)
    ...
    ```
 
-3. **Hardware unit:** GPU tensor cores and CPU FPUs implement FMA as a single hardware functional unit — no intermediate register write, no intermediate rounding.
+3. **Hardware unit:** GPU tensor cores and CPU FPUs implement FMA as a single hardware functional unit - no intermediate register write, no intermediate rounding.
 
 4. **Kahan summation:** FMA can implement compensated summation more efficiently by exploiting the exact product computation.
 
@@ -1924,15 +1924,15 @@ For BF16 ($\varepsilon = 7.8 \times 10^{-3}$) with $n = 4096$ (typical hidden di
 
 $$|\delta| \leq 4096 \times 7.8 \times 10^{-3} \approx 32$$
 
-This is a **3,200% relative error** — completely unusable for any computation. This is why BF16 dot products **must** accumulate in FP32.
+This is a **3,200% relative error** - completely unusable for any computation. This is why BF16 dot products **must** accumulate in FP32.
 
-**GPU practice — mixed-precision accumulation:**
+**GPU practice - mixed-precision accumulation:**
 
 | Input Format | Accumulation Format | Output Format | Error Bound                                    |
 | ------------ | ------------------- | ------------- | ---------------------------------------------- |
-| INT8 × INT8  | INT32 → FP32        | BF16 or INT8  | Exact integer, then scale                      |
-| BF16 × BF16  | FP32                | BF16          | $O(n \times 2^{-23}) \approx 5 \times 10^{-4}$ |
-| FP8 × FP8    | FP32                | BF16          | $O(n \times 2^{-23}) \approx 5 \times 10^{-4}$ |
+| INT8 \times INT8  | INT32 -> FP32        | BF16 or INT8  | Exact integer, then scale                      |
+| BF16 \times BF16  | FP32                | BF16          | $O(n \times 2^{-23}) \approx 5 \times 10^{-4}$ |
+| FP8 \times FP8    | FP32                | BF16          | $O(n \times 2^{-23}) \approx 5 \times 10^{-4}$ |
 
 The key insight: even though inputs are low-precision, **FP32 accumulation** ensures the sum is computed accurately. The accumulated result is then converted back to the output format. This is why GPU matmul quality is far better than naive BF16 arithmetic suggests.
 
@@ -1940,7 +1940,7 @@ The key insight: even though inputs are low-precision, **FP32 accumulation** ens
 
 - Uses FMA to capture the exact error from each multiplication
 - Accumulates the errors separately and adds them at the end
-- Result: relative error $O(\varepsilon^2)$ regardless of $n$ — quadratic improvement
+- Result: relative error $O(\varepsilon^2)$ regardless of $n$ - quadratic improvement
 - Not yet standard in GPU matmul but used in scientific computing
 
 ### 7.6 Mixed-Precision Matmul
@@ -1949,17 +1949,17 @@ The actual computation inside NVIDIA tensor cores for a BF16 matmul:
 
 ```
 MIXED-PRECISION TENSOR CORE MATMUL (BF16)
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Input:  A ∈ ℝᵐˣᵏ (BF16),  B ∈ ℝᵏˣⁿ (BF16)
-Output: C ∈ ℝᵐˣⁿ (FP32 or BF16)
+Input:  A \in \mathbb{R}^m^x^k (BF16),  B \in \mathbb{R}^k^x^n (BF16)
+Output: C \in \mathbb{R}^m^x^n (FP32 or BF16)
 
-Hardware tile: 16×16×16 (m_tile × n_tile × k_tile)
+Hardware tile: 16\times16\times16 (m_tile \times n_tile \times k_tile)
 Each warp (32 threads) computes one tile output
 
 For each K-dimension chunk of 16:
-  1. Load A tile (16×16 BF16) and B tile (16×16 BF16) into registers
-  2. Compute 16×16 partial products: BF16 × BF16
+  1. Load A tile (16\times16 BF16) and B tile (16\times16 BF16) into registers
+  2. Compute 16\times16 partial products: BF16 \times BF16
   3. Accumulate partial sums in FP32 registers (one FP32 per output element)
 
 After all K chunks:
@@ -1974,29 +1974,29 @@ This is what makes mixed-precision training work!
 
 ```
 FP8 TENSOR CORE MATMUL
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-Input:  A ∈ ℝᵐˣᵏ (FP8 E4M3),  B ∈ ℝᵏˣⁿ (FP8 E4M3)
+Input:  A \in \mathbb{R}^m^x^k (FP8 E4M3),  B \in \mathbb{R}^k^x^n (FP8 E4M3)
 Scales: S_A (per-tensor or per-block), S_B (per-tensor or per-block)
 
-1. Dequantize: A_f = A_fp8 × S_A,  B_f = B_fp8 × S_B
+1. Dequantize: A_f = A_fp8 \times S_A,  B_f = B_fp8 \times S_B
 2. Multiply: BF16-equivalent element products
 3. Accumulate: FP32 partial sums
-4. Scale output: C = (A_f × B_f) = S_A × S_B × (A_fp8 × B_fp8)
+4. Scale output: C = (A_f \times B_f) = S_A \times S_B \times (A_fp8 \times B_fp8)
 5. Output: FP32 or BF16
 
-Throughput: H100 FP8 = 3,958 TOPS  (4× BF16)
+Throughput: H100 FP8 = 3,958 TOPS  (4\times BF16)
 ```
 
 **Throughput comparison (H100 SXM):**
 
 | Input       | Accumulation | TFLOPS/TOPS | Notes                                                          |
 | ----------- | ------------ | ----------- | -------------------------------------------------------------- |
-| BF16 × BF16 | FP32         | 989         | Standard for training                                          |
-| FP8 × FP8   | FP32         | 3,958       | 4× BF16; note: 2× from data density + 2× from simpler hardware |
-| INT8 × INT8 | INT32        | 3,958       | Same throughput as FP8                                         |
+| BF16 \times BF16 | FP32         | 989         | Standard for training                                          |
+| FP8 \times FP8   | FP32         | 3,958       | 4\times BF16; note: 2\times from data density + 2\times from simpler hardware |
+| INT8 \times INT8 | INT32        | 3,958       | Same throughput as FP8                                         |
 
-The 4× throughput gain from BF16 → FP8 is the driving force behind the industry's push toward FP8 training and inference.
+The 4\times throughput gain from BF16 -> FP8 is the driving force behind the industry's push toward FP8 training and inference.
 
 ---
 
@@ -2010,22 +2010,22 @@ Each operation in the forward pass has different sensitivity to numerical precis
 
 **Input embeddings (BF16 sufficient):**
 
-- Embedding lookup is a simple table read — no arithmetic precision concern for the lookup itself
+- Embedding lookup is a simple table read - no arithmetic precision concern for the lookup itself
 - Small errors in embedding vectors ($< 1\%$) don't compound catastrophically because they pass through layer normalisation early
-- BF16 with 7-bit mantissa provides $\sim 0.78\%$ relative precision — adequate
+- BF16 with 7-bit mantissa provides $\sim 0.78\%$ relative precision - adequate
 
 **Attention scores $QK^T / \sqrt{d_k}$ (BF16 matmul, FP32 softmax):**
 
-- The matmul $QK^T$ is computed in BF16 with FP32 accumulation (§7.6) — no problem
+- The matmul $QK^T$ is computed in BF16 with FP32 accumulation (7.6) - no problem
 - The division by $\sqrt{d_k}$ is a simple scale; BF16 sufficient
-- **However:** the subsequent softmax requires FP32 for the exponentiation (see §8.4)
+- **However:** the subsequent softmax requires FP32 for the exponentiation (see 8.4)
 
 **Softmax (must use FP32 or numerical tricks):**
 
 - $\text{softmax}(z)_i = e^{z_i} / \sum_j e^{z_j}$
 - $e^{z}$ overflows BF16 for $z > 88$ (because $e^{88} \approx 1.65 \times 10^{38} \approx$ BF16 max)
-- Attention logits can reach 50–100 in late training — well below 88, but early layers or unstable training can exceed this
-- **Solution:** compute softmax intermediate values in FP32; or use the numerically stable version (§8.4)
+- Attention logits can reach 50-100 in late training - well below 88, but early layers or unstable training can exceed this
+- **Solution:** compute softmax intermediate values in FP32; or use the numerically stable version (8.4)
 
 **Layer normalisation (FP32 for mean/variance):**
 
@@ -2057,14 +2057,14 @@ This sum aggregates many small gradient contributions. In BF16:
 
 - Machine epsilon $= 7.8 \times 10^{-3}$
 - Any gradient contribution smaller than $0.78\%$ of the running sum is lost
-- Over a batch of 1024 samples, many individual contributions are small → silently discarded
-- Over millions of training steps, this precision loss causes weights to stop updating → **training stalls**
+- Over a batch of 1024 samples, many individual contributions are small -> silently discarded
+- Over millions of training steps, this precision loss causes weights to stop updating -> **training stalls**
 
 In FP32:
 
 - Machine epsilon $= 1.19 \times 10^{-7}$
 - Contributions as small as $0.0000119\%$ of the running sum are preserved
-- 65,000× more precise than BF16 — sufficient for stable training
+- 65,000\times more precise than BF16 - sufficient for stable training
 
 **Gradient clipping (FP32 norm, BF16 application):**
 
@@ -2073,55 +2073,55 @@ In FP32:
 
 **Loss computation (FP32):**
 
-- Cross-entropy loss involves $\log(\text{softmax}(z))$ — both log and exp are precision-sensitive
-- Must use numerically stable log-sum-exp (§8.5) in FP32
+- Cross-entropy loss involves $\log(\text{softmax}(z))$ - both log and exp are precision-sensitive
+- Must use numerically stable log-sum-exp (8.5) in FP32
 
-### 8.3 Mixed Precision Training — Complete Picture
+### 8.3 Mixed Precision Training - Complete Picture
 
 The standard mixed-precision training recipe that has been used for virtually all large-scale LLM training since 2020:
 
 ```
 MIXED PRECISION TRAINING PIPELINE
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 INITIALISATION:
-  θ_master = initialise_weights()           # FP32 (4 bytes/param)
-  m = zeros_like(θ_master)                  # FP32 Adam momentum
-  v = zeros_like(θ_master)                  # FP32 Adam variance
+  \theta_master = initialise_weights()           # FP32 (4 bytes/param)
+  m = zeros_like(\theta_master)                  # FP32 Adam momentum
+  v = zeros_like(\theta_master)                  # FP32 Adam variance
 
 FOR EACH TRAINING STEP:
 
-  ┌─ FORWARD PASS ──────────────────────────────────────────────┐
-  │  θ_bf16 = cast(θ_master, BF16)         # FP32 → BF16       │
-  │  activations = forward(x, θ_bf16)       # BF16 matmul       │
-  │  loss = cross_entropy(activations, y)    # FP32 (stable)     │
-  └─────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-  ┌─ BACKWARD PASS ─────────────────────────────────────────────┐
-  │  grads_bf16 = backward(loss, activations) # BF16 gradients  │
-  │  grads_fp32 = accumulate(grads_bf16)       # FP32 accumulate │
-  │  clip_grad_norm(grads_fp32)                # FP32 norm       │
-  └─────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-  ┌─ OPTIMIZER STEP ────────────────────────────────────────────┐
-  │  m = β₁·m + (1-β₁)·grads_fp32             # FP32           │
-  │  v = β₂·v + (1-β₂)·grads_fp32²            # FP32           │
-  │  m̂ = m / (1 - β₁ᵗ)                        # FP32           │
-  │  v̂ = v / (1 - β₂ᵗ)                        # FP32           │
-  │  θ_master -= η · m̂ / (√v̂ + ε)             # FP32 update   │
-  └─────────────────────────────────────────────────────────────┘
+  +- FORWARD PASS ----------------------------------------------+
+  |  \theta_bf16 = cast(\theta_master, BF16)         # FP32 -> BF16       |
+  |  activations = forward(x, \theta_bf16)       # BF16 matmul       |
+  |  loss = cross_entropy(activations, y)    # FP32 (stable)     |
+  +-------------------------------------------------------------+
+                           |
+                           v
+  +- BACKWARD PASS ---------------------------------------------+
+  |  grads_bf16 = backward(loss, activations) # BF16 gradients  |
+  |  grads_fp32 = accumulate(grads_bf16)       # FP32 accumulate |
+  |  clip_grad_norm(grads_fp32)                # FP32 norm       |
+  +-------------------------------------------------------------+
+                           |
+                           v
+  +- OPTIMIZER STEP --------------------------------------------+
+  |  m = \beta_1*m + (1-\beta_1)*grads_fp32             # FP32           |
+  |  v = \beta_2*v + (1-\beta_2)*grads_fp32^2            # FP32           |
+  |  m = m / (1 - \beta_1^t)                        # FP32           |
+  |  v = v / (1 - \beta_2^t)                        # FP32           |
+  |  \theta_master -= \eta * m / (\sqrtv + \epsilon)             # FP32 update   |
+  +-------------------------------------------------------------+
 
 MEMORY PER PARAMETER:
-  θ_master (FP32):     4 bytes
+  \theta_master (FP32):     4 bytes
   Adam m (FP32):       4 bytes
   Adam v (FP32):       4 bytes
-  θ_bf16 (working):    2 bytes
-  ──────────────────────────
+  \theta_bf16 (working):    2 bytes
+  --------------------------
   Total:              14 bytes per parameter
 
-  For 70B model: 70B × 14 = 980 GB (explaining why large model
+  For 70B model: 70B \times 14 = 980 GB (explaining why large model
   training requires many GPUs even with mixed precision)
 ```
 
@@ -2129,13 +2129,13 @@ MEMORY PER PARAMETER:
 
 The softmax function is one of the most numerically sensitive operations in a transformer:
 
-**Naive softmax — the overflow problem:**
+**Naive softmax - the overflow problem:**
 
 $$\text{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
 
-For $z_i = 100$ in BF16: $e^{100} \approx 2.69 \times 10^{43}$ — exceeds BF16 max ($3.39 \times 10^{38}$) → **overflow to Inf**. Even in FP32: $e^{89} \approx 4.5 \times 10^{38}$ overflows. Any attention logit above ~88 causes overflow.
+For $z_i = 100$ in BF16: $e^{100} \approx 2.69 \times 10^{43}$ - exceeds BF16 max ($3.39 \times 10^{38}$) -> **overflow to Inf**. Even in FP32: $e^{89} \approx 4.5 \times 10^{38}$ overflows. Any attention logit above ~88 causes overflow.
 
-**Numerically stable softmax — the max-subtraction trick:**
+**Numerically stable softmax - the max-subtraction trick:**
 
 $$\text{softmax}(z)_i = \frac{e^{z_i - m}}{\sum_j e^{z_j - m}}, \quad m = \max_j(z_j)$$
 
@@ -2143,7 +2143,7 @@ $$\text{softmax}(z)_i = \frac{e^{z_i - m}}{\sum_j e^{z_j - m}}, \quad m = \max_j
 
 $$\frac{e^{z_i - m}}{\sum_j e^{z_j - m}} = \frac{e^{z_i} \cdot e^{-m}}{\sum_j e^{z_j} \cdot e^{-m}} = \frac{e^{z_i} \cdot \cancel{e^{-m}}}{\cancel{e^{-m}} \cdot \sum_j e^{z_j}} = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
 
-The factor $e^{-m}$ cancels in numerator and denominator. But numerically, the subtraction ensures that the largest exponent is $e^{z_{\max} - z_{\max}} = e^0 = 1$ — no overflow possible. All other exponents are $e^{z_i - m} \leq 1$ — also safe.
+The factor $e^{-m}$ cancels in numerator and denominator. But numerically, the subtraction ensures that the largest exponent is $e^{z_{\max} - z_{\max}} = e^0 = 1$ - no overflow possible. All other exponents are $e^{z_i - m} \leq 1$ - also safe.
 
 **FlashAttention's online softmax:**
 
@@ -2159,7 +2159,7 @@ $$\text{LSE}(z) = \log \sum_i e^{z_i}$$
 
 **The overflow problem:** for large $z_i$, $e^{z_i}$ overflows before the log can "undo" it.
 
-**The solution — factor out the maximum:**
+**The solution - factor out the maximum:**
 
 $$\text{LSE}(z) = m + \log \sum_i e^{z_i - m}, \quad m = \max_i(z_i)$$
 
@@ -2167,7 +2167,7 @@ $$\text{LSE}(z) = m + \log \sum_i e^{z_i - m}, \quad m = \max_i(z_i)$$
 
 $$\log \sum_i e^{z_i} = \log \left(e^m \sum_i e^{z_i - m}\right) = \log(e^m) + \log \sum_i e^{z_i - m} = m + \log \sum_i e^{z_i - m}$$
 
-The maximum $m$ is factored out. All remaining exponents $z_i - m \leq 0$ → no overflow. The subtracted $m$ is re-added as a simple sum — no precision loss.
+The maximum $m$ is factored out. All remaining exponents $z_i - m \leq 0$ -> no overflow. The subtracted $m$ is re-added as a simple sum - no precision loss.
 
 **Why this matters for LLM training:**
 
@@ -2177,7 +2177,7 @@ $$L = -\log P(t_{\text{target}}) = -\log \text{softmax}(z)_{\text{target}} = -(z
 
 $$= \text{LSE}(z) - z_{\text{target}}$$
 
-This is computed millions of times per training step (once per token in the batch). If $\text{LSE}(z)$ overflows, the loss becomes Inf → gradient is NaN → training dies.
+This is computed millions of times per training step (once per token in the batch). If $\text{LSE}(z)$ overflows, the loss becomes Inf -> gradient is NaN -> training dies.
 
 **PyTorch:** `torch.logsumexp(z, dim)` implements this correctly. Never compute `torch.log(torch.sum(torch.exp(z)))` directly.
 
@@ -2191,7 +2191,7 @@ where $\mu = \frac{1}{n}\sum x_i$ and $\sigma^2 = \frac{1}{n}\sum (x_i - \mu)^2$
 
 **Numerical concerns:**
 
-1. **Catastrophic cancellation in $x - \mu$:** when $x_i \approx \mu$ (which is common — normalisation centers data near zero), $x_i - \mu$ loses significant bits (§3.6)
+1. **Catastrophic cancellation in $x - \mu$:** when $x_i \approx \mu$ (which is common - normalisation centers data near zero), $x_i - \mu$ loses significant bits (3.6)
 
 2. **Division by small $\sigma$:** if all values are nearly identical, $\sigma \approx 0$; division amplifies noise
    - The $\epsilon = 10^{-5}$ ensures we divide by at least $\sqrt{10^{-5}} \approx 0.00316$; this prevents division by zero and limits amplification
@@ -2199,16 +2199,16 @@ where $\mu = \frac{1}{n}\sum x_i$ and $\sigma^2 = \frac{1}{n}\sum (x_i - \mu)^2$
 
 3. **FP32 accumulation for mean and variance:** even if input $x$ is BF16, compute $\mu$ and $\sigma^2$ by accumulating in FP32 before applying the normalisation
 
-**RMSNorm — a numerically cleaner alternative:**
+**RMSNorm - a numerically cleaner alternative:**
 
 $$y = \frac{x}{\sqrt{\frac{1}{n}\sum x_i^2 + \epsilon}} \cdot \gamma$$
 
-- **No mean subtraction** → no catastrophic cancellation from $x - \mu$
-- Only requires computing $\text{RMS}(x) = \sqrt{\text{mean}(x^2)}$ — a sum of positive values (no cancellation)
+- **No mean subtraction** -> no catastrophic cancellation from $x - \mu$
+- Only requires computing $\text{RMS}(x) = \sqrt{\text{mean}(x^2)}$ - a sum of positive values (no cancellation)
 - Used in LLaMA, Mistral, and most 2024+ transformer architectures
 - Slightly cheaper to compute (one fewer reduction) and more numerically stable
 
-### 8.7 Gradient Vanishing and Exploding — Numerical View
+### 8.7 Gradient Vanishing and Exploding - Numerical View
 
 **The chain rule through $L$ layers:**
 
@@ -2220,27 +2220,27 @@ $$\left\|\frac{\partial L}{\partial x_0}\right\| \sim \lambda^L$$
 
 **Exploding gradients ($\lambda > 1$):**
 
-- $\lambda = 1.01$, $L = 200$ layers: $1.01^{200} \approx 7.32$ — moderate growth
-- $\lambda = 1.1$, $L = 200$ layers: $1.1^{200} \approx 1.9 \times 10^{8}$ — rapid growth
-- In FP32: gradients exceed $3.4 \times 10^{38}$ → Inf → training crashes
-- In BF16: same range as FP32, but precision errors amplified by large gradients → unstable updates
+- $\lambda = 1.01$, $L = 200$ layers: $1.01^{200} \approx 7.32$ - moderate growth
+- $\lambda = 1.1$, $L = 200$ layers: $1.1^{200} \approx 1.9 \times 10^{8}$ - rapid growth
+- In FP32: gradients exceed $3.4 \times 10^{38}$ -> Inf -> training crashes
+- In BF16: same range as FP32, but precision errors amplified by large gradients -> unstable updates
 
 **Vanishing gradients ($\lambda < 1$):**
 
-- $\lambda = 0.99$, $L = 200$: $0.99^{200} \approx 0.134$ — still meaningful
-- $\lambda = 0.9$, $L = 200$: $0.9^{200} \approx 7 \times 10^{-10}$ — tiny
-- In FP16: gradients below $6.1 \times 10^{-5}$ underflow to zero → **silent death** (no error, no NaN, just zero gradients)
-- In BF16: gradients below $1.2 \times 10^{-38}$ underflow — this almost never happens in practice
+- $\lambda = 0.99$, $L = 200$: $0.99^{200} \approx 0.134$ - still meaningful
+- $\lambda = 0.9$, $L = 200$: $0.9^{200} \approx 7 \times 10^{-10}$ - tiny
+- In FP16: gradients below $6.1 \times 10^{-5}$ underflow to zero -> **silent death** (no error, no NaN, just zero gradients)
+- In BF16: gradients below $1.2 \times 10^{-38}$ underflow - this almost never happens in practice
 
-**Residual connections — the numerical fix:**
+**Residual connections - the numerical fix:**
 
 $$x_l = x_{l-1} + f_l(x_{l-1})$$
 
 $$\frac{\partial x_l}{\partial x_{l-1}} = I + \frac{\partial f_l}{\partial x_{l-1}}$$
 
-The Jacobian is $I + J_f$, whose eigenvalues are $1 + \lambda_f$. Even if $\lambda_f$ is small or negative, the eigenvalue stays near 1 — **preventing both explosion and vanishing**.
+The Jacobian is $I + J_f$, whose eigenvalues are $1 + \lambda_f$. Even if $\lambda_f$ is small or negative, the eigenvalue stays near 1 - **preventing both explosion and vanishing**.
 
-**Gradient clipping — the safety net:**
+**Gradient clipping - the safety net:**
 
 - Clip the global gradient norm: $\hat{g} = g \cdot \min\!\left(1, \frac{C}{\|g\|}\right)$
 - Prevents Inf from exceeding FP32 range
@@ -2252,11 +2252,11 @@ The Jacobian is $I + J_f$, whose eigenvalues are $1 + \lambda_f$. Even if $\lamb
 
 Quantization is the mathematical process of mapping values from a high-precision format (e.g., FP32, BF16) to a low-precision format (e.g., INT8, INT4, NF4). This section develops the mathematical foundations rigorously.
 
-### 9.1 Uniform Quantization Formulas — Derivation and Intuition
+### 9.1 Uniform Quantization Formulas - Derivation and Intuition
 
 **The fundamental problem:** map a continuous (or high-precision) value $x \in [x_{\min}, x_{\max}]$ to an integer $x_q \in \{0, 1, \ldots, 2^b - 1\}$ (unsigned) or $x_q \in \{-2^{b-1}, \ldots, 2^{b-1}-1\}$ (signed), where $b$ is the bit width.
 
-**Step 1 — Define the scale factor $s$:**
+**Step 1 - Define the scale factor $s$:**
 
 $$s = \frac{x_{\max} - x_{\min}}{2^b - 1}$$
 
@@ -2264,7 +2264,7 @@ This is the "width" of one quantization bin. For symmetric quantization around z
 
 $$s = \frac{2 \cdot \max(|x_{\min}|, |x_{\max}|)}{2^b - 1}$$
 
-**Step 2 — Define the zero-point $z$ (asymmetric only):**
+**Step 2 - Define the zero-point $z$ (asymmetric only):**
 
 $$z = \text{round}\!\left(-\frac{x_{\min}}{s}\right)$$
 
@@ -2275,11 +2275,11 @@ The zero-point ensures that the floating-point value 0.0 maps exactly to an inte
 
 For symmetric quantization: $z = 0$ (or $z = 2^{b-1}$ for unsigned).
 
-**Step 3 — Quantize (FP → INT):**
+**Step 3 - Quantize (FP -> INT):**
 
 $$x_q = \text{clamp}\!\left(\text{round}\!\left(\frac{x}{s} + z\right),\; 0,\; 2^b - 1\right)$$
 
-**Step 4 — Dequantize (INT → FP approximation):**
+**Step 4 - Dequantize (INT -> FP approximation):**
 
 $$\hat{x} = s \cdot (x_q - z)$$
 
@@ -2291,39 +2291,39 @@ For uniform quantization with round-to-nearest, the error is bounded:
 
 $$|\epsilon_q| \leq \frac{s}{2} = \frac{x_{\max} - x_{\min}}{2(2^b - 1)}$$
 
-**Worked example — INT8 symmetric quantization of a weight tensor:**
+**Worked example - INT8 symmetric quantization of a weight tensor:**
 
 ```
 Given:  weights = [-0.45, 0.12, -0.03, 0.67, -0.89, 0.34]
 Bit width: b = 8 (signed: range [-128, 127])
 
-Step 1: α = max(|-0.89|, |0.67|) = 0.89
-        s = 2α / (2^8 - 1) = 1.78 / 255 = 0.006980
+Step 1: \alpha = max(|-0.89|, |0.67|) = 0.89
+        s = 2\alpha / (2^8 - 1) = 1.78 / 255 = 0.006980
 
 Step 2: z = 0 (symmetric)
 
 Step 3: Quantize each weight:
-  -0.45 → round(-0.45 / 0.006980) = round(-64.47) = -64
-   0.12 → round(0.12 / 0.006980)  = round(17.19)  =  17
-  -0.03 → round(-0.03 / 0.006980) = round(-4.30)  =  -4
-   0.67 → round(0.67 / 0.006980)  = round(95.99)  =  96
-  -0.89 → round(-0.89 / 0.006980) = round(-127.51)= -128  ← clips to -128
-   0.34 → round(0.34 / 0.006980)  = round(48.71)  =  49
+  -0.45 -> round(-0.45 / 0.006980) = round(-64.47) = -64
+   0.12 -> round(0.12 / 0.006980)  = round(17.19)  =  17
+  -0.03 -> round(-0.03 / 0.006980) = round(-4.30)  =  -4
+   0.67 -> round(0.67 / 0.006980)  = round(95.99)  =  96
+  -0.89 -> round(-0.89 / 0.006980) = round(-127.51)= -128  <- clips to -128
+   0.34 -> round(0.34 / 0.006980)  = round(48.71)  =  49
 
 Step 4: Dequantize:
-  -64 → 0.006980 × (-64) = -0.44672   (error: 0.00328)
-   17 → 0.006980 × 17    =  0.11866   (error: 0.00134)
-   -4 → 0.006980 × (-4)  = -0.02792   (error: 0.00208)
-   96 → 0.006980 × 96    =  0.67008   (error: 0.00008)
- -128 → 0.006980 × (-128)= -0.89344   (error: 0.00344)  ← clipping error
-   49 → 0.006980 × 49    =  0.34202   (error: 0.00202)
+  -64 -> 0.006980 \times (-64) = -0.44672   (error: 0.00328)
+   17 -> 0.006980 \times 17    =  0.11866   (error: 0.00134)
+   -4 -> 0.006980 \times (-4)  = -0.02792   (error: 0.00208)
+   96 -> 0.006980 \times 96    =  0.67008   (error: 0.00008)
+ -128 -> 0.006980 \times (-128)= -0.89344   (error: 0.00344)  <- clipping error
+   49 -> 0.006980 \times 49    =  0.34202   (error: 0.00202)
 
-Maximum error: 0.00344 ≈ s/2 = 0.00349  ✓
+Maximum error: 0.00344 \approx s/2 = 0.00349  OK
 ```
 
 ### 9.2 Signal-to-Quantization-Noise Ratio (SQNR)
 
-SQNR measures the quality of quantization — how much signal is preserved relative to the quantization noise introduced.
+SQNR measures the quality of quantization - how much signal is preserved relative to the quantization noise introduced.
 
 **Definition:**
 
@@ -2375,15 +2375,15 @@ Instead of a single $(s, z)$ pair for an entire tensor, **group quantization** a
 
 ```
 BLOCK/GROUP QUANTIZATION
-═════════════════════════
+=========================
 
 Full tensor T with N elements, block size G:
 
   Block 0         Block 1         Block 2
-  ┌──────────┐   ┌──────────┐   ┌──────────┐
-  │ w₀...w_{G-1}│ │ w_G...w_{2G-1}│ │ ...        │
-  │ s₀, z₀      │ │ s₁, z₁      │ │ s₂, z₂      │
-  └──────────┘   └──────────┘   └──────────┘
+  +----------+   +----------+   +----------+
+  | w_0...w_{G-1}| | w_G...w_{2G-1}| | ...        |
+  | s_0, z_0      | | s_1, z_1      | | s_2, z_2      |
+  +----------+   +----------+   +----------+
 
 Each block has its own scale s_k and zero-point z_k:
 
@@ -2391,12 +2391,12 @@ Each block has its own scale s_k and zero-point z_k:
   z_k = round(-min(block_k) / s_k)
 
 Memory overhead:
-  Without grouping:  N×b bits + 1×(32+32) bits for (s,z)
-  With grouping:     N×b bits + (N/G)×(32+32) bits for (s_k,z_k)
-  Overhead ratio:    64/G bits per element ≈ 64/G extra bits per parameter
+  Without grouping:  N\timesb bits + 1\times(32+32) bits for (s,z)
+  With grouping:     N\timesb bits + (N/G)\times(32+32) bits for (s_k,z_k)
+  Overhead ratio:    64/G bits per element \approx 64/G extra bits per parameter
 ```
 
-**Common group sizes and their overhead (for INT4 — 4 bits per weight):**
+**Common group sizes and their overhead (for INT4 - 4 bits per weight):**
 
 | Group Size $G$ | Overhead per param    | Effective bits/param | Used In              |
 | -------------- | --------------------- | -------------------- | -------------------- |
@@ -2412,16 +2412,16 @@ The scales $s_k$ themselves are FP16 (2 bytes each). With group size $G = 64$, t
 
 $$\text{Effective bits per param (QLoRA)} = 4 + \frac{16}{64} \cdot \frac{8}{16} = 4 + 0.125 = 4.125$$
 
-### 9.4 Optimal Quantization Levels — Lloyd-Max Algorithm
+### 9.4 Optimal Quantization Levels - Lloyd-Max Algorithm
 
 Uniform quantization is suboptimal when the input distribution is non-uniform (which it always is for neural network weights). **Lloyd-Max quantization** finds the $2^b$ reproduction levels $\{r_i\}$ and decision boundaries $\{d_i\}$ that minimise $\text{MSE} = \mathbb{E}[(x - \hat{x})^2]$ for a given distribution $f(x)$.
 
 **The optimality conditions:**
 
-1. **Nearest-neighbour condition** — each value maps to its closest reproduction level:
+1. **Nearest-neighbour condition** - each value maps to its closest reproduction level:
    $$d_i = \frac{r_i + r_{i+1}}{2}$$
 
-2. **Centroid condition** — each reproduction level is the conditional mean of values in its bin:
+2. **Centroid condition** - each reproduction level is the conditional mean of values in its bin:
    $$r_i = \frac{\int_{d_{i-1}}^{d_i} x \, f(x) \, dx}{\int_{d_{i-1}}^{d_i} f(x) \, dx} = \mathbb{E}[x \mid d_{i-1} \leq x < d_i]$$
 
 **Iterative algorithm:**
@@ -2431,19 +2431,19 @@ Uniform quantization is suboptimal when the input distribution is non-uniform (w
 3. Recompute $\{r_i\}$ as centroids of bins defined by $\{d_i\}$
 4. Repeat until convergence (MSE decreases monotonically)
 
-**Connection to NF4:** the 16 NF4 levels (§6.1) are the Lloyd-Max optimal quantization levels for a standard normal distribution $\mathcal{N}(0, 1)$ with $b = 4$ bits. The weight tensor is first normalised to zero mean and unit variance, making the normal assumption a good fit.
+**Connection to NF4:** the 16 NF4 levels (6.1) are the Lloyd-Max optimal quantization levels for a standard normal distribution $\mathcal{N}(0, 1)$ with $b = 4$ bits. The weight tensor is first normalised to zero mean and unit variance, making the normal assumption a good fit.
 
-### 9.5 Hadamard Transform for Quantization — QuIP and QuaRot
+### 9.5 Hadamard Transform for Quantization - QuIP and QuaRot
 
 **The outlier problem:**
-Transformer activations and certain weight columns contain **outlier channels** — values 10–100× larger than the rest. These stretch the quantization range, wasting precision for all other values.
+Transformer activations and certain weight columns contain **outlier channels** - values 10-100\times larger than the rest. These stretch the quantization range, wasting precision for all other values.
 
 **The Hadamard solution:**
 The Hadamard matrix $H_n$ is an $n \times n$ orthogonal matrix with entries $\pm 1/\sqrt{n}$:
 
 $$H_1 = [1], \quad H_2 = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}, \quad H_n = \frac{1}{\sqrt{2}}\begin{bmatrix} H_{n/2} & H_{n/2} \\ H_{n/2} & -H_{n/2} \end{bmatrix}$$
 
-**Key property:** $H_n H_n^T = I$ (orthogonal) — applying $H_n$ and $H_n^T$ in sequence is an identity.
+**Key property:** $H_n H_n^T = I$ (orthogonal) - applying $H_n$ and $H_n^T$ in sequence is an identity.
 
 **How it helps quantization:**
 
@@ -2496,8 +2496,8 @@ The total error is a sum of $L$ terms, each amplified by the products of weight 
 
 **Empirical observation from GPTQ, AWQ, and similar methods:**
 
-- Quantizing all layers to INT4: moderate perplexity increase (~0.5–1.0 on WikiText)
-- Keeping first and last layers in FP16: recovers most of the loss (~0.1–0.3 increase)
+- Quantizing all layers to INT4: moderate perplexity increase (~0.5-1.0 on WikiText)
+- Keeping first and last layers in FP16: recovers most of the loss (~0.1-0.3 increase)
 - This is consistent with the error amplification analysis above
 
 ---
@@ -2512,7 +2512,7 @@ Different operations within a transformer have radically different precision req
 
 **Precision analysis:**
 
-- Embedding lookup is a **table read** — no arithmetic; precision only matters for storage
+- Embedding lookup is a **table read** - no arithmetic; precision only matters for storage
 - Embedding vectors are typically small in magnitude ($|e_{t,i}| < 1$ after weight decay)
 - The embedding is immediately fed into layer normalisation, which re-centres and re-scales
 
@@ -2525,7 +2525,7 @@ Different operations within a transformer have radically different precision req
 | INT8   | 0.5 GB + scales           | < 0.1% perplexity increase     |
 | INT4   | 0.25 GB + scales          | Slight degradation; acceptable |
 
-**Autoregressive inference:** embeddings are accessed one token at a time — memory-bandwidth-bound. Smaller formats directly reduce first-token latency.
+**Autoregressive inference:** embeddings are accessed one token at a time - memory-bandwidth-bound. Smaller formats directly reduce first-token latency.
 
 **Training:** always FP32/BF16 (embeddings need to receive precise gradient updates since the vocabulary is large and each token's embedding updates are sparse).
 
@@ -2539,29 +2539,29 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\righ
 
 **$QK^T$ matmul:**
 
-- BF16 × BF16 with FP32 accumulation is standard and sufficient
+- BF16 \times BF16 with FP32 accumulation is standard and sufficient
 - FP8 with FP32 accumulation is emerging (H100 tensor cores support this natively)
-- INT8 × INT8 with INT32 accumulation works for inference with calibrated quantization
+- INT8 \times INT8 with INT32 accumulation works for inference with calibrated quantization
 
 **$\div \sqrt{d_k}$ scaling:**
 
-- A single multiplication by $1/\sqrt{d_k}$ — precision irrelevant
+- A single multiplication by $1/\sqrt{d_k}$ - precision irrelevant
 - Often fused into the Q or K projection ($W_Q \leftarrow W_Q / \sqrt{d_k}$) to avoid a separate operation
 
-**Softmax (see §8.4):**
+**Softmax (see 8.4):**
 
 - Must use FP32 intermediate values (or at minimum the numerically stable BF16 version)
 - The exponentiation and normalisation are the precision bottleneck
 
-**Attention × V matmul:**
+**Attention \times V matmul:**
 
 - Same precision profile as $QK^T$: BF16 with FP32 accumulation
-- The attention weights after softmax are in $[0, 1]$ — well-suited for any format
+- The attention weights after softmax are in $[0, 1]$ - well-suited for any format
 
 **Multi-query / grouped-query attention (MQA/GQA):**
 
 - Fewer K, V heads (typically 1 or 8 groups vs 32-128 query heads)
-- Doesn't change precision requirements, but dramatically reduces KV cache memory (see §10.3)
+- Doesn't change precision requirements, but dramatically reduces KV cache memory (see 10.3)
 
 ### 10.3 KV Cache Precision
 
@@ -2571,7 +2571,7 @@ The KV cache stores past key and value vectors for autoregressive generation. Fo
 
 $$\text{KV cache} = 2 \times L \times n_{\text{kv\_heads}} \times d_{\text{head}} \times \text{seq\_len} \times \text{batch} \times \text{bytes\_per\_element}$$
 
-**Example — LLaMA 3 70B with 128K context:**
+**Example - LLaMA 3 70B with 128K context:**
 
 - $L = 80$ layers, $n_{\text{kv\_heads}} = 8$ (GQA), $d_{\text{head}} = 128$
 - In BF16: $2 \times 80 \times 8 \times 128 \times 131072 \times 2 = 34.4\text{ GB}$ per request
@@ -2588,7 +2588,7 @@ $$\text{KV cache} = 2 \times L \times n_{\text{kv\_heads}} \times d_{\text{head}
 
 - **Per-channel INT8:** scale per head dimension; negligible accuracy loss for most models
 - **Per-token INT4 with group size 128:** achievable with careful calibration; small perplexity increase
-- **KIVI (Liu et al., 2024):** Key cache in INT2 (per-channel), Value cache in INT2 (per-token), with residual FP16 for recent tokens — 8× compression with minimal loss
+- **KIVI (Liu et al., 2024):** Key cache in INT2 (per-channel), Value cache in INT2 (per-token), with residual FP16 for recent tokens - 8\times compression with minimal loss
 - **SqueezeLLM / GEAR:** mixed-precision KV cache with outlier tokens kept in higher precision
 
 ### 10.4 Feed-Forward Network (FFN) Precision
@@ -2610,7 +2610,7 @@ $$\text{FFN}(x) = (\text{Swish}(xW_{\text{gate}}) \odot xW_{\text{up}}) W_{\text
 **The SwiGLU precision advantage over ReLU:**
 
 - ReLU creates exact zeros, which slightly help quantization (zero is perfectly representable)
-- SwiGLU produces smooth, non-zero activations — slightly harder to quantize but better model quality
+- SwiGLU produces smooth, non-zero activations - slightly harder to quantize but better model quality
 - In practice, the difference in quantization difficulty is negligible
 
 **FFN weight quantization sensitivity:**
@@ -2623,8 +2623,8 @@ $$\text{FFN}(x) = (\text{Swish}(xW_{\text{gate}}) \odot xW_{\text{up}}) W_{\text
 
 The Adam optimizer maintains two state variables per parameter:
 
-$$m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t \quad \text{(first moment — momentum)}$$
-$$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2 \quad \text{(second moment — adaptive learning rate)}$$
+$$m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t \quad \text{(first moment - momentum)}$$
+$$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2 \quad \text{(second moment - adaptive learning rate)}$$
 
 **Why optimizer states are precision-critical:**
 
@@ -2632,26 +2632,26 @@ $$v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2 \quad \text{(second moment — ada
    - With $\beta_2 = 0.999$, the effective window is $\sim 1000$ steps
    - Each step contributes $(1 - \beta_2) = 0.001$ of its gradient to the running average
    - In BF16: contributions smaller than $7.8 \times 10^{-3}$ relative to the running sum are lost
-   - Since $0.001 < 7.8 \times 10^{-3}$, individual gradient contributions are frequently lost → **optimizer blindness**
-   - In FP32: contributions as small as $1.19 \times 10^{-7}$ relative to running sum are preserved → 65,000× more room
+   - Since $0.001 < 7.8 \times 10^{-3}$, individual gradient contributions are frequently lost -> **optimizer blindness**
+   - In FP32: contributions as small as $1.19 \times 10^{-7}$ relative to running sum are preserved -> 65,000\times more room
 
 2. **$v_t$ stores squared gradients:**
-   - Typical gradient: $10^{-4}$ → squared: $10^{-8}$
+   - Typical gradient: $10^{-4}$ -> squared: $10^{-8}$
    - These tiny values need precise accumulation over thousands of steps
-   - BF16 would round $v_t$ values to zero for small gradients → divide-by-zero or extremely large updates
+   - BF16 would round $v_t$ values to zero for small gradients -> divide-by-zero or extremely large updates
 
 **Memory-efficient optimizer approaches:**
 
 | Approach              | Memory/param     | Quality                       | Used In                     |
 | --------------------- | ---------------- | ----------------------------- | --------------------------- |
-| Adam FP32             | 12 bytes (θ+m+v) | Baseline                      | Standard training           |
-| Adam BF16 states      | 6 bytes          | **Fails** — training diverges | Don't use                   |
+| Adam FP32             | 12 bytes (\theta+m+v) | Baseline                      | Standard training           |
+| Adam BF16 states      | 6 bytes          | **Fails** - training diverges | Don't use                   |
 | 8-bit Adam (Dettmers) | 4 bytes          | Minimal loss                  | bitsandbytes                |
 | Adafactor             | 4-8 bytes        | Slight loss for some tasks    | T5, PaLM                    |
 | LOMO                  | ~0 bytes         | Limited quality               | Fine-tuning only            |
 | GaLore                | ~4 bytes         | Near-baseline                 | Memory-constrained training |
 
-**8-bit Adam (bitsandbytes) — how it works:**
+**8-bit Adam (bitsandbytes) - how it works:**
 
 - Stores $m$ and $v$ in INT8 with dynamic exponent (block-wise FP8 effectively)
 - Maintains a per-block scale factor in FP32
@@ -2666,11 +2666,11 @@ In distributed training, gradients are communicated between GPUs via all-reduce.
 
 | Method          | Format                 | Compression | Quality                |
 | --------------- | ---------------------- | ----------- | ---------------------- |
-| Full BF16       | BF16                   | 1×          | Baseline               |
-| FP8 all-reduce  | FP8                    | 2×          | < 0.1% loss            |
-| INT8 all-reduce | INT8                   | 2×          | < 0.1% loss            |
-| 1-bit Adam/LAMB | 1-bit + error feedback | 16-32×      | Slight loss, converges |
-| TopK + INT8     | Sparse INT8            | 10-100×     | Depends on sparsity    |
+| Full BF16       | BF16                   | 1\times          | Baseline               |
+| FP8 all-reduce  | FP8                    | 2\times          | < 0.1% loss            |
+| INT8 all-reduce | INT8                   | 2\times          | < 0.1% loss            |
+| 1-bit Adam/LAMB | 1-bit + error feedback | 16-32\times      | Slight loss, converges |
+| TopK + INT8     | Sparse INT8            | 10-100\times     | Depends on sparsity    |
 
 **Error feedback mechanism (for aggressive compression):**
 
@@ -2693,30 +2693,30 @@ In distributed training, gradients are communicated between GPUs via all-reduce.
 
 Understanding hardware constraints explains why certain number formats exist and dictates the achievable performance for each format.
 
-### 11.1 Integer ALUs — Simple and Fast
+### 11.1 Integer ALUs - Simple and Fast
 
 An integer arithmetic logic unit (ALU) for $b$-bit operations:
 
 **Gate count and area:**
 
-- $b$-bit adder: $\sim 5b$ gates (carry-lookahead) → completes in $O(\log b)$ gate delays
-- $b$-bit multiplier: $\sim b^2$ gates (Wallace tree) → completes in $O(\log^2 b)$ gate delays
-- An INT8 multiplier uses $\sim 64$ gates; an INT32 multiplier uses $\sim 1024$ gates — **16× more silicon**
+- $b$-bit adder: $\sim 5b$ gates (carry-lookahead) -> completes in $O(\log b)$ gate delays
+- $b$-bit multiplier: $\sim b^2$ gates (Wallace tree) -> completes in $O(\log^2 b)$ gate delays
+- An INT8 multiplier uses $\sim 64$ gates; an INT32 multiplier uses $\sim 1024$ gates - **16\times more silicon**
 
 **Relative cost (approximate, normalised to INT8 multiply):**
 
 | Operation      | Relative Area | Relative Energy | Relative Latency |
 | -------------- | ------------- | --------------- | ---------------- |
-| INT8 multiply  | 1×            | 1×              | 1×               |
-| INT16 multiply | 4×            | 4×              | 1.3×             |
-| INT32 multiply | 16×           | 16×             | 1.6×             |
-| INT4 multiply  | 0.25×         | 0.25×           | 0.8×             |
-| INT2 multiply  | 0.0625×       | 0.0625×         | 0.6×             |
-| INT1 XNOR      | 0.01×         | 0.01×           | 0.2×             |
+| INT8 multiply  | 1\times            | 1\times              | 1\times               |
+| INT16 multiply | 4\times            | 4\times              | 1.3\times             |
+| INT32 multiply | 16\times           | 16\times             | 1.6\times             |
+| INT4 multiply  | 0.25\times         | 0.25\times           | 0.8\times             |
+| INT2 multiply  | 0.0625\times       | 0.0625\times         | 0.6\times             |
+| INT1 XNOR      | 0.01\times         | 0.01\times           | 0.2\times             |
 
-This is why 1-bit networks (BitNet) are so attractive for edge deployment: the multiply-accumulate (MAC) unit — the most replicated component — becomes nearly free.
+This is why 1-bit networks (BitNet) are so attractive for edge deployment: the multiply-accumulate (MAC) unit - the most replicated component - becomes nearly free.
 
-### 11.2 Floating-Point Units — Complex and Power-Hungry
+### 11.2 Floating-Point Units - Complex and Power-Hungry
 
 An FP multiply involves:
 
@@ -2729,45 +2729,45 @@ The mantissa multiplier dominates cost. Since mantissa width determines silicon 
 
 | Format   | Mantissa bits | Multiplier gates | Relative to FP32     |
 | -------- | ------------- | ---------------- | -------------------- |
-| FP32     | 23+1=24       | ~576             | 1×                   |
-| BF16     | 7+1=8         | ~64              | 0.11× (9× cheaper)   |
-| FP16     | 10+1=11       | ~121             | 0.21× (5× cheaper)   |
-| TF32     | 10+1=11       | ~121             | 0.21×                |
-| FP8 E4M3 | 3+1=4         | ~16              | 0.028× (36× cheaper) |
-| FP8 E5M2 | 2+1=3         | ~9               | 0.016× (64× cheaper) |
+| FP32     | 23+1=24       | ~576             | 1\times                   |
+| BF16     | 7+1=8         | ~64              | 0.11\times (9\times cheaper)   |
+| FP16     | 10+1=11       | ~121             | 0.21\times (5\times cheaper)   |
+| TF32     | 10+1=11       | ~121             | 0.21\times                |
+| FP8 E4M3 | 3+1=4         | ~16              | 0.028\times (36\times cheaper) |
+| FP8 E5M2 | 2+1=3         | ~9               | 0.016\times (64\times cheaper) |
 
-**Key insight:** BF16 is only slightly more expensive than FP8 in multiplier area, but the 9× savings over FP32 is why BF16 replaced FP32 as the default training format. The jump from BF16 to FP8 saves another 4×.
+**Key insight:** BF16 is only slightly more expensive than FP8 in multiplier area, but the 9\times savings over FP32 is why BF16 replaced FP32 as the default training format. The jump from BF16 to FP8 saves another 4\times.
 
-### 11.3 Tensor Cores — Systolic Arrays for AI
+### 11.3 Tensor Cores - Systolic Arrays for AI
 
 Tensor cores (NVIDIA terminology; Google calls them "matrix multiply units" in TPUs) are specialised hardware that compute small matrix multiplies in a single clock cycle.
 
 **Architecture of a tensor core:**
 
 ```
-TENSOR CORE (NVIDIA H100 — one core)
-════════════════════════════════════
+TENSOR CORE (NVIDIA H100 - one core)
+====================================
 
-  Computes: D = A × B + C
+  Computes: D = A \times B + C
 
-  A: 16×16 matrix (FP16/BF16/FP8/INT8)    input
-  B: 16×16 matrix (FP16/BF16/FP8/INT8)    input
-  C: 16×16 matrix (FP32/FP16)              accumulator (read)
-  D: 16×16 matrix (FP32/FP16)              accumulator (write)
+  A: 16\times16 matrix (FP16/BF16/FP8/INT8)    input
+  B: 16\times16 matrix (FP16/BF16/FP8/INT8)    input
+  C: 16\times16 matrix (FP32/FP16)              accumulator (read)
+  D: 16\times16 matrix (FP32/FP16)              accumulator (write)
 
-  ┌────────────────────────────────────────┐
-  │  16×16 array of fused multiply-add     │
-  │  units, pipelined as a systolic array  │
-  │                                        │
-  │  For FP16: each unit has an 11-bit     │
-  │  multiplier + FP32 adder              │
-  │                                        │
-  │  For INT8: each unit has an 8-bit      │
-  │  multiplier + INT32 adder             │
-  │                                        │
-  │  For FP8: each unit has a 4-bit        │
-  │  multiplier + FP32 adder              │
-  └────────────────────────────────────────┘
+  +----------------------------------------+
+  |  16\times16 array of fused multiply-add     |
+  |  units, pipelined as a systolic array  |
+  |                                        |
+  |  For FP16: each unit has an 11-bit     |
+  |  multiplier + FP32 adder              |
+  |                                        |
+  |  For INT8: each unit has an 8-bit      |
+  |  multiplier + INT32 adder             |
+  |                                        |
+  |  For FP8: each unit has a 4-bit        |
+  |  multiplier + FP32 adder              |
+  +----------------------------------------+
 ```
 
 **Number of tensor cores per GPU generation:**
@@ -2781,9 +2781,9 @@ TENSOR CORE (NVIDIA H100 — one core)
 
 Each new generation adds support for lower-precision formats, enabling higher throughput without proportionally increasing power or die area.
 
-### 11.4 Memory Bandwidth — The True Bottleneck
+### 11.4 Memory Bandwidth - The True Bottleneck
 
-For large language model inference, the bottleneck is almost never compute — it's **memory bandwidth**. Loading model weights from HBM (High-Bandwidth Memory) to the compute units limits throughput.
+For large language model inference, the bottleneck is almost never compute - it's **memory bandwidth**. Loading model weights from HBM (High-Bandwidth Memory) to the compute units limits throughput.
 
 **The arithmetic intensity argument:**
 
@@ -2811,8 +2811,8 @@ To be compute-bound: need arithmetic intensity $> 1979 / 3350 \approx 0.59$ FLOP
 
 **Practical implications:**
 
-- Reducing model size from BF16 → INT4 doesn't just halve memory — it halves the time to load weights, almost doubling inference speed
-- This is why quantization provides near-linear speedups for inference — the improvement comes from reduced memory traffic, not faster arithmetic
+- Reducing model size from BF16 -> INT4 doesn't just halve memory - it halves the time to load weights, almost doubling inference speed
+- This is why quantization provides near-linear speedups for inference - the improvement comes from reduced memory traffic, not faster arithmetic
 
 ### 11.5 Energy Cost per Operation
 
@@ -2822,32 +2822,32 @@ Energy consumption is a critical constraint for data centre deployment and edge 
 
 | Operation                 | Energy (pJ) | Relative |
 | ------------------------- | ----------- | -------- |
-| INT8 MAC                  | 0.2         | 1×       |
-| INT16 MAC                 | 0.9         | 4.5×     |
-| FP16 FMA                  | 1.0         | 5×       |
-| BF16 FMA                  | 0.8         | 4×       |
-| FP32 FMA                  | 3.7         | 18.5×    |
-| FP8 FMA                   | 0.4         | 2×       |
-| INT4 MAC                  | 0.05        | 0.25×    |
-| 1-bit XNOR+popcount       | 0.02        | 0.1×     |
-| HBM3 DRAM read (64 bytes) | 12.5        | 62.5×    |
+| INT8 MAC                  | 0.2         | 1\times       |
+| INT16 MAC                 | 0.9         | 4.5\times     |
+| FP16 FMA                  | 1.0         | 5\times       |
+| BF16 FMA                  | 0.8         | 4\times       |
+| FP32 FMA                  | 3.7         | 18.5\times    |
+| FP8 FMA                   | 0.4         | 2\times       |
+| INT4 MAC                  | 0.05        | 0.25\times    |
+| 1-bit XNOR+popcount       | 0.02        | 0.1\times     |
+| HBM3 DRAM read (64 bytes) | 12.5        | 62.5\times    |
 
-**Critical observation:** DRAM access costs 60× more energy than an INT8 MAC. For large models:
+**Critical observation:** DRAM access costs 60\times more energy than an INT8 MAC. For large models:
 
 - **Most energy is spent moving data, not computing**
-- Smaller number formats reduce both memory traffic and compute energy — a double benefit
+- Smaller number formats reduce both memory traffic and compute energy - a double benefit
 - This energy analysis is the fundamental driver behind the industry's push toward lower precision
 
 **Energy for one forward pass of a 70B model (estimated):**
 
 | Format | Compute Energy | Memory Energy | Total  | Relative |
 | ------ | -------------- | ------------- | ------ | -------- |
-| FP32   | ~80 J          | ~150 J        | ~230 J | 1×       |
-| BF16   | ~17 J          | ~75 J         | ~92 J  | 0.40×    |
-| INT8   | ~4 J           | ~38 J         | ~42 J  | 0.18×    |
-| INT4   | ~1 J           | ~19 J         | ~20 J  | 0.087×   |
+| FP32   | ~80 J          | ~150 J        | ~230 J | 1\times       |
+| BF16   | ~17 J          | ~75 J         | ~92 J  | 0.40\times    |
+| INT8   | ~4 J           | ~38 J         | ~42 J  | 0.18\times    |
+| INT4   | ~1 J           | ~19 J         | ~20 J  | 0.087\times   |
 
-INT4 inference uses approximately **11× less energy** than FP32 — enabling deployment at 1/11th the power budget.
+INT4 inference uses approximately **11\times less energy** than FP32 - enabling deployment at 1/11th the power budget.
 
 ### 11.6 Format Conversion Hardware
 
@@ -2855,25 +2855,25 @@ GPUs include dedicated hardware for converting between number formats:
 
 **Conversions that are "free" (no precision loss, handled by wiring):**
 
-- FP32 → FP64: zero-extend mantissa, adjust exponent bias
-- BF16 → FP32: zero-extend 16 bits of mantissa, copy exponent and sign
-- INT8 → INT32: sign-extend 24 bits
+- FP32 -> FP64: zero-extend mantissa, adjust exponent bias
+- BF16 -> FP32: zero-extend 16 bits of mantissa, copy exponent and sign
+- INT8 -> INT32: sign-extend 24 bits
 
 **Conversions that require rounding (1-cycle latency on modern GPUs):**
 
-- FP32 → BF16: truncate 16 mantissa bits, apply rounding (§3.5)
-- FP32 → FP16: truncate + check for overflow (may produce Inf/NaN)
-- FP32 → FP8: significant truncation + overflow check + rounding
-- FP32 → INT8: multiply by scale, round, clamp
+- FP32 -> BF16: truncate 16 mantissa bits, apply rounding (3.5)
+- FP32 -> FP16: truncate + check for overflow (may produce Inf/NaN)
+- FP32 -> FP8: significant truncation + overflow check + rounding
+- FP32 -> INT8: multiply by scale, round, clamp
 
 **Key conversion in mixed-precision training:**
 
 ```
-FP32 master weight → BF16 working copy:
+FP32 master weight -> BF16 working copy:
   Simply drop the lower 16 mantissa bits and round
   This truncation introduces up to 0.39% error per weight
 
-  But the FP32 master copy is never lost — it receives the
+  But the FP32 master copy is never lost - it receives the
   precise gradient update and only the BF16 working copy
   is re-derived fresh each forward pass
 ```
@@ -2896,70 +2896,70 @@ $$L(\theta + \delta) \approx L(\theta) + \nabla L^T \delta + \frac{1}{2} \delta^
 
 where $H$ is the Hessian matrix. The curvature eigenvalues $\{\lambda_i\}$ of $H$ determine precision requirements:
 
-- **High curvature direction** ($\lambda_i \gg 1$): the loss changes rapidly; even small perturbations from quantization cause large loss changes → **needs high precision**
-- **Low curvature direction** ($\lambda_i \approx 0$): the loss is flat; quantization noise barely affects loss → **can tolerate low precision**
+- **High curvature direction** ($\lambda_i \gg 1$): the loss changes rapidly; even small perturbations from quantization cause large loss changes -> **needs high precision**
+- **Low curvature direction** ($\lambda_i \approx 0$): the loss is flat; quantization noise barely affects loss -> **can tolerate low precision**
 
 **Implications for mixed precision:**
 
 - Most directions in parameter space are low-curvature (the loss landscape is approximately flat in most dimensions)
-- Only a small fraction of directions are "sharp" — these correspond to critical features
+- Only a small fraction of directions are "sharp" - these correspond to critical features
 - This is why BF16 training works: the quantization noise ($\sim 0.4\%$ per weight) is smaller than the gradient step size in most directions, and the few sharp directions are protected by FP32 master weights
 
-### 12.2 Precision Cliffs — When Training Suddenly Diverges
+### 12.2 Precision Cliffs - When Training Suddenly Diverges
 
 A **precision cliff** occurs when training appears stable for many steps, then suddenly produces NaN or Inf losses. The mechanism:
 
-**Phase 1 — Slow drift (invisible):**
+**Phase 1 - Slow drift (invisible):**
 
-- Gradient accumulation in BF16 silently drops small gradient contributions (§8.2)
+- Gradient accumulation in BF16 silently drops small gradient contributions (8.2)
 - Certain weight matrices slowly drift from their optimal values
 - Loss appears stable because the drift is small compared to normal training noise
 
-**Phase 2 — Amplification:**
+**Phase 2 - Amplification:**
 
 - Drifted weights cause slightly larger activations in deep layers
-- Attention logits grow (§12.5), pushing softmax inputs toward overflow
+- Attention logits grow (12.5), pushing softmax inputs toward overflow
 - Gradients start hitting gradient clipping more frequently
 - The model is now operating at the edge of numerical stability
 
-**Phase 3 — Collapse:**
+**Phase 3 - Collapse:**
 
-- A single unlucky batch pushes attention logits past BF16/FP32 overflow → Inf
-- Inf propagates through softmax → NaN
-- NaN gradients update all weights → all weights become NaN → **training dies**
+- A single unlucky batch pushes attention logits past BF16/FP32 overflow -> Inf
+- Inf propagates through softmax -> NaN
+- NaN gradients update all weights -> all weights become NaN -> **training dies**
 
-This typically happens after 50K–200K training steps, which is why short training runs may appear fine in low precision while long runs fail.
+This typically happens after 50K-200K training steps, which is why short training runs may appear fine in low precision while long runs fail.
 
 **Diagnostic signals:**
 
-- Gradient norm spikes (> 10× baseline) increasing in frequency
+- Gradient norm spikes (> 10\times baseline) increasing in frequency
 - Learning rate warmup completing without issue, then instability at decay phase
 - Loss spikes that don't recover to baseline
 
-### 12.3 Stochastic Rounding — A Precision Amplifier
+### 12.3 Stochastic Rounding - A Precision Amplifier
 
 When rounding $x$ to the nearest representable value in format $F$:
 
-- **Round-to-nearest-even (RNE):** always rounds to the same value → systematic bias when many values round in the same direction
+- **Round-to-nearest-even (RNE):** always rounds to the same value -> systematic bias when many values round in the same direction
 - **Stochastic rounding:** rounds up with probability $p = (x - \lfloor x \rfloor_F) / ({\lceil x \rceil_F - \lfloor x \rfloor_F})$, otherwise rounds down
 
 **Mathematical property of stochastic rounding:**
 
 $$\mathbb{E}[\text{SR}(x)] = x$$
 
-Stochastic rounding is **unbiased** — the expected value of the rounded result equals the true value. Over many steps, the rounding errors cancel out on average:
+Stochastic rounding is **unbiased** - the expected value of the rounded result equals the true value. Over many steps, the rounding errors cancel out on average:
 
 $$\mathbb{E}\left[\sum_{t=1}^{T} \text{SR}(g_t)\right] = \sum_{t=1}^{T} g_t$$
 
 This means that even if individual gradient contributions are too small to represent in BF16, stochastic rounding ensures they contribute to the weight update over time.
 
 **Convergence guarantee:**
-With RNE, gradients smaller than $\frac{1}{2}$ ULP are always rounded to zero — the weight provably never updates if all gradients are this small. With stochastic rounding, even infinitesimally small gradients have a non-zero probability of causing an update.
+With RNE, gradients smaller than $\frac{1}{2}$ ULP are always rounded to zero - the weight provably never updates if all gradients are this small. With stochastic rounding, even infinitesimally small gradients have a non-zero probability of causing an update.
 
 **Hardware support:**
 
 - NVIDIA H100 supports stochastic rounding for FP8 operations
-- This is one reason why FP8 training is feasible despite the very low precision — stochastic rounding compensates for the coarse representation
+- This is one reason why FP8 training is feasible despite the very low precision - stochastic rounding compensates for the coarse representation
 
 ### 12.4 Adam Optimizer Numerical Error Analysis
 
@@ -2967,27 +2967,27 @@ The Adam update rule:
 
 $$\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{v_t / (1 - \beta_2^t)} + \epsilon} \cdot \frac{m_t}{1 - \beta_1^t}$$
 
-**Numerical failure mode 1 — $\epsilon$ too small:**
+**Numerical failure mode 1 - $\epsilon$ too small:**
 
 - Standard $\epsilon = 10^{-8}$
 - If $v_t \approx 0$ (parameter with near-zero gradients): update $\approx \eta m_t / \epsilon$
-- For $\eta = 10^{-4}$ and $m_t = 10^{-4}$: update $= 10^{-4} \times 10^{-4} / 10^{-8} = 1.0$ — a **massive** weight update
+- For $\eta = 10^{-4}$ and $m_t = 10^{-4}$: update $= 10^{-4} \times 10^{-4} / 10^{-8} = 1.0$ - a **massive** weight update
 - This is why $\epsilon$ should be $10^{-6}$ or even $10^{-4}$ for BF16 training
 
-**Numerical failure mode 2 — $v_t$ overflow in low precision:**
+**Numerical failure mode 2 - $v_t$ overflow in low precision:**
 
 - $v_t$ accumulates $g_t^2$; if gradients are large ($g \sim 1$), then $v_t \sim 1$, fine
-- But if gradient clipping isn't applied and $g \sim 100$ (loss spike): $g^2 = 10^4$ → $v_t$ grows rapidly
-- In FP32: max $\approx 3.4 \times 10^{38}$ — fine
+- But if gradient clipping isn't applied and $g \sim 100$ (loss spike): $g^2 = 10^4$ -> $v_t$ grows rapidly
+- In FP32: max $\approx 3.4 \times 10^{38}$ - fine
 - In 8-bit optimizer states: overflow can occur, corrupting the optimizer state silently
 
-**Numerical failure mode 3 — bias correction precision:**
+**Numerical failure mode 3 - bias correction precision:**
 
 - Bias correction factor $(1 - \beta_2^t)$ for $\beta_2 = 0.999$:
   - $t = 1$: $1 - 0.999 = 0.001$
   - $t = 100$: $1 - 0.999^{100} = 1 - 0.905 = 0.095$
   - $t = 10000$: $1 - 0.999^{10000} = 1 - 0.0000454 \approx 1.0$
-- Early in training ($t < 100$), dividing by $0.001$ amplifies $v_t$ by 1000× — this amplification can push values out of representable range in low precision
+- Early in training ($t < 100$), dividing by $0.001$ amplifies $v_t$ by 1000\times - this amplification can push values out of representable range in low precision
 
 ### 12.5 Attention Logit Growth
 
@@ -2999,7 +2999,7 @@ A common failure mode in large transformer training:
 2. The softmax temperature effectively decreases: $\text{softmax}(a/T)$ with decreasing $T$
 3. As logits grow, the softmax output becomes more peaked ("spiky")
 4. Eventually, a single attention logit dominates: $\text{softmax}([50, 1, 1, \ldots]) \approx [1, 0, 0, \ldots]$
-5. The gradient of softmax when it's nearly one-hot is very small → **vanishing gradients for attention**
+5. The gradient of softmax when it's nearly one-hot is very small -> **vanishing gradients for attention**
 6. Meanwhile, the large logit values approach the overflow boundary of the number format
 
 **Numerical progression (BF16 example):**
@@ -3010,7 +3010,7 @@ A common failure mode in large transformer training:
 | 50K           | 15.0      | 0.995          | Reduced            | Low       |
 | 100K          | 30.0      | 0.9999         | Very small         | Medium    |
 | 200K          | 60.0      | ~1.0           | Near zero          | High      |
-| 250K          | 89+       | Overflow → NaN | N/A                | **Crash** |
+| 250K          | 89+       | Overflow -> NaN | N/A                | **Crash** |
 
 **Mitigation strategies:**
 
@@ -3020,33 +3020,33 @@ A common failure mode in large transformer training:
 
 ---
 
-## 13. Practical Guide — Choosing Number Formats
+## 13. Practical Guide - Choosing Number Formats
 
 ### 13.1 Decision Framework for Training
 
 ```
 TRAINING FORMAT DECISION TREE
-══════════════════════════════
+==============================
 
 Start: What is your model size?
 
-├── < 1B parameters (fits in one GPU)
-│   ├── Research/prototyping → FP32 (simplest, no mixed-precision bugs)
-│   └── Production training  → BF16 mixed precision (2× speedup)
-│
-├── 1B–13B parameters
-│   ├── Full training  → BF16 mixed precision (mandatory for speed)
-│   └── Fine-tuning    → QLoRA (NF4 base + BF16 adapters)
-│
-├── 13B–70B parameters
-│   ├── Full training  → BF16 + ZeRO-3 across multiple GPUs
-│   ├── Fine-tuning    → QLoRA NF4 (fits on single 80GB GPU)
-│   └── Continued PT   → BF16 + gradient checkpointing
-│
-└── 70B+ parameters
-    ├── Full training  → BF16 + 3D parallelism (need cluster)
-    ├── FP8 training   → if H100+ hardware (emerging 2024+)
-    └── Fine-tuning    → QLoRA NF4 (4-bit base + 16-bit LoRA)
++-- < 1B parameters (fits in one GPU)
+|   +-- Research/prototyping -> FP32 (simplest, no mixed-precision bugs)
+|   +-- Production training  -> BF16 mixed precision (2\times speedup)
+|
++-- 1B-13B parameters
+|   +-- Full training  -> BF16 mixed precision (mandatory for speed)
+|   +-- Fine-tuning    -> QLoRA (NF4 base + BF16 adapters)
+|
++-- 13B-70B parameters
+|   +-- Full training  -> BF16 + ZeRO-3 across multiple GPUs
+|   +-- Fine-tuning    -> QLoRA NF4 (fits on single 80GB GPU)
+|   +-- Continued PT   -> BF16 + gradient checkpointing
+|
++-- 70B+ parameters
+    +-- Full training  -> BF16 + 3D parallelism (need cluster)
+    +-- FP8 training   -> if H100+ hardware (emerging 2024+)
+    +-- Fine-tuning    -> QLoRA NF4 (4-bit base + 16-bit LoRA)
 
 KEY RULES:
   1. Master weights ALWAYS in FP32
@@ -3060,31 +3060,31 @@ KEY RULES:
 
 ```
 INFERENCE FORMAT DECISION TREE
-═══════════════════════════════
+===============================
 
 Start: What is your latency/quality tradeoff?
 
-├── Maximum quality (no degradation acceptable)
-│   └── BF16 / FP16 (same as training format)
-│
-├── Balanced quality/speed (< 1% perplexity increase)
-│   ├── NVIDIA GPU → INT8 (W8A8) with SmoothQuant
-│   ├── Apple Silicon → INT8 (W8A8) via MLX
-│   └── CPU → INT8 with ONNX Runtime
-│
-├── High compression (1-3% perplexity increase, 4× speedup)
-│   ├── Batch inference    → GPTQ INT4 (W4A16)
-│   ├── Real-time serving  → AWQ INT4 (W4A16)
-│   └── Memory-constrained → GGML/GGUF Q4_K_M
-│
-├── Maximum compression (edge/mobile deployment)
-│   ├── INT3 (W3A16) → aggressive but usable with GPTQ
-│   ├── INT2 (W2A16) → significant quality loss; only for small models
-│   └── 1.58-bit (ternary) → BitNet models (trained from scratch only)
-│
-└── Speculative/KV cache optimisation
-    ├── KV cache INT8 → per-channel quantization
-    └── KV cache INT4 → with group quantization + recent-token FP16
++-- Maximum quality (no degradation acceptable)
+|   +-- BF16 / FP16 (same as training format)
+|
++-- Balanced quality/speed (< 1% perplexity increase)
+|   +-- NVIDIA GPU -> INT8 (W8A8) with SmoothQuant
+|   +-- Apple Silicon -> INT8 (W8A8) via MLX
+|   +-- CPU -> INT8 with ONNX Runtime
+|
++-- High compression (1-3% perplexity increase, 4\times speedup)
+|   +-- Batch inference    -> GPTQ INT4 (W4A16)
+|   +-- Real-time serving  -> AWQ INT4 (W4A16)
+|   +-- Memory-constrained -> GGML/GGUF Q4_K_M
+|
++-- Maximum compression (edge/mobile deployment)
+|   +-- INT3 (W3A16) -> aggressive but usable with GPTQ
+|   +-- INT2 (W2A16) -> significant quality loss; only for small models
+|   +-- 1.58-bit (ternary) -> BitNet models (trained from scratch only)
+|
++-- Speculative/KV cache optimisation
+    +-- KV cache INT8 -> per-channel quantization
+    +-- KV cache INT4 -> with group quantization + recent-token FP16
 ```
 
 ### 13.3 Per-Layer Sensitivity Table
@@ -3093,16 +3093,16 @@ Different layers have different tolerance for quantization. Based on empirical f
 
 | Layer Type                  | INT8 | INT4 | INT3 | INT2 | Notes                                 |
 | --------------------------- | ---- | ---- | ---- | ---- | ------------------------------------- |
-| Embedding                   | ✅   | ✅   | ⚠️   | ❌   | Vocabulary coverage matters           |
-| Attention Q, K projections  | ✅   | ✅   | ⚠️   | ❌   | Attention pattern quality degrades    |
-| Attention V projection      | ✅   | ✅   | ✅   | ⚠️   | Slightly more robust than Q, K        |
-| Attention output projection | ✅   | ✅   | ⚠️   | ❌   | Affects residual stream               |
-| FFN gate & up projection    | ✅   | ✅   | ✅   | ⚠️   | Relatively robust                     |
-| FFN down projection         | ✅   | ⚠️   | ❌   | ❌   | **Most sensitive** — affects residual |
-| LM head (final projection)  | ✅   | ⚠️   | ❌   | ❌   | Directly affects token probabilities  |
-| Layer norm / RMSNorm        | ✅   | ❌   | ❌   | ❌   | Keep in FP32 or BF16 always           |
+| Embedding                   | OK   | OK   | WARNING   | NO   | Vocabulary coverage matters           |
+| Attention Q, K projections  | OK   | OK   | WARNING   | NO   | Attention pattern quality degrades    |
+| Attention V projection      | OK   | OK   | OK   | WARNING   | Slightly more robust than Q, K        |
+| Attention output projection | OK   | OK   | WARNING   | NO   | Affects residual stream               |
+| FFN gate & up projection    | OK   | OK   | OK   | WARNING   | Relatively robust                     |
+| FFN down projection         | OK   | WARNING   | NO   | NO   | **Most sensitive** - affects residual |
+| LM head (final projection)  | OK   | WARNING   | NO   | NO   | Directly affects token probabilities  |
+| Layer norm / RMSNorm        | OK   | NO   | NO   | NO   | Keep in FP32 or BF16 always           |
 
-Legend: ✅ = safe, ⚠️ = measurable degradation, ❌ = significant quality loss
+Legend: OK = safe, WARNING = measurable degradation, NO = significant quality loss
 
 ### 13.4 Quantization Quality vs Bit Width
 
@@ -3118,7 +3118,7 @@ Empirical perplexity results (approximate, varies by model and method):
 | 3 (INT3)  | GPTQ               | 6.29 (+0.61) | 5.51 (+0.42)  | 3.72 (+0.16)  |
 | 2 (INT2)  | QuIP#              | 7.85 (+2.17) | 6.43 (+1.34)  | 4.15 (+0.59)  |
 
-**Key observation:** larger models are more tolerant of quantization — a 70B INT4 model often outperforms a 13B BF16 model. This is because larger models have more redundancy in their weight matrices.
+**Key observation:** larger models are more tolerant of quantization - a 70B INT4 model often outperforms a 13B BF16 model. This is because larger models have more redundancy in their weight matrices.
 
 ---
 
@@ -3126,9 +3126,9 @@ Empirical perplexity results (approximate, varies by model and method):
 
 | #   | Mistake                                      | Why It's Wrong                                                                       | Correct Understanding                                             |
 | --- | -------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| 1   | "FP16 and BF16 are interchangeable"          | FP16 overflows at 65504; BF16 at 3.4×10³⁸. FP16 needs loss scaling; BF16 doesn't.    | BF16 matches FP32 range; FP16 does not. Choose BF16 for training. |
+| 1   | "FP16 and BF16 are interchangeable"          | FP16 overflows at 65504; BF16 at 3.4\times10^3^8. FP16 needs loss scaling; BF16 doesn't.    | BF16 matches FP32 range; FP16 does not. Choose BF16 for training. |
 | 2   | "More bits always means better quality"      | 70B at INT4 outperforms 13B at FP16 on most benchmarks.                              | Total model capacity matters more than per-parameter precision.   |
-| 3   | "Quantization only saves memory"             | Quantization also reduces memory bandwidth (the actual bottleneck) → direct speedup. | Memory savings → bandwidth savings → latency reduction.           |
+| 3   | "Quantization only saves memory"             | Quantization also reduces memory bandwidth (the actual bottleneck) -> direct speedup. | Memory savings -> bandwidth savings -> latency reduction.           |
 | 4   | "INT8 inference loses accuracy"              | With proper calibration (SmoothQuant, GPTQ), INT8 is lossless for nearly all models. | INT8 is the "free lunch" of inference optimisation.               |
 | 5   | "I should quantize my model during training" | Quantization-aware training is expensive and unnecessary for PTQ with 4+ bits.       | Use PTQ unless deploying at INT2 or lower.                        |
 | 6   | "FP32 master weights waste memory"           | Without FP32 master weights, BF16 training diverges after ~100K steps.               | FP32 masters are essential, not optional.                         |
@@ -3169,7 +3169,7 @@ You have a single NVIDIA A100 80GB GPU. Calculate the maximum model size (in par
 
 - (a) Train with full FP32 (weights + Adam optimizer states)
 - (b) Train with BF16 mixed precision (FP32 master + BF16 working + FP32 Adam)
-- (c) Fine-tune with QLoRA (NF4 base + BF16 LoRA with rank 16, hidden dim 4096, 32 layers × 4 projection matrices)
+- (c) Fine-tune with QLoRA (NF4 base + BF16 LoRA with rank 16, hidden dim 4096, 32 layers \times 4 projection matrices)
 - (d) Serve for inference in INT4 (weights only, no optimizer states)
 
 ### Exercise 5: Softmax Stability
@@ -3186,7 +3186,7 @@ Given attention logits $z = [88.5, 88.7, 88.3, 88.6]$:
 A 3-layer network with weight matrices $W_1, W_2, W_3$ (each $d \times d$, where $d = 1024$). Each weight is quantized to INT8 with scale $s = 0.01$. Assuming input $\|x\| = 1$ and $\|W_i\| = 1$ (operator norm):
 
 - (a) Bound the quantization error $\|\Delta W_i\|$ for each layer.
-- (b) Using the first-order error approximation from §9.6, bound the total output error.
+- (b) Using the first-order error approximation from 9.6, bound the total output error.
 - (c) At what bit width does the output error drop below 1% of the output magnitude?
 
 ### Exercise 7: Hardware Arithmetic Intensity
@@ -3215,11 +3215,11 @@ Implement a simple stochastic rounding function in Python. Given a "true" gradie
 | IEEE 754 FP32/FP64   | Loss computation, optimizer states   | Understanding overflow/underflow prevents silent training failures    |
 | BF16                 | Default training format (2020+)      | Know when and why to use it; understand its precision limits          |
 | FP8                  | Next-gen training (H100+)            | Critical for cost-efficient training at scale                         |
-| INT8 quantization    | Standard inference optimisation      | 2× speedup with no quality loss — mandatory knowledge                 |
+| INT8 quantization    | Standard inference optimisation      | 2\times speedup with no quality loss - mandatory knowledge                 |
 | INT4 quantization    | High-compression inference           | Enables serving 70B models on consumer hardware                       |
 | NF4                  | QLoRA fine-tuning                    | Enables 70B fine-tuning on a single GPU                               |
 | Softmax stability    | Every forward pass                   | Prevents the most common NaN crash in transformers                    |
-| Mixed precision      | Every training pipeline              | Halves memory, doubles speed — used in all modern training            |
+| Mixed precision      | Every training pipeline              | Halves memory, doubles speed - used in all modern training            |
 | KV cache formats     | Long-context inference               | Enables 128K+ context without OOM                                     |
 | Error propagation    | Model debugging                      | Understanding why certain layers can/cannot be quantized aggressively |
 | Hardware constraints | Deployment planning                  | Choose the right format for your target hardware                      |
@@ -3229,34 +3229,34 @@ Implement a simple stochastic rounding function in Python. Given a "true" gradie
 
 ## 17. Conceptual Bridge
 
-This chapter covered the **representation** of numbers — how mathematical quantities are encoded in finite hardware. The key insight is that every number format is a **tradeoff between range, precision, and cost**, and AI engineering is the art of choosing the right tradeoff for each part of the pipeline.
+This chapter covered the **representation** of numbers - how mathematical quantities are encoded in finite hardware. The key insight is that every number format is a **tradeoff between range, precision, and cost**, and AI engineering is the art of choosing the right tradeoff for each part of the pipeline.
 
 ```
 CONCEPTUAL FLOW
-═══════════════
+===============
 
   Number Systems (this chapter)
-  ├── How are values represented in hardware?
-  ├── What are the precision limits?
-  └── How do these limits affect AI systems?
-          │
-          ▼
+  +-- How are values represented in hardware?
+  +-- What are the precision limits?
+  +-- How do these limits affect AI systems?
+          |
+          v
   Sets and Logic (next chapter)
-  ├── How do we formalise collections of objects?
-  ├── What are the logical foundations of proofs?
-  └── How does set theory underpin probability and statistics?
-          │
-          ▼
+  +-- How do we formalise collections of objects?
+  +-- What are the logical foundations of proofs?
+  +-- How does set theory underpin probability and statistics?
+          |
+          v
   Functions and Mappings
-  ├── How do we formalise input-output relationships?
-  ├── What properties must a function have?
-  └── Neural networks as compositions of functions
-          │
-          ▼
+  +-- How do we formalise input-output relationships?
+  +-- What properties must a function have?
+  +-- Neural networks as compositions of functions
+          |
+          v
   Summation and Product Notation
-  ├── Compact notation for sums and products
-  ├── Used everywhere: loss functions, gradients, attention
-  └── Connection to vectorised computation
+  +-- Compact notation for sums and products
+  +-- Used everywhere: loss functions, gradients, attention
+  +-- Connection to vectorised computation
 ```
 
 **How number systems connect to every subsequent chapter:**
@@ -3264,11 +3264,11 @@ CONCEPTUAL FLOW
 - **Linear Algebra:** matrix operations are chains of multiply-accumulate; the number format determines both the speed and accuracy of every matrix operation in the model
 - **Calculus:** derivatives are computed via finite differences or analytical rules; numerical precision determines whether gradient computation is meaningful or noise
 - **Probability:** probability values in $[0, 1]$ are represented as floating-point numbers; underflow in small probabilities ($P < 10^{-38}$) causes silent failures unless you use log-probabilities
-- **Optimisation:** every optimiser update involves division, square roots, and accumulation — all precision-sensitive operations
-- **Information Theory:** cross-entropy loss involves $\log$ and $\exp$ — the most overflow/underflow-prone elementary functions
+- **Optimisation:** every optimiser update involves division, square roots, and accumulation - all precision-sensitive operations
+- **Information Theory:** cross-entropy loss involves $\log$ and $\exp$ - the most overflow/underflow-prone elementary functions
 
 > **The fundamental lesson:** a deep understanding of number systems is not optional for AI practitioners. It's the foundation that determines whether your model trains at all, how much it costs, how fast it runs, and whether you can deploy it on your target hardware.
 
 ---
 
-[← Back to Mathematical Foundations](../README.md) | [Next: Sets and Logic →](../02-Sets-and-Logic/notes.md)
+[<- Back to Mathematical Foundations](../README.md) | [Next: Sets and Logic ->](../02-Sets-and-Logic/notes.md)

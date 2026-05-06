@@ -1,6 +1,6 @@
 # Time Series
 
-[← Back to Chapter 7: Statistics](../README.md) | [Next: Regression Analysis →](../06-Regression-Analysis/notes.md)
+[<- Back to Chapter 7: Statistics](../README.md) | [Next: Regression Analysis ->](../06-Regression-Analysis/notes.md)
 
 ---
 
@@ -75,7 +75,7 @@ and the practical modeling decisions that connect classical time-series analysis
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive simulations for ACF/PACF, ARIMA-style modeling, seasonality, spectral diagnostics, state-space models, and Kalman filtering |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises covering stationarity, ACF/PACF interpretation, AR stability, differencing, forecasting, spectral detection, and Kalman updates |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises covering stationarity, ACF/PACF interpretation, AR stability, differencing, forecasting, spectral detection, and Kalman updates |
 
 ## Learning Objectives
 

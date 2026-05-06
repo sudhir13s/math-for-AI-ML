@@ -1,23 +1,23 @@
-[← Back to Calculus Fundamentals](../README.md) | [Next: Integration →](../03-Integration/notes.md)
+[<- Back to Calculus Fundamentals](../README.md) | [Next: Integration ->](../03-Integration/notes.md)
 
 ---
 
 # Derivatives and Differentiation
 
-> _"The derivative is the heart of calculus. Everything else — integrals, series, differential equations — is built around it."_
-> — Michael Spivak, _Calculus_ (1967)
+> _"The derivative is the heart of calculus. Everything else - integrals, series, differential equations - is built around it."_
+> - Michael Spivak, _Calculus_ (1967)
 
 ## Overview
 
-The derivative formalizes the intuition of instantaneous rate of change. Where a limit asks "what value does $f(x)$ approach?", a derivative asks "how fast is $f$ changing right now?" This single idea — the slope of the tangent line, the instantaneous velocity, the marginal cost — is the load-bearing concept of all continuous optimization.
+The derivative formalizes the intuition of instantaneous rate of change. Where a limit asks "what value does $f(x)$ approach?", a derivative asks "how fast is $f$ changing right now?" This single idea - the slope of the tangent line, the instantaneous velocity, the marginal cost - is the load-bearing concept of all continuous optimization.
 
-In machine learning, every gradient computation is a derivative. The backpropagation algorithm is the chain rule applied systematically to a computation graph. The vanishing gradient problem is a consequence of activation function derivatives approaching zero. The Adam optimizer's adaptive learning rates are functions of accumulated squared derivatives. Understanding derivatives at the mathematical level — not just as "the thing PyTorch computes" — is essential for debugging, designing, and innovating in modern AI.
+In machine learning, every gradient computation is a derivative. The backpropagation algorithm is the chain rule applied systematically to a computation graph. The vanishing gradient problem is a consequence of activation function derivatives approaching zero. The Adam optimizer's adaptive learning rates are functions of accumulated squared derivatives. Understanding derivatives at the mathematical level - not just as "the thing PyTorch computes" - is essential for debugging, designing, and innovating in modern AI.
 
 This section develops single-variable derivatives from the limit definition through all standard rules, applies them to activation functions and computation graphs, and connects numerical differentiation to practical gradient checking.
 
 ## Prerequisites
 
-- **Limits and continuity** — [§04/01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md): ε-δ definition, limit laws, continuity
+- **Limits and continuity** - [04/01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md): epsilon-delta definition, limit laws, continuity
 - **Functions**: domain, range, composition, inverse
 - **Algebra**: polynomial manipulation, exponential and logarithmic identities
 - **Trigonometry**: $\sin x$, $\cos x$ and their basic identities
@@ -27,7 +27,7 @@ This section develops single-variable derivatives from the limit definition thro
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive: derivative definition, rules, activation functions, backprop, numerical differentiation |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from power rule to backpropagation and gradient checking |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from power rule to backpropagation and gradient checking |
 
 ## Learning Objectives
 
@@ -107,41 +107,41 @@ After completing this section, you will be able to:
 Consider a car's position $s(t)$ at time $t$. The **average velocity** over the interval $[t, t+h]$ is:
 $$\bar{v} = \frac{s(t+h) - s(t)}{h}$$
 
-As $h \to 0$, this average approaches the **instantaneous velocity** at time $t$. That limit — if it exists — is the derivative $s'(t)$.
+As $h \to 0$, this average approaches the **instantaneous velocity** at time $t$. That limit - if it exists - is the derivative $s'(t)$.
 
 Geometrically, the average velocity is the slope of a **secant line** through $(t, s(t))$ and $(t+h, s(t+h))$. As $h \to 0$, the secant approaches the **tangent line** at $(t, s(t))$.
 
 ```
 DERIVATIVE: FROM SECANT TO TANGENT
-════════════════════════════════════════════════════════════════════════
+
 
   f(x)
-    │                         ● (x+h, f(x+h))
-    │                       ╱ |
-    │                     ╱   |
-    │           ●───────╱─────┘   secant slope = [f(x+h)-f(x)]/h
-    │         ╱ (x, f(x))
-    │       ╱
-    │     ╱ ← tangent line at x (slope = f'(x))
-    └────────────────────────────────────→  x
+                              (x+h, f(x+h))
+                            |
+                            |
+                  secant slope = [f(x+h)-f(x)]/h
+              (x, f(x))
+           
+          <- tangent line at x (slope = f'(x))
+    ->  x
               x       x+h
 
-  As h → 0: secant → tangent, average rate → instantaneous rate.
+  As h -> 0: secant -> tangent, average rate -> instantaneous rate.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 The derivative measures **sensitivity**: how much does output change per unit change in input? If $f'(a) = 5$, a small nudge $\delta$ in input produces a change of approximately $5\delta$ in output.
 
 ### 1.2 Historical Motivation
 
-The derivative was invented twice — independently and almost simultaneously — by two of history's greatest mathematicians, triggering a bitter priority dispute that divided European mathematics for a generation.
+The derivative was invented twice - independently and almost simultaneously - by two of history's greatest mathematicians, triggering a bitter priority dispute that divided European mathematics for a generation.
 
-**Isaac Newton (1665–1666)** developed "the method of fluxions" during the Great Plague, when Cambridge was closed and Newton worked alone at Woolsthorpe Manor. He called the derivative a "fluxion" — the rate of flow of a "fluent" quantity. He used the notation $\dot{x}$ (dot notation still used in physics). Newton did not publish for decades.
+**Isaac Newton (1665-1666)** developed "the method of fluxions" during the Great Plague, when Cambridge was closed and Newton worked alone at Woolsthorpe Manor. He called the derivative a "fluxion" - the rate of flow of a "fluent" quantity. He used the notation $\dot{x}$ (dot notation still used in physics). Newton did not publish for decades.
 
 **Gottfried Wilhelm Leibniz (1675)** independently developed calculus in Paris, motivated by geometric problems. He introduced the notation $dy/dx$ and $\int$ (still universal today). He published first, in 1684.
 
-The Royal Society's 1713 judgment in favor of Newton — almost certainly biased — poisoned British-Continental mathematical relations for over a century, isolating British mathematics from advances made by the Bernoullis, Euler, and Lagrange.
+The Royal Society's 1713 judgment in favor of Newton - almost certainly biased - poisoned British-Continental mathematical relations for over a century, isolating British mathematics from advances made by the Bernoullis, Euler, and Lagrange.
 
 | Year | Event |
 |------|-------|
@@ -151,7 +151,7 @@ The Royal Society's 1713 judgment in favor of Newton — almost certainly biased
 | 1687 | Newton publishes Principia (uses fluxions implicitly) |
 | 1713 | Royal Society (controlled by Newton) rules for Newton |
 | 1821 | Cauchy formalizes with limits (modern foundation) |
-| 1861 | Weierstrass gives ε-δ definition |
+| 1861 | Weierstrass gives epsilon-delta definition |
 
 **Lagrange (1797)** introduced the prime notation $f'(x)$ and attempted an algebraic foundation via power series. **Cauchy (1821)** finally gave the limit-based definition we use today.
 
@@ -159,13 +159,13 @@ The Royal Society's 1713 judgment in favor of Newton — almost certainly biased
 
 Every parameter update in every gradient-based learning algorithm is computed via derivatives.
 
-**Backpropagation** (Rumelhart, Hinton, Williams, 1986) is the chain rule applied to a computation graph. Given a loss $\mathcal{L}$ and parameters $\theta_1, \ldots, \theta_n$, the update $\theta_i \leftarrow \theta_i - \alpha \partial\mathcal{L}/\partial\theta_i$ requires computing all partial derivatives efficiently — which backprop does in $O(\text{forward pass})$ time.
+**Backpropagation** (Rumelhart, Hinton, Williams, 1986) is the chain rule applied to a computation graph. Given a loss $\mathcal{L}$ and parameters $\theta_1, \ldots, \theta_n$, the update $\theta_i \leftarrow \theta_i - \alpha \partial\mathcal{L}/\partial\theta_i$ requires computing all partial derivatives efficiently - which backprop does in $O(\text{forward pass})$ time.
 
-**Vanishing gradients** (Hochreiter, 1991; Hochreiter & Schmidhuber, 1997): sigmoid activations have $\sigma'(x) \leq 1/4$. In a 20-layer network, the chain rule multiplies 20 such factors: $(1/4)^{20} \approx 10^{-12}$. Early layers receive effectively zero gradient — they cannot learn. The fix (ReLU, residual connections, layer norm) is entirely about derivative behavior.
+**Vanishing gradients** (Hochreiter, 1991; Hochreiter & Schmidhuber, 1997): sigmoid activations have $\sigma'(x) \leq 1/4$. In a 20-layer network, the chain rule multiplies 20 such factors: $(1/4)^{20} \approx 10^{-12}$. Early layers receive effectively zero gradient - they cannot learn. The fix (ReLU, residual connections, layer norm) is entirely about derivative behavior.
 
 **Adam optimizer** (Kingma & Ba, 2014): the adaptive learning rate $\alpha/(\sqrt{\hat{v}_t} + \varepsilon)$ where $\hat{v}_t$ is the exponential moving average of squared gradients $(\partial\mathcal{L}/\partial\theta)^2$. Every component is derivative-driven.
 
-**Neural architecture search, meta-learning, differentiable programming**: modern AI increasingly treats the architecture itself as differentiable — requiring derivatives through discrete operations via straight-through estimators, Gumbel-softmax, and continuous relaxations.
+**Neural architecture search, meta-learning, differentiable programming**: modern AI increasingly treats the architecture itself as differentiable - requiring derivatives through discrete operations via straight-through estimators, Gumbel-softmax, and continuous relaxations.
 
 ---
 
@@ -173,7 +173,7 @@ Every parameter update in every gradient-based learning algorithm is computed vi
 
 ### 2.1 The Derivative as a Limit
 
-> **Recall:** The limit $\lim_{x \to a} f(x)$ was defined rigorously in [§01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md#2-formal-definitions). The derivative is a specific instance of that definition.
+> **Recall:** The limit $\lim_{x \to a} f(x)$ was defined rigorously in [01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md#2-formal-definitions). The derivative is a specific instance of that definition.
 
 **Definition (Derivative).** The **derivative** of $f$ at $a$, written $f'(a)$, is:
 $$f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}$$
@@ -192,7 +192,7 @@ $$f'(a) = \lim_{h \to 0} \frac{\sqrt{a+h} - \sqrt{a}}{h} \cdot \frac{\sqrt{a+h}+
 **Example: $f(x) = e^x$.**
 $$f'(a) = \lim_{h \to 0} \frac{e^{a+h} - e^a}{h} = e^a \lim_{h \to 0} \frac{e^h - 1}{h} = e^a \cdot 1 = e^a$$
 
-using the fundamental limit $\lim_{h\to 0}(e^h - 1)/h = 1$ from [§01 §3.2](../01-Limits-and-Continuity/notes.md#32-exponential-and-logarithmic-limits). So $(e^x)' = e^x$ — the exponential is its own derivative.
+using the fundamental limit $\lim_{h\to 0}(e^h - 1)/h = 1$ from [01 3.2](../01-Limits-and-Continuity/notes.md#32-exponential-and-logarithmic-limits). So $(e^x)' = e^x$ - the exponential is its own derivative.
 
 **The derivative as a function.** If $f$ is differentiable at every $x$ in its domain, the rule $x \mapsto f'(x)$ defines a new function $f': \mathbb{R} \to \mathbb{R}$ called the **derivative function**.
 
@@ -207,30 +207,30 @@ So $\lim_{h\to 0} f(a+h) = f(a)$. $\square$
 **The converse is false**: continuity does not imply differentiability.
 
 **Counterexamples:**
-- $f(x) = \lvert x \rvert$: continuous everywhere, but at $x=0$: left derivative $= -1$, right derivative $= +1$ — not equal, so not differentiable
-- $f(x) = x^{1/3}$: continuous at $0$, but $\lvert h^{1/3} \rvert / \lvert h \rvert = \lvert h \rvert^{-2/3} \to \infty$ — vertical tangent, not differentiable
-- Weierstrass function (1872): continuous everywhere, differentiable nowhere — the first published example showing the two concepts are genuinely distinct
+- $f(x) = \lvert x \rvert$: continuous everywhere, but at $x=0$: left derivative $= -1$, right derivative $= +1$ - not equal, so not differentiable
+- $f(x) = x^{1/3}$: continuous at $0$, but $\lvert h^{1/3} \rvert / \lvert h \rvert = \lvert h \rvert^{-2/3} \to \infty$ - vertical tangent, not differentiable
+- Weierstrass function (1872): continuous everywhere, differentiable nowhere - the first published example showing the two concepts are genuinely distinct
 
 ```
 DIFFERENTIABILITY VS. CONTINUITY
-════════════════════════════════════════════════════════════════════════
+
 
   All differentiable functions          Continuous functions
-  ┌─────────────────────────────────────────────────────────────┐
-  │                                                             │
-  │   ┌─────────────────────┐                                   │
-  │   │  Differentiable      │   |x|  x^{1/3}  Weierstrass fn  │
-  │   │  (smooth, no kinks)  │                                   │
-  │   └─────────────────────┘                                   │
-  └─────────────────────────────────────────────────────────────┘
+  
+                                                               
+                                        
+       Differentiable         |x|  x^{1/3}  Weierstrass fn  
+       (smooth, no kinks)                                     
+                                        
+  
 
-  Differentiable ⟹ Continuous    (proven above)
-  Continuous ⟹ Differentiable    FALSE (counterexamples above)
+  Differentiable  Continuous    (proven above)
+  Continuous  Differentiable    FALSE (counterexamples above)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-**For AI:** ReLU$(x) = \max(0,x)$ is continuous everywhere but not differentiable at $x=0$ (left derivative $0$, right derivative $1$). In practice, we use a **subgradient** — any value in $[0,1]$ at $x=0$, typically $0$ or $1/2$. Training converges despite this because $P(\text{activation} = 0) = 0$ for continuously distributed pre-activations.
+**For AI:** ReLU$(x) = \max(0,x)$ is continuous everywhere but not differentiable at $x=0$ (left derivative $0$, right derivative $1$). In practice, we use a **subgradient** - any value in $[0,1]$ at $x=0$, typically $0$ or $1/2$. Training converges despite this because $P(\text{activation} = 0) = 0$ for continuously distributed pre-activations.
 
 ### 2.3 Notational Systems
 
@@ -246,7 +246,7 @@ Four equivalent notations coexist; knowing all is essential for reading across f
 **Leibniz notation** is the most powerful for computation because it makes the chain rule look like fraction cancellation:
 $$\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$$
 
-**Higher order:** $f''(x) = \frac{d^2y}{dx^2} = \frac{d}{dx}\!\left(\frac{dy}{dx}\right)$. Note: $\left(\frac{dy}{dx}\right)^2 \neq \frac{d^2y}{dx^2}$ — a common error.
+**Higher order:** $f''(x) = \frac{d^2y}{dx^2} = \frac{d}{dx}\!\left(\frac{dy}{dx}\right)$. Note: $\left(\frac{dy}{dx}\right)^2 \neq \frac{d^2y}{dx^2}$ - a common error.
 
 ### 2.4 One-Sided Derivatives
 
@@ -254,7 +254,7 @@ $$\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$$
 
 $f$ is differentiable at $a$ if and only if both one-sided derivatives exist and are equal: $f'_-(a) = f'_+(a)$.
 
-**For AI — ReLU subgradient:** At $x = 0$: $\text{ReLU}'_-(0) = 0$ and $\text{ReLU}'_+(0) = 1$. Since $0 \neq 1$, ReLU is not differentiable at $0$. Frameworks like PyTorch use the convention $\text{ReLU}'(0) = 0$ (the left derivative), which works in practice.
+**For AI - ReLU subgradient:** At $x = 0$: $\text{ReLU}'_-(0) = 0$ and $\text{ReLU}'_+(0) = 1$. Since $0 \neq 1$, ReLU is not differentiable at $0$. Frameworks like PyTorch use the convention $\text{ReLU}'(0) = 0$ (the left derivative), which works in practice.
 
 ---
 
@@ -283,7 +283,7 @@ $$\frac{d}{dx}x^{1/2} = \frac{1}{2}x^{-1/2}, \quad \frac{d}{dx}x^{-1} = -x^{-2},
 
 **Constant-Multiple Rule:** $(cf)' = cf'$
 
-Together: $(af + bg)' = af' + bg'$ — differentiation is **linear**.
+Together: $(af + bg)' = af' + bg'$ - differentiation is **linear**.
 
 **Consequence:** Differentiating polynomials term by term:
 $$\frac{d}{dx}(3x^4 - 2x^2 + 7x - 1) = 12x^3 - 4x + 7$$
@@ -320,7 +320,7 @@ $$\frac{d}{dx}\frac{\sin x}{x} = \frac{x\cos x - \sin x}{x^2}$$
 
 ### 3.5 Elementary Function Derivatives
 
-**Core table — memorize these:**
+**Core table - memorize these:**
 
 | Function | Derivative | Notes |
 |----------|-----------|-------|
@@ -336,7 +336,7 @@ $$\frac{d}{dx}\frac{\sin x}{x} = \frac{x\cos x - \sin x}{x^2}$$
 
 **Proof: $(\ln x)' = 1/x$.**
 $$\lim_{h\to 0} \frac{\ln(x+h) - \ln x}{h} = \lim_{h\to 0} \frac{1}{h}\ln\!\left(1 + \frac{h}{x}\right) = \frac{1}{x}\lim_{u\to 0}\frac{\ln(1+u)}{u} = \frac{1}{x} \cdot 1 = \frac{1}{x}$$
-using $\lim_{u\to 0}\ln(1+u)/u = 1$ (from [§01 §3.2](../01-Limits-and-Continuity/notes.md)). $\square$
+using $\lim_{u\to 0}\ln(1+u)/u = 1$ (from [01 3.2](../01-Limits-and-Continuity/notes.md)). $\square$
 
 ---
 
@@ -344,7 +344,7 @@ using $\lim_{u\to 0}\ln(1+u)/u = 1$ (from [§01 §3.2](../01-Limits-and-Continui
 
 ### 4.1 Statement and Proof
 
-The chain rule handles composites — functions of functions. If $y = f(g(x))$, then:
+The chain rule handles composites - functions of functions. If $y = f(g(x))$, then:
 
 $$\frac{dy}{dx} = f'(g(x)) \cdot g'(x) \qquad \text{(Leibniz: } \frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}\text{)}$$
 
@@ -365,7 +365,7 @@ $$y' = e^{-x^2/2} \cdot (-x) = -x\,e^{-x^2/2}$$
 **Example 3 (triple composition).** $y = \ln(\sin(e^x))$.
 $$y' = \frac{1}{\sin(e^x)} \cdot \cos(e^x) \cdot e^x = \frac{e^x \cos(e^x)}{\sin(e^x)}$$
 
-The pattern: differentiate outer, keep inner untouched, multiply by derivative of inner — repeat inward.
+The pattern: differentiate outer, keep inner untouched, multiply by derivative of inner - repeat inward.
 
 ### 4.3 Chain Rule and Backpropagation
 
@@ -373,9 +373,9 @@ Every neural network is a deeply composed function:
 
 $$\mathcal{L} = \ell(f_n(f_{n-1}(\cdots f_1(\mathbf{x})\cdots)))$$
 
-Backpropagation **is** the chain rule applied to a computation graph. The gradient of the loss with respect to any parameter is a product of local derivatives along the path from that parameter to the output. The chain rule guarantees this product equals the true gradient — the theoretical justification for gradient-based learning.
+Backpropagation **is** the chain rule applied to a computation graph. The gradient of the loss with respect to any parameter is a product of local derivatives along the path from that parameter to the output. The chain rule guarantees this product equals the true gradient - the theoretical justification for gradient-based learning.
 
-> **Forward reference.** The multivariable chain rule (Jacobians, backpropagation for vector-valued functions) is the canonical topic of [§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md). Here we develop the single-variable foundation only.
+> **Forward reference.** The multivariable chain rule (Jacobians, backpropagation for vector-valued functions) is the canonical topic of [05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md). Here we develop the single-variable foundation only.
 
 
 ---
@@ -398,7 +398,7 @@ $$\frac{d}{dx}[x^2 + y^2] = \frac{d}{dx}[1] \implies 2x + 2y\frac{dy}{dx} = 0 \i
 Let $y = \arctan x$, so $\tan y = x$. Differentiate implicitly:
 $$\sec^2 y \cdot \frac{dy}{dx} = 1 \implies \frac{dy}{dx} = \cos^2 y = \frac{1}{1 + \tan^2 y} = \frac{1}{1+x^2}. \quad \square$$
 
-**For AI:** Implicit differentiation underlies the derivation of softmax Jacobians and the inverse function theorem applied to normalizing flows — generative models that learn invertible mappings.
+**For AI:** Implicit differentiation underlies the derivation of softmax Jacobians and the inverse function theorem applied to normalizing flows - generative models that learn invertible mappings.
 
 ### 5.2 Related Rates
 
@@ -408,7 +408,7 @@ Related rates problems ask: if two quantities are linked by an equation, how fas
 
 $$\frac{d\mathcal{L}}{dz} = \frac{d\mathcal{L}}{dp} \cdot \frac{dp}{dz} = \frac{-1}{p} \cdot p(1-p) = -(1-p) = p - 1$$
 
-This is the gradient passed to the logit layer during backpropagation — related rates in disguise.
+This is the gradient passed to the logit layer during backpropagation - related rates in disguise.
 
 ### 5.3 Linear Approximation
 
@@ -418,7 +418,7 @@ $$f(x) \approx f(a) + f'(a)(x-a)$$
 
 This **linearization** is the first-order Taylor approximation. It underlies gradient descent: the loss surface near $\theta$ looks like a hyperplane, and gradient descent steps in the direction of steepest descent on that plane.
 
-> **Forward reference.** The full Taylor series (all higher-order terms, remainder, convergence) is the canonical topic of [§04-Series-and-Sequences](../04-Series-and-Sequences/notes.md).
+> **Forward reference.** The full Taylor series (all higher-order terms, remainder, convergence) is the canonical topic of [04-Series-and-Sequences](../04-Series-and-Sequences/notes.md).
 
 
 ---
@@ -436,26 +436,26 @@ Higher-order derivatives: $f^{(n)}(x) = \frac{d^n f}{dx^n}$.
 **Geometric meaning:**
 - $f'(x) > 0$: $f$ is increasing at $x$
 - $f'(x) < 0$: $f$ is decreasing at $x$
-- $f''(x) > 0$: $f'$ is increasing → $f$ is **concave up** (bowl shape ∪)
-- $f''(x) < 0$: $f'$ is decreasing → $f$ is **concave down** (dome shape ∩)
+- $f''(x) > 0$: $f'$ is increasing -> $f$ is **concave up** (bowl shape )
+- $f''(x) < 0$: $f'$ is decreasing -> $f$ is **concave down** (dome shape )
 
 ### 6.2 Inflection Points
 
-A point $x_0$ is an **inflection point** if $f''$ changes sign at $x_0$. The concavity flips — from ∪ to ∩ or vice versa. Necessary condition: $f''(x_0) = 0$ (but not sufficient — check sign change).
+A point $x_0$ is an **inflection point** if $f''$ changes sign at $x_0$. The concavity flips - from  to  or vice versa. Necessary condition: $f''(x_0) = 0$ (but not sufficient - check sign change).
 
 **Example.** $f(x) = x^3$: $f''(x) = 6x$. Changes sign at $x = 0$: inflection point.
-**Non-example.** $f(x) = x^4$: $f''(x) = 12x^2 \geq 0$, equals zero at $x=0$ but no sign change — not an inflection point.
+**Non-example.** $f(x) = x^4$: $f''(x) = 12x^2 \geq 0$, equals zero at $x=0$ but no sign change - not an inflection point.
 
 ### 6.3 Significance for Optimization
 
 The second derivative determines the local curvature of the loss surface:
 - **Positive curvature** ($f'' > 0$): minimum is possible here; gradient descent converges toward it.
 - **Negative curvature** ($f'' < 0$): maximum; gradient descent moves away from saddle regions.
-- **Zero curvature**: saddle point candidate — common in high-dimensional loss landscapes.
+- **Zero curvature**: saddle point candidate - common in high-dimensional loss landscapes.
 
-The **Hessian** (matrix of second partial derivatives, covered in [§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md)) generalizes $f''$ to multi-parameter models. Positive definite Hessians certify local minima.
+The **Hessian** (matrix of second partial derivatives, covered in [05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md)) generalizes $f''$ to multi-parameter models. Positive definite Hessians certify local minima.
 
-> **Recall:** Positive definite matrices were defined in [§07-Positive-Definite-Matrices](../../03-Advanced-Linear-Algebra/07-Positive-Definite-Matrices/notes.md) — a matrix $H$ is PD iff $\mathbf{v}^\top H \mathbf{v} > 0$ for all nonzero $\mathbf{v}$.
+> **Recall:** Positive definite matrices were defined in [07-Positive-Definite-Matrices](../../03-Advanced-Linear-Algebra/07-Positive-Definite-Matrices/notes.md) - a matrix $H$ is PD iff $\mathbf{v}^\top H \mathbf{v} > 0$ for all nonzero $\mathbf{v}$.
 
 ### 6.4 Taylor Coefficients Foreshadowed
 
@@ -463,9 +463,9 @@ The $n$-th derivative at a point gives the $n$-th Taylor coefficient:
 
 $$a_n = \frac{f^{(n)}(a)}{n!}$$
 
-So $f''$ controls the quadratic correction to the linear approximation — exactly the second-order term Adam exploits by tracking gradient variance as a proxy for curvature.
+So $f''$ controls the quadratic correction to the linear approximation - exactly the second-order term Adam exploits by tracking gradient variance as a proxy for curvature.
 
-> **Forward reference.** The full derivation of Taylor series using higher-order derivatives is in [§04-Series-and-Sequences](../04-Series-and-Sequences/notes.md).
+> **Forward reference.** The full derivation of Taylor series using higher-order derivatives is in [04-Series-and-Sequences](../04-Series-and-Sequences/notes.md).
 
 
 ---
@@ -482,21 +482,21 @@ A **critical point** of $f$ is any $x_0$ where $f'(x_0) = 0$ or $f'(x_0)$ does n
 - No sign change: saddle point / inflection
 
 **Example.** $f(x) = x^3 - 3x$. Critical points: $f'(x) = 3x^2 - 3 = 0 \Rightarrow x = \pm 1$.
-- $x = -1$: $f'$ changes $+ \to -$ → local max, $f(-1) = 2$
-- $x = 1$: $f'$ changes $- \to +$ → local min, $f(1) = -2$
+- $x = -1$: $f'$ changes $+ \to -$ -> local max, $f(-1) = 2$
+- $x = 1$: $f'$ changes $- \to +$ -> local min, $f(1) = -2$
 
 ### 7.2 Second Derivative Test
 
 If $f'(x_0) = 0$:
 - $f''(x_0) > 0$: local **minimum**
 - $f''(x_0) < 0$: local **maximum**
-- $f''(x_0) = 0$: inconclusive — higher-order test needed
+- $f''(x_0) = 0$: inconclusive - higher-order test needed
 
-**For AI:** In a scalar model, the second derivative test tells us whether a parameter has converged to a local minimum or is at a saddle. In neural networks this extends to the Hessian eigenspectrum — if all eigenvalues are positive, we've found a local minimum.
+**For AI:** In a scalar model, the second derivative test tells us whether a parameter has converged to a local minimum or is at a saddle. In neural networks this extends to the Hessian eigenspectrum - if all eigenvalues are positive, we've found a local minimum.
 
 ### 7.3 Global Extrema on Closed Intervals
 
-> **Recall:** The Extreme Value Theorem (EVT) from [§01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md) guarantees that a continuous function on $[a,b]$ attains its maximum and minimum.
+> **Recall:** The Extreme Value Theorem (EVT) from [01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md) guarantees that a continuous function on $[a,b]$ attains its maximum and minimum.
 
 **Algorithm for global extrema on $[a,b]$:**
 1. Find all critical points in $(a,b)$ where $f'(x) = 0$ or $f'$ undefined.
@@ -513,16 +513,16 @@ Geometrically: there is a point where the tangent slope equals the average (seca
 
 **Proof.** Apply Rolle's Theorem (MVT with $f(a) = f(b)$) to $g(x) = f(x) - \frac{f(b)-f(a)}{b-a}(x-a)$.
 
-**For optimization:** The MVT bounds how much a function can change along a gradient descent path. If $|f'| \leq L$ everywhere, then $|f(x) - f(y)| \leq L|x-y|$ — a Lipschitz bound used to set safe learning rates.
+**For optimization:** The MVT bounds how much a function can change along a gradient descent path. If $|f'| \leq L$ everywhere, then $|f(x) - f(y)| \leq L|x-y|$ - a Lipschitz bound used to set safe learning rates.
 
-> **Forward reference.** Critical point analysis extends to multivariable functions via gradient = 0 and Hessian definiteness in [§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) and [§08-Optimization](../../08-Optimization/README.md).
+> **Forward reference.** Critical point analysis extends to multivariable functions via gradient = 0 and Hessian definiteness in [05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) and [08-Optimization](../../08-Optimization/README.md).
 
 
 ---
 
 ## 8. Activation Function Derivatives
 
-> **Recall:** Continuity of activation functions (whether ReLU, GELU, sigmoid are continuous at the origin) was analyzed in [§01-Limits-and-Continuity §10](../01-Limits-and-Continuity/notes.md). Here we derive their **derivatives** — essential for backpropagation.
+> **Recall:** Continuity of activation functions (whether ReLU, GELU, sigmoid are continuous at the origin) was analyzed in [01-Limits-and-Continuity 10](../01-Limits-and-Continuity/notes.md). Here we derive their **derivatives** - essential for backpropagation.
 
 ### 8.1 Sigmoid
 
@@ -532,9 +532,9 @@ $$\sigma(x) = \frac{1}{1+e^{-x}}$$
 
 $$\sigma'(x) = \frac{e^{-x}}{(1+e^{-x})^2} = \sigma(x)(1-\sigma(x))$$
 
-This self-referential form means the gradient can be computed from the forward-pass output — no second exponential needed. **Peak value:** $\sigma'(0) = 1/4$.
+This self-referential form means the gradient can be computed from the forward-pass output - no second exponential needed. **Peak value:** $\sigma'(0) = 1/4$.
 
-**Vanishing gradient.** As $|x| \to \infty$: $\sigma(x) \to 0$ or $1$, so $\sigma'(x) \to 0$. Products of many near-zero gradients → exponential decay through layers.
+**Vanishing gradient.** As $|x| \to \infty$: $\sigma(x) \to 0$ or $1$, so $\sigma'(x) \to 0$. Products of many near-zero gradients -> exponential decay through layers.
 
 ### 8.2 Tanh
 
@@ -544,13 +544,13 @@ $$\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}}$$
 
 $$\tanh'(x) = 1 - \tanh^2(x) = \text{sech}^2(x)$$
 
-**Peak value:** $\tanh'(0) = 1$ — double that of sigmoid. Still vanishes for large $|x|$.
+**Peak value:** $\tanh'(0) = 1$ - double that of sigmoid. Still vanishes for large $|x|$.
 
 ### 8.3 ReLU and Variants
 
 $$\text{ReLU}(x) = \max(0, x), \qquad \text{ReLU}'(x) = \begin{cases} 1 & x > 0 \\ 0 & x < 0 \end{cases}$$
 
-Undefined at $x = 0$; in practice subgradient $0$ is used. **No vanishing gradient for active units** ($x > 0$) — the key advantage over sigmoid/tanh.
+Undefined at $x = 0$; in practice subgradient $0$ is used. **No vanishing gradient for active units** ($x > 0$) - the key advantage over sigmoid/tanh.
 
 **Leaky ReLU:** $\text{LReLU}(x) = \max(\alpha x, x)$ with $\alpha \approx 0.01$, derivative $\alpha$ for $x < 0$.
 
@@ -573,7 +573,7 @@ where $\phi$ is the standard normal PDF. GELU is smooth everywhere, approximatin
 | Sigmoid $\sigma$ | $1/(1+e^{-x})$ | $\sigma(1-\sigma)$ | $(0, 1/4]$ | Logistic regression, old RNNs |
 | Tanh | $(e^x-e^{-x})/(e^x+e^{-x})$ | $1-\tanh^2$ | $(0,1]$ | LSTMs, NLP |
 | ReLU | $\max(0,x)$ | $\mathbf{1}[x>0]$ | $\{0,1\}$ | CNNs, ResNets |
-| GELU | $x\Phi(x)$ | $\Phi(x)+x\phi(x)$ | $\approx(−0.17,1]$ | Transformers |
+| GELU | $x\Phi(x)$ | $\Phi(x)+x\phi(x)$ | $\approx(-0.17,1]$ | Transformers |
 | Softplus | $\ln(1+e^x)$ | $\sigma(x)$ | $(0,1)$ | Smooth ReLU |
 
 
@@ -581,7 +581,7 @@ where $\phi$ is the standard normal PDF. GELU is smooth everywhere, approximatin
 
 ## 9. Numerical Differentiation
 
-> **Recall:** §01 previewed the gradient as a limit in [§01 §11](../01-Limits-and-Continuity/notes.md). Here we develop the full numerical treatment — the canonical home for this topic.
+> **Recall:** 01 previewed the gradient as a limit in [01 11](../01-Limits-and-Continuity/notes.md). Here we develop the full numerical treatment - the canonical home for this topic.
 
 ### 9.1 Finite Difference Approximations
 
@@ -604,8 +604,8 @@ $$f''(x) \approx \frac{f(x+h) - 2f(x) + f(x-h)}{h^2}$$
 ### 9.2 Optimal Step Size
 
 Two competing errors:
-- **Truncation error**: $O(h^2)$ — decreases as $h \to 0$
-- **Round-off error**: floating-point arithmetic contributes $\varepsilon_{\text{mach}}/h$ — increases as $h \to 0$
+- **Truncation error**: $O(h^2)$ - decreases as $h \to 0$
+- **Round-off error**: floating-point arithmetic contributes $\varepsilon_{\text{mach}}/h$ - increases as $h \to 0$
 
 Balancing these (minimize total error $h^2 + \varepsilon_{\text{mach}}/h$) gives optimal:
 
@@ -635,8 +635,8 @@ Libraries like PyTorch provide `torch.autograd.gradcheck()` implementing exactly
 
 **Numerical differentiation** approximates derivatives; **automatic differentiation** (AD) computes them exactly (up to floating-point) by applying the chain rule to elementary operations in forward or reverse mode.
 
-- **Forward mode AD**: accumulates derivative alongside function evaluation — efficient for few inputs, many outputs
-- **Reverse mode AD** (backpropagation): accumulates gradient from output backward — efficient for many inputs, one output (the loss)
+- **Forward mode AD**: accumulates derivative alongside function evaluation - efficient for few inputs, many outputs
+- **Reverse mode AD** (backpropagation): accumulates gradient from output backward - efficient for many inputs, one output (the loss)
 
 All modern deep learning frameworks (PyTorch, JAX, TensorFlow) implement reverse-mode AD. Numerical differentiation is used for checking, not training.
 
@@ -649,36 +649,36 @@ All modern deep learning frameworks (PyTorch, JAX, TensorFlow) implement reverse
 |---|---------|---------------|-----|
 | 1 | $(fg)' = f'g'$ | Product rule is $(fg)' = f'g + fg'$ | Always use product rule |
 | 2 | $(f/g)' = f'/g'$ | Quotient rule is $(f'g - fg')/g^2$ | Derive from quotient rule |
-| 3 | Forgetting chain rule: $(e^{x^2})' = e^{x^2}$ | Outer function derivative × inner derivative needed | $(e^{x^2})' = 2x\,e^{x^2}$ |
+| 3 | Forgetting chain rule: $(e^{x^2})' = e^{x^2}$ | Outer function derivative x inner derivative needed | $(e^{x^2})' = 2x\,e^{x^2}$ |
 | 4 | $(\ln x)' = 1/\ln x$ | Confused with change-of-base; correct is $1/x$ | Memorize: $(\ln x)' = 1/x$ |
 | 5 | $(\sin^2 x)' = 2\sin x$ | Missing chain rule: multiply by $(\sin x)' = \cos x$ | $(\sin^2 x)' = 2\sin x\cos x = \sin 2x$ |
-| 6 | Differentiable implies continuous — false direction | True direction: differentiable → continuous (not converse) | ReLU is continuous but not differentiable at 0 |
-| 7 | $f''(x_0) = 0$ means saddle/inflection | Not sufficient — need sign change of $f''$ | Check $f''$ sign on both sides |
-| 8 | Optimal $h$ for finite differences is $h = 10^{-16}$ | Catastrophic cancellation — round-off dominates | Use $h \approx 10^{-5}$ for float64 |
-| 9 | Applying L'Hôpital when limit is not $0/0$ or $\infty/\infty$ | L'Hôpital only applies to indeterminate forms | Check form first |
+| 6 | Differentiable implies continuous - false direction | True direction: differentiable -> continuous (not converse) | ReLU is continuous but not differentiable at 0 |
+| 7 | $f''(x_0) = 0$ means saddle/inflection | Not sufficient - need sign change of $f''$ | Check $f''$ sign on both sides |
+| 8 | Optimal $h$ for finite differences is $h = 10^{-16}$ | Catastrophic cancellation - round-off dominates | Use $h \approx 10^{-5}$ for float64 |
+| 9 | Applying L'Hpital when limit is not $0/0$ or $\infty/\infty$ | L'Hpital only applies to indeterminate forms | Check form first |
 | 10 | Chain rule direction error: $(f \circ g)' = f' \circ g'$ | Must evaluate $f'$ at $g(x)$: $(f\circ g)'(x) = f'(g(x))g'(x)$ | Track composition carefully |
 | 11 | Assuming $\text{ReLU}'(0) = 1$ or $0.5$ | ReLU is not differentiable at 0; subgradient $0$ is standard | Use subgradient convention |
-| 12 | Gradient of $\|Ax - b\|^2$ as $2A(Ax-b)$ | Matrix derivative rules needed; correct form is $2A^\top(Ax-b)$ | See [§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) |
+| 12 | Gradient of $\|Ax - b\|^2$ as $2A(Ax-b)$ | Matrix derivative rules needed; correct form is $2A^\top(Ax-b)$ | See [05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) |
 
 ---
 
 ## 11. Exercises
 
-**Exercise 1 ★ — Basic rules.** Differentiate: (a) $f(x) = 3x^4 - 2x^2 + 7$, (b) $g(x) = \sqrt{x}\,e^x$, (c) $h(x) = \frac{x^2+1}{x-1}$.
+**Exercise 1  - Basic rules.** Differentiate: (a) $f(x) = 3x^4 - 2x^2 + 7$, (b) $g(x) = \sqrt{x}\,e^x$, (c) $h(x) = \frac{x^2+1}{x-1}$.
 
-**Exercise 2 ★ — Chain rule.** Differentiate: (a) $\sin(x^3)$, (b) $\ln(\cos x)$, (c) $(1+x^2)^{10}$, (d) $e^{\sin x}$.
+**Exercise 2  - Chain rule.** Differentiate: (a) $\sin(x^3)$, (b) $\ln(\cos x)$, (c) $(1+x^2)^{10}$, (d) $e^{\sin x}$.
 
-**Exercise 3 ★ — Implicit differentiation.** Given $x^3 + y^3 = 6xy$ (folium of Descartes), find $dy/dx$.
+**Exercise 3  - Implicit differentiation.** Given $x^3 + y^3 = 6xy$ (folium of Descartes), find $dy/dx$.
 
-**Exercise 4 ★★ — Activation derivatives.** (a) Derive $\sigma'(x) = \sigma(x)(1-\sigma(x))$ from scratch. (b) Verify numerically using centered differences at $x \in \{-2, 0, 2\}$ with $h = 10^{-5}$.
+**Exercise 4  - Activation derivatives.** (a) Derive $\sigma'(x) = \sigma(x)(1-\sigma(x))$ from scratch. (b) Verify numerically using centered differences at $x \in \{-2, 0, 2\}$ with $h = 10^{-5}$.
 
-**Exercise 5 ★★ — Critical points.** Find and classify all critical points of $f(x) = x^4 - 4x^3 + 6x^2$. Identify global extrema on $[-1, 4]$.
+**Exercise 5  - Critical points.** Find and classify all critical points of $f(x) = x^4 - 4x^3 + 6x^2$. Identify global extrema on $[-1, 4]$.
 
-**Exercise 6 ★★ — MVT application.** Prove that $|\sin a - \sin b| \leq |a - b|$ for all $a, b \in \mathbb{R}$ using the MVT.
+**Exercise 6  - MVT application.** Prove that $|\sin a - \sin b| \leq |a - b|$ for all $a, b \in \mathbb{R}$ using the MVT.
 
-**Exercise 7 ★★★ — Gradient checking.** Implement centered finite differences to approximate the derivative of $f(x) = x\ln(x + e^{-x})$ at $x = 1$. Compare to the analytic derivative. Experiment with $h \in \{10^{-1}, 10^{-5}, 10^{-10}, 10^{-15}\}$ and explain the behavior.
+**Exercise 7  - Gradient checking.** Implement centered finite differences to approximate the derivative of $f(x) = x\ln(x + e^{-x})$ at $x = 1$. Compare to the analytic derivative. Experiment with $h \in \{10^{-1}, 10^{-5}, 10^{-10}, 10^{-15}\}$ and explain the behavior.
 
-**Exercise 8 ★★★ — Backpropagation.** A 2-layer scalar network: $z_1 = w_1 x$, $a_1 = \sigma(z_1)$, $z_2 = w_2 a_1$, $\hat{y} = z_2$, $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$. Derive $\partial\mathcal{L}/\partial w_1$ and $\partial\mathcal{L}/\partial w_2$ using the chain rule. Verify numerically.
+**Exercise 8  - Backpropagation.** A 2-layer scalar network: $z_1 = w_1 x$, $a_1 = \sigma(z_1)$, $z_2 = w_2 a_1$, $\hat{y} = z_2$, $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$. Derive $\partial\mathcal{L}/\partial w_1$ and $\partial\mathcal{L}/\partial w_2$ using the chain rule. Verify numerically.
 
 
 ---
@@ -687,16 +687,16 @@ All modern deep learning frameworks (PyTorch, JAX, TensorFlow) implement reverse
 
 | Concept | AI/ML Impact |
 |---------|-------------|
-| Derivative definition | Formal basis of gradient — every optimizer (SGD, Adam, Adagrad) descends along $-f'(\theta)$ |
+| Derivative definition | Formal basis of gradient - every optimizer (SGD, Adam, Adagrad) descends along $-f'(\theta)$ |
 | Chain rule | Backpropagation: gradient of loss through composed layers; foundational for all neural network training |
 | Product/quotient rules | Attention score derivatives; gating mechanisms in LSTMs and GRUs |
 | Activation derivatives | $\sigma'$, ReLU', GELU' determine gradient magnitude at each neuron; control vanishing/exploding gradients |
 | Second derivative / concavity | Hessian approximations in Adam (diagonal), K-FAC (block), Shampoo (full); Newton's method in optimization |
-| Critical points | Saddle points dominate high-dimensional loss landscapes; flat minima → better generalization |
+| Critical points | Saddle points dominate high-dimensional loss landscapes; flat minima -> better generalization |
 | MVT and Lipschitz bounds | Learning rate theory: $\eta \leq 1/L$ ensures descent for $L$-smooth losses |
 | Implicit differentiation | Normalizing flows, invertible networks, implicit models (DEQ, neural ODEs) |
 | Numerical differentiation | Gradient checking in unit tests; finite-difference Hessian in small-scale studies |
-| Automatic differentiation | PyTorch `autograd`, JAX `grad`, TensorFlow `GradientTape` — all implement reverse-mode AD |
+| Automatic differentiation | PyTorch `autograd`, JAX `grad`, TensorFlow `GradientTape` - all implement reverse-mode AD |
 | Linear approximation | Gradient descent step as linear model of the loss surface near current parameters |
 | GELU derivative | Used in GPT-2, BERT, T5, and effectively every transformer post-2018 |
 
@@ -704,43 +704,43 @@ All modern deep learning frameworks (PyTorch, JAX, TensorFlow) implement reverse
 
 ## Conceptual Bridge
 
-**Looking back.** This section built on the definition of a limit ([§01](../01-Limits-and-Continuity/notes.md)) — the derivative is a limit of a difference quotient. The continuity of activation functions established in §01 is a prerequisite for their differentiability here (differentiable implies continuous, but not conversely).
+**Looking back.** This section built on the definition of a limit ([01](../01-Limits-and-Continuity/notes.md)) - the derivative is a limit of a difference quotient. The continuity of activation functions established in 01 is a prerequisite for their differentiability here (differentiable implies continuous, but not conversely).
 
-**Looking forward.** The chain rule derived here for scalar functions becomes the multivariable chain rule in [§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) — the chain rule expressed through Jacobians is the mathematical heart of backpropagation for vector-valued functions. The linear approximation introduced in §5.3 becomes the full Taylor series in [§04-Series-and-Sequences](../04-Series-and-Sequences/notes.md), which justifies optimizer update rules. Critical point analysis extends to gradient = 0 conditions in [§08-Optimization](../../08-Optimization/README.md).
+**Looking forward.** The chain rule derived here for scalar functions becomes the multivariable chain rule in [05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) - the chain rule expressed through Jacobians is the mathematical heart of backpropagation for vector-valued functions. The linear approximation introduced in 5.3 becomes the full Taylor series in [04-Series-and-Sequences](../04-Series-and-Sequences/notes.md), which justifies optimizer update rules. Critical point analysis extends to gradient = 0 conditions in [08-Optimization](../../08-Optimization/README.md).
 
 **Position in the curriculum:**
 
 ```
-CHAPTER 4 — CALCULUS FUNDAMENTALS
-════════════════════════════════════════════════════════════════════════
+CHAPTER 4 - CALCULUS FUNDAMENTALS
 
-  §01 Limits and Continuity ──────────────────────────────────────────
-         │  (limit definition, L'Hôpital, continuity of activations)
-         ▼
-  §02 Derivatives and Differentiation  ◄─── YOU ARE HERE ────────────
-         │  (rules, chain rule, activation f', numerical diff)
-         ▼
-  §03 Integration ────────────────────────────────────────────────────
-         │  (FTC links derivatives ↔ integrals)
-         ▼
-  §04 Series and Sequences ───────────────────────────────────────────
-         │  (Taylor series uses all derivatives from §02)
-         ▼
-  §05 Multivariate Calculus ──────────────────────────────────────────
+
+  01 Limits and Continuity 
+           (limit definition, L'Hpital, continuity of activations)
+         
+  02 Derivatives and Differentiation   YOU ARE HERE 
+           (rules, chain rule, activation f', numerical diff)
+         
+  03 Integration 
+           (FTC links derivatives <-> integrals)
+         
+  04 Series and Sequences 
+           (Taylor series uses all derivatives from 02)
+         
+  05 Multivariate Calculus 
          (multivariable chain rule, Jacobians, full backprop)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ---
 
-[← Back to Calculus Fundamentals](../README.md) | [Next: Integration →](../03-Integration/notes.md)
+[<- Back to Calculus Fundamentals](../README.md) | [Next: Integration ->](../03-Integration/notes.md)
 
 ---
 
-## Appendix A: Extended Worked Examples — Basic Rules
+## Appendix A: Extended Worked Examples - Basic Rules
 
-### A.1 Power Rule — Negative and Fractional Exponents
+### A.1 Power Rule - Negative and Fractional Exponents
 
 The power rule $\frac{d}{dx}x^n = nx^{n-1}$ applies to all real $n$:
 
@@ -754,7 +754,7 @@ The power rule $\frac{d}{dx}x^n = nx^{n-1}$ applies to all real $n$:
 
 For general real $n$: write $x^n = e^{n\ln x}$ and apply chain rule: $\frac{d}{dx}e^{n\ln x} = e^{n\ln x} \cdot \frac{n}{x} = x^n \cdot \frac{n}{x} = nx^{n-1}$.
 
-### A.2 Product Rule — Triple Product
+### A.2 Product Rule - Triple Product
 
 For three functions $(uvw)' = u'vw + uv'w + uvw'$.
 
@@ -763,7 +763,7 @@ $(uv)'w + (uv)w' = (u'v + uv')w + uvw' = u'vw + uv'w + uvw'$.
 
 **Example.** $(x^2 \sin x \ln x)' = 2x\sin x\ln x + x^2\cos x\ln x + x^2\sin x \cdot \frac{1}{x}$.
 
-### A.3 Quotient Rule — Deriving from Product Rule
+### A.3 Quotient Rule - Deriving from Product Rule
 
 $$\left(\frac{f}{g}\right)' = \frac{f'g - fg'}{g^2}$$
 
@@ -802,9 +802,9 @@ Every application of the chain rule begins with identifying:
 | $\sqrt{\tan x}$ | $\sqrt{u}$ | $\tan x$ | $\sec^2 x / (2\sqrt{\tan x})$ |
 | $(1+e^x)^{-1}$ | $u^{-1}$ | $1+e^x$ | $-e^x/(1+e^x)^2$ |
 
-Note: $(1+e^x)^{-1} = \sigma(-x)$ — the sigmoid of $-x$.
+Note: $(1+e^x)^{-1} = \sigma(-x)$ - the sigmoid of $-x$.
 
-### B.2 Nested Chain Rule — Four Levels Deep
+### B.2 Nested Chain Rule - Four Levels Deep
 
 $y = \sin(\ln(\sqrt{x^2+1}))$. Work from outside in:
 
@@ -830,14 +830,14 @@ Abstractly, the derivative $f'(a)$ is the **best linear approximation** to $f$ n
 
 $$f(a + h) = f(a) + f'(a)\,h + o(h) \quad \text{as } h \to 0$$
 
-where $o(h)$ denotes terms that shrink faster than $h$. This abstract definition extends directly to vector functions (Fréchet derivative) — in that setting, $f'(a)$ becomes a linear map (matrix), which is the Jacobian.
+where $o(h)$ denotes terms that shrink faster than $h$. This abstract definition extends directly to vector functions (Frchet derivative) - in that setting, $f'(a)$ becomes a linear map (matrix), which is the Jacobian.
 
 
 ---
 
-## Appendix C: Deep Dive — Differentiability and Regularity
+## Appendix C: Deep Dive - Differentiability and Regularity
 
-### C.1 The Formal ε-δ Definition of Differentiability
+### C.1 The Formal epsilon-delta Definition of Differentiability
 
 $f$ is **differentiable at $a$** if there exists a number $L$ such that:
 
@@ -848,17 +848,17 @@ $$\left|\frac{f(a+h)-f(a)}{h} - L\right| < \varepsilon$$
 
 We write $f'(a) = L$.
 
-### C.2 Non-Differentiable Points — A Taxonomy
+### C.2 Non-Differentiable Points - A Taxonomy
 
-**Type 1 — Corner:** $f(x) = |x|$. Left derivative: $-1$. Right derivative: $+1$. Limit does not exist.
+**Type 1 - Corner:** $f(x) = |x|$. Left derivative: $-1$. Right derivative: $+1$. Limit does not exist.
 
-**Type 2 — Cusp:** $f(x) = x^{2/3}$. At $x = 0$: $f'(x) = \frac{2}{3}x^{-1/3} \to \pm\infty$. The tangent line becomes vertical — the derivative limit is $\pm\infty$, not finite.
+**Type 2 - Cusp:** $f(x) = x^{2/3}$. At $x = 0$: $f'(x) = \frac{2}{3}x^{-1/3} \to \pm\infty$. The tangent line becomes vertical - the derivative limit is $\pm\infty$, not finite.
 
-**Type 3 — Vertical tangent:** Same as cusp; the function is continuous but the difference quotient diverges.
+**Type 3 - Vertical tangent:** Same as cusp; the function is continuous but the difference quotient diverges.
 
-**Type 4 — Oscillatory discontinuity of derivative:** $f(x) = x^2 \sin(1/x)$ for $x \neq 0$, $f(0) = 0$. The derivative exists at 0 ($f'(0) = 0$) but $f'(x)$ is not continuous at 0 — $f$ is differentiable but not $C^1$.
+**Type 4 - Oscillatory discontinuity of derivative:** $f(x) = x^2 \sin(1/x)$ for $x \neq 0$, $f(0) = 0$. The derivative exists at 0 ($f'(0) = 0$) but $f'(x)$ is not continuous at 0 - $f$ is differentiable but not $C^1$.
 
-**For AI — ReLU.** ReLU has a corner at $x = 0$: left derivative is $0$, right derivative is $1$. In practice, the subgradient $\partial \text{ReLU}(0) = [0,1]$ (any value in the interval) is used; most frameworks return $0$.
+**For AI - ReLU.** ReLU has a corner at $x = 0$: left derivative is $0$, right derivative is $1$. In practice, the subgradient $\partial \text{ReLU}(0) = [0,1]$ (any value in the interval) is used; most frameworks return $0$.
 
 ### C.3 Smoothness Classes
 
@@ -872,27 +872,27 @@ We write $f'(a) = L$.
 
 **For AI:** Smooth activation functions ($C^\infty$) are required for second-order optimizers (Newton, L-BFGS) and for second-order sensitivity analysis. Rectified activations ($C^0$ only) work for SGD/Adam but complicate curvature estimation.
 
-### C.4 Differentiability vs. Continuity — Summary
+### C.4 Differentiability vs. Continuity - Summary
 
 ```
-Differentiable at x₀
-         │
-         ▼ (implication)
-Continuous at x₀
-         │
-         ✗ (no implication)
-         ▼
-Differentiable at x₀
+Differentiable at x_0
+         
+          (implication)
+Continuous at x_0
+         
+          (no implication)
+         
+Differentiable at x_0
 ```
 
-- **Differentiable → Continuous**: Proven via $\lim_{h\to 0}[f(a+h)-f(a)] = \lim_{h\to 0}\frac{f(a+h)-f(a)}{h}\cdot h = f'(a)\cdot 0 = 0$.
-- **Continuous ↛ Differentiable**: Counterexample: $|x|$ is continuous everywhere but not differentiable at 0.
-- **Differentiable ↛ Continuously Differentiable**: Counterexample: $x^2\sin(1/x)$ above.
+- **Differentiable -> Continuous**: Proven via $\lim_{h\to 0}[f(a+h)-f(a)] = \lim_{h\to 0}\frac{f(a+h)-f(a)}{h}\cdot h = f'(a)\cdot 0 = 0$.
+- **Continuous  Differentiable**: Counterexample: $|x|$ is continuous everywhere but not differentiable at 0.
+- **Differentiable  Continuously Differentiable**: Counterexample: $x^2\sin(1/x)$ above.
 
 
 ---
 
-## Appendix D: Advanced Topics — Inverse Function Theorem and Derivatives of Inverses
+## Appendix D: Advanced Topics - Inverse Function Theorem and Derivatives of Inverses
 
 ### D.1 Inverse Function Theorem
 
@@ -937,7 +937,7 @@ $$y' = [f(x)]^{g(x)}\left[g'(x)\ln f(x) + \frac{g(x)f'(x)}{f(x)}\right]$$
 
 ## Appendix E: Optimization Theory Foundations
 
-### E.1 First and Second Derivative Tests — Full Treatment
+### E.1 First and Second Derivative Tests - Full Treatment
 
 **First Derivative Test (complete statement):**
 
@@ -950,16 +950,16 @@ Let $f$ be continuous on $(a,b)$ and $x_0 \in (a,b)$ a critical point.
 **Second Derivative Test:**
 
 If $f'(x_0) = 0$:
-- $f''(x_0) > 0$ → local min (concave up)
-- $f''(x_0) < 0$ → local max (concave down)
-- $f''(x_0) = 0$ → inconclusive; examine higher-order derivatives or use first derivative test
+- $f''(x_0) > 0$ -> local min (concave up)
+- $f''(x_0) < 0$ -> local max (concave down)
+- $f''(x_0) = 0$ -> inconclusive; examine higher-order derivatives or use first derivative test
 
-**Inconclusive case — higher-order test.** If the first $k-1$ derivatives vanish at $x_0$ and $f^{(k)}(x_0) \neq 0$:
+**Inconclusive case - higher-order test.** If the first $k-1$ derivatives vanish at $x_0$ and $f^{(k)}(x_0) \neq 0$:
 - $k$ odd: neither max nor min (inflection-type)
 - $k$ even, $f^{(k)}(x_0) > 0$: local min
 - $k$ even, $f^{(k)}(x_0) < 0$: local max
 
-**Example.** $f(x) = x^4$ at $x_0 = 0$: $f'(0) = f''(0) = f'''(0) = 0$, $f^{(4)}(0) = 24 > 0$, $k = 4$ even → local (and global) min.
+**Example.** $f(x) = x^4$ at $x_0 = 0$: $f'(0) = f''(0) = f'''(0) = 0$, $f^{(4)}(0) = 24 > 0$, $k = 4$ even -> local (and global) min.
 
 ### E.2 Rolle's Theorem
 
@@ -969,7 +969,7 @@ If $f'(x_0) = 0$:
 
 Rolle's Theorem is the key lemma for the MVT.
 
-### E.3 Gradient Descent — Single Variable View
+### E.3 Gradient Descent - Single Variable View
 
 The gradient descent update for minimizing $f(\theta)$:
 
@@ -986,12 +986,12 @@ Converges if $|1 - \eta L| < 1$, i.e., $0 < \eta < 2/L$. Optimal $\eta = 1/L$ gi
 If $|f''| \leq L$ everywhere (Lipschitz gradient), then:
 $$f(\theta - \eta f'(\theta)) \leq f(\theta) - \eta\left(1 - \frac{\eta L}{2}\right)|f'(\theta)|^2$$
 
-The right side decreases as long as $\eta < 2/L$ and $f'(\theta) \neq 0$ — guaranteeing descent at each step.
+The right side decreases as long as $\eta < 2/L$ and $f'(\theta) \neq 0$ - guaranteeing descent at each step.
 
 
 ---
 
-## Appendix F: Numerical Differentiation — Advanced Analysis
+## Appendix F: Numerical Differentiation - Advanced Analysis
 
 ### F.1 Error Analysis in Detail
 
@@ -1013,7 +1013,7 @@ Subtract: $f(x+h) - f(x-h) = 2hf'(x) + \frac{h^3}{3}f'''(x) + \cdots$
 
 $$f'(x) = \frac{f(x+h) - f(x-h)}{2h} - \frac{h^2}{6}f'''(x) - \cdots$$
 
-The leading error is $-\frac{h^2}{6}f'''(x)$, so the **truncation error is $O(h^2)$** — one order better.
+The leading error is $-\frac{h^2}{6}f'''(x)$, so the **truncation error is $O(h^2)$** - one order better.
 
 **Round-off error.** In floating-point arithmetic, $f(x+h)$ is computed with absolute error $\sim \varepsilon_{\text{mach}}|f(x)|$. The round-off contribution to the centered difference is:
 
@@ -1033,7 +1033,7 @@ Given two centered-difference approximations at step sizes $h$ and $h/2$, elimin
 
 $$f'(x) \approx \frac{4 \cdot D(h/2) - D(h)}{3}, \quad D(h) = \frac{f(x+h)-f(x-h)}{2h}$$
 
-This Richardson-extrapolated formula has error $O(h^4)$ — a massive improvement. Recursive application yields **Romberg differentiation** with arbitrarily high accuracy.
+This Richardson-extrapolated formula has error $O(h^4)$ - a massive improvement. Recursive application yields **Romberg differentiation** with arbitrarily high accuracy.
 
 ### F.3 Complex-Step Derivative
 
@@ -1046,9 +1046,9 @@ For analytic $f$, this has only round-off error $O(\varepsilon_{\text{mach}})$ w
 
 ---
 
-## Appendix G: Activation Functions — Extended Analysis
+## Appendix G: Activation Functions - Extended Analysis
 
-### G.1 Vanishing Gradient Problem — Quantitative Analysis
+### G.1 Vanishing Gradient Problem - Quantitative Analysis
 
 In a network with $L$ layers using sigmoid activations, the gradient at the first layer involves a product of $L$ sigmoid derivatives:
 
@@ -1058,9 +1058,9 @@ Since $\sigma'(z) \leq 1/4$ for all $z$, the product is bounded:
 
 $$\left|\prod_{l=2}^{L}\sigma'(z_l)\right| \leq \left(\frac{1}{4}\right)^{L-1}$$
 
-For a 10-layer network: $\leq (1/4)^9 \approx 4 \times 10^{-6}$ — the gradient is effectively zero. This is the **vanishing gradient problem** that made training deep sigmoid networks impractical before ReLU.
+For a 10-layer network: $\leq (1/4)^9 \approx 4 \times 10^{-6}$ - the gradient is effectively zero. This is the **vanishing gradient problem** that made training deep sigmoid networks impractical before ReLU.
 
-**ReLU advantage.** For active ReLU units ($z > 0$): $\text{ReLU}'(z) = 1$. The product of $L$ active ReLU derivatives is exactly 1 — no decay. This is why deep residual networks with ReLU can be trained with hundreds of layers.
+**ReLU advantage.** For active ReLU units ($z > 0$): $\text{ReLU}'(z) = 1$. The product of $L$ active ReLU derivatives is exactly 1 - no decay. This is why deep residual networks with ReLU can be trained with hundreds of layers.
 
 ### G.2 Exploding Gradients
 
@@ -1084,9 +1084,9 @@ The **Jacobian** of softmax is $J_{ij} = p_i(\delta_{ij} - p_j)$, or in matrix f
 
 $$\frac{\partial \mathcal{L}}{\partial z_j} = p_j - y_j$$
 
-The gradient is simply the difference between the predicted probability and the true label — remarkably clean due to the cancellation between softmax and cross-entropy.
+The gradient is simply the difference between the predicted probability and the true label - remarkably clean due to the cancellation between softmax and cross-entropy.
 
-### G.4 GELU vs ReLU — Gradient Behavior
+### G.4 GELU vs ReLU - Gradient Behavior
 
 | Property | ReLU | GELU |
 |----------|------|------|
@@ -1105,26 +1105,26 @@ The GELU's smooth gradient in the negative regime allows small updates even for 
 
 ### H.1 The Calculus War
 
-The derivative was developed independently in the 1660s-1680s by Newton and Leibniz — one of the most famous priority disputes in mathematics.
+The derivative was developed independently in the 1660s-1680s by Newton and Leibniz - one of the most famous priority disputes in mathematics.
 
 | Year | Newton | Leibniz |
 |------|--------|---------|
-| 1666 | Develops "method of fluxions" (flux = rate of change) | — |
-| 1675 | — | Introduces $dy/dx$ notation |
-| 1684 | — | Publishes first calculus paper |
-| 1687 | Publishes *Principia* (uses fluents, not derivatives explicitly) | — |
-| 1693 | — | Publishes $d/dx$ systematically |
-| 1704 | Newton publishes "Of the Quadrature of Curves" | — |
-| 1711 | Royal Society initiates plagiarism inquiry | — |
+| 1666 | Develops "method of fluxions" (flux = rate of change) | - |
+| 1675 | - | Introduces $dy/dx$ notation |
+| 1684 | - | Publishes first calculus paper |
+| 1687 | Publishes *Principia* (uses fluents, not derivatives explicitly) | - |
+| 1693 | - | Publishes $d/dx$ systematically |
+| 1704 | Newton publishes "Of the Quadrature of Curves" | - |
+| 1711 | Royal Society initiates plagiarism inquiry | - |
 
 Modern consensus: independent discovery. Newton's notation ($\dot{x}$ for time derivatives) persists in physics; Leibniz's $dy/dx$ dominates mathematics and engineering.
 
-### H.2 Rigorous Foundations — 19th Century
+### H.2 Rigorous Foundations - 19th Century
 
 The limit-based definition of the derivative was not rigorously formulated until the 1820s:
 
 - **Cauchy (1821):** Formalized limits and gave the first rigorous definition of the derivative as a limit of a difference quotient.
-- **Weierstrass (1872):** Constructed a continuous-everywhere, differentiable-nowhere function — proving that "most" continuous functions are not differentiable.
+- **Weierstrass (1872):** Constructed a continuous-everywhere, differentiable-nowhere function - proving that "most" continuous functions are not differentiable.
 - **Riemann (1854):** Formalized integration; the FTC was proved rigorously.
 
 ### H.3 Connection to Modern AI
@@ -1133,18 +1133,18 @@ The limit-based definition of the derivative was not rigorously formulated until
 |------|-------------|-------------------|
 | 1986 | Rumelhart et al. popularize backpropagation | Chain rule on computation graphs |
 | 1989 | LeCun's convolutional backprop | Chain rule through spatial filters |
-| 2012 | AlexNet — deep ReLU networks | Avoids vanishing gradient (§8.1) |
+| 2012 | AlexNet - deep ReLU networks | Avoids vanishing gradient (8.1) |
 | 2014 | Adam optimizer | Adaptive learning rates, second-moment gradient estimate |
-| 2017 | Transformer attention | Softmax Jacobian (§G.3) in attention scores |
+| 2017 | Transformer attention | Softmax Jacobian (G.3) in attention scores |
 | 2018 | BERT (GELU activation) | Smooth gradient, $C^\infty$ activations |
 | 2022+ | JAX's functional AD | Efficient forward/reverse mode composition |
-| 2023+ | LoRA / DoRA (PEFT) | Low-rank gradient updates — rank of Jacobians |
+| 2023+ | LoRA / DoRA (PEFT) | Low-rank gradient updates - rank of Jacobians |
 | 2024+ | Mechanistic interpretability | Gradient attribution to individual features |
 
 
 ---
 
-## Appendix I: Applications in Machine Learning — Deep Dives
+## Appendix I: Applications in Machine Learning - Deep Dives
 
 ### I.1 Gradient Descent and Its Variants
 
@@ -1167,38 +1167,38 @@ $$v_t = \beta_2 v_{t-1} + (1-\beta_2)[\mathcal{L}'(\theta_t)]^2$$
 $$\hat{m}_t = m_t/(1-\beta_1^t), \quad \hat{v}_t = v_t/(1-\beta_2^t)$$
 $$\theta_{t+1} = \theta_t - \eta\,\hat{m}_t/(\sqrt{\hat{v}_t}+\varepsilon)$$
 
-$m_t$ is a first moment (mean) estimate; $v_t$ is a second moment (uncentered variance) estimate. Dividing by $\sqrt{v_t}$ adapts the step size per parameter: large gradient → small effective step; small gradient → larger effective step. This diagonal approximation to the inverse curvature is why Adam often outperforms vanilla SGD.
+$m_t$ is a first moment (mean) estimate; $v_t$ is a second moment (uncentered variance) estimate. Dividing by $\sqrt{v_t}$ adapts the step size per parameter: large gradient -> small effective step; small gradient -> larger effective step. This diagonal approximation to the inverse curvature is why Adam often outperforms vanilla SGD.
 
-### I.2 Automatic Differentiation — Under the Hood
+### I.2 Automatic Differentiation - Under the Hood
 
 **Forward mode.** Alongside each function value $f(x)$, propagate the derivative $f'(x)$ using dual numbers $(a, b)$ where arithmetic follows $(a_1, b_1) \cdot (a_2, b_2) = (a_1 a_2, a_1 b_2 + a_2 b_1)$ (product rule built in).
 
 **Reverse mode.** In the forward pass, record a computation graph (tape). In the backward pass, traverse the graph in reverse, accumulating partial derivatives using the chain rule at each node.
 
 **Cost comparison:**
-- Forward mode: $O(n)$ passes for $n$ inputs → $O(n)$ for scalar output, $O(nm)$ for $m$ outputs
-- Reverse mode: one backward pass → $O(1)$ for scalar output regardless of $n$
+- Forward mode: $O(n)$ passes for $n$ inputs -> $O(n)$ for scalar output, $O(nm)$ for $m$ outputs
+- Reverse mode: one backward pass -> $O(1)$ for scalar output regardless of $n$
 
-For neural network training ($n$ = millions of parameters, scalar loss $\mathcal{L}$): reverse mode is $O(1)$ passes vs. $O(n)$ for forward mode — the reason backpropagation is computationally feasible.
+For neural network training ($n$ = millions of parameters, scalar loss $\mathcal{L}$): reverse mode is $O(1)$ passes vs. $O(n)$ for forward mode - the reason backpropagation is computationally feasible.
 
 ### I.3 Derivative-Based Interpretability
 
-**Saliency maps.** For an image classification model $f$, the gradient $\partial f(x)/\partial x_i$ measures how sensitive the output is to pixel $i$ — used as a first-order feature importance score.
+**Saliency maps.** For an image classification model $f$, the gradient $\partial f(x)/\partial x_i$ measures how sensitive the output is to pixel $i$ - used as a first-order feature importance score.
 
-**Input × Gradient.** $x_i \cdot \partial f/\partial x_i$ — a refinement that accounts for the magnitude of the feature, not just the sensitivity.
+**Input x Gradient.** $x_i \cdot \partial f/\partial x_i$ - a refinement that accounts for the magnitude of the feature, not just the sensitivity.
 
 **Integrated Gradients (Sundararajan et al. 2017).** Computes the path integral of the gradient from a baseline to the input:
 
 $$\text{IG}_i(x) = (x_i - x_i^0)\int_0^1 \frac{\partial f(x^0 + t(x-x^0))}{\partial x_i}\,dt$$
 
-Satisfies sensitivity and completeness axioms — considered one of the most principled gradient-based attribution methods.
+Satisfies sensitivity and completeness axioms - considered one of the most principled gradient-based attribution methods.
 
 
 ---
 
 ## Appendix J: Extended Exercises and Practice Problems
 
-### J.1 Warm-Up Drill — Compute Derivatives
+### J.1 Warm-Up Drill - Compute Derivatives
 
 Differentiate each function (answers at end of section):
 
@@ -1223,7 +1223,7 @@ Differentiate each function (answers at end of section):
 
 ### J.2 Conceptual Questions
 
-1. **True or False.** If $f'(c) = 0$, then $f$ has a local extremum at $c$. (False — consider $f(x) = x^3$ at $c=0$.)
+1. **True or False.** If $f'(c) = 0$, then $f$ has a local extremum at $c$. (False - consider $f(x) = x^3$ at $c=0$.)
 
 2. **Proof.** Show that if $f$ and $g$ are differentiable, $(f \circ g)'(x) = f'(g(x))g'(x)$ implies that the derivative of the identity $f \circ f^{-1}(x) = x$ gives $(f^{-1})'(f(x)) = 1/f'(x)$.
 
@@ -1253,7 +1253,7 @@ Differentiate each function (answers at end of section):
 
 ## Appendix K: Notation Reference and Quick-Reference Tables
 
-### K.1 Derivative Notation — Comparison
+### K.1 Derivative Notation - Comparison
 
 | Notation | Author | Reads as | Common usage |
 |----------|--------|---------|-------------|
@@ -1261,7 +1261,7 @@ Differentiate each function (answers at end of section):
 | $\frac{df}{dx}$ | Leibniz | "$df$ by $dx$" | Engineering, physics |
 | $\dot{f}$ | Newton | "$f$ dot" | Physics (time derivatives) |
 | $Df(x)$ | Euler/operator | "D of $f$" | Differential equations |
-| $\partial f/\partial x$ | — | "partial $f$ partial $x$" | Multivariable calculus |
+| $\partial f/\partial x$ | - | "partial $f$ partial $x$" | Multivariable calculus |
 | $\nabla_x f$ | Hamilton | "nabla $f$" or "gradient" | Machine learning, optimization |
 
 In this curriculum: $f'(x)$ for scalar single-variable, $\nabla_\theta \mathcal{L}$ for multi-parameter ML context.
@@ -1309,7 +1309,7 @@ In this curriculum: $f'(x)$ for scalar single-variable, $\nabla_\theta \mathcal{
 
 ---
 
-## Appendix L: Implicit Differentiation — Extended Examples
+## Appendix L: Implicit Differentiation - Extended Examples
 
 ### L.1 Folium of Descartes
 
@@ -1340,11 +1340,11 @@ When $f$ is defined implicitly via $g(\mathbf{x}, \mathbf{z}) = 0$ (e.g., in con
 
 $$\frac{\partial \mathbf{z}}{\partial \mathbf{x}} = -\left(\frac{\partial g}{\partial \mathbf{z}}\right)^{-1}\frac{\partial g}{\partial \mathbf{x}}$$
 
-This is implicit differentiation generalized to the multivariable setting — a key tool in modern generative models (FFJORD, Neural ODEs).
+This is implicit differentiation generalized to the multivariable setting - a key tool in modern generative models (FFJORD, Neural ODEs).
 
 ---
 
-## Appendix M: Mean Value Theorem — Consequences and Applications
+## Appendix M: Mean Value Theorem - Consequences and Applications
 
 ### M.1 Monotonicity via Derivatives
 
@@ -1366,7 +1366,7 @@ $$|f(x) - f(y)| \leq M|x-y| \quad \text{for all } x, y \in [a,b]$$
 
 This is the **Lipschitz condition** with constant $M$.
 
-**Application — gradient descent learning rate.** If $|f''| \leq L$ (second derivative bounded), then $|f'(x) - f'(y)| \leq L|x-y|$ — the gradient is $L$-Lipschitz. The descent lemma states:
+**Application - gradient descent learning rate.** If $|f''| \leq L$ (second derivative bounded), then $|f'(x) - f'(y)| \leq L|x-y|$ - the gradient is $L$-Lipschitz. The descent lemma states:
 
 $$f\!\left(\theta - \frac{1}{L}f'(\theta)\right) \leq f(\theta) - \frac{1}{2L}|f'(\theta)|^2$$
 
@@ -1380,7 +1380,7 @@ $$\frac{f(b) - f(a)}{g(b) - g(a)} = \frac{f'(c)}{g'(c)}$$
 
 for some $c \in (a,b)$.
 
-**Application.** L'Hôpital's Rule (§01) follows from the Cauchy MVT: for $f(a) = g(a) = 0$,
+**Application.** L'Hpital's Rule (01) follows from the Cauchy MVT: for $f(a) = g(a) = 0$,
 
 $$\frac{f(x)}{g(x)} = \frac{f(x)-f(a)}{g(x)-g(a)} = \frac{f'(c)}{g'(c)} \xrightarrow{x \to a} \frac{f'(a)}{g'(a)}$$
 
@@ -1409,8 +1409,8 @@ $dx/dt = 1-\cos t$, $dy/dt = \sin t$.
 
 $$\frac{dy}{dx} = \frac{\sin t}{1-\cos t}$$
 
-At $t = \pi/2$: $dy/dx = \frac{1}{1} = 1$ — 45° angle.
-At $t \to 0$: $dy/dx \to \sin t/(1-\cos t) \approx t/(t^2/2) = 2/t \to \infty$ — vertical tangent.
+At $t = \pi/2$: $dy/dx = \frac{1}{1} = 1$ - 45 angle.
+At $t \to 0$: $dy/dx \to \sin t/(1-\cos t) \approx t/(t^2/2) = 2/t \to \infty$ - vertical tangent.
 
 ### N.2 Applications to Attention Curves
 
@@ -1422,7 +1422,7 @@ The **derivative of attention weight with respect to the scale factor** $\beta =
 
 $$\frac{d\alpha_i}{d\beta} = \alpha_i\left(q\cdot k_i - \sum_j \alpha_j\, q\cdot k_j\right) = \alpha_i\left(q\cdot k_i - \mathbb{E}_\alpha[q\cdot k]\right)$$
 
-This is the derivative of a softmax composition — it shows that attention sharpens (moves weight to higher-scored keys) as $\beta$ increases, consistent with the "temperature" interpretation from §01.
+This is the derivative of a softmax composition - it shows that attention sharpens (moves weight to higher-scored keys) as $\beta$ increases, consistent with the "temperature" interpretation from 01.
 
 ---
 
@@ -1444,7 +1444,7 @@ def sigmoid(x):
 
 Both branches are equivalent; the first is used for $x \geq 0$ (where $e^{-x}$ is safe), the second for $x < 0$ (where $e^x$ is safe).
 
-**Derivative — stable form:**
+**Derivative - stable form:**
 
 ```python
 def sigmoid_prime(x):
@@ -1457,8 +1457,8 @@ No additional overflow risk once $\sigma(x)$ is stably computed.
 ### O.2 Log-Sigmoid: Avoiding Catastrophic Cancellation
 
 For the log-sigmoid $\log\sigma(x) = -\log(1+e^{-x})$:
-- For large positive $x$: $\log(1+e^{-x}) \approx e^{-x}$ — no cancellation.
-- For large negative $x$: $\log(1+e^{-x}) \approx -x$ — use this directly.
+- For large positive $x$: $\log(1+e^{-x}) \approx e^{-x}$ - no cancellation.
+- For large negative $x$: $\log(1+e^{-x}) \approx -x$ - use this directly.
 
 **Stable:**
 ```python
@@ -1477,7 +1477,7 @@ $$\text{softmax}(\mathbf{z})_i = \frac{e^{z_i - z_{\max}}}{\sum_j e^{z_j - z_{\m
 
 Subtracting the maximum shifts all logits to $\leq 0$, making $e^{z_i - z_{\max}} \in (0,1]$. The softmax value is unchanged since the normalization cancels the factor $e^{-z_{\max}}$.
 
-These numerical stability techniques are directly connected to the limits $\lim_{x\to\infty}(1+e^{-x})^{-1} = 1$ and $\lim_{x\to-\infty}e^x = 0$ from [§01](../01-Limits-and-Continuity/notes.md).
+These numerical stability techniques are directly connected to the limits $\lim_{x\to\infty}(1+e^{-x})^{-1} = 1$ and $\lim_{x\to-\infty}e^x = 0$ from [01](../01-Limits-and-Continuity/notes.md).
 
 
 ---
@@ -1498,7 +1498,7 @@ $$s(\theta; x) = \frac{\partial}{\partial\theta}\log p(x;\theta)$$
 
 $$\mathcal{I}(\theta) = \mathbb{E}\left[\left(\frac{\partial\log p(x;\theta)}{\partial\theta}\right)^2\right] = -\mathbb{E}\left[\frac{\partial^2\log p(x;\theta)}{\partial\theta^2}\right]$$
 
-The second equality (Fisher's identity) relates the variance of the first derivative to the expected value of the second derivative — a deep connection between information geometry and calculus.
+The second equality (Fisher's identity) relates the variance of the first derivative to the expected value of the second derivative - a deep connection between information geometry and calculus.
 
 ### P.2 KL Divergence Gradient
 
@@ -1508,7 +1508,7 @@ $$\frac{\partial}{\partial\theta}\text{KL}(q\|p_\theta) = -\int q(x)\frac{\parti
 
 This is the negative expected score under $q$. In variational inference (ELBO optimization), this derivative structure underlies the "reparameterization trick" for training VAEs.
 
-### P.3 Maximum Likelihood — First Order Conditions
+### P.3 Maximum Likelihood - First Order Conditions
 
 For i.i.d. data $\{x_1,\ldots,x_n\}$, MLE maximizes:
 
@@ -1516,11 +1516,11 @@ $$\hat{\theta} = \arg\max_\theta \sum_{i=1}^n \log p(x_i;\theta)$$
 
 The first-order condition $\frac{\partial}{\partial\theta}\sum_i\log p(x_i;\theta) = 0$ defines the MLE. For the Gaussian with unknown mean: $\sum_i(x_i - \mu) = 0 \Rightarrow \hat{\mu} = \bar{x}$.
 
-For neural networks, MLE is equivalent to minimizing cross-entropy loss — the derivative-based optimization (SGD, Adam) maximizes the likelihood of the training data.
+For neural networks, MLE is equivalent to minimizing cross-entropy loss - the derivative-based optimization (SGD, Adam) maximizes the likelihood of the training data.
 
 ---
 
-## Appendix Q: Special Topics — Subgradients and Non-Smooth Analysis
+## Appendix Q: Special Topics - Subgradients and Non-Smooth Analysis
 
 ### Q.1 Subgradients
 
@@ -1540,7 +1540,7 @@ For non-smooth convex $f$, the subgradient descent update uses any $g_t \in \par
 
 $$\theta_{t+1} = \theta_t - \eta_t g_t$$
 
-Unlike gradient descent for smooth functions, subgradient descent does NOT necessarily decrease $f$ at each step. Convergence requires diminishing step sizes: $\sum_t \eta_t = \infty$, $\sum_t \eta_t^2 < \infty$ (Robbins-Monro conditions from §01).
+Unlike gradient descent for smooth functions, subgradient descent does NOT necessarily decrease $f$ at each step. Convergence requires diminishing step sizes: $\sum_t \eta_t = \infty$, $\sum_t \eta_t^2 < \infty$ (Robbins-Monro conditions from 01).
 
 ### Q.3 Proximal Operators
 
@@ -1548,7 +1548,7 @@ For non-smooth regularization (L1 sparsity), instead of subgradient descent, the
 
 $$\text{prox}_{\eta h}(v) = \arg\min_x\left[h(x) + \frac{1}{2\eta}\|x-v\|^2\right]$$
 
-For $h(x) = \lambda|x|$: $\text{prox}_{\eta h}(v) = \text{sign}(v)\max(|v|-\eta\lambda, 0)$ — the **soft-thresholding** operator. This is the exact solution to L1 penalized regression (LASSO).
+For $h(x) = \lambda|x|$: $\text{prox}_{\eta h}(v) = \text{sign}(v)\max(|v|-\eta\lambda, 0)$ - the **soft-thresholding** operator. This is the exact solution to L1 penalized regression (LASSO).
 
 
 ---
@@ -1607,7 +1607,7 @@ Therefore $\lim_{x\to a}f(x) = f(a)$, which is the definition of continuity at $
 
 ### R.4 Proof: $(\sin x)' = \cos x$
 
-**Proof.** Using the sine addition formula and two fundamental limits from §01:
+**Proof.** Using the sine addition formula and two fundamental limits from 01:
 
 $$\frac{\sin(x+h)-\sin x}{h} = \frac{\sin x\cos h + \cos x\sin h - \sin x}{h}$$
 
@@ -1620,9 +1620,9 @@ $$(\sin x)' = \sin x\cdot 0 + \cos x\cdot 1 = \cos x. \quad \square$$
 
 ---
 
-## Appendix S: Worked Examples — Chain Rule in Neural Networks
+## Appendix S: Worked Examples - Chain Rule in Neural Networks
 
-### S.1 Single-Layer Sigmoid Network — Full Backprop
+### S.1 Single-Layer Sigmoid Network - Full Backprop
 
 **Setup.** Input $x$, single weight $w$, bias $b$, sigmoid activation, MSE loss:
 
@@ -1670,24 +1670,24 @@ The indicator $\mathbf{1}[\cdot]$ is the ReLU subgradient: if the pre-activation
 
 ```
 BACKPROPAGATION GRADIENT FLOW
-════════════════════════════════════════════════════════════════════════
+
 
   INPUT                                              LOSS
-    x ──→ [z = wx+b] ──→ [a = σ(z)] ──→ [L = ½(a-y)²]
-              │                  │                 │
-              │      Forward ─── ► ─── Forward     │
-              │                                    │
-              │      ◄ ─── Backward ─── Backward   │
-              │                  │                 │
-           ∂L/∂w = (a-y)·a(1-a)·x              ∂L/∂a = a-y
+    x -> [z = wx+b] -> [a = sigma(z)] -> [L = (a-y)^2]
+                                                 
+                    Forward    Forward     
+                                                  
+                      Backward  Backward   
+                                                 
+           partialL/partialw = (a-y)*a(1-a)*x              partialL/partiala = a-y
 
   Each node multiplies its local gradient into the flowing signal.
-  This IS the chain rule: ∂L/∂w = (∂L/∂a)(∂a/∂z)(∂z/∂w)
+  This IS the chain rule: partialL/partialw = (partialL/partiala)(partiala/partialz)(partialz/partialw)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-### S.4 Gradient Tape — PyTorch Analogy
+### S.4 Gradient Tape - PyTorch Analogy
 
 In PyTorch, the computation graph is built dynamically during the forward pass. `.backward()` traverses it in reverse, applying the chain rule at each node:
 
@@ -1696,15 +1696,15 @@ import torch
 x = torch.tensor(2.0, requires_grad=True)
 w = torch.tensor(3.0, requires_grad=True)
 z = w * x + 1.0          # z = 7.0
-a = torch.sigmoid(z)      # a ≈ 0.999
+a = torch.sigmoid(z)      # a ~= 0.999
 L = 0.5 * (a - 0.5) ** 2  # L
 
-L.backward()              # Reverse-mode AD: computes all ∂L/∂w, ∂L/∂x
-print(w.grad)             # ∂L/∂w = (a-0.5)*a*(1-a)*x
-print(x.grad)             # ∂L/∂x = (a-0.5)*a*(1-a)*w
+L.backward()              # Reverse-mode AD: computes all partialL/partialw, partialL/partialx
+print(w.grad)             # partialL/partialw = (a-0.5)*a*(1-a)*x
+print(x.grad)             # partialL/partialx = (a-0.5)*a*(1-a)*w
 ```
 
-This is the chain rule automated — the "tape" records $(z, a, L)$ in the forward pass, then `.backward()` applies our formulas in reverse.
+This is the chain rule automated - the "tape" records $(z, a, L)$ in the forward pass, then `.backward()` applies our formulas in reverse.
 
 
 ---
@@ -1715,70 +1715,70 @@ This is the chain rule automated — the "tape" records $(z, a, L)$ in the forwa
 
 | Theorem | Statement | Key Condition | Consequence |
 |---------|-----------|--------------|------------|
-| Differentiable → Continuous | $f'(a)$ exists → $f$ continuous at $a$ | Differentiability | Justifies assuming continuity in proofs |
+| Differentiable -> Continuous | $f'(a)$ exists -> $f$ continuous at $a$ | Differentiability | Justifies assuming continuity in proofs |
 | Power Rule | $(x^n)' = nx^{n-1}$ | $n \in \mathbb{R}$ | Foundation of all polynomial differentiation |
 | Product Rule | $(fg)' = f'g+fg'$ | $f,g$ differentiable | Essential for activation analysis |
 | Chain Rule | $(f\circ g)'=f'(g)\cdot g'$ | Both differentiable | Backbone of backpropagation |
 | Mean Value Theorem | $\exists c: f'(c) = (f(b)-f(a))/(b-a)$ | Continuous $[a,b]$, diff $(a,b)$ | Lipschitz bounds, descent lemmas |
-| First Derivative Test | Sign change of $f'$ classifies extrema | $f'(x_0)=0$ | Optimization — finding local minima |
+| First Derivative Test | Sign change of $f'$ classifies extrema | $f'(x_0)=0$ | Optimization - finding local minima |
 | Second Derivative Test | $f''$ sign at critical point | $f'(x_0)=0$, $f''$ exists | Confirms min/max; generalizes to PD Hessian |
 | Inverse Function Theorem | $(f^{-1})'=1/f'(f^{-1})$ | $f'(a)\neq 0$ | Derives inverse trig derivatives; flows |
 
-### T.2 Dependency Graph — All Concepts in This Section
+### T.2 Dependency Graph - All Concepts in This Section
 
 ```
 DERIVATIVE DEPENDENCY MAP
-════════════════════════════════════════════════════════════════════════
 
-  Limit (§01) ─────────────→ Derivative Definition
-                                      │
-             ┌────────────────────────┼────────────────┐
-             ▼                        ▼                 ▼
+
+  Limit (01) -> Derivative Definition
+                                      
+             
+                                                      
        Constant/Power           Product Rule        Chain Rule
-       Sum/Difference           Quotient Rule           │
-             │                        │                 │
-             └────────────────────────┼─────────────────┘
-                                      ▼
+       Sum/Difference           Quotient Rule           
+                                                      
+             
+                                      
                                Differentiation Rules
-                                      │
-          ┌───────────────────────────┼──────────────────┐
-          ▼                           ▼                   ▼
+                                      
+          
+                                                        
    Higher Derivatives         Implicit Diff.      Activation f'
-   Concavity/Inflection        Related Rates     σ', ReLU', GELU'
-          │                                              │
-          ▼                                              ▼
+   Concavity/Inflection        Related Rates     sigma', ReLU', GELU'
+                                                        
+                                                        
    Critical Points /                            Vanishing Gradients
    Extrema / MVT                                Backpropagation
-          │
-          ▼
-   Gradient Descent Theory → §08-Optimization
+          
+          
+   Gradient Descent Theory -> 08-Optimization
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### T.3 What to Review if You're Stuck
 
 | Struggling with | Review |
 |----------------|--------|
-| Chain rule applications | §4.1–4.2, Appendix B |
-| Activation function derivatives | §8.1–8.5, Appendix G |
-| Critical point classification | §7.1–7.3 |
-| Numerical differentiation step size | §9.1–9.2, Appendix F |
-| Backpropagation derivation | §4.3, Appendix S |
-| Implicit differentiation | §5.1, Appendix L |
+| Chain rule applications | 4.1-4.2, Appendix B |
+| Activation function derivatives | 8.1-8.5, Appendix G |
+| Critical point classification | 7.1-7.3 |
+| Numerical differentiation step size | 9.1-9.2, Appendix F |
+| Backpropagation derivation | 4.3, Appendix S |
+| Implicit differentiation | 5.1, Appendix L |
 | Why ReLU avoids vanishing gradients | Appendix G.1 |
 | Softmax gradient computation | Appendix G.3 |
 | Adam optimizer intuition | Appendix I.1 |
-| Gradient checking in code | §9.3 |
+| Gradient checking in code | 9.3 |
 
 
 ---
 
-## Appendix U: Practice Problems — Solutions
+## Appendix U: Practice Problems - Solutions
 
 ### U.1 Full Solutions: Section 11 Exercises
 
-**Exercise 1 — Basic rules.**
+**Exercise 1 - Basic rules.**
 
 (a) $f(x) = 3x^4 - 2x^2 + 7$:
 $$f'(x) = 12x^3 - 4x$$
@@ -1789,7 +1789,7 @@ $$g'(x) = \tfrac{1}{2}x^{-1/2}e^x + x^{1/2}e^x = e^x\!\left(\frac{1}{2\sqrt{x}} 
 (c) $h(x) = (x^2+1)/(x-1)$. Quotient rule ($f=x^2+1$, $g=x-1$):
 $$h'(x) = \frac{2x(x-1) - (x^2+1)(1)}{(x-1)^2} = \frac{2x^2-2x-x^2-1}{(x-1)^2} = \frac{x^2-2x-1}{(x-1)^2}$$
 
-**Exercise 2 — Chain rule.**
+**Exercise 2 - Chain rule.**
 
 (a) $(\sin(x^3))' = \cos(x^3)\cdot 3x^2$
 
@@ -1799,7 +1799,7 @@ $$h'(x) = \frac{2x(x-1) - (x^2+1)(1)}{(x-1)^2} = \frac{2x^2-2x-x^2-1}{(x-1)^2} =
 
 (d) $(e^{\sin x})' = e^{\sin x}\cos x$
 
-**Exercise 3 — Implicit differentiation: $x^3 + y^3 = 6xy$.**
+**Exercise 3 - Implicit differentiation: $x^3 + y^3 = 6xy$.**
 
 Differentiate: $3x^2 + 3y^2 y' = 6y + 6x y'$
 
@@ -1807,14 +1807,14 @@ Collect $y'$: $y'(3y^2 - 6x) = 6y - 3x^2$
 
 $$y' = \frac{6y - 3x^2}{3y^2 - 6x} = \frac{2y - x^2}{y^2 - 2x}$$
 
-**Exercise 4 — Sigmoid derivative.**
+**Exercise 4 - Sigmoid derivative.**
 
 (a) Derivation:
 $$\sigma'(x) = \frac{d}{dx}(1+e^{-x})^{-1} = -(1+e^{-x})^{-2}\cdot(-e^{-x}) = \frac{e^{-x}}{(1+e^{-x})^2}$$
 
 Factor: $= \frac{1}{1+e^{-x}}\cdot\frac{e^{-x}}{1+e^{-x}} = \sigma(x)\cdot(1-\sigma(x))$. $\square$
 
-**Exercise 6 — MVT proof: $|\sin a - \sin b| \leq |a-b|$.**
+**Exercise 6 - MVT proof: $|\sin a - \sin b| \leq |a-b|$.**
 
 The sine function is differentiable with $|(\sin x)' | = |\cos x| \leq 1$ for all $x$. By the MVT, for any $a \neq b$ there exists $c$ between $a$ and $b$ with:
 
@@ -1825,7 +1825,7 @@ $$|\sin a - \sin b| = |\cos c||a-b| \leq 1\cdot|a-b| = |a-b|. \quad \square$$
 
 (The inequality also holds for $a = b$: $0 \leq 0$.)
 
-**Exercise 8 — Backpropagation chain rule:**
+**Exercise 8 - Backpropagation chain rule:**
 
 Forward: $z_1 = w_1 x$, $a_1 = \sigma(z_1)$, $z_2 = w_2 a_1$, $\mathcal{L} = \frac{1}{2}(z_2-y)^2$.
 
@@ -1839,7 +1839,7 @@ $$\frac{\partial\mathcal{L}}{\partial z_1} = (z_2-y)\cdot w_2\cdot\sigma'(z_1) =
 
 $$\frac{\partial\mathcal{L}}{\partial w_1} = (z_2-y)\cdot w_2\cdot a_1(1-a_1)\cdot x$$
 
-This reproduces the four-factor chain: loss sensitivity × downstream weight × local gate × input.
+This reproduces the four-factor chain: loss sensitivity x downstream weight x local gate x input.
 
 
 ---
@@ -1848,25 +1848,25 @@ This reproduces the four-factor chain: loss sensitivity × downstream weight × 
 
 ### V.1 What Integration Needs from This Section
 
-The next section ([§03-Integration](../03-Integration/notes.md)) uses:
+The next section ([03-Integration](../03-Integration/notes.md)) uses:
 - **Antiderivatives**: integration reverses differentiation. Every differentiation formula gives an integration formula: $(\sin x)' = \cos x \Rightarrow \int\cos x\,dx = \sin x + C$.
 - **Fundamental Theorem of Calculus (Part 2)**: if $F' = f$, then $\int_a^b f(x)\,dx = F(b) - F(a)$. This requires knowing derivatives of common functions.
 - **Substitution rule**: the reverse chain rule. If $u = g(x)$, $\int f(g(x))g'(x)\,dx = \int f(u)\,du$.
 
-Every derivative formula in §3.5 has a corresponding integral formula. Master both sides.
+Every derivative formula in 3.5 has a corresponding integral formula. Master both sides.
 
 ### V.2 What Series Needs from This Section
 
-[§04-Series-and-Sequences](../04-Series-and-Sequences/notes.md) uses:
+[04-Series-and-Sequences](../04-Series-and-Sequences/notes.md) uses:
 - **Higher-order derivatives**: Taylor coefficients $a_n = f^{(n)}(a)/n!$ require computing many derivatives.
-- **Linear approximation**: the first-order Taylor expansion $f(x) \approx f(a) + f'(a)(x-a)$ is a direct extension of §5.3.
+- **Linear approximation**: the first-order Taylor expansion $f(x) \approx f(a) + f'(a)(x-a)$ is a direct extension of 5.3.
 - **Error bounds**: the Taylor remainder involves $f^{(n+1)}$ at some intermediate point (MVT applied to integrals).
 
 ### V.3 What Multivariate Calculus Needs from This Section
 
-[§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) extends every concept here:
+[05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md) extends every concept here:
 
-| §02 Concept | §05 Extension |
+| 02 Concept | 05 Extension |
 |-------------|--------------|
 | Derivative $f'(x)$ | Gradient $\nabla f(\mathbf{x})$ |
 | Chain rule $df/dx = (df/du)(du/dx)$ | Chain rule with Jacobians: $\mathbf{J}_{f\circ g} = \mathbf{J}_f \mathbf{J}_g$ |
@@ -1875,16 +1875,16 @@ Every derivative formula in §3.5 has a corresponding integral formula. Master b
 | Linear approximation $f(x)\approx f(a)+f'(a)(x-a)$ | $f(\mathbf{x})\approx f(\mathbf{a})+\nabla f(\mathbf{a})^\top(\mathbf{x}-\mathbf{a})$ |
 | $f'(a) = 0$ at extremum | $\nabla f(\mathbf{a}) = \mathbf{0}$ at extremum |
 
-The scalar theory developed here is the essential foundation. Every formula in §05 will look familiar with vector notation substituted.
+The scalar theory developed here is the essential foundation. Every formula in 05 will look familiar with vector notation substituted.
 
 ### V.4 What Optimization Needs from This Section
 
-[§08-Optimization](../../08-Optimization/README.md) uses directly:
-- Gradient descent theory (§7.3 MVT, descent lemma)
+[08-Optimization](../../08-Optimization/README.md) uses directly:
+- Gradient descent theory (7.3 MVT, descent lemma)
 - Critical point classification (saddles dominate in high dimensions)
 - Chain rule for backpropagation
-- Adam optimizer — second moment as curvature estimate
-- Gradient checking (§9.3) for debugging
+- Adam optimizer - second moment as curvature estimate
+- Gradient checking (9.3) for debugging
 
 ---
 
@@ -1892,26 +1892,26 @@ The scalar theory developed here is the essential foundation. Every formula in �
 
 | Term | Definition |
 |------|-----------|
-| **Derivative** | $f'(a) = \lim_{h\to 0}[f(a+h)-f(a)]/h$ — instantaneous rate of change |
+| **Derivative** | $f'(a) = \lim_{h\to 0}[f(a+h)-f(a)]/h$ - instantaneous rate of change |
 | **Differentiable** | The derivative exists and is finite at the point |
 | **Smooth** ($C^\infty$) | All derivatives of all orders exist and are continuous |
 | **Critical point** | $x_0$ where $f'(x_0) = 0$ or $f'(x_0)$ undefined |
 | **Local minimum** | $f(x_0) \leq f(x)$ for all $x$ near $x_0$ |
-| **Concave up** | $f''(x) > 0$ — bowl shape, gradient is increasing |
+| **Concave up** | $f''(x) > 0$ - bowl shape, gradient is increasing |
 | **Inflection point** | Where $f''$ changes sign |
 | **Subgradient** | Generalized derivative for non-smooth convex functions |
-| **Lipschitz constant** | $L$ such that $|f(x)-f(y)|\leq L|x-y|$ — controls max gradient magnitude |
-| **Forward difference** | $(f(x+h)-f(x))/h$ — $O(h)$ approximation to $f'(x)$ |
-| **Centered difference** | $(f(x+h)-f(x-h))/(2h)$ — $O(h^2)$ approximation to $f'(x)$ |
+| **Lipschitz constant** | $L$ such that $|f(x)-f(y)|\leq L|x-y|$ - controls max gradient magnitude |
+| **Forward difference** | $(f(x+h)-f(x))/h$ - $O(h)$ approximation to $f'(x)$ |
+| **Centered difference** | $(f(x+h)-f(x-h))/(2h)$ - $O(h^2)$ approximation to $f'(x)$ |
 | **Automatic differentiation** | Exact derivative computation by applying chain rule to elementary ops |
 | **Backpropagation** | Reverse-mode AD on neural network computation graph |
-| **Vanishing gradient** | Product of many small derivatives → exponential decay |
-| **Score function** | $\nabla_\theta \log p(x;\theta)$ — derivative of log-likelihood |
+| **Vanishing gradient** | Product of many small derivatives -> exponential decay |
+| **Score function** | $\nabla_\theta \log p(x;\theta)$ - derivative of log-likelihood |
 
 
 ---
 
-## Appendix X: Additional Examples — Differentiating Through Compositions
+## Appendix X: Additional Examples - Differentiating Through Compositions
 
 ### X.1 Softplus as Smooth ReLU
 
@@ -1922,7 +1922,7 @@ $$f'(x) = \frac{e^x}{1+e^x} = \frac{1}{1+e^{-x}} = \sigma(x)$$
 
 Softplus's derivative is the sigmoid! This means:
 - Softplus is always increasing ($\sigma(x) > 0$ for all $x$)
-- Its second derivative: $f''(x) = \sigma'(x) = \sigma(x)(1-\sigma(x)) > 0$ — always concave up
+- Its second derivative: $f''(x) = \sigma'(x) = \sigma(x)(1-\sigma(x)) > 0$ - always concave up
 - Softplus approaches ReLU as temperature $T \to 0$: $T\ln(1+e^{x/T}) \to \max(0,x)$
 
 ### X.2 SiLU / Swish
@@ -1943,9 +1943,9 @@ Mish: $\text{mish}(x) = x\tanh(\text{softplus}(x)) = x\tanh(\ln(1+e^x))$.
 **Derivative (product rule + chain rule):**
 $$\text{mish}'(x) = \tanh(\text{softplus}(x)) + x \cdot \text{sech}^2(\text{softplus}(x)) \cdot \sigma(x)$$
 
-Mish is smooth, non-monotone (like Swish), and has shown improvements over ReLU in some image classification benchmarks. Its derivative involves three activations composed — a showcase for the chain rule.
+Mish is smooth, non-monotone (like Swish), and has shown improvements over ReLU in some image classification benchmarks. Its derivative involves three activations composed - a showcase for the chain rule.
 
-### X.4 Gradient of Cross-Entropy Loss — Full Derivation
+### X.4 Gradient of Cross-Entropy Loss - Full Derivation
 
 For $K$-class classification with softmax output $\mathbf{p} = \text{softmax}(\mathbf{z})$ and one-hot label $\mathbf{y}$:
 
@@ -1953,13 +1953,13 @@ $$\mathcal{L} = -\sum_{k=1}^K y_k \log p_k$$
 
 $$\frac{\partial\mathcal{L}}{\partial z_j} = -\sum_k y_k \frac{\partial\log p_k}{\partial z_j} = -\sum_k y_k \frac{1}{p_k}\frac{\partial p_k}{\partial z_j}$$
 
-Using the softmax Jacobian from §G.3:
+Using the softmax Jacobian from G.3:
 
 $$= -\sum_k y_k \frac{1}{p_k}p_k(\delta_{kj} - p_j) = -\sum_k y_k(\delta_{kj} - p_j)$$
 
 $$= -y_j + p_j\sum_k y_k = p_j - y_j$$
 
-(since $\sum_k y_k = 1$ for a one-hot vector). This elegant result — gradient = predicted probability minus true probability — is why the combined softmax + cross-entropy layer is computationally convenient and numerically stable.
+(since $\sum_k y_k = 1$ for a one-hot vector). This elegant result - gradient = predicted probability minus true probability - is why the combined softmax + cross-entropy layer is computationally convenient and numerically stable.
 
 
 ---
@@ -1970,11 +1970,11 @@ $$= -y_j + p_j\sum_k y_k = p_j - y_j$$
 
 Before using the material in this section, ensure you are solid on:
 
-- **Limit definition** ([§01 §2](../01-Limits-and-Continuity/notes.md)): $\lim_{h\to 0}(...)$ is the backbone of the derivative definition
-- **Fundamental limits** ([§01 §3](../01-Limits-and-Continuity/notes.md)): $\lim_{h\to 0}\sin(h)/h = 1$ is used to derive $(\sin x)' = \cos x$
-- **Continuity** ([§01 §6](../01-Limits-and-Continuity/notes.md)): differentiability implies continuity; you need continuity to apply EVT and FTC
-- **Algebra**: polynomial factoring, rational expression manipulation — needed for quotient rule applications
-- **Exponential/log identities**: $e^{a+b} = e^a e^b$, $\ln(ab) = \ln a + \ln b$ — used in logarithmic differentiation
+- **Limit definition** ([01 2](../01-Limits-and-Continuity/notes.md)): $\lim_{h\to 0}(...)$ is the backbone of the derivative definition
+- **Fundamental limits** ([01 3](../01-Limits-and-Continuity/notes.md)): $\lim_{h\to 0}\sin(h)/h = 1$ is used to derive $(\sin x)' = \cos x$
+- **Continuity** ([01 6](../01-Limits-and-Continuity/notes.md)): differentiability implies continuity; you need continuity to apply EVT and FTC
+- **Algebra**: polynomial factoring, rational expression manipulation - needed for quotient rule applications
+- **Exponential/log identities**: $e^{a+b} = e^a e^b$, $\ln(ab) = \ln a + \ln b$ - used in logarithmic differentiation
 
 ### Y.2 Key Formulas from This Section (Memorize These)
 

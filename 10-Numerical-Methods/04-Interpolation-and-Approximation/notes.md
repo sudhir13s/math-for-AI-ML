@@ -1,33 +1,33 @@
-[← Back to Numerical Methods](../README.md) | [Next: Numerical Integration →](../05-Numerical-Integration/notes.md)
+[<- Back to Numerical Methods](../README.md) | [Next: Numerical Integration ->](../05-Numerical-Integration/notes.md)
 
 ---
 
 # Interpolation and Approximation
 
-> *"The art of interpolation is the art of making the most of what you know to say something useful about what you don't."*  
-> — Attributed to Carl Friedrich Gauss
+> *"The art of interpolation is the art of making the most of what you know to say something useful about what you don't."*
+> - Attributed to Carl Friedrich Gauss
 
 ## Overview
 
 Given a set of data points, **interpolation** constructs a function that passes exactly through every point, while **approximation** finds the "best" function from some class that fits the data in a least-squares or minimax sense. These are among the oldest problems in numerical mathematics, yet they remain central to modern AI: positional encodings in transformers use sinusoidal interpolation, kernel methods are approximation schemes, and neural networks themselves are universal approximators whose expressive power is quantified by approximation theory.
 
-The critical insight is that the *choice of basis* determines everything. Monomials ($1, x, x^2, \ldots$) are algebraically simple but numerically catastrophic (Vandermonde matrices are notoriously ill-conditioned). Chebyshev polynomials, derived from trigonometry, minimize the maximal interpolation error among all polynomial interpolants — they are the basis that tames Runge's phenomenon. Splines trade global accuracy for local control, achieving smooth, stable interpolation at the cost of piecewise complexity. Each basis encodes a different prior about the function being approximated.
+The critical insight is that the *choice of basis* determines everything. Monomials ($1, x, x^2, \ldots$) are algebraically simple but numerically catastrophic (Vandermonde matrices are notoriously ill-conditioned). Chebyshev polynomials, derived from trigonometry, minimize the maximal interpolation error among all polynomial interpolants - they are the basis that tames Runge's phenomenon. Splines trade global accuracy for local control, achieving smooth, stable interpolation at the cost of piecewise complexity. Each basis encodes a different prior about the function being approximated.
 
 This section covers polynomial interpolation, Chebyshev theory, splines, least-squares approximation, Fourier approximation, and radial basis functions, with explicit connections to ML applications including kernel methods, positional encodings, and neural function approximation.
 
 ## Prerequisites
 
-- Real analysis: continuity, differentiability, Taylor's theorem (§01-Mathematical-Foundations)
-- Linear algebra: matrix factorization, least squares, condition numbers (§02-Linear-Algebra-Basics, §10-02)
-- Floating-point arithmetic: rounding error, numerical stability (§10-01)
-- Norms and inner products (§02-Linear-Algebra-Basics)
+- Real analysis: continuity, differentiability, Taylor's theorem (Section01-Mathematical-Foundations)
+- Linear algebra: matrix factorization, least squares, condition numbers (Section02-Linear-Algebra-Basics, Section10-02)
+- Floating-point arithmetic: rounding error, numerical stability (Section10-01)
+- Norms and inner products (Section02-Linear-Algebra-Basics)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive derivations: Lagrange interpolation, Chebyshev nodes, spline construction, least-squares fitting, Fourier series |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from Vandermonde conditioning to neural tangent kernel approximation |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from Vandermonde conditioning to neural tangent kernel approximation |
 
 ## Learning Objectives
 
@@ -107,40 +107,40 @@ This is exactly the bias-variance tradeoff in machine learning, seen through the
 
 ```
 FUNCTION APPROXIMATION LANDSCAPE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Data:  (x_0,y_0), ..., (x_n,y_n)
-                      │
+                      |
               What class of f?
-               ┌──────┴──────┐
+               +------------+
           Global              Local
-        ┌──────┐           ┌──────┐
+        +------+           +------+
      Polynomial          Piecewise
      (Lagrange,          (Splines,
       Chebyshev)          B-splines)
-                               │
-                         ┌─────┴──────┐
+                               |
+                         +-----------+
                       Smooth         Nonsmooth
                      (cubic)          (linear,
                                       B-spline)
-  
-  Special structures:
-  ─ Trigonometric: periodic functions, FFT
-  ─ RBF/kernel:    scattered data, RKHS, GP
-  ─ Neural:        composition, ReLU networks
 
-════════════════════════════════════════════════════════════════════════
+  Special structures:
+  - Trigonometric: periodic functions, FFT
+  - RBF/kernel:    scattered data, RKHS, GP
+  - Neural:        composition, ReLU networks
+
+========================================================================
 ```
 
 ### 1.2 Why Approximation Matters for AI
 
 **1. Positional encodings:** The original transformer (Vaswani et al., 2017) uses sinusoidal positional encodings $\text{PE}(pos, 2i) = \sin(pos / 10000^{2i/d})$. This is a trigonometric interpolation scheme allowing the model to interpolate positions not seen during training.
 
-**2. Kernel methods and SVMs:** The kernel trick $k(x, x') = \phi(x)^\top \phi(x')$ computes inner products in a feature space implicitly. The representer theorem shows that the optimal solution lies in the span of the training data — exactly the RBF interpolant form.
+**2. Kernel methods and SVMs:** The kernel trick $k(x, x') = \phi(x)^\top \phi(x')$ computes inner products in a feature space implicitly. The representer theorem shows that the optimal solution lies in the span of the training data - exactly the RBF interpolant form.
 
-**3. Neural network expressiveness:** The universal approximation theorem states that a single hidden layer with enough neurons can approximate any continuous function on a compact set. The rate of approximation depends on the function's smoothness — exactly what approximation theory quantifies.
+**3. Neural network expressiveness:** The universal approximation theorem states that a single hidden layer with enough neurons can approximate any continuous function on a compact set. The rate of approximation depends on the function's smoothness - exactly what approximation theory quantifies.
 
-**4. Learned embeddings:** Word embeddings, graph node embeddings, and molecule representations are all continuous approximations of discrete objects — the embedding space provides an interpolation structure.
+**4. Learned embeddings:** Word embeddings, graph node embeddings, and molecule representations are all continuous approximations of discrete objects - the embedding space provides an interpolation structure.
 
 **5. Physics-informed neural networks (PINNs):** These solve PDEs by fitting a neural network as the solution function, treating the problem as function approximation subject to differential equation constraints.
 
@@ -148,25 +148,25 @@ FUNCTION APPROXIMATION LANDSCAPE
 
 ```
 INTERPOLATION AND APPROXIMATION: HISTORICAL TIMELINE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1700  ─ Newton's divided differences (1711): systematic polynomial interp.
-  1795  ─ Gauss: least-squares method for orbit of Ceres
-  1800  ─ Legendre: method of least squares (1805); orthogonal polynomials
-  1853  ─ Chebyshev: polynomials with equioscillation, minimax approximation
-  1900  ─ Runge: demonstrates instability of high-degree equispaced interp. (1901)
-  1906  ─ Lebesgue: Lebesgue constant quantifies interpolation error
-  1946  ─ Schoenberg: B-splines introduced for smoothing problems
-  1965  ─ Cooley-Tukey: Fast Fourier Transform algorithm
-  1970  ─ de Boor: stable B-spline evaluation algorithms
-  1985  ─ Chui, Mallat: wavelet theory as multi-resolution approximation
-  1989  ─ Cybenko, Hornik: universal approximation theorems for neural nets
-  2017  ─ Vaswani et al.: sinusoidal positional encodings in transformers
-  2020  ─ Tancik et al.: Fourier features for neural radiance fields (NeRF)
-  2022  ─ RoPE (Su et al.): rotary positional encodings for LLMs (LLaMA)
-  2024  ─ NTK theory: neural tangent kernel as linearized approximation
+  1700  - Newton's divided differences (1711): systematic polynomial interp.
+  1795  - Gauss: least-squares method for orbit of Ceres
+  1800  - Legendre: method of least squares (1805); orthogonal polynomials
+  1853  - Chebyshev: polynomials with equioscillation, minimax approximation
+  1900  - Runge: demonstrates instability of high-degree equispaced interp. (1901)
+  1906  - Lebesgue: Lebesgue constant quantifies interpolation error
+  1946  - Schoenberg: B-splines introduced for smoothing problems
+  1965  - Cooley-Tukey: Fast Fourier Transform algorithm
+  1970  - de Boor: stable B-spline evaluation algorithms
+  1985  - Chui, Mallat: wavelet theory as multi-resolution approximation
+  1989  - Cybenko, Hornik: universal approximation theorems for neural nets
+  2017  - Vaswani et al.: sinusoidal positional encodings in transformers
+  2020  - Tancik et al.: Fourier features for neural radiance fields (NeRF)
+  2022  - RoPE (Su et al.): rotary positional encodings for LLMs (LLaMA)
+  2024  - NTK theory: neural tangent kernel as linearized approximation
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -191,7 +191,7 @@ $$p_n(x) = \sum_{j=0}^{n} y_j \ell_j(x)$$
 
 $$p_n(x) = \frac{\sum_{j=0}^{n} \frac{w_j}{x - x_j} y_j}{\sum_{j=0}^{n} \frac{w_j}{x - x_j}}, \quad w_j = \frac{1}{\prod_{k \neq j}(x_j - x_k)}$$
 
-The division by the denominator (which equals 1 by the Lagrange interpolation of the constant function $f \equiv 1$) provides automatic normalization and excellent numerical stability — it is one of the most stable algorithms in numerical analysis.
+The division by the denominator (which equals 1 by the Lagrange interpolation of the constant function $f \equiv 1$) provides automatic normalization and excellent numerical stability - it is one of the most stable algorithms in numerical analysis.
 
 **For AI:** The attention mechanism in transformers can be viewed as a weighted sum $\sum_j \alpha_j v_j$ where the attention weights $\alpha_j = \text{softmax}(q^\top k_j / \sqrt{d})$ play a role analogous to the Lagrange basis weights $\ell_j(x)$. Both select how much each "stored value" contributes to the output.
 
@@ -209,18 +209,18 @@ $$[y_i, y_{i+1}, \ldots, y_{i+k}] = \frac{[y_{i+1}, \ldots, y_{i+k}] - [y_i, \ld
 **Key properties:**
 1. **Symmetric:** $[y_0, y_1, \ldots, y_n]$ is symmetric in all its arguments
 2. **Derivative connection:** $[y_0, y_1, \ldots, y_n] = f^{(n)}(\xi) / n!$ for some $\xi$ in the convex hull of $\{x_0, \ldots, x_n\}$
-3. **Incremental:** Adding a new data point $(x_{n+1}, y_{n+1})$ extends the Newton form by one term — $O(n)$ update vs $O(n^2)$ for recomputing Lagrange
+3. **Incremental:** Adding a new data point $(x_{n+1}, y_{n+1})$ extends the Newton form by one term - $O(n)$ update vs $O(n^2)$ for recomputing Lagrange
 
 **Newton divided difference table:**
 
 ```
-x_0  │  y_0
-     │         [y_0, y_1]
-x_1  │  y_1               [y_0, y_1, y_2]
-     │         [y_1, y_2]               [y_0, y_1, y_2, y_3]
-x_2  │  y_2               [y_1, y_2, y_3]
-     │         [y_2, y_3]
-x_3  │  y_3
+x_0  |  y_0
+     |         [y_0, y_1]
+x_1  |  y_1               [y_0, y_1, y_2]
+     |         [y_1, y_2]               [y_0, y_1, y_2, y_3]
+x_2  |  y_2               [y_1, y_2, y_3]
+     |         [y_2, y_3]
+x_3  |  y_3
 ```
 
 **Horner's rule** evaluates the Newton form in $O(n)$ operations:
@@ -242,7 +242,7 @@ where $\omega_{n+1}(x) = \prod_{i=0}^{n}(x - x_i)$ is the **node polynomial**.
 **Proof sketch:** Define $g(t) = f(t) - p_n(t) - \lambda \omega_{n+1}(t)$ where $\lambda$ is chosen so that $g(x) = 0$. Then $g$ has $n+2$ zeros: $x_0, \ldots, x_n, x$. By Rolle's theorem, $g'$ has $n+1$ zeros, $g''$ has $n$ zeros, ..., $g^{(n+1)}$ has 1 zero $\xi_x$. Computing $g^{(n+1)}(\xi_x) = 0$ gives $\lambda = f^{(n+1)}(\xi_x)/(n+1)!$. $\square$
 
 **Implications:**
-1. The error is controlled by $\|\omega_{n+1}\|_\infty = \max_{x \in [a,b]} |\omega_{n+1}(x)|$ — choosing nodes to minimize this is Chebyshev's contribution
+1. The error is controlled by $\|\omega_{n+1}\|_\infty = \max_{x \in [a,b]} |\omega_{n+1}(x)|$ - choosing nodes to minimize this is Chebyshev's contribution
 2. Smooth functions ($f^{(n+1)}$ small) are approximated well
 3. High-degree polynomials require $f$ to have many bounded derivatives
 
@@ -252,8 +252,8 @@ $$\|f - p_n\|_\infty \leq (1 + \Lambda_n) \|f - p_n^*\|_\infty$$
 
 where $p_n^*$ is the best polynomial approximant of degree $n$ and $\Lambda_n = \max_{x \in [a,b]} \sum_j |\ell_j(x)|$ is the **Lebesgue constant**. The Lebesgue constant quantifies how much the interpolant amplifies errors in $y_i$.
 
-- Equispaced nodes: $\Lambda_n \sim 2^n / (e n \ln n)$ — **exponential growth** (Runge's phenomenon)
-- Chebyshev nodes: $\Lambda_n \sim \frac{2}{\pi} \ln(n+1) + 0.52$ — **logarithmic growth** (nearly optimal)
+- Equispaced nodes: $\Lambda_n \sim 2^n / (e n \ln n)$ - **exponential growth** (Runge's phenomenon)
+- Chebyshev nodes: $\Lambda_n \sim \frac{2}{\pi} \ln(n+1) + 0.52$ - **logarithmic growth** (nearly optimal)
 
 ### 2.4 Runge's Phenomenon
 
@@ -263,23 +263,23 @@ The reason is purely numerical: the node polynomial $\omega_{n+1}(x)$ for equisp
 
 ```
 RUNGE'S PHENOMENON: EQUISPACED vs CHEBYSHEV NODES
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  f(x) = 1/(1+25x²),  n=15 interpolation points
+  f(x) = 1/(1+25x^2),  n=15 interpolation points
 
   Equispaced nodes (-1, -12/15, ..., 12/15, 1):
-  ─ Huge oscillations near ±1
-  ─ Max error ≈ 10² (function max is 1!)
-  ─ Lebesgue constant Λ₁₅ ≈ 5000
+  - Huge oscillations near +/-1
+  - Max error \\approx 10^2 (function max is 1!)
+  - Lebesgue constant _15 \\approx 5000
 
-  Chebyshev nodes (cos((2k+1)π/(2n+2))):
-  ─ Near-optimal approximation
-  ─ Max error ≈ 10⁻³
-  ─ Lebesgue constant Λ₁₅ ≈ 3.5
+  Chebyshev nodes (cos((2k+1)\\pi/(2n+2))):
+  - Near-optimal approximation
+  - Max error \\approx 10^-^3
+  - Lebesgue constant _15 \\approx 3.5
 
   Moral: Node placement is as important as degree!
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **For AI:** Equispaced sampling is the default in practice (uniform time steps, uniform grid). Understanding why this can fail for high-degree polynomial interpolation is essential context for:
@@ -318,7 +318,7 @@ $$T_0(x) = 1, \quad T_1(x) = x, \quad T_n(x) = 2x T_{n-1}(x) - T_{n-2}(x)$$
 
 $$f(x) = \sum_{k=0}^{\infty} c_k T_k(x), \quad c_k = \frac{2}{\pi} \int_{-1}^{1} f(x) T_k(x) \frac{dx}{\sqrt{1-x^2}}$$
 
-(with $c_0$ divided by 2). The Chebyshev series converges faster than any fixed power of $1/n$ for analytic functions — **exponential convergence for analytic $f$**.
+(with $c_0$ divided by 2). The Chebyshev series converges faster than any fixed power of $1/n$ for analytic functions - **exponential convergence for analytic $f$**.
 
 **For AI:** Chebyshev polynomials appear in:
 - **Spectral graph neural networks:** ChebNet approximates the graph spectral filter $g(\Lambda)$ by a Chebyshev polynomial in $\Lambda$, avoiding eigendecomposition
@@ -359,11 +359,11 @@ $$f(x_k) - p^*(x_k) = (-1)^k E, \quad E = \pm \|f - p^*\|_\infty$$
 
 **Remez algorithm:** An iterative algorithm that finds the minimax polynomial by exchanging equioscillation points. Converges quadratically.
 
-**For smooth functions:** The minimax polynomial approximation converges exponentially for analytic functions — meaning $\|f - p_n^*\|_\infty \leq C \rho^{-n}$ for some $\rho > 1$ depending on the domain of analyticity.
+**For smooth functions:** The minimax polynomial approximation converges exponentially for analytic functions - meaning $\|f - p_n^*\|_\infty \leq C \rho^{-n}$ for some $\rho > 1$ depending on the domain of analyticity.
 
 ### 3.4 Clenshaw-Curtis Quadrature Connection
 
-The Chebyshev points of the second kind (extrema of $T_n$) are central to **Clenshaw-Curtis quadrature** (see §10-05). The key insight: integrating the Chebyshev interpolant exactly gives highly accurate quadrature weights. This is treated in detail in the Numerical Integration section.
+The Chebyshev points of the second kind (extrema of $T_n$) are central to **Clenshaw-Curtis quadrature** (see Section10-05). The key insight: integrating the Chebyshev interpolant exactly gives highly accurate quadrature weights. This is treated in detail in the Numerical Integration section.
 
 ---
 
@@ -371,21 +371,21 @@ The Chebyshev points of the second kind (extrema of $T_n$) are central to **Clen
 
 ### 4.1 Piecewise Polynomial Interpolation
 
-**Motivation:** High-degree global polynomial interpolation is unstable (Runge). Instead, use a low-degree polynomial on each subinterval — **piecewise polynomials** or **splines**.
+**Motivation:** High-degree global polynomial interpolation is unstable (Runge). Instead, use a low-degree polynomial on each subinterval - **piecewise polynomials** or **splines**.
 
 **Definition:** Given nodes $a = x_0 < x_1 < \cdots < x_n = b$ (breakpoints), a **spline of degree $k$** is a function $S: [a,b] \to \mathbb{R}$ such that:
 1. On each interval $[x_i, x_{i+1}]$, $S$ is a polynomial of degree $\leq k$
-2. $S \in C^{k-1}[a,b]$ — has $k-1$ continuous derivatives globally
+2. $S \in C^{k-1}[a,b]$ - has $k-1$ continuous derivatives globally
 
-**Piecewise linear interpolation ($k=1$):** Connect adjacent data points with straight lines. Simple, $O(n)$ construction, but only $C^0$ — derivatives are discontinuous. Error: $O(h^2)$ where $h = \max_i (x_{i+1} - x_i)$.
+**Piecewise linear interpolation ($k=1$):** Connect adjacent data points with straight lines. Simple, $O(n)$ construction, but only $C^0$ - derivatives are discontinuous. Error: $O(h^2)$ where $h = \max_i (x_{i+1} - x_i)$.
 
-**Piecewise cubic ($k=3$):** The sweet spot — 4 degrees of freedom per interval, 2 boundary conditions at each interior node ($C^2$ continuity), leaving 2 free conditions (boundary conditions). Error: $O(h^4)$.
+**Piecewise cubic ($k=3$):** The sweet spot - 4 degrees of freedom per interval, 2 boundary conditions at each interior node ($C^2$ continuity), leaving 2 free conditions (boundary conditions). Error: $O(h^4)$.
 
 ### 4.2 Cubic Splines: Derivation and Construction
 
 **Natural cubic spline:** Given $n+1$ data points, find $S \in C^2[a,b]$ piecewise cubic satisfying:
 1. $S(x_i) = y_i$ for $i = 0, \ldots, n$ (interpolation)
-2. $S''(x_0) = S''(x_n) = 0$ (natural boundary conditions — zero curvature at endpoints)
+2. $S''(x_0) = S''(x_n) = 0$ (natural boundary conditions - zero curvature at endpoints)
 
 **Derivation:** On $[x_i, x_{i+1}]$ with $h_i = x_{i+1} - x_i$, let $M_i = S''(x_i)$ be the unknown second derivatives. Since $S$ is cubic on each interval and $S''$ is linear:
 
@@ -399,25 +399,25 @@ $$S(x) = M_i \frac{(x_{i+1}-x)^3}{6h_i} + M_{i+1} \frac{(x-x_i)^3}{6h_i} + \left
 
 $$h_{i-1} M_{i-1} + 2(h_{i-1} + h_i) M_i + h_i M_{i+1} = 6 \left(\frac{y_{i+1}-y_i}{h_i} - \frac{y_i - y_{i-1}}{h_{i-1}}\right), \quad i = 1, \ldots, n-1$$
 
-This gives a **tridiagonal linear system** for $M_1, \ldots, M_{n-1}$ (with $M_0 = M_n = 0$ for natural BC). Tridiagonal systems are solved in $O(n)$ with the Thomas algorithm — spectacularly efficient.
+This gives a **tridiagonal linear system** for $M_1, \ldots, M_{n-1}$ (with $M_0 = M_n = 0$ for natural BC). Tridiagonal systems are solved in $O(n)$ with the Thomas algorithm - spectacularly efficient.
 
 ```
 CUBIC SPLINE SYSTEM (tridiagonal)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  ┌                                  ┐ ┌   ┐   ┌   ┐
-  │ 2(h₀+h₁)  h₁                    │ │M₁ │   │r₁ │
-  │ h₁      2(h₁+h₂)  h₂            │ │M₂ │   │r₂ │
-  │           h₂    2(h₂+h₃)  h₃   │ │M₃ │ = │r₃ │
-  │                  ⋱      ⋱   ⋱   │ │ ⋮ │   │ ⋮ │
-  │                    h_{n-2} 2(h_{n-2}+h_{n-1})│ │M_{n-1}│   │r_{n-1}│
-  └                                  ┘ └   ┘   └   ┘
+  +                                  + +   +   +   +
+  | 2(h_0+h_1)  h_1                    | |M_1 |   |r_1 |
+  | h_1      2(h_1+h_2)  h_2            | |M_2 |   |r_2 |
+  |           h_2    2(h_2+h_3)  h_3   | |M_3 | = |r_3 |
+  |                              | |  |   |  |
+  |                    h_{n-2} 2(h_{n-2}+h_{n-1})| |M_{n-1}|   |r_{n-1}|
+  +                                  + +   +   +   +
 
-  rᵢ = 6[(yᵢ₊₁-yᵢ)/hᵢ - (yᵢ-yᵢ₋₁)/hᵢ₋₁]  (second finite differences of y)
+  r_i = 6[(y_i+_1-y_i)/h_i - (y_i-y_i_1)/h_i_1]  (second finite differences of y)
 
   Solved by Thomas algorithm in O(n) operations.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Error analysis:** For the natural cubic spline:
@@ -434,10 +434,10 @@ where $h = \max h_i$. The $O(h^4)$ convergence makes cubic splines highly accura
 
 **Minimum curvature property:** The natural cubic spline minimizes $\int_a^b |S''(x)|^2 dx$ among all twice-differentiable interpolants. This is the **thin plate spline** principle: the spline is the smoothest interpolant.
 
-**For AI:** 
+**For AI:**
 - **Neural ODEs** use cubic spline interpolation to densify trajectory predictions
 - **Temporal point processes** use spline bases to model intensity functions
-- The minimum curvature property connects to L2 regularization: the RKHS norm for the Matérn-3/2 kernel is equivalent to $\int |S''|^2$
+- The minimum curvature property connects to L2 regularization: the RKHS norm for the Matern-3/2 kernel is equivalent to $\int |S''|^2$
 
 ### 4.3 B-Splines
 
@@ -450,8 +450,8 @@ $$B_{i,0}(x) = \begin{cases} 1 & t_i \leq x < t_{i+1} \\ 0 & \text{otherwise} \e
 $$B_{i,p}(x) = \frac{x - t_i}{t_{i+p} - t_i} B_{i,p-1}(x) + \frac{t_{i+p+1} - x}{t_{i+p+1} - t_{i+1}} B_{i+1,p-1}(x)$$
 
 **Key properties:**
-- **Local support:** $B_{i,p}(x) = 0$ outside $[t_i, t_{i+p+1}]$ — changing one control point affects only a local region
-- **Partition of unity:** $\sum_i B_{i,p}(x) = 1$ for all $x$ — control points are convex combinations
+- **Local support:** $B_{i,p}(x) = 0$ outside $[t_i, t_{i+p+1}]$ - changing one control point affects only a local region
+- **Partition of unity:** $\sum_i B_{i,p}(x) = 1$ for all $x$ - control points are convex combinations
 - **Non-negativity:** $B_{i,p}(x) \geq 0$
 - **Convex hull property:** The spline curve lies within the convex hull of its control points
 
@@ -459,12 +459,12 @@ $$B_{i,p}(x) = \frac{x - t_i}{t_{i+p} - t_i} B_{i,p-1}(x) + \frac{t_{i+p+1} - x}
 
 **For AI:** B-splines appear in:
 - **Computer graphics:** NURBS (Non-Uniform Rational B-Splines) for representing curved surfaces in 3D rendering used in diffusion model outputs
-- **Kolmogorov-Arnold Networks (KAN):** Replace MLP neurons with learned B-spline functions — a direct application of spline approximation theory in neural networks
+- **Kolmogorov-Arnold Networks (KAN):** Replace MLP neurons with learned B-spline functions - a direct application of spline approximation theory in neural networks
 - **Time-series modeling:** Spline bases for smooth covariate functions in survival analysis and temporal models
 
 ### 4.4 Tension Splines and Shape Preservation
 
-Standard cubic splines can overshoot — producing local extrema not present in the data. **Monotone splines** (Fritsch-Carlson algorithm) adjust slopes to preserve monotonicity:
+Standard cubic splines can overshoot - producing local extrema not present in the data. **Monotone splines** (Fritsch-Carlson algorithm) adjust slopes to preserve monotonicity:
 
 1. Compute slopes from divided differences
 2. If $d_i$ has opposite sign to adjacent differences, set $d_i = 0$
@@ -490,7 +490,7 @@ where $V \in \mathbb{R}^{m \times (n+1)}$ is the Vandermonde matrix $V_{ij} = x_
 
 $$\kappa_{\text{QR solve}} = \kappa(V) \quad \text{vs} \quad \kappa_{\text{Normal eq.}} = \kappa(V)^2$$
 
-**For AI:** This is the same condition-number-squaring problem as in §10-02. Linear regression with polynomial features should always use QR or SVD, never the normal equations with the Vandermonde matrix directly.
+**For AI:** This is the same condition-number-squaring problem as in Section10-02. Linear regression with polynomial features should always use QR or SVD, never the normal equations with the Vandermonde matrix directly.
 
 ### 5.2 Orthogonal Polynomials and Gram-Schmidt
 
@@ -557,7 +557,7 @@ The coefficients $c_k$ are exactly the **Discrete Fourier Transform (DFT)** of t
 
 $$\|f - p_n\|_\infty \leq 2\sum_{|k| > n/2} |\hat{f}_k|$$
 
-For smooth periodic functions, the Fourier coefficients decay rapidly (exponentially for analytic functions), so this error is very small — **spectral accuracy**.
+For smooth periodic functions, the Fourier coefficients decay rapidly (exponentially for analytic functions), so this error is very small - **spectral accuracy**.
 
 ### 6.2 Discrete Fourier Transform
 
@@ -582,7 +582,7 @@ $$y_j = \frac{1}{n} \sum_{k=0}^{n-1} Y_k \omega_n^{jk}$$
 
 ### 6.3 Fast Fourier Transform
 
-**Naive DFT:** $O(n^2)$ — computing each of $n$ output values requires summing $n$ terms.
+**Naive DFT:** $O(n^2)$ - computing each of $n$ output values requires summing $n$ terms.
 
 **Cooley-Tukey FFT (1965):** Exploits the factorization of $n$ (assuming $n = 2^m$) to reduce complexity to $O(n \log n)$.
 
@@ -594,25 +594,25 @@ Since $\omega_n^{-2j} = \omega_{n/2}^{-j}$, both $E$ and $O$ are DFTs of size $n
 
 ```
 DFT BUTTERFLY STRUCTURE (n=8)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input (bit-reversed)          Output (in-order)
-  y₀  ────┐                       Y₀
-  y₄  ────┤─ butterfly ─────────  Y₁
-  y₂  ────┤─ butterfly ─────────  Y₂
-  y₆  ────┤─ butterfly ─────────  Y₃
-  y₁  ────┤─ butterfly ─────────  Y₄
-  y₅  ────┤─ butterfly ─────────  Y₅
-  y₃  ────┤─ butterfly ─────────  Y₆
-  y₇  ────┘─ butterfly ─────────  Y₇
+  y_0  ----+                       Y_0
+  y4  ----- butterfly ---------  Y_1
+  y_2  ----- butterfly ---------  Y_2
+  y6  ----- butterfly ---------  Y_3
+  y_1  ----- butterfly ---------  Y4
+  y5  ----- butterfly ---------  Y5
+  y_3  ----- butterfly ---------  Y6
+  y7  ----+- butterfly ---------  Y7
 
-  3 stages × 4 butterflies = 12 operations vs 64 for naive DFT.
-  Speedup: O(n²) → O(n log n).
+  3 stages x 4 butterflies = 12 operations vs 64 for naive DFT.
+  Speedup: O(n^2) -> O(n log n).
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Complexity:** $T(n) = 2T(n/2) + O(n)$ solves to $T(n) = O(n \log n)$. For $n = 10^6$, FFT requires $\sim 2 \times 10^7$ operations vs $10^{12}$ for naive DFT — a factor of $50{,}000\times$ speedup.
+**Complexity:** $T(n) = 2T(n/2) + O(n)$ solves to $T(n) = O(n \log n)$. For $n = 10^6$, FFT requires $\sim 2 \times 10^7$ operations vs $10^{12}$ for naive DFT - a factor of $50{,}000\times$ speedup.
 
 **For AI:** FFT is used in:
 - Spectral convolution layers (FNet, S4, Hyena)
@@ -626,7 +626,7 @@ DFT BUTTERFLY STRUCTURE (n=8)
 **Nyquist-Shannon sampling theorem:** A signal with bandwidth $B$ (no frequencies above $B$) can be perfectly reconstructed from samples taken at rate $f_s \geq 2B$.
 
 **For AI:** Aliasing matters in:
-- Audio processing (e.g., sample rate 44.1 kHz supports up to 22 kHz — just above human hearing)
+- Audio processing (e.g., sample rate 44.1 kHz supports up to 22 kHz - just above human hearing)
 - Image super-resolution: downsampling without anti-aliasing introduces artifacts
 - Periodic positional encodings: the frequency range $[10^{-4}, 1]$ in transformer PEs avoids aliasing for typical sequence lengths
 
@@ -648,16 +648,16 @@ where $\phi: [0, \infty) \to \mathbb{R}$ is a radial function. Common choices:
 | Multiquadric | $\sqrt{1 + \varepsilon^2 r^2}$ | $C^\infty$ |
 | Inverse multiquadric | $(1 + \varepsilon^2 r^2)^{-1/2}$ | $C^\infty$ |
 | Thin plate spline | $r^2 \log r$ | $C^1$ |
-| Matérn-3/2 | $(1 + \sqrt{3}r/\ell)\exp(-\sqrt{3}r/\ell)$ | $C^2$ |
+| Matern-3/2 | $(1 + \sqrt{3}r/\ell)\exp(-\sqrt{3}r/\ell)$ | $C^2$ |
 | Wendland | piecewise polynomial, compact support | $C^{2k}$ |
 
 **Interpolation system:** The coefficients $c$ solve the linear system:
 
 $$\Phi c = y, \quad \Phi_{ij} = \phi(\|x_i - x_j\|)$$
 
-For **positive definite** RBFs (Gaussian, Matérn), $\Phi$ is positive definite — guaranteed unique solution.
+For **positive definite** RBFs (Gaussian, Matern), $\Phi$ is positive definite - guaranteed unique solution.
 
-**For AI:** The Gaussian RBF kernel is the most common kernel in kernel machines (SVM, Gaussian processes). The shape parameter $\varepsilon$ (or lengthscale $\ell$) controls the smoothness/locality tradeoff — analogous to the learning rate in neural networks.
+**For AI:** The Gaussian RBF kernel is the most common kernel in kernel machines (SVM, Gaussian processes). The shape parameter $\varepsilon$ (or lengthscale $\ell$) controls the smoothness/locality tradeoff - analogous to the learning rate in neural networks.
 
 ### 7.2 Connection to Reproducing Kernel Hilbert Spaces
 
@@ -688,7 +688,7 @@ $$\sigma^{*2} = k(x^*, x^*) - k^{*\top}(K + \sigma^2 I)^{-1} k^*$$
 
 where $k^*_i = k(x^*, x_i)$.
 
-The posterior mean $\mu^*$ is precisely the kernel ridge regression solution — Bayesian inference gives both a point estimate and uncertainty quantification "for free".
+The posterior mean $\mu^*$ is precisely the kernel ridge regression solution - Bayesian inference gives both a point estimate and uncertainty quantification "for free".
 
 **For AI:** Gaussian processes are used for:
 - **Bayesian optimization:** Surrogate model for expensive black-box functions (hyperparameter tuning)
@@ -705,17 +705,17 @@ The original transformer uses sinusoidal positional encodings (Vaswani et al., 2
 
 $$\text{PE}(pos, 2i) = \sin\left(\frac{pos}{10000^{2i/d}}\right), \quad \text{PE}(pos, 2i+1) = \cos\left(\frac{pos}{10000^{2i/d}}\right)$$
 
-**Approximation theory perspective:** These are trigonometric interpolation functions. The frequencies span $[10000^{-1}, 1]$ — about 4 decades — covering both local (high frequency) and global (low frequency) position information.
+**Approximation theory perspective:** These are trigonometric interpolation functions. The frequencies span $[10000^{-1}, 1]$ - about 4 decades - covering both local (high frequency) and global (low frequency) position information.
 
-**Why sinusoidal?** For any offset $k$, $\text{PE}(pos+k)$ is a linear function of $\text{PE}(pos)$ — the relative position $k$ can be expressed via a rotation matrix. This allows the model to attend to relative positions.
+**Why sinusoidal?** For any offset $k$, $\text{PE}(pos+k)$ is a linear function of $\text{PE}(pos)$ - the relative position $k$ can be expressed via a rotation matrix. This allows the model to attend to relative positions.
 
 **RoPE (Rotary Position Embedding, Su et al. 2022):** Used in LLaMA, Mistral, GPT-NeoX. Applies a position-dependent rotation to query and key vectors:
 
 $$q_m = R_m q, \quad k_n = R_n k, \quad R_m = \begin{pmatrix} \cos m\theta & -\sin m\theta \\ \sin m\theta & \cos m\theta \end{pmatrix}$$
 
-The inner product $q_m^\top k_n = q^\top R_m^\top R_n k = q^\top R_{m-n} k$ depends only on relative position $m-n$ — exact relative position encoding via complex multiplication.
+The inner product $q_m^\top k_n = q^\top R_m^\top R_n k = q^\top R_{m-n} k$ depends only on relative position $m-n$ - exact relative position encoding via complex multiplication.
 
-**For AI:** The interpolation challenge arises when extending context length. A model trained with RoPE on 2048 tokens needs to generalize to 8192 — trigonometric **extrapolation**, not interpolation. Methods like YaRN (Peng et al., 2023) modify the frequency range to enable longer context via interpolation of the position indices.
+**For AI:** The interpolation challenge arises when extending context length. A model trained with RoPE on 2048 tokens needs to generalize to 8192 - trigonometric **extrapolation**, not interpolation. Methods like YaRN (Peng et al., 2023) modify the frequency range to enable longer context via interpolation of the position indices.
 
 ### 8.2 Neural Networks as Universal Approximators
 
@@ -726,8 +726,8 @@ $$f(x) \approx \sum_{j=1}^{N} c_j \sigma(a_j^\top x + b_j)$$
 for any continuous sigmoidal $\sigma$. As $N \to \infty$, the approximation error goes to zero.
 
 **Modern variants:**
-- **Barron's theorem (1993):** Functions with finite Barron complexity $C_f = \int |\hat{f}(\omega)| \|\omega\| d\omega < \infty$ can be approximated with $O(1/N)$ squared $L^2$ error using $N$ neurons — independent of dimension $d$. This avoids the curse of dimensionality for this function class.
-- **ReLU depth separation:** Deep ReLU networks of depth $L$ can represent functions that would require $O(2^n)$ neurons in a shallow network — depth exponentially increases expressiveness
+- **Barron's theorem (1993):** Functions with finite Barron complexity $C_f = \int |\hat{f}(\omega)| \|\omega\| d\omega < \infty$ can be approximated with $O(1/N)$ squared $L^2$ error using $N$ neurons - independent of dimension $d$. This avoids the curse of dimensionality for this function class.
+- **ReLU depth separation:** Deep ReLU networks of depth $L$ can represent functions that would require $O(2^n)$ neurons in a shallow network - depth exponentially increases expressiveness
 - **Approximation vs optimization:** Universal approximation guarantees *existence* of weights; finding them via gradient descent is a separate (hard) problem
 
 **KAN (Kolmogorov-Arnold Networks, 2024):** Replace the node-wise nonlinearity with edge-wise learned univariate functions (represented as B-splines):
@@ -746,7 +746,7 @@ where $p(\omega)$ is the spectral density. Approximating with $D$ random frequen
 
 $$k(x, y) \approx z(x)^\top z(y), \quad z(x) = \frac{1}{\sqrt{D}} \begin{pmatrix} \cos(\omega_1^\top x + b_1) \\ \vdots \\ \cos(\omega_D^\top x + b_D) \end{pmatrix}$$
 
-This turns a kernel method into a linear model in feature space — $O(nD)$ instead of $O(n^2)$ for kernel matrix.
+This turns a kernel method into a linear model in feature space - $O(nD)$ instead of $O(n^2)$ for kernel matrix.
 
 **For AI:** Random Fourier features are the foundation of:
 - **Performer (Choromanski et al., 2020):** Approximates softmax attention with $O(n)$ complexity using random feature maps
@@ -763,9 +763,9 @@ This turns a kernel method into a linear model in feature space — $O(nD)$ inst
 | 3 | Extrapolating polynomial interpolants | All polynomial interpolants diverge outside $[x_0, x_n]$ unless the function is actually polynomial | Use local models (splines) or explicit extrapolation assumptions |
 | 4 | Setting spline boundary conditions to natural ($S''=0$) when data is not natural | Introduces artificial inflection points if the true function has nonzero curvature at endpoints | Use clamped or not-a-knot conditions when derivative information is available |
 | 5 | Confusing interpolation degree with approximation quality | High degree interpolation is not always more accurate (Runge) | Match the basis to the data's smoothness and node count |
-| 6 | Forgetting that DFT assumes periodic extension | Discontinuity at boundaries causes Gibbs phenomenon — oscillations near jumps | Apply windowing (Hann, Hamming) or use non-uniform FFT |
-| 7 | Using Gaussian RBF with too large an $\varepsilon$ | Leads to nearly singular $\Phi$ matrix ($\kappa \sim e^{\varepsilon^2 r^2}$) | Tune $\varepsilon$ via cross-validation or use stable algorithms (contour Padé) |
-| 8 | Treating the Lebesgue constant as just a theoretical concept | The Lebesgue constant directly bounds interpolation error amplification — if $\Lambda_n$ is large, small errors in $y_i$ cause large errors in $p_n$ | Always check the Lebesgue constant for your node choice |
+| 6 | Forgetting that DFT assumes periodic extension | Discontinuity at boundaries causes Gibbs phenomenon - oscillations near jumps | Apply windowing (Hann, Hamming) or use non-uniform FFT |
+| 7 | Using Gaussian RBF with too large an $\varepsilon$ | Leads to nearly singular $\Phi$ matrix ($\kappa \sim e^{\varepsilon^2 r^2}$) | Tune $\varepsilon$ via cross-validation or use stable algorithms (contour Pade) |
+| 8 | Treating the Lebesgue constant as just a theoretical concept | The Lebesgue constant directly bounds interpolation error amplification - if $\Lambda_n$ is large, small errors in $y_i$ cause large errors in $p_n$ | Always check the Lebesgue constant for your node choice |
 | 9 | Assuming neural network universality implies easy learning | UAT says approximating functions *exists*, not that gradient descent finds it | Understand the approximation-optimization gap |
 | 10 | Misinterpreting sinusoidal PE frequencies as sampling frequencies | The $10000^{2i/d}$ factor controls the wavelength (period), not a sampling rate | Think in terms of wavelengths: smallest = $2\pi$, largest = $2\pi \times 10000$ |
 | 11 | Using fixed-$\varepsilon$ RBF for high-dimensional data | RBF interpolation is ill-conditioned in high dimensions without careful selection | Use compactly supported RBFs (Wendland) or regularized regression |
@@ -775,52 +775,52 @@ This turns a kernel method into a linear model in feature space — $O(nD)$ inst
 
 ## 10. Exercises
 
-**Exercise 1 ★ — Newton Divided Differences**  
-Implement the Newton divided difference algorithm and evaluate the interpolating polynomial using Horner's rule.  
-(a) Compute the divided difference table for $(0,1), (1,3), (2,7), (3,13)$.  
-(b) Implement `newton_interp(nodes, vals, x)` using the divided difference table and Horner's method.  
+**Exercise 1 * - Newton Divided Differences**
+Implement the Newton divided difference algorithm and evaluate the interpolating polynomial using Horner's rule.
+(a) Compute the divided difference table for $(0,1), (1,3), (2,7), (3,13)$.
+(b) Implement `newton_interp(nodes, vals, x)` using the divided difference table and Horner's method.
 (c) Verify the result matches the Lagrange interpolant.
 
-**Exercise 2 ★ — Runge's Phenomenon**  
-Demonstrate Runge's phenomenon numerically and show that Chebyshev nodes tame it.  
-(a) For $f(x) = 1/(1+25x^2)$, compute the interpolation error at $n = 5, 10, 15, 20$ with equispaced nodes.  
-(b) Repeat with Chebyshev nodes. Plot both error curves on a log scale.  
+**Exercise 2 * - Runge's Phenomenon**
+Demonstrate Runge's phenomenon numerically and show that Chebyshev nodes tame it.
+(a) For $f(x) = 1/(1+25x^2)$, compute the interpolation error at $n = 5, 10, 15, 20$ with equispaced nodes.
+(b) Repeat with Chebyshev nodes. Plot both error curves on a log scale.
 (c) Compute the Lebesgue constant for both node sets at $n = 15$.
 
-**Exercise 3 ★ — Natural Cubic Spline**  
-Build a cubic spline solver from scratch using the tridiagonal system.  
-(a) Derive the tridiagonal system for the second derivatives $M_i$.  
-(b) Implement the Thomas algorithm for tridiagonal systems.  
+**Exercise 3 * - Natural Cubic Spline**
+Build a cubic spline solver from scratch using the tridiagonal system.
+(a) Derive the tridiagonal system for the second derivatives $M_i$.
+(b) Implement the Thomas algorithm for tridiagonal systems.
 (c) Test on $f(x) = \sin(\pi x)$ with 10 equispaced nodes. Plot the spline and its error.
 
-**Exercise 4 ★★ — Vandermonde Conditioning and QR**  
-Show that QR decomposition is numerically superior to the normal equations for polynomial fitting.  
-(a) Construct the Vandermonde matrix for $n = 15$ equispaced nodes. Compute $\kappa(V)$ and $\kappa(V^\top V)$.  
-(b) Fit a degree-15 polynomial to noisy data by: (i) normal equations, (ii) QR factorization.  
+**Exercise 4 ** - Vandermonde Conditioning and QR**
+Show that QR decomposition is numerically superior to the normal equations for polynomial fitting.
+(a) Construct the Vandermonde matrix for $n = 15$ equispaced nodes. Compute $\kappa(V)$ and $\kappa(V^\top V)$.
+(b) Fit a degree-15 polynomial to noisy data by: (i) normal equations, (ii) QR factorization.
 (c) Compare the residuals and coefficient sensitivity to noise.
 
-**Exercise 5 ★★ — Chebyshev Approximation**  
-Compute the Chebyshev series and compare it to the minimax polynomial.  
-(a) Compute the first 20 Chebyshev coefficients of $f(x) = |x|$ using the DCT.  
-(b) Show that the truncated Chebyshev series achieves near-minimax approximation.  
+**Exercise 5 ** - Chebyshev Approximation**
+Compute the Chebyshev series and compare it to the minimax polynomial.
+(a) Compute the first 20 Chebyshev coefficients of $f(x) = |x|$ using the DCT.
+(b) Show that the truncated Chebyshev series achieves near-minimax approximation.
 (c) For $n = 10$, plot: exact $f$, Chebyshev approximation, and best polynomial approximation. Compute the difference in $\infty$-norm.
 
-**Exercise 6 ★★ — FFT and the Convolution Theorem**  
-Use the FFT to compute a convolution efficiently.  
-(a) Implement a 1D discrete convolution via FFT: `fft_convolve(x, h)`.  
-(b) Verify correctness against `np.convolve(x, h)` for a Gaussian filter.  
+**Exercise 6 ** - FFT and the Convolution Theorem**
+Use the FFT to compute a convolution efficiently.
+(a) Implement a 1D discrete convolution via FFT: `fft_convolve(x, h)`.
+(b) Verify correctness against `np.convolve(x, h)` for a Gaussian filter.
 (c) Measure and compare the time complexity of FFT vs direct convolution for $n = 1000, 10000$.
 
-**Exercise 7 ★★ — RBF Interpolation and Kernel Ridge Regression**  
-Connect RBF interpolation to kernel methods.  
-(a) Implement Gaussian RBF interpolation for 1D scattered data.  
-(b) Show that as the regularization $\lambda \to 0$, kernel ridge regression approaches RBF interpolation.  
+**Exercise 7 ** - RBF Interpolation and Kernel Ridge Regression**
+Connect RBF interpolation to kernel methods.
+(a) Implement Gaussian RBF interpolation for 1D scattered data.
+(b) Show that as the regularization $\lambda \to 0$, kernel ridge regression approaches RBF interpolation.
 (c) Demonstrate the shape parameter effect: for $\varepsilon = 0.1, 1, 10$, plot the RBF interpolant and the condition number of $\Phi$.
 
-**Exercise 8 ★★★ — Positional Encoding Interpolation**  
-Analyze sinusoidal positional encodings from an approximation theory perspective.  
-(a) Implement transformer sinusoidal PEs for dimension $d = 64$.  
-(b) Show that $\text{PE}(pos + k)$ is a linear function of $\text{PE}(pos)$ (derive the rotation matrix).  
+**Exercise 8 *** - Positional Encoding Interpolation**
+Analyze sinusoidal positional encodings from an approximation theory perspective.
+(a) Implement transformer sinusoidal PEs for dimension $d = 64$.
+(b) Show that $\text{PE}(pos + k)$ is a linear function of $\text{PE}(pos)$ (derive the rotation matrix).
 (c) Simulate context length extrapolation: train a simple model on positions $\{0,\ldots,511\}$ and evaluate on $\{512,\ldots,2047\}$. Compare original PEs, linear interpolated PEs, and NTK-scaled PEs.
 
 ---
@@ -844,49 +844,49 @@ Analyze sinusoidal positional encodings from an approximation theory perspective
 
 ## 12. Conceptual Bridge
 
-**Looking back:** This section builds on floating-point arithmetic (§10-01) — all numerical interpolation is subject to rounding, and the condition numbers of Vandermonde and RBF matrices determine how much rounding error is amplified. From numerical linear algebra (§10-02), we use QR decomposition for stable least-squares fitting and tridiagonal solvers for spline construction. The optimization perspective (§10-03) underlies minimax approximation (Remez algorithm) and least-squares fitting. Earlier linear algebra (§02) provided the theory of least squares, orthogonality, and projections.
+**Looking back:** This section builds on floating-point arithmetic (Section10-01) - all numerical interpolation is subject to rounding, and the condition numbers of Vandermonde and RBF matrices determine how much rounding error is amplified. From numerical linear algebra (Section10-02), we use QR decomposition for stable least-squares fitting and tridiagonal solvers for spline construction. The optimization perspective (Section10-03) underlies minimax approximation (Remez algorithm) and least-squares fitting. Earlier linear algebra (Section02) provided the theory of least squares, orthogonality, and projections.
 
-**Looking forward:** The next section (§10-05: Numerical Integration) uses interpolation directly — quadrature rules are derived by integrating interpolating polynomials. Gaussian quadrature nodes are the zeros of orthogonal polynomials. Clenshaw-Curtis quadrature uses Chebyshev nodes and the DCT for efficient weight computation. Everything built here — Chebyshev theory, orthogonal polynomials, FFT — feeds directly into numerical integration.
+**Looking forward:** The next section (Section10-05: Numerical Integration) uses interpolation directly - quadrature rules are derived by integrating interpolating polynomials. Gaussian quadrature nodes are the zeros of orthogonal polynomials. Clenshaw-Curtis quadrature uses Chebyshev nodes and the DCT for efficient weight computation. Everything built here - Chebyshev theory, orthogonal polynomials, FFT - feeds directly into numerical integration.
 
 The connection to the broader curriculum:
-- **Graph theory** (§11): Spectral graph convolutions approximate the spectral filter via Chebyshev polynomials in the graph Laplacian eigenvalues
-- **Probability** (§07): Gaussian processes are probabilistic interpolants; Fourier analysis of stochastic processes uses spectral density
-- **Optimization** (§08): The minimax approximation problem is solved by Chebyshev equioscillation, connecting to constrained optimization and duality
+- **Graph theory** (Section11): Spectral graph convolutions approximate the spectral filter via Chebyshev polynomials in the graph Laplacian eigenvalues
+- **Probability** (Section07): Gaussian processes are probabilistic interpolants; Fourier analysis of stochastic processes uses spectral density
+- **Optimization** (Section08): The minimax approximation problem is solved by Chebyshev equioscillation, connecting to constrained optimization and duality
 
 ```
 INTERPOLATION AND APPROXIMATION IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §10-01 Floating-Point      §02 Linear Algebra
-  (rounding errors)    ──►  (least squares, QR)
-           │                        │
-           └────────────┬───────────┘
-                        ▼
-              §10-04 INTERPOLATION
+  Section10-01 Floating-Point      Section02 Linear Algebra
+  (rounding errors)    -->  (least squares, QR)
+           |                        |
+           +------------+-----------+
+                        v
+              Section10-04 INTERPOLATION
               AND APPROXIMATION
-              ┌──────────────────┐
-              │ Lagrange / Newton│
-              │ Chebyshev / Runge│
-              │ Cubic splines    │
-              │ Least squares    │
-              │ FFT / DFT        │
-              │ RBF / RKHS       │
-              └────────┬─────────┘
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-    §10-05          §11 GNNs      AI Apps
+              +------------------+
+              | Lagrange / Newton|
+              | Chebyshev / Runge|
+              | Cubic splines    |
+              | Least squares    |
+              | FFT / DFT        |
+              | RBF / RKHS       |
+              +--------+---------+
+                       |
+          +------------+------------+
+          v            v            v
+    Section10-05          Section11 GNNs      AI Apps
   Numerical        (ChebNet,    (RoPE, KAN,
   Integration      SpectralGCN)  Performer)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Key insight:** The choice of basis is the choice of inductive bias. Monomials assume no structure; Chebyshev assumes bounded derivatives; splines assume local smoothness; trigonometric functions assume periodicity; RBFs assume isotropy. Neural networks *learn* their basis from data — but the theoretical guarantees come from understanding which function classes can be represented and approximated efficiently.
+**Key insight:** The choice of basis is the choice of inductive bias. Monomials assume no structure; Chebyshev assumes bounded derivatives; splines assume local smoothness; trigonometric functions assume periodicity; RBFs assume isotropy. Neural networks *learn* their basis from data - but the theoretical guarantees come from understanding which function classes can be represented and approximated efficiently.
 
 ---
 
-## Appendix A: Barycentric Lagrange Interpolation — Algorithm and Analysis
+## Appendix A: Barycentric Lagrange Interpolation - Algorithm and Analysis
 
 The **barycentric form** is the preferred implementation of polynomial interpolation.
 
@@ -910,17 +910,17 @@ $$p(x) = \frac{\sum_{j=0}^{n} \frac{w_j}{x - x_j} y_j}{\sum_{j=0}^{n} \frac{w_j}
 1. Pre-compute weights $w_j$ once: $O(n^2)$ preprocessing
 2. Evaluate at any $x$: $O(n)$ per evaluation
 3. Adding a new node $(x_{n+1}, y_{n+1})$: $O(n)$ update to weights
-4. No division by $\ell(x)$ — the denominator is the normalizing sum, never computed separately
+4. No division by $\ell(x)$ - the denominator is the normalizing sum, never computed separately
 
 ### A.3 Barycentric Weights for Special Nodes
 
-**Equispaced nodes** on $[-1,1]$: $w_j = (-1)^j \binom{n}{j}$ — grows like $2^n$.
+**Equispaced nodes** on $[-1,1]$: $w_j = (-1)^j \binom{n}{j}$ - grows like $2^n$.
 
 **Chebyshev nodes of the 2nd kind** $x_j = \cos(j\pi/n)$: $w_j = (-1)^j \delta_j$ where $\delta_0 = \delta_n = 1/2$, $\delta_j = 1$ otherwise.
 
 **Chebyshev nodes of the 1st kind** $x_j = \cos((2j+1)\pi/(2n+2))$: $w_j = (-1)^j \sin((2j+1)\pi/(2n+2))$.
 
-The Chebyshev weights are computed in $O(n)$ and are moderate in size — explaining their superior numerical properties.
+The Chebyshev weights are computed in $O(n)$ and are moderate in size - explaining their superior numerical properties.
 
 ```python
 def barycentric_weights_cheb2(n):
@@ -967,7 +967,7 @@ For equispaced nodes $x_j = x_0 + jh$, with $x = x_0 + sh$:
 
 $$p_n(x) = \sum_{k=0}^{n} \binom{s}{k} \Delta^k y_0$$
 
-where $\binom{s}{k} = s(s-1)\cdots(s-k+1)/k!$ is the generalized binomial coefficient. This is Newton's **forward difference interpolation formula** — the precursor to finite difference schemes in PDE solvers.
+where $\binom{s}{k} = s(s-1)\cdots(s-k+1)/k!$ is the generalized binomial coefficient. This is Newton's **forward difference interpolation formula** - the precursor to finite difference schemes in PDE solvers.
 
 ### B.3 Connection to Finite Difference Schemes
 
@@ -977,7 +977,7 @@ $$[y_0, y_1] = \frac{y_1 - y_0}{x_1 - x_0} \approx f'(x_0), \quad [y_0, y_1, y_2
 
 For equispaced nodes: $[y_0, y_1] = \frac{\Delta y_0}{h} \approx f'(x_0) + O(h)$ (first-order forward difference).
 
-**For AI:** Numerical differentiation (§10-03) uses finite differences — they are divided differences with equispaced nodes. The second divided difference gives the second derivative approximation needed for Newton's method and Hessian-vector products.
+**For AI:** Numerical differentiation (Section10-03) uses finite differences - they are divided differences with equispaced nodes. The second divided difference gives the second derivative approximation needed for Newton's method and Hessian-vector products.
 
 ---
 
@@ -1011,7 +1011,7 @@ for k = n, n-1, ..., 1:
 result = x * b[1] - b[2] + c[0]
 ```
 
-This is the **Clenshaw algorithm** — stable $O(n)$ evaluation of Chebyshev series.
+This is the **Clenshaw algorithm** - stable $O(n)$ evaluation of Chebyshev series.
 
 ### C.3 Chebyshev Approximation Convergence Rates
 
@@ -1024,7 +1024,7 @@ For functions with various smoothness:
 | Lipschitz continuous | $|c_k| \leq C k^{-1}$ | $E_n \leq C n^{-1} \log n$ |
 | Discontinuous | $|c_k| \leq C k^{-1}$ (Gibbs) | $E_n$ does not converge uniformly |
 
-**For AI:** The exponential convergence for analytic functions is why spectral methods achieve machine precision with far fewer points than finite differences. This matters for PINN solvers — use spectral collocation (Chebyshev) not finite differences when the solution is smooth.
+**For AI:** The exponential convergence for analytic functions is why spectral methods achieve machine precision with far fewer points than finite differences. This matters for PINN solvers - use spectral collocation (Chebyshev) not finite differences when the solution is smooth.
 
 ---
 
@@ -1045,13 +1045,13 @@ for r = 1, 2, ..., p:
 result = d[j]
 ```
 
-This is the **de Boor algorithm** — $O(p^2)$ per evaluation, numerically stable.
+This is the **de Boor algorithm** - $O(p^2)$ per evaluation, numerically stable.
 
 ### D.2 Knot Vectors
 
 The knot vector $T = (t_0 \leq t_1 \leq \cdots \leq t_{n+p+1})$ controls the spline:
-- **Uniform:** $t_i = i/n$ — equal spacing, best for smooth periodic data
-- **Clamped/open:** $t_0 = \cdots = t_p = 0$, $t_{n+1} = \cdots = t_{n+p+1} = 1$ — spline passes through first and last control points
+- **Uniform:** $t_i = i/n$ - equal spacing, best for smooth periodic data
+- **Clamped/open:** $t_0 = \cdots = t_p = 0$, $t_{n+1} = \cdots = t_{n+p+1} = 1$ - spline passes through first and last control points
 - **Multiple knots:** Repeating $t_i = t_{i+1}$ reduces continuity (degree $p$ knot = discontinuous $(p-1)$-th derivative)
 
 ### D.3 B-Splines in KAN Architecture
@@ -1062,13 +1062,13 @@ $$\phi(x) = w_b \cdot b(x) + w_s \cdot \text{spline}(x)$$
 
 where $b(x) = x/(1+e^{-x})$ (SiLU) is a base function and $\text{spline}(x) = \sum_i c_i B_i(x)$ is a B-spline with learnable coefficients $c_i$ and optionally adaptive grid.
 
-**Training:** The grid is fixed initially; coefficients $c_i$ are learned by gradient descent. Periodically, the grid is updated to better cover the range of activations — **grid extension**.
+**Training:** The grid is fixed initially; coefficients $c_i$ are learned by gradient descent. Periodically, the grid is updated to better cover the range of activations - **grid extension**.
 
-**Advantages over MLP:** KANs can represent functions with simple structure (e.g., $f(x,y) = \sin(x+y)$) with far fewer parameters than MLPs. The spline representation is interpretable — you can read off the learned function shape.
+**Advantages over MLP:** KANs can represent functions with simple structure (e.g., $f(x,y) = \sin(x+y)$) with far fewer parameters than MLPs. The spline representation is interpretable - you can read off the learned function shape.
 
 ---
 
-## Appendix E: Spline Interpolation — Error Analysis and Conditioning
+## Appendix E: Spline Interpolation - Error Analysis and Conditioning
 
 ### E.1 Cubic Spline Error Bounds
 
@@ -1080,7 +1080,7 @@ with constants $C_0 = 5/384$, $C_1 = 1/24$, $C_2 = 3/8$, $C_3 = O(1/h)$ (for the
 
 **Practical significance:**
 - Halving the mesh spacing $h$ reduces position error by $2^4 = 16$
-- The $O(h^4)$ convergence is "super-convergent" — better than the $O(h^2)$ one might expect from a piecewise cubic
+- The $O(h^4)$ convergence is "super-convergent" - better than the $O(h^2)$ one might expect from a piecewise cubic
 
 ### E.2 Condition Number of the Spline System
 
@@ -1088,7 +1088,7 @@ The tridiagonal matrix for cubic splines has entries in $[h_{\min}, h_{\max}]$ r
 
 $$A = h \begin{pmatrix} 4 & 1 & & \\ 1 & 4 & 1 & \\ & \ddots & \ddots & \ddots \\ & & 1 & 4 \end{pmatrix} / 3$$
 
-This is a diagonally dominant tridiagonal matrix with $\kappa(A) = O(1)$ — the condition number is bounded independent of $n$! This is why cubic spline computation is numerically stable.
+This is a diagonally dominant tridiagonal matrix with $\kappa(A) = O(1)$ - the condition number is bounded independent of $n$! This is why cubic spline computation is numerically stable.
 
 ### E.3 Why Natural Splines Minimize Curvature
 
@@ -1100,7 +1100,7 @@ The cross term: integrate by parts twice, using $S'''' = 0$ on each interval (cu
 
 ---
 
-## Appendix F: The Fast Fourier Transform — Detailed Analysis
+## Appendix F: The Fast Fourier Transform - Detailed Analysis
 
 ### F.1 Cooley-Tukey Algorithm Complexity
 
@@ -1108,11 +1108,11 @@ The radix-2 FFT recursion $T(n) = 2T(n/2) + cn$ with $T(1) = 0$:
 - Unrolling: $T(n) = cn \log_2 n$ multiplications and additions
 - For $n = 2^{20} \approx 10^6$: $\sim 20 \times 10^6$ operations vs $\sim 10^{12}$ for naive DFT
 
-**General $n$:** When $n = p_1^{a_1} \cdots p_k^{a_k}$, FFT achieves $O(n(a_1 + \cdots + a_k)) = O(n \log n)$. For prime $n$, Rader's algorithm reduces to a convolution of size $n-1$. The "FFT is fast" claim requires $n$ with small prime factors — choose $n = 2^k$ in practice.
+**General $n$:** When $n = p_1^{a_1} \cdots p_k^{a_k}$, FFT achieves $O(n(a_1 + \cdots + a_k)) = O(n \log n)$. For prime $n$, Rader's algorithm reduces to a convolution of size $n-1$. The "FFT is fast" claim requires $n$ with small prime factors - choose $n = 2^k$ in practice.
 
 ### F.2 Numerical Issues in FFT
 
-**Rounding error:** The FFT error is $O(\log_2 n \cdot \varepsilon_{\text{mach}})$ — logarithmic growth, much better than direct DFT's $O(n \varepsilon_{\text{mach}})$.
+**Rounding error:** The FFT error is $O(\log_2 n \cdot \varepsilon_{\text{mach}})$ - logarithmic growth, much better than direct DFT's $O(n \varepsilon_{\text{mach}})$.
 
 **Planck's convention vs engineering convention:** The sign in $e^{\pm 2\pi i jk/n}$ differs between conventions. NumPy uses $e^{-2\pi i jk/n}$ in `np.fft.fft` (physics/engineering convention).
 
@@ -1136,11 +1136,11 @@ Complexity: $O(L \log L)$ vs $O(L^2)$ for direct attention. For sequence length 
 x = torch.fft.fft2(x, norm='ortho').real
 ```
 
-Unparameterized — no learned weights — yet achieves 92-97% of BERT accuracy on GLUE. Demonstrates that long-range mixing doesn't require learned attention patterns.
+Unparameterized - no learned weights - yet achieves 92-97% of BERT accuracy on GLUE. Demonstrates that long-range mixing doesn't require learned attention patterns.
 
 ---
 
-## Appendix G: Radial Basis Functions — Stability and Algorithms
+## Appendix G: Radial Basis Functions - Stability and Algorithms
 
 ### G.1 The Shape Parameter Dilemma
 
@@ -1151,13 +1151,13 @@ For Gaussian RBFs $\phi(r) = e^{-\varepsilon^2 r^2}$, the interpolation matrix $
 The **uncertainty principle for RBFs:** You cannot simultaneously have a well-conditioned system and high approximation accuracy. This is Schaback's uncertainty principle.
 
 **Solutions:**
-1. **Regularized RBF:** Minimize $\sum_i (s(x_i) - y_i)^2 + \lambda \|s\|_{\mathcal{H}}^2$ — ridge regression with RBF kernel
+1. **Regularized RBF:** Minimize $\sum_i (s(x_i) - y_i)^2 + \lambda \|s\|_{\mathcal{H}}^2$ - ridge regression with RBF kernel
 2. **Compactly supported RBFs (Wendland):** Sparse $\Phi$, cheap to solve, but less smooth
-3. **Contour-Padé algorithm:** Reformulate using contour integration, avoiding catastrophic cancellation
+3. **Contour-Pade algorithm:** Reformulate using contour integration, avoiding catastrophic cancellation
 
-### G.2 Matérn Kernels and Sobolev Spaces
+### G.2 Matern Kernels and Sobolev Spaces
 
-The **Matérn kernel** of order $\nu$ corresponds to the RKHS being the Sobolev space $H^{\nu + d/2}(\mathbb{R}^d)$:
+The **Matern kernel** of order $\nu$ corresponds to the RKHS being the Sobolev space $H^{\nu + d/2}(\mathbb{R}^d)$:
 
 $$k_\nu(r) = \frac{2^{1-\nu}}{\Gamma(\nu)} \left(\frac{\sqrt{2\nu} r}{\ell}\right)^\nu K_\nu\left(\frac{\sqrt{2\nu} r}{\ell}\right)$$
 
@@ -1167,7 +1167,7 @@ where $K_\nu$ is the modified Bessel function. Special cases:
 - $\nu = 5/2$: $k(r) = (1 + \sqrt{5}r/\ell + 5r^2/(3\ell^2))e^{-\sqrt{5}r/\ell}$ ($C^4$ functions)
 - $\nu \to \infty$: Gaussian ($C^\infty$ functions)
 
-**For ML:** The Matérn-5/2 kernel is the default in most GP libraries (scikit-learn, GPyTorch) because it provides enough smoothness without the extreme sensitivity of the Gaussian kernel.
+**For ML:** The Matern-5/2 kernel is the default in most GP libraries (scikit-learn, GPyTorch) because it provides enough smoothness without the extreme sensitivity of the Gaussian kernel.
 
 ### G.3 Sparse Gaussian Processes
 
@@ -1177,7 +1177,7 @@ $$p(f | \mathbf{y}) \approx q(f) = \int p(f | \mathbf{u}) q(\mathbf{u}) d\mathbf
 
 where $\mathbf{u} = f(\mathbf{z})$ are function values at inducing points. Complexity: $O(nm^2)$ instead of $O(n^3)$.
 
-**Variational inducing methods (SVGP, Hensman et al.):** Optimize inducing point locations jointly with model parameters via variational lower bound. Enables stochastic mini-batch training for GPs — analogous to stochastic gradient descent for neural networks.
+**Variational inducing methods (SVGP, Hensman et al.):** Optimize inducing point locations jointly with model parameters via variational lower bound. Enables stochastic mini-batch training for GPs - analogous to stochastic gradient descent for neural networks.
 
 ---
 
@@ -1307,19 +1307,19 @@ def cheb_eval(c, x):
 
 ---
 
-## Appendix J: Worked Examples — Interpolation in Practice
+## Appendix J: Worked Examples - Interpolation in Practice
 
 ### J.1 Fitting a Binding Energy Curve
 
 In computational chemistry, the binding energy $E(r)$ as a function of inter-atomic distance $r$ is often known at a few points from DFT calculations. We want a smooth interpolant for geometry optimization.
 
 ```
-Problem:  r (Å):  1.8   2.0   2.2   2.5   3.0   4.0
+Problem:  r (A):  1.8   2.0   2.2   2.5   3.0   4.0
           E (eV): -2.5  -3.1  -3.2  -3.0  -2.7  -2.3
 
 Method: Cubic spline with not-a-knot BC
-Result: Minimum at r* ≈ 2.24 Å, E* ≈ -3.21 eV
-Derivatives: E'(r*) ≈ 0 (equilibrium), E''(r*) > 0 (stable)
+Result: Minimum at r* \\approx 2.24 A, E* \\approx -3.21 eV
+Derivatives: E'(r*) \\approx 0 (equilibrium), E''(r*) > 0 (stable)
 ```
 
 This is used in molecular dynamics force fields and materials design ML models.
@@ -1329,14 +1329,14 @@ This is used in molecular dynamics force fields and materials design ML models.
 **Problem:** A model trained with sinusoidal PEs on positions $\{0, \ldots, 511\}$ needs to handle position 1024.
 
 **Analysis:** At dimension $i$, the PE period is $T_i = 2\pi \cdot 10000^{2i/d}$:
-- Small $i$ (low freq): $T_0 = 2\pi \approx 6.3$ — position 1024 has been seen many times
-- Large $i$ (high freq): $T_{d-1} = 2\pi \times 10000 \approx 62832$ — period >> 512, position 1024 lies in same "first cycle"
+- Small $i$ (low freq): $T_0 = 2\pi \approx 6.3$ - position 1024 has been seen many times
+- Large $i$ (high freq): $T_{d-1} = 2\pi \times 10000 \approx 62832$ - period >> 512, position 1024 lies in same "first cycle"
 
 **YaRN solution:** Scale position indices by $s = L'/L$ (training length / target length):
 
 $$\text{PE}_{\text{YaRN}}(pos, i) = \text{PE}(pos \cdot s, i)$$
 
-This maps position 1024 in the target context to position $1024 \times (512/1024) = 512$ in the training range — guaranteed to be seen. At the cost of reduced resolution at low frequencies.
+This maps position 1024 in the target context to position $1024 \times (512/1024) = 512$ in the training range - guaranteed to be seen. At the cost of reduced resolution at low frequencies.
 
 ### J.3 Kernel Method vs Neural Network
 
@@ -1358,14 +1358,14 @@ For smooth 1D functions with $n < 1000$, splines and kernel methods outperform n
 
 | Topic | Connection | Reference |
 |---|---|---|
-| Eigenvalue decomposition | Spectral methods diagonalize differentiation/integration operators | §03-Advanced-Linear-Algebra |
-| Fourier series | Spectral analysis of signals, convolutional layers | §07-Probability (spectral density) |
-| Taylor series | Polynomial approximation of smooth functions | §01-Mathematical-Foundations |
-| Optimization | Remez algorithm, RKHS optimization (representer theorem) | §08-Optimization, §10-03 |
-| Graph theory (spectral GNNs) | Chebyshev polynomial filters on graph Laplacian | §11-Graph-Theory |
-| Numerical integration | Gaussian quadrature uses zeros of orthogonal polynomials | §10-05 |
-| Floating-point | Vandermonde ill-conditioning; Chebyshev stability | §10-01 |
-| Linear algebra | QR for least squares; tridiagonal solver for splines | §10-02 |
+| Eigenvalue decomposition | Spectral methods diagonalize differentiation/integration operators | Section03-Advanced-Linear-Algebra |
+| Fourier series | Spectral analysis of signals, convolutional layers | Section07-Probability (spectral density) |
+| Taylor series | Polynomial approximation of smooth functions | Section01-Mathematical-Foundations |
+| Optimization | Remez algorithm, RKHS optimization (representer theorem) | Section08-Optimization, Section10-03 |
+| Graph theory (spectral GNNs) | Chebyshev polynomial filters on graph Laplacian | Section11-Graph-Theory |
+| Numerical integration | Gaussian quadrature uses zeros of orthogonal polynomials | Section10-05 |
+| Floating-point | Vandermonde ill-conditioning; Chebyshev stability | Section10-01 |
+| Linear algebra | QR for least squares; tridiagonal solver for splines | Section10-02 |
 
 ---
 
@@ -1398,24 +1398,24 @@ where $E_n^* = \inf_{p \in \mathcal{P}_n} \|f - p\|_\infty$ is the best approxim
 ### L.2 Lebesgue Function Visualization
 
 ```
-LEBESGUE FUNCTION |sum_j |ℓ_j(x)||  (n=10)
-════════════════════════════════════════════════════════════════════════
+LEBESGUE FUNCTION |sum_j |l_j(x)||  (n=10)
+========================================================================
 
-  20 ─                    Equispaced nodes
-     │                   ╱╲          ╱╲
-  15 ─                  ╱  ╲        ╱  ╲
-     │                 ╱    ╲      ╱    ╲
-  10 ─       ╱╲       ╱      ╲╱╲ ╱
-     │      ╱  ╲     ╱        ╲ ╱
-   5 ─  ╱╲╱    ╲╱╲ ╱
-     │╱╱            ╲╱╲
-   1 ─────────────────────────────────── Chebyshev (≈2.0 everywhere)
+  20 -                    Equispaced nodes
+     |
+  15 -
+     |
+  10 -
+     |
+   5 -
+     |
+   1 ----------------------------------- Chebyshev (\\approx2.0 everywhere)
      -1                                 1
 
-  Equispaced Lebesgue function peaks near ±1 (endpoint Runge zones).
+  Equispaced Lebesgue function peaks near +/-1 (endpoint Runge zones).
   Chebyshev function is nearly constant across [-1,1].
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1428,21 +1428,21 @@ For functions on $[a,b]^d$, a **tensor product** approach uses one-dimensional b
 
 $$p(x_1, \ldots, x_d) = \sum_{i_1=0}^{n} \cdots \sum_{i_d=0}^{n} c_{i_1,\ldots,i_d} \phi_{i_1}(x_1) \cdots \phi_{i_d}(x_d)$$
 
-**Curse of dimensionality:** Requires $(n+1)^d$ basis functions — exponential in $d$. For $n=10$, $d=10$: $11^{10} \approx 2.6 \times 10^{10}$ coefficients.
+**Curse of dimensionality:** Requires $(n+1)^d$ basis functions - exponential in $d$. For $n=10$, $d=10$: $11^{10} \approx 2.6 \times 10^{10}$ coefficients.
 
-**Sparse grids (Smolyak):** Use only tensor products of 1D bases where $i_1 + \cdots + i_d \leq n + d - 1$. Complexity: $O(n (\log n)^{d-1})$ — much better. Used in high-dimensional integration and interpolation (quantum chemistry, finance).
+**Sparse grids (Smolyak):** Use only tensor products of 1D bases where $i_1 + \cdots + i_d \leq n + d - 1$. Complexity: $O(n (\log n)^{d-1})$ - much better. Used in high-dimensional integration and interpolation (quantum chemistry, finance).
 
 ### M.2 Scattered Data in High Dimensions
 
 For scattered data in $\mathbb{R}^d$ with $d > 3$, polynomial interpolation and tensor product methods fail. Alternatives:
 
-**RBF interpolation:** $s(x) = \sum_j c_j \phi(\|x - x_j\|)$ — mesh-free, works for any $d$. But condition number grows exponentially with $n$ for Gaussian RBF.
+**RBF interpolation:** $s(x) = \sum_j c_j \phi(\|x - x_j\|)$ - mesh-free, works for any $d$. But condition number grows exponentially with $n$ for Gaussian RBF.
 
 **Nearest-neighbor interpolation:** $s(x) = y_{j^*}$ where $j^* = \arg\min_j \|x - x_j\|$. Discontinuous, $O(1)$ per query with KD-tree preprocessing.
 
 **Inverse distance weighting (IDW):** $s(x) = \sum_j w_j(x) y_j / \sum_j w_j(x)$ where $w_j(x) = 1/\|x - x_j\|^p$. Continuous but not smooth.
 
-**For AI:** High-dimensional function approximation is precisely the task of neural networks. The kernel trick (kernel regression) extends RBF to high dimensions through the kernel matrix $K_{ij} = k(x_i, x_j)$ — but computing and inverting this $n \times n$ matrix is $O(n^3)$.
+**For AI:** High-dimensional function approximation is precisely the task of neural networks. The kernel trick (kernel regression) extends RBF to high dimensions through the kernel matrix $K_{ij} = k(x_i, x_j)$ - but computing and inverting this $n \times n$ matrix is $O(n^3)$.
 
 ### M.3 Triangulation-Based Methods
 
@@ -1461,15 +1461,15 @@ For scattered 2D data, **Delaunay triangulation** partitions the domain into non
 
 **Shallow networks (width $N$, depth 1):**
 $$\|f - f_N\|_{L^2} = O(N^{-2s/d})$$
-for $f$ in the Sobolev space $W^{s,2}(\mathbb{R}^d)$ — polynomial rate, cursed by dimension.
+for $f$ in the Sobolev space $W^{s,2}(\mathbb{R}^d)$ - polynomial rate, cursed by dimension.
 
 **Deep ReLU networks:** For functions with compositional structure $f = f_1 \circ f_2 \circ \cdots \circ f_L$ where each $f_\ell: \mathbb{R}^{d_\ell} \to \mathbb{R}^{d_{\ell+1}}$ is $d_\ell$-dimensional:
 
 $$\|f - f_N\|_{L^\infty} = O(N^{-2s/d_{\max}})$$
 
-where $d_{\max} = \max_\ell d_\ell$ — the approximation rate depends on the **intrinsic dimension** of the composition, not the ambient dimension $d$.
+where $d_{\max} = \max_\ell d_\ell$ - the approximation rate depends on the **intrinsic dimension** of the composition, not the ambient dimension $d$.
 
-**Implication:** Deep networks exploit compositional structure to avoid the curse of dimensionality. A function like $f(x) = \sin(x_1 + x_2) \cdot e^{x_3 x_4}$ has intrinsic dimension 2 even though $d = 4$ — deep networks can approximate it with $O(N^{-s})$ error.
+**Implication:** Deep networks exploit compositional structure to avoid the curse of dimensionality. A function like $f(x) = \sin(x_1 + x_2) \cdot e^{x_3 x_4}$ has intrinsic dimension 2 even though $d = 4$ - deep networks can approximate it with $O(N^{-s})$ error.
 
 ### N.2 The Kolmogorov-Arnold Representation Theorem
 
@@ -1481,7 +1481,7 @@ for continuous functions $\phi_{q,p}: [0,1] \to \mathbb{R}$ and $\Phi_q: \mathbb
 
 **Significance:** Every multivariate continuous function can be written using only univariate functions and addition. No curse of dimensionality in this representation.
 
-**Practical issue:** The inner functions $\phi_{q,p}$ may be nowhere differentiable — impossible to learn efficiently with gradient methods. The theorem is an existence result, not a constructive algorithm.
+**Practical issue:** The inner functions $\phi_{q,p}$ may be nowhere differentiable - impossible to learn efficiently with gradient methods. The theorem is an existence result, not a constructive algorithm.
 
 **KAN circumvents this:** By restricting to learned B-splines (differentiable, finitely parameterized), KAN trades the full generality of Kolmogorov for a practical learnable version.
 
@@ -1489,21 +1489,21 @@ for continuous functions $\phi_{q,p}: [0,1] \to \mathbb{R}$ and $\Phi_q: \mathbb
 
 ```
 APPROXIMATION RATE BY FUNCTION CLASS AND METHOD
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Function class          Best method          Rate
-  ─────────────────────   ──────────────────   ──────────────────
-  Polynomial of deg ≤ k   Exact polynomial     0 (exact)
-  Analytic in disk Dρ     Chebyshev truncation O(ρ⁻ⁿ) (exponential)
-  Cᵖ on [a,b]             Poly degree n        O(n⁻ᵖ)
-  Sobolev Wˢ'²(Ω)         Spline               O(hˢ)
-  Barron class            Shallow network      O(N⁻¹/²) (dim-free!)
-  Compositional           Deep network         O(N⁻²ˢ/d_max)
-  Arbitrary continuous    Universal approx.    ε-approx, no rate
+  ---------------------   ------------------   ------------------
+  Polynomial of deg \\leq k   Exact polynomial     0 (exact)
+  Analytic in disk D\\rho     Chebyshev truncation O(\\rho^-n) (exponential)
+  Cp on [a,b]             Poly degree n        O(n^-p)
+  Sobolev Ws'^2()         Spline               O(hs)
+  Barron class            Shallow network      O(N^-1/^2) (dim-free!)
+  Compositional           Deep network         O(N^-^2s/d_max)
+  Arbitrary continuous    Universal approx.    \\varepsilon-approx, no rate
 
   N = number of neurons, n = polynomial degree, h = mesh size
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1514,7 +1514,7 @@ APPROXIMATION RATE BY FUNCTION CLASS AND METHOD
 
 | Method | Nodes | Error order | Stability | AI use |
 |---|---|---|---|---|
-| Lagrange (equispaced) | Any | $O(h^{n+1})$ — but large! | Poor (Runge) | Avoid |
+| Lagrange (equispaced) | Any | $O(h^{n+1})$ - but large! | Poor (Runge) | Avoid |
 | Lagrange (Chebyshev) | Chebyshev | $O(2^{-n})$ for analytic | Good ($\Lambda_n = O(\log n)$) | ChebNet |
 | Newton divided diff. | Any | Same as Lagrange | Moderate | Incremental |
 | Cubic spline (natural) | Equispaced | $O(h^4)$ | Excellent | Neural ODEs |
@@ -1527,22 +1527,22 @@ APPROXIMATION RATE BY FUNCTION CLASS AND METHOD
 
 | Theorem | Statement | Location |
 |---|---|---|
-| Existence/uniqueness | Unique degree-$n$ interpolant for $n+1$ distinct nodes | §2.1 |
-| Interpolation error | $f - p_n = f^{(n+1)}(\xi)\omega_{n+1}/(n+1)!$ | §2.3 |
-| Chebyshev minimax | $T_n/2^{n-1}$ has smallest $\infty$-norm among monic degree-$n$ polys | §3.1 |
-| Equioscillation | Best approx iff error equioscillates at $\geq n+2$ points | §3.3 |
-| Spline min. curvature | Natural cubic spline minimizes $\int |S''|^2$ | §4.2 |
-| Representer theorem | Regularized RKHS problem solved by finite expansion | §7.2 |
-| Universal approximation | Shallow networks dense in $C([0,1]^d)$ | §8.2 |
-| Nyquist theorem | Reconstruct $B$-band-limited signal from rate $\geq 2B$ samples | §6.4 |
-| Bochner's theorem | PD shift-invariant kernels = FT of non-negative measures | §H.1 |
-| Kolmogorov-Arnold | All $f \in C([0,1]^n)$ = composition of univariates | §N.2 |
+| Existence/uniqueness | Unique degree-$n$ interpolant for $n+1$ distinct nodes | Section2.1 |
+| Interpolation error | $f - p_n = f^{(n+1)}(\xi)\omega_{n+1}/(n+1)!$ | Section2.3 |
+| Chebyshev minimax | $T_n/2^{n-1}$ has smallest $\infty$-norm among monic degree-$n$ polys | Section3.1 |
+| Equioscillation | Best approx iff error equioscillates at $\geq n+2$ points | Section3.3 |
+| Spline min. curvature | Natural cubic spline minimizes $\int |S''|^2$ | Section4.2 |
+| Representer theorem | Regularized RKHS problem solved by finite expansion | Section7.2 |
+| Universal approximation | Shallow networks dense in $C([0,1]^d)$ | Section8.2 |
+| Nyquist theorem | Reconstruct $B$-band-limited signal from rate $\geq 2B$ samples | Section6.4 |
+| Bochner's theorem | PD shift-invariant kernels = FT of non-negative measures | SectionH.1 |
+| Kolmogorov-Arnold | All $f \in C([0,1]^n)$ = composition of univariates | SectionN.2 |
 
 ---
 
 ## Appendix P: Extended Exercises with Solutions
 
-### P.1 Barycentric Interpolation — Full Implementation
+### P.1 Barycentric Interpolation - Full Implementation
 
 ```python
 import numpy as np
@@ -1593,7 +1593,7 @@ y_exact = f(x_test)
 print(f"Max error (Chebyshev n=20): {np.abs(y_interp - y_exact).max():.2e}")
 ```
 
-### P.2 Cubic Spline — Full Implementation
+### P.2 Cubic Spline - Full Implementation
 
 ```python
 def natural_cubic_spline(x, y):
@@ -1689,21 +1689,21 @@ print(f"Spectral diff error: {np.abs(f_prime_approx - f_prime_exact).max():.2e}"
 
 ## Appendix Q: Advanced Topics in Function Approximation
 
-### Q.1 Padé Approximants
+### Q.1 Pade Approximants
 
-**Definition:** A Padé approximant $[m/n](x)$ is a rational function $P_m(x)/Q_n(x)$ that agrees with the Taylor series of $f$ up to order $m+n$:
+**Definition:** A Pade approximant $[m/n](x)$ is a rational function $P_m(x)/Q_n(x)$ that agrees with the Taylor series of $f$ up to order $m+n$:
 
 $$f(x) - \frac{P_m(x)}{Q_n(x)} = O(x^{m+n+1})$$
 
 **Advantages over polynomials:**
 - Can represent poles and asymptotic behavior
 - Often much more accurate than same-degree Taylor polynomials
-- Diagonal Padé $[n/n]$ often converges to analytic functions in larger domains
+- Diagonal Pade $[n/n]$ often converges to analytic functions in larger domains
 
 **Example:** The exponential function:
 $$e^x \approx [2/2](x) = \frac{1 + x/2 + x^2/12}{1 - x/2 + x^2/12}$$
 
-This is the foundation of Padé-based matrix exponential algorithms (used in ODE solvers and graph neural networks for diffusion operators).
+This is the foundation of Pade-based matrix exponential algorithms (used in ODE solvers and graph neural networks for diffusion operators).
 
 ### Q.2 Wavelet Approximation
 
@@ -1791,17 +1791,17 @@ for n in range(1, 20):
 
 ### S.1 Newton's Contribution
 
-Isaac Newton introduced the method of divided differences in "Methodus Differentialis" (1711). His motivation was astronomical: computing planetary positions at arbitrary times from a table of observed positions at discrete times. The divided difference table allowed him to update the interpolant incrementally as new observations came in — an $O(n)$ update, remarkable for 1711.
+Isaac Newton introduced the method of divided differences in "Methodus Differentialis" (1711). His motivation was astronomical: computing planetary positions at arbitrary times from a table of observed positions at discrete times. The divided difference table allowed him to update the interpolant incrementally as new observations came in - an $O(n)$ update, remarkable for 1711.
 
 ### S.2 Chebyshev's Insight
 
-Pafnuty Chebyshev (1853) asked: which monic polynomial of degree $n$ has the smallest maximum absolute value on $[-1,1]$? His answer — $T_n(x)/2^{n-1}$ — was the first systematic use of the minimax criterion in approximation theory. Chebyshev was motivated by mechanism design: he wanted to minimize the deviation from ideal motion in steam engine linkages.
+Pafnuty Chebyshev (1853) asked: which monic polynomial of degree $n$ has the smallest maximum absolute value on $[-1,1]$? His answer - $T_n(x)/2^{n-1}$ - was the first systematic use of the minimax criterion in approximation theory. Chebyshev was motivated by mechanism design: he wanted to minimize the deviation from ideal motion in steam engine linkages.
 
-The connection between the trigonometric definition $T_n(\cos\theta) = \cos(n\theta)$ and the polynomial form was noticed by Chebyshev himself — using the addition formula for cosines iteratively.
+The connection between the trigonometric definition $T_n(\cos\theta) = \cos(n\theta)$ and the polynomial form was noticed by Chebyshev himself - using the addition formula for cosines iteratively.
 
 ### S.3 Runge's Warning
 
-Carl Runge published his famous counterexample in 1901. The function $1/(1+25x^2)$ is analytic everywhere in the complex plane except at $\pm i/5$ — which lie inside the unit circle. This means the function's Taylor series has radius of convergence $1/5 < 1$, and polynomial interpolation at equispaced nodes tries to capture behavior that is "barely analytic" in the relevant region.
+Carl Runge published his famous counterexample in 1901. The function $1/(1+25x^2)$ is analytic everywhere in the complex plane except at $\pm i/5$ - which lie inside the unit circle. This means the function's Taylor series has radius of convergence $1/5 < 1$, and polynomial interpolation at equispaced nodes tries to capture behavior that is "barely analytic" in the relevant region.
 
 Runge's result was important as a warning against increasing polynomial degree. The modern response (Chebyshev nodes) came gradually through the 20th century.
 
@@ -1809,51 +1809,51 @@ Runge's result was important as a warning against increasing polynomial degree. 
 
 The Cooley-Tukey FFT algorithm (1965) is often cited as one of the most important algorithms of the 20th century. Its impact was immediate: it made digital signal processing practical, enabled the digital revolution in audio/communications, and later became the backbone of scientific computing.
 
-Remarkably, the core idea (exploiting DFT factorizations) was known to Gauss in 1805 — unpublished in his collected works. The algorithm was independently rediscovered multiple times before Cooley and Tukey's landmark paper.
+Remarkably, the core idea (exploiting DFT factorizations) was known to Gauss in 1805 - unpublished in his collected works. The algorithm was independently rediscovered multiple times before Cooley and Tukey's landmark paper.
 
 ### S.5 The Representer Theorem and RKHS
 
-The representer theorem (Kimeldorf-Wahba, 1971) established that regularized function estimation over an RKHS has a finite-dimensional solution — transforming an infinite-dimensional optimization into a finite linear algebra problem. This unified spline smoothing, kernel regression, and support vector machines under one mathematical framework. The same theorem, applied to the neural tangent kernel, explains why overparameterized neural networks trained by gradient descent converge to global minima that generalize well.
+The representer theorem (Kimeldorf-Wahba, 1971) established that regularized function estimation over an RKHS has a finite-dimensional solution - transforming an infinite-dimensional optimization into a finite linear algebra problem. This unified spline smoothing, kernel regression, and support vector machines under one mathematical framework. The same theorem, applied to the neural tangent kernel, explains why overparameterized neural networks trained by gradient descent converge to global minima that generalize well.
 
 ---
 
-## Appendix T: Rational Approximation and Padé Theory
+## Appendix T: Rational Approximation and Pade Theory
 
-### T.1 Padé Table
+### T.1 Pade Table
 
-For a function with Taylor series $f(x) = \sum_{k=0}^\infty c_k x^k$, the Padé approximant $[m/n]$ satisfies:
+For a function with Taylor series $f(x) = \sum_{k=0}^\infty c_k x^k$, the Pade approximant $[m/n]$ satisfies:
 
 $$f(x) \cdot Q_n(x) - P_m(x) = O(x^{m+n+1})$$
 
-The Padé table arranges these approximants in a grid by $(m, n)$:
+The Pade table arranges these approximants in a grid by $(m, n)$:
 
 ```
-PADÉ TABLE for e^x
-════════════════════════════════════════════════════════════════════════
+PADE TABLE for e^x
+========================================================================
 
-  n\m │  0          1           2
-  ────┼──────────────────────────────────────────────────────
-   0  │  1          1+x         1+x+x²/2
-   1  │  1/(1-x)   (2+x)/(2-x)   (6+2x)/(6-4x+x²)
-   2  │  1/(1-x+x²/2)  (6+4x+x²)/(6-2x+x²/6)  ...
+  n\m |  0          1           2
+  ----+------------------------------------------------------
+   0  |  1          1+x         1+x+x^2/2
+   1  |  1/(1-x)   (2+x)/(2-x)   (6+2x)/(6-4x+x^2)
+   2  |  1/(1-x+x^2/2)  (6+4x+x^2)/(6-2x+x^2/6)  ...
 
   Diagonal [n/n] entries converge fastest for analytic functions.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Convergence:** For functions analytic in a disk $|x| < R$, the diagonal Padé $[n/n]$ converges to $f$ in the entire disk — in contrast to Taylor series which may diverge for $|x| > r$ where $r$ is the radius of convergence.
+**Convergence:** For functions analytic in a disk $|x| < R$, the diagonal Pade $[n/n]$ converges to $f$ in the entire disk - in contrast to Taylor series which may diverge for $|x| > r$ where $r$ is the radius of convergence.
 
-### T.2 Matrix Padé and the Matrix Exponential
+### T.2 Matrix Pade and the Matrix Exponential
 
-The matrix exponential $e^A$ is computed using Padé approximants in most numerical libraries. The $(m,m)$ diagonal Padé:
+The matrix exponential $e^A$ is computed using Pade approximants in most numerical libraries. The $(m,m)$ diagonal Pade:
 
 $$e^A \approx [D_m(A)]^{-1} N_m(A)$$
 
 where $N_m$ and $D_m$ are matrix polynomials of degree $m$. Combined with **scaling and squaring** (using $e^A = (e^{A/2^s})^{2^s}$):
 
 1. Scale: $A' = A/2^s$ with $\|A'\| \leq 1$
-2. Compute Padé approximant $e^{A'} \approx [m/m](A')$
+2. Compute Pade approximant $e^{A'} \approx [m/m](A')$
 3. Square: $e^A \approx (e^{A'})^{2^s}$
 
 This is used in `scipy.linalg.expm` and is essential for:
@@ -1877,7 +1877,7 @@ The attention score:
 
 $$q_m^\top k_n = q^\top R_\Theta^{m-n} k$$
 
-depends only on relative position $m-n$. The frequencies $\theta_i = 10000^{-2(i-1)/d}$ match the sinusoidal PE frequencies — this is the same trigonometric interpolation scheme.
+depends only on relative position $m-n$. The frequencies $\theta_i = 10000^{-2(i-1)/d}$ match the sinusoidal PE frequencies - this is the same trigonometric interpolation scheme.
 
 **LongRoPE (2024):** For context length extension, scales frequencies non-uniformly:
 - High-frequency dimensions (small $i$): scale by $\lambda_{\text{long}} > 1$ (extend range)
@@ -1895,7 +1895,7 @@ This is a discrete approximation to the integral:
 
 $$y(x) = \int k(x, z) v(z) \mu(dz)$$
 
-where $k(x, z) = e^{q(x)^\top k(z)} / \int e^{q(x)^\top k(z')} \mu(dz')$ is a normalized kernel. Understanding attention as kernel regression connects to RBF interpolation theory — the "query point" $q_i$ selects a weighted combination of "function values" $v_j$ based on "proximity" $q_i^\top k_j$.
+where $k(x, z) = e^{q(x)^\top k(z)} / \int e^{q(x)^\top k(z')} \mu(dz')$ is a normalized kernel. Understanding attention as kernel regression connects to RBF interpolation theory - the "query point" $q_i$ selects a weighted combination of "function values" $v_j$ based on "proximity" $q_i^\top k_j$.
 
 ### U.3 NeRF and Neural Radiance Fields
 
@@ -1907,9 +1907,9 @@ The key challenge: standard MLPs cannot represent high-frequency spatial details
 
 $$\gamma(x) = [\sin(2^0\pi x), \cos(2^0\pi x), \ldots, \sin(2^L\pi x), \cos(2^L\pi x)]$$
 
-This is the **frequency embedding** — equivalent to the first $L$ Fourier basis functions. The Fourier features lift the input to a space where the target function is smooth, enabling efficient approximation by the MLP.
+This is the **frequency embedding** - equivalent to the first $L$ Fourier basis functions. The Fourier features lift the input to a space where the target function is smooth, enabling efficient approximation by the MLP.
 
-**Connection to RFF:** Tancik et al. (2020) showed that Fourier features are equivalent to sampling the random Fourier feature map at specific fixed frequencies rather than random ones — targeted at the frequencies of the scene being rendered.
+**Connection to RFF:** Tancik et al. (2020) showed that Fourier features are equivalent to sampling the random Fourier feature map at specific fixed frequencies rather than random ones - targeted at the frequencies of the scene being rendered.
 
 ---
 
@@ -1947,33 +1947,33 @@ This is the **frequency embedding** — equivalent to the first $L$ Fourier basi
 
 ```
 DECISION TREE: WHICH INTERPOLATION METHOD?
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Data type?
-  ├── Periodic function on [0,2π]?
-  │   └── USE: Trigonometric interpolation (FFT)
-  │       Best accuracy for smooth periodic functions
-  │
-  ├── Scattered data in R^d (d≥2)?
-  │   ├── Need uncertainty estimate?
-  │   │   └── USE: Gaussian Process regression
-  │   └── No uncertainty needed?
-  │       └── USE: RBF interpolation (Matérn kernel)
-  │
-  └── 1D data on [a,b]?
-      ├── Few points (n ≤ 30), need exact interpolation?
-      │   └── USE: Barycentric Lagrange (Chebyshev nodes)
-      │
-      ├── Many points (n > 30) or need local control?
-      │   └── USE: Cubic splines (natural or not-a-knot BC)
-      │
-      └── More data than parameters (m > n)?
-          ├── Need derivative information?
-          │   └── USE: Smoothing spline
-          └── Polynomial features?
-              └── USE: QR least-squares (NOT normal equations)
+  +-- Periodic function on [0,2\\pi]?
+  |   +-- USE: Trigonometric interpolation (FFT)
+  |       Best accuracy for smooth periodic functions
+  |
+  +-- Scattered data in R^d (d\\geq2)?
+  |   +-- Need uncertainty estimate?
+  |   |   +-- USE: Gaussian Process regression
+  |   +-- No uncertainty needed?
+  |       +-- USE: RBF interpolation (Matern kernel)
+  |
+  +-- 1D data on [a,b]?
+      +-- Few points (n \\leq 30), need exact interpolation?
+      |   +-- USE: Barycentric Lagrange (Chebyshev nodes)
+      |
+      +-- Many points (n > 30) or need local control?
+      |   +-- USE: Cubic splines (natural or not-a-knot BC)
+      |
+      +-- More data than parameters (m > n)?
+          +-- Need derivative information?
+          |   +-- USE: Smoothing spline
+          +-- Polynomial features?
+              +-- USE: QR least-squares (NOT normal equations)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
