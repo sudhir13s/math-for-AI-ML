@@ -1,23 +1,23 @@
-[← Back to Calculus Fundamentals](../README.md) | [Next: Series and Sequences →](../04-Series-and-Sequences/notes.md)
+[<- Back to Calculus Fundamentals](../README.md) | [Next: Series and Sequences ->](../04-Series-and-Sequences/notes.md)
 
 ---
 
 # Integration
 
-> _"Integration is not just finding areas — it is the mathematics of accumulation, and accumulation is the mathematics of learning."_
+> _"Integration is not just finding areas - it is the mathematics of accumulation, and accumulation is the mathematics of learning."_
 
 ## Overview
 
-Integration is the second pillar of calculus, dual to differentiation. Where the derivative asks "how fast is this changing right now?", the integral asks "how much has accumulated over this interval?" The Fundamental Theorem of Calculus (FTC) reveals these two operations as inverses of each other — one of the most profound connections in mathematics.
+Integration is the second pillar of calculus, dual to differentiation. Where the derivative asks "how fast is this changing right now?", the integral asks "how much has accumulated over this interval?" The Fundamental Theorem of Calculus (FTC) reveals these two operations as inverses of each other - one of the most profound connections in mathematics.
 
-Every core operation in machine learning involves integration. The expected loss $\mathbb{E}[\mathcal{L}]$ is an integral over a data distribution. KL divergence and entropy — the foundations of information-theoretic learning — are improper integrals of probability densities. Stochastic gradient descent is a Monte Carlo estimator of a gradient integral. Normalizing flows use the change-of-variables formula from integration theory. Understanding integration at the level of definitions and proofs, not just formulas, separates practitioners who can innovate from those who can only apply recipes.
+Every core operation in machine learning involves integration. The expected loss $\mathbb{E}[\mathcal{L}]$ is an integral over a data distribution. KL divergence and entropy - the foundations of information-theoretic learning - are improper integrals of probability densities. Stochastic gradient descent is a Monte Carlo estimator of a gradient integral. Normalizing flows use the change-of-variables formula from integration theory. Understanding integration at the level of definitions and proofs, not just formulas, separates practitioners who can innovate from those who can only apply recipes.
 
 This section builds the complete single-variable integration theory: Riemann sums, the FTC, all standard techniques (substitution, parts, partial fractions), improper integrals, numerical methods (trapezoid, Simpson's, Monte Carlo), and integration in probability theory. The treatment is rigorous but always anchored to concrete ML applications.
 
 ## Prerequisites
 
-- **Limits and continuity** — [§01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md): limit definition, squeeze theorem, continuity on $[a,b]$
-- **Derivatives and differentiation** — [§02-Derivatives-and-Differentiation](../02-Derivatives-and-Differentiation/notes.md): chain rule, product rule, all elementary derivatives
+- **Limits and continuity** - [01-Limits-and-Continuity](../01-Limits-and-Continuity/notes.md): limit definition, squeeze theorem, continuity on $[a,b]$
+- **Derivatives and differentiation** - [02-Derivatives-and-Differentiation](../02-Derivatives-and-Differentiation/notes.md): chain rule, product rule, all elementary derivatives
 - **Algebra**: polynomial long division, factoring, partial fraction setup
 - **Trigonometry**: $\sin$, $\cos$, $\tan$ identities; inverse trig derivatives
 
@@ -26,7 +26,7 @@ This section builds the complete single-variable integration theory: Riemann sum
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Riemann sums, FTC, all techniques, numerical methods, probability integration |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from basic antiderivatives to Monte Carlo and KL divergence |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from basic antiderivatives to Monte Carlo and KL divergence |
 
 ## Learning Objectives
 
@@ -49,7 +49,7 @@ After completing this section, you will:
   - [1.1 Accumulation as the Core Idea](#11-accumulation-as-the-core-idea)
   - [1.2 Historical Motivation](#12-historical-motivation)
   - [1.3 Why Integration Is Central to AI](#13-why-integration-is-central-to-ai)
-- [2. The Definite Integral — Riemann's Definition](#2-the-definite-integral--riemanns-definition)
+- [2. The Definite Integral - Riemann's Definition](#2-the-definite-integral--riemanns-definition)
   - [2.1 Partitions and Riemann Sums](#21-partitions-and-riemann-sums)
   - [2.2 The Limit Definition](#22-the-limit-definition)
   - [2.3 Geometric Interpretation: Signed Area](#23-geometric-interpretation-signed-area)
@@ -73,7 +73,7 @@ After completing this section, you will:
   - [5.4 For AI: Change of Variables in Flows](#54-for-ai-change-of-variables-in-flows)
 - [6. Integration by Parts](#6-integration-by-parts)
   - [6.1 The Reverse Product Rule](#61-the-reverse-product-rule)
-  - [6.2 Choosing u and dv — LIATE](#62-choosing-u-and-dv--liate)
+  - [6.2 Choosing u and dv - LIATE](#62-choosing-u-and-dv--liate)
   - [6.3 Reduction Formulas and Tabular Method](#63-reduction-formulas-and-tabular-method)
   - [6.4 Worked Examples](#64-worked-examples)
   - [6.5 For AI: REINFORCE Gradient Estimator](#65-for-ai-reinforce-gradient-estimator)
@@ -109,7 +109,7 @@ After completing this section, you will:
 
 ### 1.1 Accumulation as the Core Idea
 
-The derivative measures instantaneous rate of change. The integral measures total accumulation. These are two sides of the same coin — and the FTC is the theorem that makes this precise.
+The derivative measures instantaneous rate of change. The integral measures total accumulation. These are two sides of the same coin - and the FTC is the theorem that makes this precise.
 
 **Physical intuition.** If $v(t)$ is velocity at time $t$, then $\int_a^b v(t)\,dt$ is the total distance traveled from time $a$ to $b$. Each infinitesimal time slice $dt$ contributes a tiny distance $v(t)\,dt$; the integral sums them all.
 
@@ -124,11 +124,11 @@ The derivative measures instantaneous rate of change. The integral measures tota
 | ~250 BCE | Archimedes uses method of exhaustion to compute areas of parabolas |
 | 1670s | Newton and Leibniz independently develop calculus; Leibniz introduces $\int$ notation |
 | 1823 | Cauchy gives rigorous definition of the definite integral |
-| 1854 | Riemann formalizes the integral via sums — the definition used today |
+| 1854 | Riemann formalizes the integral via sums - the definition used today |
 | 1875 | Darboux introduces upper/lower sums, simplifying Riemann's theory |
 | 1902 | Lebesgue generalizes the integral to a much broader class of functions |
 
-The $\int$ symbol is an elongated "S" for _summa_ (Latin: sum) — Leibniz's notation for the limit of infinitely many infinitesimal summands.
+The $\int$ symbol is an elongated "S" for _summa_ (Latin: sum) - Leibniz's notation for the limit of infinitely many infinitesimal summands.
 
 ### 1.3 Why Integration Is Central to AI
 
@@ -154,14 +154,14 @@ $$p_X(\mathbf{x}) = p_Z(f(\mathbf{x}))\left|\det\frac{\partial f}{\partial \math
 
 The absolute Jacobian determinant is the multidimensional version of the substitution rule from this section.
 
-**Gaussian integral.** The normalization constant of every Gaussian distribution relies on $\int_{-\infty}^\infty e^{-x^2}\,dx = \sqrt{\pi}$ — an improper integral computed in §8.4.
+**Gaussian integral.** The normalization constant of every Gaussian distribution relies on $\int_{-\infty}^\infty e^{-x^2}\,dx = \sqrt{\pi}$ - an improper integral computed in 8.4.
 
-> **For AI:** Every backpropagation pass computes a stochastic estimate of the gradient of an integral (the expected loss) — integration and differentiation are inseparable in machine learning.
+> **For AI:** Every backpropagation pass computes a stochastic estimate of the gradient of an integral (the expected loss) - integration and differentiation are inseparable in machine learning.
 
 
 ---
 
-## 2. The Definite Integral — Riemann's Definition
+## 2. The Definite Integral - Riemann's Definition
 
 ### 2.1 Partitions and Riemann Sums
 
@@ -172,9 +172,9 @@ For each subinterval $[x_{k-1}, x_k]$ of width $\Delta x_k = x_k - x_{k-1}$, cho
 $$S(\mathcal{P}, f) = \sum_{k=1}^n f(x_k^*)\,\Delta x_k$$
 
 **Three standard choices of $x_k^*$:**
-- **Left endpoint:** $x_k^* = x_{k-1}$ → left Riemann sum $L_n$
-- **Right endpoint:** $x_k^* = x_k$ → right Riemann sum $R_n$
-- **Midpoint:** $x_k^* = (x_{k-1}+x_k)/2$ → midpoint Riemann sum $M_n$
+- **Left endpoint:** $x_k^* = x_{k-1}$ -> left Riemann sum $L_n$
+- **Right endpoint:** $x_k^* = x_k$ -> right Riemann sum $R_n$
+- **Midpoint:** $x_k^* = (x_{k-1}+x_k)/2$ -> midpoint Riemann sum $M_n$
 
 **Example.** $f(x) = x^2$ on $[0,1]$, uniform partition with $n$ intervals, right endpoints:
 
@@ -244,7 +244,7 @@ The **indefinite integral** encodes the entire family of antiderivatives:
 
 $$\int f(x)\,dx = F(x) + C$$
 
-where $C$ is an arbitrary constant. The $+C$ is not optional — it represents a genuinely different function for each value of $C$.
+where $C$ is an arbitrary constant. The $+C$ is not optional - it represents a genuinely different function for each value of $C$.
 
 ### 3.2 Basic Antiderivative Table
 
@@ -293,7 +293,7 @@ So $f(x) = x^3 - x^2 + 5$.
 
 ## 4. The Fundamental Theorem of Calculus
 
-The FTC is the central theorem of calculus — it reveals that differentiation and integration are inverse operations and provides a practical method for evaluating definite integrals.
+The FTC is the central theorem of calculus - it reveals that differentiation and integration are inverse operations and provides a practical method for evaluating definite integrals.
 
 ### 4.1 FTC Part 1
 
@@ -311,7 +311,7 @@ By the MVT for integrals, there exists $c_h \in (x, x+h)$ with $\frac{1}{h}\int_
 
 As $h \to 0^+$: $c_h \to x$, so by continuity of $f$: $f(c_h) \to f(x)$. A symmetric argument handles $h \to 0^-$. Therefore $G'(x) = f(x)$. $\square$
 
-**Interpretation.** The area-accumulation function $G(x) = \int_a^x f(t)\,dt$ has derivative $f(x)$ — the rate of growth of accumulated area at $x$ equals the function value $f(x)$. This is obvious geometrically: adding a thin strip of height $f(x)$ and width $h$ gives area $\approx f(x) \cdot h$.
+**Interpretation.** The area-accumulation function $G(x) = \int_a^x f(t)\,dt$ has derivative $f(x)$ - the rate of growth of accumulated area at $x$ equals the function value $f(x)$. This is obvious geometrically: adding a thin strip of height $f(x)$ and width $h$ gives area $\approx f(x) \cdot h$.
 
 **Generalization (Leibniz rule):**
 
@@ -327,7 +327,7 @@ $$\int_a^b f(x)\,dx = F(b) - F(a) \equiv \Big[F(x)\Big]_a^b$$
 
 ### 4.3 The Bridge
 
-**Why FTC Part 2 is powerful.** Before the FTC, computing $\int_a^b f(x)\,dx$ required constructing Riemann sums and taking limits — laborious for any non-trivial function. The FTC reduces this to: find any antiderivative $F$, evaluate at $b$ and $a$, subtract.
+**Why FTC Part 2 is powerful.** Before the FTC, computing $\int_a^b f(x)\,dx$ required constructing Riemann sums and taking limits - laborious for any non-trivial function. The FTC reduces this to: find any antiderivative $F$, evaluate at $b$ and $a$, subtract.
 
 **Example.** $\int_0^1 x^2\,dx = \Big[\frac{x^3}{3}\Big]_0^1 = \frac{1}{3} - 0 = \frac{1}{3}$. (Recall: directly computing via Riemann sums required summing $\sum k^2$.)
 
@@ -347,7 +347,7 @@ $$\text{Distance} = \int_0^3 |t^2-4|\,dt = \int_0^2(4-t^2)\,dt + \int_2^3(t^2-4)
 
 ### 4.5 FTC and Automatic Differentiation
 
-FTC Part 1 has a direct counterpart in modern ML: **the adjoint method** for training neural ODEs. The derivative of a loss $\mathcal{L}$ with respect to the initial state $\mathbf{z}(0)$, where $\mathbf{z}(T) = \mathbf{z}(0) + \int_0^T f(\mathbf{z}(t),t;\theta)\,dt$, is computed via an integral that runs backward in time. This is FTC Part 1 applied to the adjoint state — the computational core of the `torchdiffeq` library.
+FTC Part 1 has a direct counterpart in modern ML: **the adjoint method** for training neural ODEs. The derivative of a loss $\mathcal{L}$ with respect to the initial state $\mathbf{z}(0)$, where $\mathbf{z}(T) = \mathbf{z}(0) + \int_0^T f(\mathbf{z}(t),t;\theta)\,dt$, is computed via an integral that runs backward in time. This is FTC Part 1 applied to the adjoint state - the computational core of the `torchdiffeq` library.
 
 
 ---
@@ -430,7 +430,7 @@ Rearranging: $\int uv'\,dx = uv - \int u'v\,dx$. Writing $dv = v'dx$ and $du = u
 
 $$\int_a^b u\,dv = \Big[uv\Big]_a^b - \int_a^b v\,du$$
 
-### 6.2 Choosing u and dv — LIATE
+### 6.2 Choosing u and dv - LIATE
 
 The acronym **LIATE** gives a priority order for choosing $u$ (choose the type that comes first):
 - **L**ogarithms: $\ln x$, $\log_a x$
@@ -483,7 +483,7 @@ The REINFORCE algorithm (Williams, 1992) estimates $\nabla_\theta \mathbb{E}_{\t
 
 $$\nabla_\theta\mathbb{E}_{x\sim p_\theta}[f(x)] = \mathbb{E}_{x\sim p_\theta}[f(x)\nabla_\theta\log p_\theta(x)]$$
 
-This identity — differentiating through an expectation — is the continuous-distribution version of integration by parts, and is the core of policy gradient methods in reinforcement learning (PPO, GRPO, RLHF fine-tuning).
+This identity - differentiating through an expectation - is the continuous-distribution version of integration by parts, and is the core of policy gradient methods in reinforcement learning (PPO, GRPO, RLHF fine-tuning).
 
 
 ---
@@ -648,7 +648,7 @@ $$\int_a^b f(x)\,dx \approx T_n = \frac{h}{2}\left[f(x_0) + 2f(x_1) + 2f(x_2) + 
 
 $$|E_T| = \left|\int_a^b f\,dx - T_n\right| \leq \frac{M(b-a)^3}{12n^2} = O(h^2)$$
 
-The trapezoid rule is second-order accurate — halving $h$ reduces error by a factor of 4.
+The trapezoid rule is second-order accurate - halving $h$ reduces error by a factor of 4.
 
 ### 9.2 Simpson's Rule
 
@@ -662,7 +662,7 @@ Pattern: 1, 4, 2, 4, 2, ..., 4, 1 with coefficients summing to $2n/3 \cdot 3 = 2
 
 $$|E_S| \leq \frac{M(b-a)^5}{180n^4} = O(h^4)$$
 
-Simpson's rule is fourth-order — halving $h$ reduces error by a factor of 16.
+Simpson's rule is fourth-order - halving $h$ reduces error by a factor of 16.
 
 **Example.** Estimate $\int_0^1 e^x\,dx$ (true value: $e-1 \approx 1.71828$) with $n = 4$:
 
@@ -676,7 +676,7 @@ Instead of equally spaced nodes, choose $n$ optimal nodes $\{x_k\}$ and weights 
 
 $$\int_{-1}^1 f(x)\,dx \approx \sum_{k=1}^n w_k f(x_k)$$
 
-The nodes are roots of the Legendre polynomial $P_n(x)$. Gauss-Legendre quadrature is the most accurate quadrature rule for smooth functions — $n$ nodes achieve $O(h^{2n})$ error.
+The nodes are roots of the Legendre polynomial $P_n(x)$. Gauss-Legendre quadrature is the most accurate quadrature rule for smooth functions - $n$ nodes achieve $O(h^{2n})$ error.
 
 ### 9.4 Monte Carlo Integration
 
@@ -698,7 +698,7 @@ Standard error: $\text{SE} = \frac{(b-a)\,\text{Std}[f(X)]}{\sqrt{n}} = O(1/\sqr
 
 $$\hat{I} = \frac{1}{n}\sum_{k=1}^n \frac{f(X_k)}{q(X_k)/((b-a)^{-1})} = \frac{1}{n}\sum_{k=1}^n \frac{f(X_k)(b-a)q_{\text{uniform}}}{q(X_k)}$$
 
-Choosing $q \propto |f|$ minimizes variance — the basis of importance-weighted autoencoders (IWAE).
+Choosing $q \propto |f|$ minimizes variance - the basis of importance-weighted autoencoders (IWAE).
 
 ### 9.5 For AI: SGD as Monte Carlo Expectation
 
@@ -717,7 +717,7 @@ This is a Monte Carlo estimate of the gradient integral. The mini-batch is drawn
 
 ## 10. Integration in Probability
 
-> **Forward reference to §06-Probability Theory.** The full treatment of random variables, distributions, expectation, and probabilistic reasoning is in [§06-Probability-Theory](../../06-Probability-Theory/README.md). Here we cover the integration mechanics — how to compute expectations, variances, KL divergence, and entropy as definite or improper integrals.
+> **Forward reference to 06-Probability Theory.** The full treatment of random variables, distributions, expectation, and probabilistic reasoning is in [06-Probability-Theory](../../06-Probability-Theory/README.md). Here we cover the integration mechanics - how to compute expectations, variances, KL divergence, and entropy as definite or improper integrals.
 
 ### 10.1 Probability Density Functions
 
@@ -732,7 +732,7 @@ The probability that $X$ falls in $[a,b]$ is $\Pr(a \leq X \leq b) = \int_a^b p(
 | Distribution | PDF | Normalization relies on |
 |-------------|-----|------------------------|
 | Uniform on $[a,b]$ | $\frac{1}{b-a}$ | Elementary |
-| Gaussian $\mathcal{N}(\mu,\sigma^2)$ | $\frac{1}{\sigma\sqrt{2\pi}}e^{-(x-\mu)^2/(2\sigma^2)}$ | Gaussian integral (§8.4) |
+| Gaussian $\mathcal{N}(\mu,\sigma^2)$ | $\frac{1}{\sigma\sqrt{2\pi}}e^{-(x-\mu)^2/(2\sigma^2)}$ | Gaussian integral (8.4) |
 | Exponential($\lambda$) | $\lambda e^{-\lambda x}$, $x\geq 0$ | $\int_0^\infty \lambda e^{-\lambda x}\,dx = 1$ |
 | Laplace($\mu, b$) | $\frac{1}{2b}e^{-|x-\mu|/b}$ | Symmetric exponential |
 
@@ -742,7 +742,7 @@ The **cumulative distribution function** (CDF) is:
 
 $$F(x) = \Pr(X \leq x) = \int_{-\infty}^x p(t)\,dt$$
 
-By FTC Part 1: $F'(x) = p(x)$ — the PDF is the derivative of the CDF. This connects probability theory directly to the FTC: the CDF is the "area accumulation function" of the PDF, and differentiating it recovers the density.
+By FTC Part 1: $F'(x) = p(x)$ - the PDF is the derivative of the CDF. This connects probability theory directly to the FTC: the CDF is the "area accumulation function" of the PDF, and differentiating it recovers the density.
 
 **Properties of the CDF:**
 - $F(-\infty) = 0$, $F(+\infty) = 1$
@@ -779,7 +779,7 @@ The **Kullback-Leibler divergence** from $q$ to $p$:
 $$\text{KL}(p\|q) = \int_{-\infty}^\infty p(x)\ln\frac{p(x)}{q(x)}\,dx$$
 
 **Properties:**
-- $\text{KL}(p\|q) \geq 0$ (Gibbs' inequality — proven via Jensen's inequality and the concavity of $\ln$)
+- $\text{KL}(p\|q) \geq 0$ (Gibbs' inequality - proven via Jensen's inequality and the concavity of $\ln$)
 - $\text{KL}(p\|q) = 0$ iff $p = q$ a.e.
 - Not symmetric: $\text{KL}(p\|q) \neq \text{KL}(q\|p)$ in general
 
@@ -801,7 +801,7 @@ $$H(X) = -\int_{-\infty}^\infty p(x)\ln p(x)\,dx = -\mathbb{E}[\ln p(X)]$$
 
 $$H(X) = \frac{1}{2}\ln(2\pi e\sigma^2) = \frac{1}{2}[1 + \ln(2\pi\sigma^2)]$$
 
-**Maximum entropy principle.** Among all distributions with mean $\mu$ and variance $\sigma^2$, the Gaussian maximizes entropy. This makes the Gaussian the natural distribution for uncertainty — used throughout Bayesian deep learning (Gaussian priors, Gaussian posteriors in VAEs).
+**Maximum entropy principle.** Among all distributions with mean $\mu$ and variance $\sigma^2$, the Gaussian maximizes entropy. This makes the Gaussian the natural distribution for uncertainty - used throughout Bayesian deep learning (Gaussian priors, Gaussian posteriors in VAEs).
 
 **Connection to cross-entropy loss.** For a model $q_\theta$ trained on data from $p$:
 
@@ -820,10 +820,10 @@ Minimizing cross-entropy loss minimizes $\text{KL}(p\|q_\theta)$ (since $H(p)$ i
 | 2 | $\int f(x)g(x)\,dx = \int f\,dx \cdot \int g\,dx$ | Integration does NOT distribute over products | Use substitution or integration by parts |
 | 3 | $\int_a^b f\,dx = F(b) - F(a)$ without checking $F' = f$ | If $F$ is wrong, the evaluation is wrong | Always verify the antiderivative by differentiating |
 | 4 | Not changing limits in definite $u$-substitution | If you substitute $u = g(x)$, the limits must become $g(a)$ and $g(b)$ | Either change limits or back-substitute |
-| 5 | $\int \frac{1}{x^2}\,dx = \ln(x^2)+C$ | Incorrect — $\int x^{-2}\,dx = -x^{-1}+C$; $\ln$ antiderivative only applies to $1/x$ | Power rule: $\int x^n\,dx = x^{n+1}/(n+1)+C$ for $n\neq -1$ |
-| 6 | $\int_0^1 \frac{1}{x}\,dx = [\ln x]_0^1 = 0$ | This is an improper integral — $\ln(0) = -\infty$; the integral diverges | Always check for discontinuities before applying FTC Part 2 |
-| 7 | $\int_{-1}^{1}\frac{1}{x}\,dx = 0$ by symmetry | The integrand is odd, but the integral diverges — symmetry argument fails for divergent integrals | Confirm convergence before using symmetry |
-| 8 | Wrong LIATE choice causes circular integration | Choosing $u =$ exponential in $\int xe^x\,dx$ → no simplification | Let $u$ be LIATE-first: $u=x$, $dv=e^x\,dx$ |
+| 5 | $\int \frac{1}{x^2}\,dx = \ln(x^2)+C$ | Incorrect - $\int x^{-2}\,dx = -x^{-1}+C$; $\ln$ antiderivative only applies to $1/x$ | Power rule: $\int x^n\,dx = x^{n+1}/(n+1)+C$ for $n\neq -1$ |
+| 6 | $\int_0^1 \frac{1}{x}\,dx = [\ln x]_0^1 = 0$ | This is an improper integral - $\ln(0) = -\infty$; the integral diverges | Always check for discontinuities before applying FTC Part 2 |
+| 7 | $\int_{-1}^{1}\frac{1}{x}\,dx = 0$ by symmetry | The integrand is odd, but the integral diverges - symmetry argument fails for divergent integrals | Confirm convergence before using symmetry |
+| 8 | Wrong LIATE choice causes circular integration | Choosing $u =$ exponential in $\int xe^x\,dx$ -> no simplification | Let $u$ be LIATE-first: $u=x$, $dv=e^x\,dx$ |
 | 9 | $\int_a^\infty f\,dx$ treated as finite without checking | Infinite integration limits require explicit convergence check | Write as $\lim_{b\to\infty}\int_a^b$ and evaluate the limit |
 | 10 | Monte Carlo $O(1/\sqrt{n})$ confused with deterministic $O(h^2)$ | Monte Carlo error is stochastic, in expectation/variance; not a uniform bound | Report $\pm 1.96\,\text{SE}$ confidence intervals for MC estimates |
 | 11 | $\text{KL}(p\|q) = \text{KL}(q\|p)$ | KL divergence is not symmetric | Know the difference: forward KL is mode-covering, reverse KL is mode-seeking |
@@ -833,36 +833,36 @@ Minimizing cross-entropy loss minimizes $\text{KL}(p\|q_\theta)$ (since $H(p)$ i
 
 ## 12. Exercises
 
-**Exercise 1 ★ — Riemann Sums.** For $f(x) = x^2$ on $[0,2]$ with $n = 8$ equal subintervals:
+**Exercise 1  - Riemann Sums.** For $f(x) = x^2$ on $[0,2]$ with $n = 8$ equal subintervals:
 (a) Compute the left Riemann sum $L_8$.
 (b) Compute the right Riemann sum $R_8$.
 (c) Compute the exact value $\int_0^2 x^2\,dx$ via FTC and verify $L_8 \leq$ exact $\leq R_8$.
 
-**Exercise 2 ★ — FTC and Antiderivatives.** Evaluate:
+**Exercise 2  - FTC and Antiderivatives.** Evaluate:
 (a) $\int_1^e \frac{(\ln x)^2}{x}\,dx$ (b) $\int_0^{\pi/2}\sin^3 x\cos x\,dx$ (c) $\int_0^{\ln 2}e^x\sqrt{1+e^x}\,dx$
 
-**Exercise 3 ★ — Integration by Parts.** Compute:
+**Exercise 3  - Integration by Parts.** Compute:
 (a) $\int x^2 e^{-x}\,dx$ (b) $\int \ln(x^2+1)\,dx$ (c) $\int e^x\cos x\,dx$
 
-**Exercise 4 ★★ — Improper Integrals.** Determine convergence and evaluate if finite:
+**Exercise 4  - Improper Integrals.** Determine convergence and evaluate if finite:
 (a) $\int_1^\infty \frac{1}{x^{3/2}}\,dx$ (b) $\int_0^1 \frac{\ln x}{\sqrt{x}}\,dx$ (c) $\int_{-\infty}^\infty xe^{-x^2}\,dx$
 
-**Exercise 5 ★★ — Numerical Integration.** For $f(x) = e^{-x^2}$ on $[0,2]$:
+**Exercise 5  - Numerical Integration.** For $f(x) = e^{-x^2}$ on $[0,2]$:
 (a) Compute $T_n$ and $S_n$ for $n \in \{4, 8, 16\}$.
 (b) Compare to `scipy.integrate.quad` result.
 (c) Plot the absolute error vs. $n$ for both methods on a log-log scale. Measure the observed convergence rates.
 
-**Exercise 6 ★★ — Monte Carlo Integration.** Estimate $\int_0^1 \sin(\pi x^2)\,dx$:
+**Exercise 6  - Monte Carlo Integration.** Estimate $\int_0^1 \sin(\pi x^2)\,dx$:
 (a) Implement basic Monte Carlo with $n \in \{100, 1000, 10000, 100000\}$.
 (b) Plot the estimate and $\pm 2\,\text{SE}$ confidence band vs. $n$.
 (c) Verify the $O(1/\sqrt{n})$ convergence by plotting $n \cdot \text{Var}[\hat{I}_n]$ vs. $n$.
 
-**Exercise 7 ★★★ — KL Divergence.** Let $p = \mathcal{N}(0,1)$ and $q = \mathcal{N}(\mu, \sigma^2)$:
+**Exercise 7  - KL Divergence.** Let $p = \mathcal{N}(0,1)$ and $q = \mathcal{N}(\mu, \sigma^2)$:
 (a) Derive the closed-form $\text{KL}(p\|q)$ by evaluating the integral.
 (b) Implement numerical KL via Monte Carlo with $10^5$ samples. Verify against the closed form.
 (c) Plot $\text{KL}(p\|q)$ as a function of $\mu \in [-3,3]$ (fixed $\sigma=1$) and as a function of $\sigma \in [0.1, 3]$ (fixed $\mu=0$). Observe the asymmetry.
 
-**Exercise 8 ★★★ — ELBO and Variational Inference.** The ELBO (Evidence Lower BOund) is:
+**Exercise 8  - ELBO and Variational Inference.** The ELBO (Evidence Lower BOund) is:
 
 $$\text{ELBO}(q) = \mathbb{E}_{z\sim q}[\ln p(x,z)] - \mathbb{E}_{z\sim q}[\ln q(z)] = \mathbb{E}_{z\sim q}[\ln p(x|z)] - \text{KL}(q\|p_z)$$
 
@@ -890,7 +890,7 @@ $$\text{ELBO}(q) = \mathbb{E}_{z\sim q}[\ln p(x,z)] - \mathbb{E}_{z\sim q}[\ln q
 | Expectation as integral | Every loss function; ELBO; reward expectation in RL; attention weights as expectation over keys |
 | KL divergence | VAE regularizer; DPO alignment loss; diffusion model score function; maximum entropy RL |
 | Entropy | Information bottleneck principle; attention entropy regularization; exploration in RL |
-| Cross-entropy ↔ KL | Cross-entropy training = MLE = minimizing KL from true distribution to model |
+| Cross-entropy <-> KL | Cross-entropy training = MLE = minimizing KL from true distribution to model |
 
 ---
 
@@ -898,48 +898,48 @@ $$\text{ELBO}(q) = \mathbb{E}_{z\sim q}[\ln p(x,z)] - \mathbb{E}_{z\sim q}[\ln q
 
 **Looking back.** This section built on two pillars from previous sections:
 
-1. **Limits** ([§01](../01-Limits-and-Continuity/notes.md)) — the Riemann integral is defined as a limit of sums; the FTC proof uses the MVT for integrals; convergence of improper integrals is a limit.
-2. **Derivatives** ([§02](../02-Derivatives-and-Differentiation/notes.md)) — antiderivatives are "reverse derivatives"; FTC Part 1 says the area-accumulation function has derivative equal to the integrand; u-substitution reverses the chain rule; integration by parts reverses the product rule.
+1. **Limits** ([01](../01-Limits-and-Continuity/notes.md)) - the Riemann integral is defined as a limit of sums; the FTC proof uses the MVT for integrals; convergence of improper integrals is a limit.
+2. **Derivatives** ([02](../02-Derivatives-and-Differentiation/notes.md)) - antiderivatives are "reverse derivatives"; FTC Part 1 says the area-accumulation function has derivative equal to the integrand; u-substitution reverses the chain rule; integration by parts reverses the product rule.
 
 Every integration technique is the reverse of a differentiation technique. The FTC is the theorem that makes this reversal exact.
 
 **Looking forward.**
 
-- **[§04-Series-and-Sequences](../04-Series-and-Sequences/notes.md)** — Taylor series are derived using higher-order derivatives; the Taylor remainder formula involves a definite integral of the $(n+1)$-th derivative. Power series can be integrated term-by-term.
-- **[§05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md)** — double and triple integrals extend the Riemann definition to higher dimensions; Fubini's theorem allows iterated integration; the substitution rule becomes the Jacobian change-of-variables formula.
-- **[§06-Probability Theory](../../06-Probability-Theory/README.md)** — all continuous probability is integration: distributions, expectations, variances, moment-generating functions, characteristic functions, conditional distributions.
-- **[§08-Optimization](../../08-Optimization/README.md)** — population risk is an integral; SGD is a Monte Carlo gradient estimator; natural gradient uses the Fisher information matrix, which is defined via an integral.
+- **[04-Series-and-Sequences](../04-Series-and-Sequences/notes.md)** - Taylor series are derived using higher-order derivatives; the Taylor remainder formula involves a definite integral of the $(n+1)$-th derivative. Power series can be integrated term-by-term.
+- **[05-Multivariate Calculus](../../05-Multivariate-Calculus/README.md)** - double and triple integrals extend the Riemann definition to higher dimensions; Fubini's theorem allows iterated integration; the substitution rule becomes the Jacobian change-of-variables formula.
+- **[06-Probability Theory](../../06-Probability-Theory/README.md)** - all continuous probability is integration: distributions, expectations, variances, moment-generating functions, characteristic functions, conditional distributions.
+- **[08-Optimization](../../08-Optimization/README.md)** - population risk is an integral; SGD is a Monte Carlo gradient estimator; natural gradient uses the Fisher information matrix, which is defined via an integral.
 
 **Position in the curriculum:**
 
 ```
-CHAPTER 4 — CALCULUS FUNDAMENTALS
-════════════════════════════════════════════════════════════════════════
+CHAPTER 4 - CALCULUS FUNDAMENTALS
 
-  §01 Limits and Continuity ──────────────────────────────────────────
-         │  (limit foundations, ε-δ, continuity)
-         ▼
-  §02 Derivatives and Differentiation ───────────────────────────────
-         │  (chain rule, product rule, activation derivatives)
-         ▼
-  §03 Integration  ◄─── YOU ARE HERE ─────────────────────────────────
-         │  (FTC links §02 ↔ §03; substitution reverses chain rule)
-         ▼
-  §04 Series and Sequences ───────────────────────────────────────────
-         │  (Taylor series uses §02 derivatives + §03 integration)
-         ▼
-  §05 Multivariate Calculus ──────────────────────────────────────────
-         (double integrals, Fubini, Jacobians — extends §03)
-         ▼
-  §06 Probability Theory ─────────────────────────────────────────────
-         (all continuous probability IS integration from §03)
 
-════════════════════════════════════════════════════════════════════════
+  01 Limits and Continuity 
+           (limit foundations, epsilon-delta, continuity)
+         
+  02 Derivatives and Differentiation 
+           (chain rule, product rule, activation derivatives)
+         
+  03 Integration   YOU ARE HERE 
+           (FTC links 02 <-> 03; substitution reverses chain rule)
+         
+  04 Series and Sequences 
+           (Taylor series uses 02 derivatives + 03 integration)
+         
+  05 Multivariate Calculus 
+         (double integrals, Fubini, Jacobians - extends 03)
+         
+  06 Probability Theory 
+         (all continuous probability IS integration from 03)
+
+
 ```
 
 ---
 
-[← Back to Calculus Fundamentals](../README.md) | [Next: Series and Sequences →](../04-Series-and-Sequences/notes.md)
+[<- Back to Calculus Fundamentals](../README.md) | [Next: Series and Sequences ->](../04-Series-and-Sequences/notes.md)
 
 ---
 
@@ -982,14 +982,14 @@ $$\int\frac{2\cos\theta\,d\theta}{\sqrt{4-4\sin^2\theta}} = \int\frac{2\cos\thet
 
 **For AI.** Trigonometric substitutions appear when integrating radial functions in high-dimensional probability (e.g., volumes of spherical shells used in $d$-dimensional Gaussian integrals).
 
-### A.4 The Softmax Integral — Partition Function
+### A.4 The Softmax Integral - Partition Function
 
-The softmax denominator (partition function) is a sum $Z = \sum_k e^{z_k}$, the discrete analogue of the integral $Z = \int e^{f(x)}\,dx$ that appears in energy-based models. In the continuous case, computing $Z$ is intractable in general — this is the core computational challenge of energy-based models. Variational autoencoders and diffusion models avoid computing $Z$ directly by working with ratios or lower bounds.
+The softmax denominator (partition function) is a sum $Z = \sum_k e^{z_k}$, the discrete analogue of the integral $Z = \int e^{f(x)}\,dx$ that appears in energy-based models. In the continuous case, computing $Z$ is intractable in general - this is the core computational challenge of energy-based models. Variational autoencoders and diffusion models avoid computing $Z$ directly by working with ratios or lower bounds.
 
 
 ---
 
-## Appendix B: Integration by Parts — Extended Examples and Theory
+## Appendix B: Integration by Parts - Extended Examples and Theory
 
 ### B.1 The Cyclic Trick
 
@@ -1013,7 +1013,7 @@ Let $u=x$, $dv=e^{-x}\,dx$:
 
 $$\int_0^\infty xe^{-x}\,dx = \Big[-xe^{-x}\Big]_0^\infty + \int_0^\infty e^{-x}\,dx$$
 
-The boundary term: $\lim_{x\to\infty} xe^{-x} = 0$ (L'Hôpital: $x/e^x \to 0$) and at $x=0$: $0$.
+The boundary term: $\lim_{x\to\infty} xe^{-x} = 0$ (L'Hpital: $x/e^x \to 0$) and at $x=0$: $0$.
 
 $$= 0 + [-e^{-x}]_0^\infty = 0 - (-1) = 1$$
 
@@ -1040,12 +1040,12 @@ From repeated integration by parts on $\int_0^{\pi/2}\sin^n x\,dx$:
 
 $$\frac{\pi}{2} = \frac{2\cdot 2\cdot 4\cdot 4\cdot 6\cdot 6\cdots}{1\cdot 3\cdot 3\cdot 5\cdot 5\cdot 7\cdots} = \prod_{n=1}^\infty\frac{4n^2}{4n^2-1}$$
 
-This is one of the earliest infinite product formulas for $\pi$ — an unexpected connection between integration and $\pi$.
+This is one of the earliest infinite product formulas for $\pi$ - an unexpected connection between integration and $\pi$.
 
 
 ---
 
-## Appendix C: Improper Integrals — Convergence Tests in Detail
+## Appendix C: Improper Integrals - Convergence Tests in Detail
 
 ### C.1 The p-Test Summary
 
@@ -1053,7 +1053,7 @@ $$\int_1^\infty \frac{1}{x^p}\,dx \begin{cases} = \dfrac{1}{p-1} & p > 1 \\ = \i
 
 The boundary $p = 1$ always diverges ($\int 1/x\,dx = \ln x$, which diverges at both limits).
 
-### C.2 Comparison Test — Worked Examples
+### C.2 Comparison Test - Worked Examples
 
 **Example 1.** Does $\int_1^\infty \frac{1}{x^2+\sqrt{x}}\,dx$ converge?
 
@@ -1073,9 +1073,9 @@ $\int_a^\infty f(x)\,dx$ is **absolutely convergent** if $\int_a^\infty |f(x)|\,
 
 $\int_a^\infty f(x)\,dx$ is **conditionally convergent** if it converges but not absolutely.
 
-**Example.** $\int_0^\infty \frac{\sin x}{x}\,dx = \frac{\pi}{2}$ (Dirichlet integral) — converges conditionally but NOT absolutely ($\int_0^\infty |\sin x|/x\,dx = \infty$).
+**Example.** $\int_0^\infty \frac{\sin x}{x}\,dx = \frac{\pi}{2}$ (Dirichlet integral) - converges conditionally but NOT absolutely ($\int_0^\infty |\sin x|/x\,dx = \infty$).
 
-**For ML.** Absolutely convergent integrals behave nicely: they can be split, reordered, and approximated by truncated versions. The expected loss $\mathbb{E}[\mathcal{L}]$ is absolutely convergent (non-negative integrand) — this is why expectation estimates via Monte Carlo are reliable.
+**For ML.** Absolutely convergent integrals behave nicely: they can be split, reordered, and approximated by truncated versions. The expected loss $\mathbb{E}[\mathcal{L}]$ is absolutely convergent (non-negative integrand) - this is why expectation estimates via Monte Carlo are reliable.
 
 ### C.4 Laplace Transform Preview
 
@@ -1083,14 +1083,14 @@ The **Laplace transform** is an improper integral parametrized by $s$:
 
 $$\mathcal{L}\{f\}(s) = \int_0^\infty f(t)e^{-st}\,dt$$
 
-It converts differential equations to algebraic equations (used in control theory). For neural networks, the Laplace transform of the loss trajectory $\mathcal{L}\{t \mapsto \mathcal{L}(\theta_t)\}$ is related to the training dynamics in Laplace domain — an emerging tool in the theoretical analysis of gradient descent.
+It converts differential equations to algebraic equations (used in control theory). For neural networks, the Laplace transform of the loss trajectory $\mathcal{L}\{t \mapsto \mathcal{L}(\theta_t)\}$ is related to the training dynamics in Laplace domain - an emerging tool in the theoretical analysis of gradient descent.
 
 
 ---
 
-## Appendix D: Numerical Integration — Error Analysis and Advanced Methods
+## Appendix D: Numerical Integration - Error Analysis and Advanced Methods
 
-### D.1 Trapezoid Rule — Derivation from Scratch
+### D.1 Trapezoid Rule - Derivation from Scratch
 
 On each subinterval $[x_{k-1}, x_k]$, the trapezoid rule approximates $f$ by the linear interpolant:
 
@@ -1110,7 +1110,7 @@ $$\int_{x_{k-1}}^{x_k} f\,dx = \frac{h}{2}[f(x_{k-1})+f(x_k)] - \frac{h^3}{12}f'
 
 Summing: $E_T = -\frac{h^2(b-a)}{12}\bar{f}''$ where $\bar{f}''$ is some average of $f''$ on $[a,b]$ (MVT). So $|E_T| \leq \frac{M_2(b-a)^3}{12n^2}$ where $M_2 = \max|f''|$.
 
-### D.2 Simpson's Rule — Parabolic Approximation
+### D.2 Simpson's Rule - Parabolic Approximation
 
 On each pair of subintervals $[x_{2k-2}, x_{2k}]$, use the unique parabola through three points:
 
@@ -1126,7 +1126,7 @@ If $T_n$ has error $E_T = c_2/n^2 + c_4/n^4 + \cdots$, then combining $T_n$ and 
 
 $$\frac{4T_{2n} - T_n}{3}$$
 
-eliminates the $O(1/n^2)$ term, giving a method with error $O(1/n^4)$ — equal to Simpson's! This idea, applied recursively, gives **Romberg integration** with error $O(h^{2k})$ for any $k$.
+eliminates the $O(1/n^2)$ term, giving a method with error $O(1/n^4)$ - equal to Simpson's! This idea, applied recursively, gives **Romberg integration** with error $O(h^{2k})$ for any $k$.
 
 ### D.4 Quasi-Monte Carlo
 
@@ -1135,16 +1135,16 @@ Standard Monte Carlo has error $O(1/\sqrt{n})$ regardless of dimension. **Quasi-
 - Random points clump and leave gaps
 - Low-discrepancy sequences fill space more uniformly
 
-QMC achieves $O((\log n)^d / n)$ error for smooth integrands in $d$ dimensions — much better than $O(1/\sqrt{n})$ when $d$ is small. Used in financial derivatives pricing and high-dimensional integration in Bayesian neural networks.
+QMC achieves $O((\log n)^d / n)$ error for smooth integrands in $d$ dimensions - much better than $O(1/\sqrt{n})$ when $d$ is small. Used in financial derivatives pricing and high-dimensional integration in Bayesian neural networks.
 
 ### D.5 Adaptive Integration
 
-`scipy.integrate.quad` uses **Gaussian-Kronrod quadrature** with adaptive refinement: if the error estimate on a subinterval exceeds tolerance, subdivide and integrate each piece separately. This automatically focuses computational effort on regions where $f$ varies rapidly — crucial for integrands with sharp peaks (e.g., probability densities in high-dimensional tails).
+`scipy.integrate.quad` uses **Gaussian-Kronrod quadrature** with adaptive refinement: if the error estimate on a subinterval exceeds tolerance, subdivide and integrate each piece separately. This automatically focuses computational effort on regions where $f$ varies rapidly - crucial for integrands with sharp peaks (e.g., probability densities in high-dimensional tails).
 
 
 ---
 
-## Appendix E: Probability Integration — Extended Topics
+## Appendix E: Probability Integration - Extended Topics
 
 ### E.1 Moment-Generating Functions
 
@@ -1187,25 +1187,25 @@ $$\mathbb{E}[Y|X=x] = \int y\,p(y|x)\,dy$$
 
 **Law of total expectation:** $\mathbb{E}[Y] = \mathbb{E}_X[\mathbb{E}[Y|X]] = \int \mathbb{E}[Y|X=x]\,p(x)\,dx$
 
-**For AI.** Diffusion model training minimizes $\mathbb{E}_t\mathbb{E}_{x_0}\mathbb{E}_{x_t|x_0}[\|\epsilon_\theta(x_t,t) - \epsilon\|^2]$ — a triple nested expectation. Each $\mathbb{E}$ is an integral; Monte Carlo (sampling) handles them all.
+**For AI.** Diffusion model training minimizes $\mathbb{E}_t\mathbb{E}_{x_0}\mathbb{E}_{x_t|x_0}[\|\epsilon_\theta(x_t,t) - \epsilon\|^2]$ - a triple nested expectation. Each $\mathbb{E}$ is an integral; Monte Carlo (sampling) handles them all.
 
 ### E.4 Integration and Maximum Likelihood
 
-Maximum likelihood estimation (MLE) maximizes $\prod_{i=1}^n p(x_i;\theta)$ — equivalently, maximizes the log-likelihood $\sum_i \log p(x_i;\theta)$.
+Maximum likelihood estimation (MLE) maximizes $\prod_{i=1}^n p(x_i;\theta)$ - equivalently, maximizes the log-likelihood $\sum_i \log p(x_i;\theta)$.
 
 This sum is a Monte Carlo estimate of the integral:
 
 $$\frac{1}{n}\sum_{i=1}^n \log p(x_i;\theta) \xrightarrow{n\to\infty} \int \log p(x;\theta)\,p_{\text{true}}(x)\,dx = -H(p_{\text{true}}) - \text{KL}(p_{\text{true}}\|p_\theta)$$
 
-Maximizing MLE is equivalent to minimizing $\text{KL}(p_{\text{true}}\|p_\theta)$ — the forward KL divergence from the true data distribution to the model. This is a fundamental connection between MLE, integration, and information theory.
+Maximizing MLE is equivalent to minimizing $\text{KL}(p_{\text{true}}\|p_\theta)$ - the forward KL divergence from the true data distribution to the model. This is a fundamental connection between MLE, integration, and information theory.
 
 ### E.5 Score Matching
 
-The **score function** of a distribution $p$ is $s(x) = \nabla_x \log p(x)$. Score matching (Hyvärinen, 2005) estimates $p$ without computing its normalization constant $Z = \int e^{f(x)}\,dx$:
+The **score function** of a distribution $p$ is $s(x) = \nabla_x \log p(x)$. Score matching (Hyvrinen, 2005) estimates $p$ without computing its normalization constant $Z = \int e^{f(x)}\,dx$:
 
 $$J(\theta) = \mathbb{E}_{x\sim p}\left[\text{tr}(\nabla_x s_\theta(x)) + \frac{1}{2}\|s_\theta(x)\|^2\right]$$
 
-Integration by parts shows this equals $\mathbb{E}_{x\sim p}[\|s_\theta(x) - s(x)\|^2]$ plus a constant — so minimizing $J(\theta)$ fits the model score to the true score without integrating $p$. This is the training objective of **denoising diffusion probabilistic models (DDPMs)**.
+Integration by parts shows this equals $\mathbb{E}_{x\sim p}[\|s_\theta(x) - s(x)\|^2]$ plus a constant - so minimizing $J(\theta)$ fits the model score to the true score without integrating $p$. This is the training objective of **denoising diffusion probabilistic models (DDPMs)**.
 
 
 ---
@@ -1252,7 +1252,7 @@ If $p < 1$: $b^{1-p} \to \infty$, so integral diverges.
 
 For $p = 1$: $\int_1^b x^{-1}\,dx = \ln b \to \infty$. $\square$
 
-### F.5 Proof: Gibbs' Inequality — $\text{KL}(p\|q) \geq 0$
+### F.5 Proof: Gibbs' Inequality - $\text{KL}(p\|q) \geq 0$
 
 **Theorem.** For probability densities $p$ and $q$: $\int p(x)\ln\frac{p(x)}{q(x)}\,dx \geq 0$.
 
@@ -1269,7 +1269,7 @@ Therefore $-\text{KL}(p\|q) \leq 0 \Rightarrow \text{KL}(p\|q) \geq 0$. Equality
 
 ---
 
-## Appendix G: FTC — Applications in Machine Learning
+## Appendix G: FTC - Applications in Machine Learning
 
 ### G.1 Neural ODEs and the Adjoint Method
 
@@ -1287,7 +1287,7 @@ Training requires $\frac{\partial \mathcal{L}}{\partial \theta}$. The **adjoint 
 
 $$\frac{d\mathbf{a}(t)}{dt} = -\mathbf{a}(t)^\top \frac{\partial f}{\partial \mathbf{h}}$$
 
-where $\mathbf{a}(t) = \partial\mathcal{L}/\partial\mathbf{h}(t)$ is the adjoint state. FTC Part 1 guarantees that integrating this backward ODE recovers the gradient exactly — with $O(1)$ memory (no storing intermediate states).
+where $\mathbf{a}(t) = \partial\mathcal{L}/\partial\mathbf{h}(t)$ is the adjoint state. FTC Part 1 guarantees that integrating this backward ODE recovers the gradient exactly - with $O(1)$ memory (no storing intermediate states).
 
 ### G.2 Attention as Expectation
 
@@ -1301,7 +1301,7 @@ $$\text{Attn}(q) = \int v(s)\,\frac{e^{q(s)\cdot k(s)/\sqrt{d}}}{\int e^{q(s)\cd
 
 This connection motivates **kernel attention** approximations (Performer, Random Feature Attention) that use random features to approximate the exponential kernel via Monte Carlo integration of the Gaussian integral: $e^{q\cdot k} = \int e^{q\cdot\omega}\cdot e^{k\cdot\omega}\,p(\omega)\,d\omega$.
 
-### G.3 Diffusion Models — Score Matching via Integration by Parts
+### G.3 Diffusion Models - Score Matching via Integration by Parts
 
 The denoising score matching objective (Vincent, 2011; Song & Ermon, 2019):
 
@@ -1309,7 +1309,7 @@ $$\mathbb{E}_{t,x_0,\epsilon}\left[\lambda(t)\|\epsilon_\theta(x_t,t) - \epsilon
 
 where $x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon$, $\epsilon \sim \mathcal{N}(0,I)$.
 
-The equivalence to score matching follows from integration by parts in function space. Specifically, $\nabla_{x_t}\log p(x_t) = -\epsilon/\sqrt{1-\bar{\alpha}_t}$, so the network learns the score of the noisy distribution — an integral relationship between the score function and the data density.
+The equivalence to score matching follows from integration by parts in function space. Specifically, $\nabla_{x_t}\log p(x_t) = -\epsilon/\sqrt{1-\bar{\alpha}_t}$, so the network learns the score of the noisy distribution - an integral relationship between the score function and the data density.
 
 ### G.4 Variational Autoencoder ELBO
 
@@ -1319,8 +1319,8 @@ $$\mathcal{L}_{\text{ELBO}} = \mathbb{E}_{z\sim q_\phi(z|x)}[\log p_\theta(x|z)]
 
 Each term is an integral:
 
-- $\mathbb{E}_{q_\phi}[\log p_\theta(x|z)] = \int q_\phi(z|x)\log p_\theta(x|z)\,dz$ — estimated via Monte Carlo (reparameterization trick)
-- $\text{KL}(q_\phi\|p) = \int q_\phi(z|x)\log\frac{q_\phi(z|x)}{p(z)}\,dz$ — computed in closed form for Gaussian $q_\phi$ and $p$
+- $\mathbb{E}_{q_\phi}[\log p_\theta(x|z)] = \int q_\phi(z|x)\log p_\theta(x|z)\,dz$ - estimated via Monte Carlo (reparameterization trick)
+- $\text{KL}(q_\phi\|p) = \int q_\phi(z|x)\log\frac{q_\phi(z|x)}{p(z)}\,dz$ - computed in closed form for Gaussian $q_\phi$ and $p$
 
 The reparameterization trick ($z = \mu_\phi(x) + \sigma_\phi(x)\odot\varepsilon$, $\varepsilon \sim \mathcal{N}(0,I)$) is a change of variables (substitution rule) that makes the Monte Carlo estimator differentiable w.r.t. $\phi$.
 
@@ -1340,7 +1340,7 @@ The reparameterization trick ($z = \mu_\phi(x) + \sigma_\phi(x)\odot\varepsilon$
 | $\mathbb{E}_{x\sim p}[f(x)]$ | $\int f(x)p(x)\,dx$ | Probabilistic expectation |
 | $\hat{I}_n = \frac{1}{n}\sum f(x_i)$ | Monte Carlo estimate | Stochastic approximation |
 
-### H.2 Standard Antiderivatives — Extended Table
+### H.2 Standard Antiderivatives - Extended Table
 
 | $f(x)$ | $\int f(x)\,dx$ | Notes |
 |--------|----------------|-------|
@@ -1386,9 +1386,9 @@ $$\mathbb{E}[X] = \int_0^\infty \Pr(X > t)\,dt \quad \text{(for } X \geq 0\text{
 
 ---
 
-## Appendix I: Worked Solutions — Section 12 Exercises
+## Appendix I: Worked Solutions - Section 12 Exercises
 
-### I.1 Exercise 1 — Riemann Sums
+### I.1 Exercise 1 - Riemann Sums
 
 $f(x) = x^2$ on $[0,2]$, $n=8$, $h = 0.25$, nodes $x_k = kh$:
 
@@ -1399,27 +1399,27 @@ $$R_8 = h\sum_{k=1}^8 f(kh) = 0.25[0.25^2+0.5^2+\cdots+2^2] = 0.25\times 11.75 =
 
 Exact: $\int_0^2 x^2\,dx = [x^3/3]_0^2 = 8/3 \approx 2.6\overline{6}$.
 
-Verify: $L_8 = 2.1875 \leq 8/3 \leq 2.9375 = R_8$. ✓
+Verify: $L_8 = 2.1875 \leq 8/3 \leq 2.9375 = R_8$. 
 
-### I.2 Exercise 2a — $\int_1^e \frac{(\ln x)^2}{x}\,dx$
+### I.2 Exercise 2a - $\int_1^e \frac{(\ln x)^2}{x}\,dx$
 
 Let $u = \ln x$, $du = dx/x$. Limits: $u(1) = 0$, $u(e) = 1$.
 
 $$= \int_0^1 u^2\,du = [u^3/3]_0^1 = \frac{1}{3}$$
 
-### I.2b — $\int_0^{\pi/2}\sin^3 x\cos x\,dx$
+### I.2b - $\int_0^{\pi/2}\sin^3 x\cos x\,dx$
 
 Let $u = \sin x$, $du = \cos x\,dx$. Limits: 0 to 1.
 
 $$= \int_0^1 u^3\,du = [u^4/4]_0^1 = \frac{1}{4}$$
 
-### I.2c — $\int_0^{\ln 2}e^x\sqrt{1+e^x}\,dx$
+### I.2c - $\int_0^{\ln 2}e^x\sqrt{1+e^x}\,dx$
 
 Let $u = 1+e^x$, $du = e^x\,dx$. Limits: $u(0) = 2$, $u(\ln 2) = 3$.
 
 $$= \int_2^3 \sqrt{u}\,du = [2u^{3/2}/3]_2^3 = \frac{2}{3}(3\sqrt{3}-2\sqrt{2})$$
 
-### I.3 Exercise 3a — $\int x^2 e^{-x}\,dx$
+### I.3 Exercise 3a - $\int x^2 e^{-x}\,dx$
 
 Tabular method (differentiate $x^2$, integrate $e^{-x}$):
 
@@ -1432,7 +1432,7 @@ Tabular method (differentiate $x^2$, integrate $e^{-x}$):
 
 $$\int x^2 e^{-x}\,dx = -x^2 e^{-x} - 2xe^{-x} - 2e^{-x} + C = -e^{-x}(x^2+2x+2) + C$$
 
-### I.3b — $\int \ln(x^2+1)\,dx$
+### I.3b - $\int \ln(x^2+1)\,dx$
 
 Let $u = \ln(x^2+1)$, $dv = dx$:
 
@@ -1442,11 +1442,11 @@ Since $\frac{x^2}{x^2+1} = 1 - \frac{1}{x^2+1}$:
 
 $$= x\ln(x^2+1) - 2x + 2\arctan x + C$$
 
-### I.4 Exercise 4a — $\int_1^\infty x^{-3/2}\,dx$
+### I.4 Exercise 4a - $\int_1^\infty x^{-3/2}\,dx$
 
 $$= \lim_{b\to\infty}[-2x^{-1/2}]_1^b = \lim_{b\to\infty}\left(-\frac{2}{\sqrt{b}}+2\right) = 2$$
 
-### I.4c — $\int_{-\infty}^\infty xe^{-x^2}\,dx$
+### I.4c - $\int_{-\infty}^\infty xe^{-x^2}\,dx$
 
 The integrand $f(x) = xe^{-x^2}$ is an odd function ($f(-x) = -f(x)$). Since $\int_0^\infty xe^{-x^2}\,dx = [-e^{-x^2}/2]_0^\infty = 1/2 < \infty$, the integral converges absolutely and:
 
@@ -1460,45 +1460,45 @@ $$\int_{-\infty}^\infty xe^{-x^2}\,dx = 0 \quad \text{(by symmetry)}$$
 | Term | Definition |
 |------|-----------|
 | **Antiderivative** | $F$ such that $F'(x) = f(x)$; the indefinite integral $F(x) + C$ |
-| **Riemann sum** | $\sum_{k=1}^n f(x_k^*)\Delta x_k$ — finite approximation to the integral |
+| **Riemann sum** | $\sum_{k=1}^n f(x_k^*)\Delta x_k$ - finite approximation to the integral |
 | **Definite integral** | $\int_a^b f\,dx = \lim_{\|\mathcal{P}\|\to 0}S(\mathcal{P},f)$ |
-| **Indefinite integral** | $\int f\,dx = F(x) + C$ — the family of all antiderivatives |
+| **Indefinite integral** | $\int f\,dx = F(x) + C$ - the family of all antiderivatives |
 | **FTC Part 1** | $\frac{d}{dx}\int_a^x f(t)\,dt = f(x)$ |
 | **FTC Part 2** | $\int_a^b f(x)\,dx = F(b) - F(a)$ for antiderivative $F$ |
 | **Improper integral** | Integral with infinite limits or unbounded integrand; defined via limits |
 | **Convergent integral** | Improper integral whose limit exists and is finite |
-| **u-Substitution** | $\int f(g(x))g'(x)\,dx = \int f(u)\,du$ — reversal of chain rule |
-| **Integration by parts** | $\int u\,dv = uv - \int v\,du$ — reversal of product rule |
+| **u-Substitution** | $\int f(g(x))g'(x)\,dx = \int f(u)\,du$ - reversal of chain rule |
+| **Integration by parts** | $\int u\,dv = uv - \int v\,du$ - reversal of product rule |
 | **Partial fractions** | Decompose $P/Q$ into simpler rational terms before integrating |
-| **PDF** | $p(x) \geq 0$ with $\int p\,dx = 1$ — probability density function |
-| **CDF** | $F(x) = \int_{-\infty}^x p(t)\,dt$ — cumulative distribution function |
-| **Expectation** | $\mathbb{E}[X] = \int x\,p(x)\,dx$ — weighted average |
+| **PDF** | $p(x) \geq 0$ with $\int p\,dx = 1$ - probability density function |
+| **CDF** | $F(x) = \int_{-\infty}^x p(t)\,dt$ - cumulative distribution function |
+| **Expectation** | $\mathbb{E}[X] = \int x\,p(x)\,dx$ - weighted average |
 | **KL divergence** | $\text{KL}(p\|q) = \int p\ln(p/q)\,dx \geq 0$ |
-| **Entropy** | $H(p) = -\int p\ln p\,dx$ — information content |
+| **Entropy** | $H(p) = -\int p\ln p\,dx$ - information content |
 | **Trapezoid rule** | Numerical integration with $O(h^2)$ error |
 | **Simpson's rule** | Numerical integration with $O(h^4)$ error (parabolic approximation) |
 | **Monte Carlo** | Stochastic integration via random sampling; $O(1/\sqrt{n})$ error |
 | **ELBO** | Evidence lower bound: $\mathcal{L}_{\text{ELBO}} = \mathbb{E}_q[\log p(x|z)] - \text{KL}(q\|p_z)$ |
-| **Score function** | $\nabla_x\log p(x)$ — gradient of log-density; used in diffusion models |
-| **Reparameterization trick** | $z = \mu + \sigma\varepsilon$, $\varepsilon\sim\mathcal{N}(0,I)$ — makes MC estimator differentiable |
+| **Score function** | $\nabla_x\log p(x)$ - gradient of log-density; used in diffusion models |
+| **Reparameterization trick** | $z = \mu + \sigma\varepsilon$, $\varepsilon\sim\mathcal{N}(0,I)$ - makes MC estimator differentiable |
 
 ---
 
 ## Appendix K: Connections to Adjacent Sections
 
-### K.1 What §04-Series-and-Sequences Needs from This Section
+### K.1 What 04-Series-and-Sequences Needs from This Section
 
-- **Integration term-by-term**: $\int\sum_{n=0}^\infty a_n x^n\,dx = \sum_{n=0}^\infty \frac{a_n x^{n+1}}{n+1}$ — requires uniform convergence
+- **Integration term-by-term**: $\int\sum_{n=0}^\infty a_n x^n\,dx = \sum_{n=0}^\infty \frac{a_n x^{n+1}}{n+1}$ - requires uniform convergence
 - **Taylor remainder as integral**: $R_n(x) = \frac{1}{n!}\int_a^x (x-t)^n f^{(n+1)}(t)\,dt$
 - **Integral test for series**: $\sum_{n=1}^\infty f(n)$ converges iff $\int_1^\infty f(x)\,dx$ converges (for decreasing $f \geq 0$)
 
-### K.2 What §05-Multivariate Calculus Needs from This Section
+### K.2 What 05-Multivariate Calculus Needs from This Section
 
-- **Fubini's theorem**: $\int\int f(x,y)\,dx\,dy = \int\left(\int f(x,y)\,dx\right)\,dy$ — iterated integration reduces a 2D integral to two 1D integrals
-- **Change of variables**: $\int_R f(\mathbf{x})\,d\mathbf{x} = \int_S f(\mathbf{g}(\mathbf{u}))|\det J_\mathbf{g}(\mathbf{u})|\,d\mathbf{u}$ — the Jacobian generalizes $|g'(x)|$ from substitution
-- **Line integrals**: $\int_C f\,ds$ along a curve — generalization of $\int_a^b f(x)\,dx$
+- **Fubini's theorem**: $\int\int f(x,y)\,dx\,dy = \int\left(\int f(x,y)\,dx\right)\,dy$ - iterated integration reduces a 2D integral to two 1D integrals
+- **Change of variables**: $\int_R f(\mathbf{x})\,d\mathbf{x} = \int_S f(\mathbf{g}(\mathbf{u}))|\det J_\mathbf{g}(\mathbf{u})|\,d\mathbf{u}$ - the Jacobian generalizes $|g'(x)|$ from substitution
+- **Line integrals**: $\int_C f\,ds$ along a curve - generalization of $\int_a^b f(x)\,dx$
 
-### K.3 What §06-Probability Theory Needs from This Section
+### K.3 What 06-Probability Theory Needs from This Section
 
 All of continuous probability theory is integration. The sections needs:
 - PDF normalization: $\int p\,dx = 1$
@@ -1510,7 +1510,7 @@ All of continuous probability theory is integration. The sections needs:
 
 ---
 
-## Appendix L: Additional Worked Examples — FTC and Techniques
+## Appendix L: Additional Worked Examples - FTC and Techniques
 
 ### L.1 Leibniz Rule Examples
 
@@ -1546,7 +1546,7 @@ $\int\sin^2 x\cos^4 x\cdot\sin x\,dx = \int(1-\cos^2 x)\cos^4 x\cdot\sin x\,dx$
 
 Let $u = \cos x$: $= -\int(1-u^2)u^4\,du = -\int(u^4-u^6)\,du = -\frac{u^5}{5}+\frac{u^7}{7}+C = -\frac{\cos^5 x}{5}+\frac{\cos^7 x}{7}+C$.
 
-### L.3 Integrals of Rational Functions — Full Pipeline
+### L.3 Integrals of Rational Functions - Full Pipeline
 
 **Example.** $\int\frac{x^3-4x+1}{x^2-x-2}\,dx$.
 
@@ -1558,7 +1558,7 @@ $x^3-4x+1 = (x^2-x-2)\cdot(x+1) + (-x+3)$
 
 $\frac{-x+3}{x^2-x-2} = \frac{-x+3}{(x-2)(x+1)} = \frac{A}{x-2}+\frac{B}{x+1}$
 
-At $x=2$: $1/(3) = A/3 \Rightarrow A = 1/3$. Wait — $-2+3=1$ and at $x=2$: $A = 1/3$.
+At $x=2$: $1/(3) = A/3 \Rightarrow A = 1/3$. Wait - $-2+3=1$ and at $x=2$: $A = 1/3$.
 At $x=-1$: $1+3 = B(-3) \Rightarrow B = -4/3$.
 
 **Step 3.** Integrate:
@@ -1579,7 +1579,7 @@ Integrating: $F(s) = -\arctan s + C$. As $s\to\infty$: $F(s)\to 0$, so $C = \pi/
 
 ---
 
-## Appendix M: Monte Carlo Methods — Extended Analysis
+## Appendix M: Monte Carlo Methods - Extended Analysis
 
 ### M.1 Variance of the Monte Carlo Estimator
 
@@ -1601,10 +1601,10 @@ Since $\int f(x)\,dx = \int \frac{f(x)}{q(x)}\cdot q(x)\,dx = \mathbb{E}_q\left[
 
 **Optimal $q$.** $\text{Var}[\hat{I}^{\text{IS}}]$ is minimized when $q(x) \propto |f(x)|$. With this choice, $\text{Var} = 0$ if $f \geq 0$ everywhere (one-sample exact!).
 
-**In practice.** Choose $q$ to concentrate samples where $|f(x)|$ is large — focusing effort on the important region. Used in:
-- **IWAE** (Importance Weighted Autoencoders) — tighter ELBO via importance sampling
-- **Particle filters** — sequential importance sampling for state estimation
-- **MCMC** — Metropolis-Hastings acceptance-rejection is importance sampling on steroids
+**In practice.** Choose $q$ to concentrate samples where $|f(x)|$ is large - focusing effort on the important region. Used in:
+- **IWAE** (Importance Weighted Autoencoders) - tighter ELBO via importance sampling
+- **Particle filters** - sequential importance sampling for state estimation
+- **MCMC** - Metropolis-Hastings acceptance-rejection is importance sampling on steroids
 
 ### M.3 Central Limit Theorem for Monte Carlo
 
@@ -1616,7 +1616,7 @@ The $\text{SE}$ is estimated from the sample standard deviation:
 
 $$\widehat{\text{SE}} = \frac{(b-a)\hat{\sigma}_f}{\sqrt{n}}, \qquad \hat{\sigma}_f^2 = \frac{1}{n-1}\sum_{k=1}^n\left(f(X_k) - \hat{\mu}_f\right)^2$$
 
-### M.4 Quasi-Monte Carlo — Discrepancy
+### M.4 Quasi-Monte Carlo - Discrepancy
 
 The error of quasi-Monte Carlo is bounded by the **Koksma-Hlawka inequality**:
 
@@ -1629,17 +1629,17 @@ For $d=1$: QMC is always better than Monte Carlo (for smooth integrands). For la
 
 ---
 
-## Appendix N: The Fundamental Theorem — Historical and Conceptual Depth
+## Appendix N: The Fundamental Theorem - Historical and Conceptual Depth
 
 ### N.1 Why the FTC Is Deep
 
 Before the FTC, two problems seemed completely unrelated:
-1. **The tangent problem**: find the slope of a curve at a point → derivative
-2. **The area problem**: find the area under a curve → integral
+1. **The tangent problem**: find the slope of a curve at a point -> derivative
+2. **The area problem**: find the area under a curve -> integral
 
 Newton and Leibniz discovered they are inverse operations. This is not obvious. There is no reason, a priori, to expect that summing infinitesimally thin rectangles (integration) should be related to measuring instantaneous slope (differentiation).
 
-The FTC says: **accumulation is the reverse of rate**. If you know how fast something is accumulating at every instant, you can find the total accumulation — just by finding an antiderivative. This is one of the most non-obvious and deep theorems in all of mathematics.
+The FTC says: **accumulation is the reverse of rate**. If you know how fast something is accumulating at every instant, you can find the total accumulation - just by finding an antiderivative. This is one of the most non-obvious and deep theorems in all of mathematics.
 
 ### N.2 What Makes the FTC Work
 
@@ -1673,16 +1673,16 @@ Some elementary functions have no elementary antiderivative. Famous examples:
 
 | Integrand | "Antiderivative" | Notes |
 |----------|----------------|-------|
-| $e^{-x^2}$ | $\frac{\sqrt{\pi}}{2}\text{erf}(x)$ | Error function — not elementary |
+| $e^{-x^2}$ | $\frac{\sqrt{\pi}}{2}\text{erf}(x)$ | Error function - not elementary |
 | $\frac{\sin x}{x}$ | $\text{Si}(x)$ (sine integral) | Not elementary |
 | $\frac{e^x}{x}$ | $\text{Ei}(x)$ (exponential integral) | Not elementary |
 | $\frac{1}{\ln x}$ | $\text{Li}(x)$ (logarithmic integral) | Counts primes! Not elementary |
 | $\sqrt{1-k^2\sin^2 x}$ | Elliptic integral | Not elementary |
 
 These "special functions" appear constantly in ML:
-- `scipy.special.erf`, `scipy.special.erfinv` — in GELU, quantile functions, CDFs
-- `scipy.special.gammaln` — in Dirichlet, Beta, Gamma distributions
-- `scipy.special.bessel` — in von Mises distributions (circular statistics in positional encoding)
+- `scipy.special.erf`, `scipy.special.erfinv` - in GELU, quantile functions, CDFs
+- `scipy.special.gammaln` - in Dirichlet, Beta, Gamma distributions
+- `scipy.special.bessel` - in von Mises distributions (circular statistics in positional encoding)
 
 
 ---
@@ -1697,30 +1697,30 @@ The Riemann integral is sufficient for continuous functions and most smooth ML a
 
 ```
 RIEMANN vs. LEBESGUE INTEGRATION
-═══════════════════════════════════════════════════════════════════════════
 
-  Riemann: slice domain into [x_i, x_{i+1}], sum f(x_i)*Δx
-  ┌─────────────────────────────────────────────┐
-  │   f(x)                                      │
-  │    │█████                                   │
-  │    │██████████                              │
-  │    │███████████████                         │
-  │    └──────────────────── x                  │
-  │      "partition the x-axis"                 │
-  └─────────────────────────────────────────────┘
+
+  Riemann: slice domain into [x_i, x_{i+1}], sum f(x_i)*Deltax
+  
+     f(x)                                      
+                                         
+                                    
+                               
+       x                  
+        "partition the x-axis"                 
+  
 
   Lebesgue: slice range into [y_i, y_{i+1}], multiply by measure
-            of preimage {x : f(x) ∈ [y_i, y_{i+1}]}
-  ┌─────────────────────────────────────────────┐
-  │   y                                         │
-  │    │       ← how much x gives f(x) ≈ 4?    │
-  │  4 ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌         │
-  │  3 ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌      │
-  │    └──────────────────── x                  │
-  │      "partition the y-axis"                 │
-  └─────────────────────────────────────────────┘
+            of preimage {x : f(x) in [y_i, y_{i+1}]}
+  
+     y                                         
+             <- how much x gives f(x) ~= 4?    
+    4          
+    3       
+       x                  
+        "partition the y-axis"                 
+  
 
-═══════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### O.2 Key Theorem (Lebesgue vs. Riemann)
@@ -1744,10 +1744,10 @@ $$\lim_{n\to\infty} \int f_n \, d\mu = \int f \, d\mu$$
 
 **Fatou's Lemma**: $\int \liminf_{n\to\infty} f_n \, d\mu \le \liminf_{n\to\infty} \int f_n \, d\mu$
 
-**Why ML cares**: The DCT justifies **differentiating under the integral sign** — the key step in computing gradients of expected values:
+**Why ML cares**: The DCT justifies **differentiating under the integral sign** - the key step in computing gradients of expected values:
 $$\frac{\partial}{\partial\theta} \mathbb{E}_{p_\theta}[f(x)] = \frac{\partial}{\partial\theta} \int f(x)\,p_\theta(x)\,dx = \int f(x)\,\frac{\partial p_\theta}{\partial\theta}\,dx$$
 
-This step is legal when $f \cdot |\partial p_\theta/\partial\theta|$ is dominated by an integrable function — which is why REINFORCE and the reparameterization trick both have regularity conditions.
+This step is legal when $f \cdot |\partial p_\theta/\partial\theta|$ is dominated by an integrable function - which is why REINFORCE and the reparameterization trick both have regularity conditions.
 
 ### O.4 Probability as Measure Theory
 
@@ -1761,7 +1761,7 @@ Modern probability uses the Lebesgue framework directly:
 | $\mu(A) = \int_A 1 \, d\mu$ | $P(A)$ |
 | Radon-Nikodym derivative $dP/dQ$ | Likelihood ratio |
 
-The **Radon-Nikodym theorem** — which says that if $P \ll Q$ (P is absolutely continuous w.r.t. Q), there exists a measurable function $\frac{dP}{dQ}$ such that $P(A) = \int_A \frac{dP}{dQ} \, dQ$ — is the rigorous foundation for:
+The **Radon-Nikodym theorem** - which says that if $P \ll Q$ (P is absolutely continuous w.r.t. Q), there exists a measurable function $\frac{dP}{dQ}$ such that $P(A) = \int_A \frac{dP}{dQ} \, dQ$ - is the rigorous foundation for:
 - KL divergence: $D_{KL}(P \| Q) = \int \log\frac{dP}{dQ} \, dP$
 - Change of variables in normalizing flows
 - Importance sampling weights
@@ -1802,26 +1802,26 @@ $$\int_0^\infty \frac{\sin x}{x}\,dx = \frac{\pi}{2} \qquad \int_{-\pi}^{\pi}\si
 
 ```
 WHICH TECHNIQUE?
-════════════════════════════════════════════════════════════════════════
+
 
   Is there a composite function f(g(x))?
-    YES → try u-substitution: u = g(x)
+    YES -> try u-substitution: u = g(x)
 
   Is the integrand a product of two "different" types?
-    YES → try integration by parts (LIATE order)
+    YES -> try integration by parts (LIATE order)
 
   Is the integrand a rational function P(x)/Q(x)?
-    YES → try partial fractions (after polynomial division if deg P ≥ deg Q)
+    YES -> try partial fractions (after polynomial division if deg P >= deg Q)
 
-  Does the integrand contain √(a²−x²), √(a²+x²), or √(x²−a²)?
-    YES → try trig substitution (x = a sinθ, a tanθ, a secθ)
+  Does the integrand contain sqrt(a^2-x^2), sqrt(a^2+x^2), or sqrt(x^2-a^2)?
+    YES -> try trig substitution (x = a sintheta, a tantheta, a sectheta)
 
   Does the integrand contain e^x times polynomial or trig?
-    YES → try tabular integration by parts
+    YES -> try tabular integration by parts
 
-  Nothing works? → check integral tables / computer algebra system
+  Nothing works? -> check integral tables / computer algebra system
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### P.4 Numerical Integration Comparison
@@ -1837,7 +1837,7 @@ WHICH TECHNIQUE?
 
 ### P.5 Key ML Formulas Involving Integration
 
-$$\mathbb{E}_{x\sim p}[f(x)] = \int f(x)\,p(x)\,dx \approx \frac{1}{n}\sum_{i=1}^n f(x_i) \quad \text{(Monte Carlo ≡ mini-batch)}$$
+$$\mathbb{E}_{x\sim p}[f(x)] = \int f(x)\,p(x)\,dx \approx \frac{1}{n}\sum_{i=1}^n f(x_i) \quad \text{(Monte Carlo  mini-batch)}$$
 
 $$D_{KL}(p\|q) = \int p(x)\ln\frac{p(x)}{q(x)}\,dx \ge 0 \quad \text{(Gibbs inequality)}$$
 
@@ -1850,9 +1850,9 @@ $$\frac{d\mathbf{z}(t)}{dt} = f_\theta(\mathbf{z}(t), t) \implies \mathbf{z}(T) 
 
 ---
 
-## Appendix Q: Exercises — Worked Solutions (Continued)
+## Appendix Q: Exercises - Worked Solutions (Continued)
 
-### Q.1 Exercise 5 — Numerical Integration Full Walkthrough
+### Q.1 Exercise 5 - Numerical Integration Full Walkthrough
 
 **Problem**: Compare trapezoid vs. Simpson's for $\int_0^1 e^{-x^2}\,dx$.
 
@@ -1866,7 +1866,7 @@ $f$-values: $1,\ e^{-0.0625} \approx 0.93941,\ e^{-0.25} \approx 0.77880,\ e^{-0
 
 $$T_4 = 0.25\left[\frac{1 + 0.36788}{2} + 0.93941 + 0.77880 + 0.56978\right] = 0.25[0.68394 + 2.28799] = 0.74298$$
 
-Error: $|0.74298 - 0.74682| = 0.00384$ — $O(h^2)$ as expected.
+Error: $|0.74298 - 0.74682| = 0.00384$ - $O(h^2)$ as expected.
 
 **Simpson's with $n=4$** (need even $n$):
 
@@ -1874,9 +1874,9 @@ $$S_4 = \frac{0.25}{3}[f_0 + 4f_1 + 2f_2 + 4f_3 + f_4]$$
 $$= \frac{0.25}{3}[1 + 4(0.93941) + 2(0.77880) + 4(0.56978) + 0.36788]$$
 $$= \frac{0.25}{3}[1 + 3.75764 + 1.55760 + 2.27912 + 0.36788] = \frac{0.25}{3}(8.96224) = 0.74685$$
 
-Error: $|0.74685 - 0.74682| = 0.00003$ — vastly smaller. Simpson's is $O(h^4)$.
+Error: $|0.74685 - 0.74682| = 0.00003$ - vastly smaller. Simpson's is $O(h^4)$.
 
-### Q.2 Exercise 6 — Expected Value and KL Divergence
+### Q.2 Exercise 6 - Expected Value and KL Divergence
 
 **Problem**: Compute $D_{KL}(p \| q)$ where $p = N(\mu, 1)$ and $q = N(0, 1)$.
 
@@ -1892,7 +1892,7 @@ $$D_{KL}(p\|q) = \mathbb{E}_p\!\left[\mu x - \frac{\mu^2}{2}\right] = \mu\,\math
 
 **Interpretation**: The KL divergence from $N(0,1)$ to $N(\mu,1)$ is exactly $\mu^2/2$. This is the term in the VAE ELBO that penalizes the encoder mean from drifting far from zero.
 
-### Q.3 Exercise 7 — Gradient of Expected Loss
+### Q.3 Exercise 7 - Gradient of Expected Loss
 
 **Problem**: Compute $\nabla_\theta \mathbb{E}_{x \sim p_\theta}[\ell(x)]$ via the log-derivative trick.
 
@@ -1904,7 +1904,7 @@ Assuming we can differentiate under the integral (DCT applies):
 
 $$= \int \ell(x)\,\nabla_\theta p_\theta(x)\,dx = \int \ell(x)\,p_\theta(x)\,\frac{\nabla_\theta p_\theta(x)}{p_\theta(x)}\,dx = \mathbb{E}_{p_\theta}[\ell(x)\,\nabla_\theta\ln p_\theta(x)]$$
 
-This is the REINFORCE gradient estimator. It requires only samples from $p_\theta$ and the ability to evaluate $\ln p_\theta$ — no reparameterization needed. The cost is high variance, motivating control variates (baselines) to reduce $\text{Var}[\ell(x)\nabla_\theta\ln p_\theta(x)]$.
+This is the REINFORCE gradient estimator. It requires only samples from $p_\theta$ and the ability to evaluate $\ln p_\theta$ - no reparameterization needed. The cost is high variance, motivating control variates (baselines) to reduce $\text{Var}[\ell(x)\nabla_\theta\ln p_\theta(x)]$.
 
 
 ---
@@ -1917,29 +1917,29 @@ This is the REINFORCE gradient estimator. It requires only samples from $p_\thet
 |-----|-------------|-------------|
 | ~250 BCE | Archimedes | Method of exhaustion for area of parabolic segment; $\pi$ bounds |
 | ~1640s | Cavalieri | Cavalieri's principle; "method of indivisibles" |
-| 1665–1666 | Newton | Inverse tangent problem; "method of fluxions"; FTC discovered privately |
-| 1675–1684 | Leibniz | Independent discovery; modern $\int$ notation; publication of FTC (1684) |
-| 1696 | L'Hôpital | First calculus textbook (based on Bernoulli's lectures) |
-| 1734 | Bishop Berkeley | *The Analyst* — criticism of infinitesimals as "ghosts of departed quantities" |
-| 1748 | Euler | *Introductio in Analysin Infinitorum* — systematic treatment of functions |
-| 1821–1823 | Cauchy | Rigorous definition of limit; definite integral via Riemann-style sums |
+| 1665-1666 | Newton | Inverse tangent problem; "method of fluxions"; FTC discovered privately |
+| 1675-1684 | Leibniz | Independent discovery; modern $\int$ notation; publication of FTC (1684) |
+| 1696 | L'Hpital | First calculus textbook (based on Bernoulli's lectures) |
+| 1734 | Bishop Berkeley | *The Analyst* - criticism of infinitesimals as "ghosts of departed quantities" |
+| 1748 | Euler | *Introductio in Analysin Infinitorum* - systematic treatment of functions |
+| 1821-1823 | Cauchy | Rigorous definition of limit; definite integral via Riemann-style sums |
 | 1854 | Riemann | Rigorous Riemann integral; characterization of integrable functions |
 | 1875 | Darboux | Upper/lower sums; cleaner formulation of Riemann integral |
-| 1894–1902 | Lebesgue | Measure theory; Lebesgue integral; MCT and DCT |
+| 1894-1902 | Lebesgue | Measure theory; Lebesgue integral; MCT and DCT |
 | 1900s | Hilbert | $L^2$ spaces; integration as inner product; functional analysis |
-| 1920s–1940s | Kolmogorov | Probability as measure theory; rigorous foundation for ML |
-| 1940s–1950s | Monte Carlo | Ulam, von Neumann, Metropolis — stochastic integration for physics |
+| 1920s-1940s | Kolmogorov | Probability as measure theory; rigorous foundation for ML |
+| 1940s-1950s | Monte Carlo | Ulam, von Neumann, Metropolis - stochastic integration for physics |
 | 1986 | Rumelhart et al. | Backpropagation as chain rule for integrals (Jacobians) |
-| 2018 | Chen et al. | Neural ODEs — continuous-depth networks via ODE integration |
-| 2020s | Diffusion models | Score matching, DDPM, flow matching — integration at the core of generation |
+| 2018 | Chen et al. | Neural ODEs - continuous-depth networks via ODE integration |
+| 2020s | Diffusion models | Score matching, DDPM, flow matching - integration at the core of generation |
 
 ### R.2 The Newton-Leibniz Priority Dispute
 
-The FTC was discovered independently by Newton (1666, unpublished) and Leibniz (1675–1684, published). The Royal Society's official investigation (1712) wrongly accused Leibniz of plagiarism, damaging his reputation and creating a rift between British and Continental mathematicians. British mathematicians, loyal to Newton's notation, fell behind Continental Europe for ~100 years. The lesson: notation matters — Leibniz's $\int$ and $d/dx$ notation won out and is the notation used universally today.
+The FTC was discovered independently by Newton (1666, unpublished) and Leibniz (1675-1684, published). The Royal Society's official investigation (1712) wrongly accused Leibniz of plagiarism, damaging his reputation and creating a rift between British and Continental mathematicians. British mathematicians, loyal to Newton's notation, fell behind Continental Europe for ~100 years. The lesson: notation matters - Leibniz's $\int$ and $d/dx$ notation won out and is the notation used universally today.
 
 ### R.3 Why Newton Called Integration "Quadrature"
 
-Newton's original term for integration was "quadrature" — from the Latin for "making a square." The original problem was: given a curve, find a square with the same area. This geometric framing persisted for centuries. Leibniz's more algebraic approach (anti-differentiation) is what we use today, but the term "quadrature" survives in "Gaussian quadrature" — numerical integration using optimal node placement.
+Newton's original term for integration was "quadrature" - from the Latin for "making a square." The original problem was: given a curve, find a square with the same area. This geometric framing persisted for centuries. Leibniz's more algebraic approach (anti-differentiation) is what we use today, but the term "quadrature" survives in "Gaussian quadrature" - numerical integration using optimal node placement.
 
 ---
 
@@ -1947,7 +1947,7 @@ Newton's original term for integration was "quadrature" — from the Latin for "
 
 This section previews topics that build directly on integration and appear in subsequent sections:
 
-### S.1 → §04 Sequences and Series
+### S.1 -> 04 Sequences and Series
 
 **Taylor series** represents a function as an infinite sum:
 $$f(x) = \sum_{n=0}^\infty \frac{f^{(n)}(a)}{n!}(x-a)^n$$
@@ -1955,12 +1955,12 @@ $$f(x) = \sum_{n=0}^\infty \frac{f^{(n)}(a)}{n!}(x-a)^n$$
 The **remainder term** in Taylor's theorem is an integral:
 $$R_n(x) = \frac{1}{n!}\int_a^x (x-t)^n f^{(n+1)}(t)\,dt$$
 
-Integration and series interact via **term-by-term integration** — valid when a series converges uniformly:
+Integration and series interact via **term-by-term integration** - valid when a series converges uniformly:
 $$\int \sum_{n=0}^\infty a_n x^n \, dx = \sum_{n=0}^\infty \frac{a_n x^{n+1}}{n+1}$$
 
-→ *Full treatment: [Sequences and Series](../04-Sequences-and-Series/notes.md)*
+-> *Full treatment: [Sequences and Series](../04-Sequences-and-Series/notes.md)*
 
-### S.2 → §05 Multivariable Calculus
+### S.2 -> 05 Multivariable Calculus
 
 Double and triple integrals extend the 1D theory:
 $$\iint_D f(x,y)\,dA = \int_a^b \int_{g(x)}^{h(x)} f(x,y)\,dy\,dx \quad \text{(Fubini's theorem)}$$
@@ -1968,13 +1968,13 @@ $$\iint_D f(x,y)\,dA = \int_a^b \int_{g(x)}^{h(x)} f(x,y)\,dy\,dx \quad \text{(F
 The **change of variables formula** with Jacobian $|J|$:
 $$\iint_D f(x,y)\,dA = \iint_{D'} f(x(u,v), y(u,v))\,|J|\,du\,dv$$
 
-→ *Full treatment: [Multivariable Calculus](../05-Multivariable-Calculus/notes.md)*
+-> *Full treatment: [Multivariable Calculus](../05-Multivariable-Calculus/notes.md)*
 
-### S.3 → §06 Probability and Statistics
+### S.3 -> 06 Probability and Statistics
 
-Continuous random variables live entirely in the integration framework. The CDF is an integral of the PDF; expectation is an integral; the central limit theorem involves convergence of distribution functions; characteristic functions are Fourier transforms — all integration.
+Continuous random variables live entirely in the integration framework. The CDF is an integral of the PDF; expectation is an integral; the central limit theorem involves convergence of distribution functions; characteristic functions are Fourier transforms - all integration.
 
-→ *Full treatment: [Probability and Statistics](../06-Probability-and-Statistics/notes.md)*
+-> *Full treatment: [Probability and Statistics](../06-Probability-and-Statistics/notes.md)*
 
 
 ---

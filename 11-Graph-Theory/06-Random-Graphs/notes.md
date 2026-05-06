@@ -1,25 +1,25 @@
-[← Back to Graph Theory](../README.md) | [Next: Graph Algorithms →](../07-Graph-Algorithms/notes.md)
+[<- Back to Graph Theory](../README.md) | [Next: Graph Algorithms ->](../07-Graph-Algorithms/notes.md)
 
 ---
 
 # Random Graphs
 
-> _"In the random graph, order emerges from chaos — the giant component appears suddenly, like a phase transition in physics, when the average degree crosses one."_
-> — Béla Bollobás
+> _"In the random graph, order emerges from chaos - the giant component appears suddenly, like a phase transition in physics, when the average degree crosses one."_
+> - Bela Bollobas
 
 ## Overview
 
-Random graphs are probability distributions over graph-valued random variables. They provide the mathematical framework for reasoning about networks whose structure is not fully known or arises from stochastic processes — exactly the situation we face with the internet, social networks, protein interaction maps, and the implicit graphs inside neural networks.
+Random graphs are probability distributions over graph-valued random variables. They provide the mathematical framework for reasoning about networks whose structure is not fully known or arises from stochastic processes - exactly the situation we face with the internet, social networks, protein interaction maps, and the implicit graphs inside neural networks.
 
-This section develops four canonical random graph models — Erdős-Rényi $G(n,p)$, Watts-Strogatz small-world, Barabási-Albert scale-free, and the Stochastic Block Model — from their definitions through their phase transitions, spectral properties, and connections to modern machine learning. We close with **graphons**, the measure-theoretic limit objects that unify all dense random graph models and form the mathematical foundation of graph neural network universality theory.
+This section develops four canonical random graph models - Erdos-Renyi $G(n,p)$, Watts-Strogatz small-world, Barabasi-Albert scale-free, and the Stochastic Block Model - from their definitions through their phase transitions, spectral properties, and connections to modern machine learning. We close with **graphons**, the measure-theoretic limit objects that unify all dense random graph models and form the mathematical foundation of graph neural network universality theory.
 
 The central theme is **emergence**: how global structure (giant components, communities, power-law degree distributions) arises from simple local rules, and how this emergence can be detected, quantified, and exploited by ML algorithms.
 
 ## Prerequisites
 
-- Probability theory: expectation, variance, concentration inequalities — [Probability Foundations](../../07-Probability-Statistics/01-Probability-Foundations/notes.md)
-- Graph Laplacians and spectral graph theory — [Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)
-- Graph Neural Networks (for the ML applications) — [Graph Neural Networks](../05-Graph-Neural-Networks/notes.md)
+- Probability theory: expectation, variance, concentration inequalities - [Probability Foundations](../../07-Probability-Statistics/01-Probability-Foundations/notes.md)
+- Graph Laplacians and spectral graph theory - [Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)
+- Graph Neural Networks (for the ML applications) - [Graph Neural Networks](../05-Graph-Neural-Networks/notes.md)
 - Basic combinatorics: binomial coefficients, Stirling's approximation
 
 ## Companion Notebooks
@@ -33,7 +33,7 @@ The central theme is **emergence**: how global structure (giant components, comm
 
 After completing this section, you will:
 
-1. Define and sample from $G(n,p)$, $G(n,m)$, Watts-Strogatz, Barabási-Albert, and SBM
+1. Define and sample from $G(n,p)$, $G(n,m)$, Watts-Strogatz, Barabasi-Albert, and SBM
 2. State the giant component phase transition theorem and prove the critical threshold $p = 1/n$
 3. Derive the Poisson degree distribution of $G(n,p)$ in the sparse regime
 4. Compute clustering coefficient and average path length for small-world graphs
@@ -52,14 +52,14 @@ After completing this section, you will:
   - [1.1 What Is a Random Graph?](#11-what-is-a-random-graph)
   - [1.2 Why Random Graphs Matter for AI](#12-why-random-graphs-matter-for-ai)
   - [1.3 The Four Canonical Models](#13-the-four-canonical-models)
-  - [1.4 Historical Timeline: 1959–2026](#14-historical-timeline-19592026)
+  - [1.4 Historical Timeline: 1959-2026](#14-historical-timeline-19592026)
   - [1.5 Phase Transitions: The Central Metaphor](#15-phase-transitions-the-central-metaphor)
 - [2. Probability on Graphs: Formal Setup](#2-probability-on-graphs-formal-setup)
   - [2.1 Graph Probability Spaces](#21-graph-probability-spaces)
   - [2.2 With High Probability (w.h.p.)](#22-with-high-probability-whp)
   - [2.3 Monotone Properties and Threshold Functions](#23-monotone-properties-and-threshold-functions)
   - [2.4 First and Second Moment Methods](#24-first-and-second-moment-methods)
-- [3. Erdős-Rényi Model](#3-erdős-rényi-model)
+- [3. Erdos-Renyi Model](#3-erdos-renyi-model)
   - [3.1 Definitions: G(n,p) and G(n,m)](#31-definitions-gnp-and-gnm)
   - [3.2 Degree Distribution: Poisson Limit](#32-degree-distribution-poisson-limit)
   - [3.3 Giant Component Phase Transition](#33-giant-component-phase-transition)
@@ -74,7 +74,7 @@ After completing this section, you will:
   - [4.4 The Small-World Regime](#44-the-small-world-regime)
   - [4.5 Navigability and Kleinberg's Grid](#45-navigability-and-kleinbergs-grid)
   - [4.6 Social Network Evidence](#46-social-network-evidence)
-- [5. Barabási-Albert Scale-Free Model](#5-barabási-albert-scale-free-model)
+- [5. Barabasi-Albert Scale-Free Model](#5-barabasi-albert-scale-free-model)
   - [5.1 Preferential Attachment](#51-preferential-attachment)
   - [5.2 Power-Law Degree Distribution](#52-power-law-degree-distribution)
   - [5.3 Mean-Field Analysis](#53-mean-field-analysis)
@@ -114,23 +114,23 @@ After completing this section, you will:
 
 A **random graph** is not a single graph but a *probability distribution* over graphs. When we write $G \sim G(n, p)$, we mean: take $n$ labeled vertices; independently include each of the $\binom{n}{2}$ possible edges with probability $p$. The specific graph $G$ is a sample from this distribution.
 
-This is a powerful abstraction. Real-world networks — social graphs, citation networks, protein-protein interaction maps, the web — cannot be written down in closed form. They arise from complex processes involving millions of actors. Random graph models capture the *statistical regularity* of these networks without requiring knowledge of every individual edge.
+This is a powerful abstraction. Real-world networks - social graphs, citation networks, protein-protein interaction maps, the web - cannot be written down in closed form. They arise from complex processes involving millions of actors. Random graph models capture the *statistical regularity* of these networks without requiring knowledge of every individual edge.
 
 **Key insight:** Many properties of real-world networks can be characterized by just a few parameters (average degree, clustering coefficient, community structure), and random graph models are the mathematical objects that interpolate between these summary statistics and the full combinatorial structure of the graph.
 
 For AI and ML, random graphs matter in at least three ways:
 
 1. **Benchmark generation**: We generate synthetic graphs from random models to test GNN algorithms across controlled conditions (the GraphWorld framework uses SBM).
-2. **Graph generation models**: GRAN, GDSS, and DiGress learn to sample from distributions over graphs — essentially learning a graphon.
+2. **Graph generation models**: GRAN, GDSS, and DiGress learn to sample from distributions over graphs - essentially learning a graphon.
 3. **Network analysis**: Training data graphs (social networks, citation networks, knowledge graphs) have structure that random graph models help characterize and exploit.
 
 ### 1.2 Why Random Graphs Matter for AI
 
 The connection between random graphs and modern AI is deeper than benchmark generation:
 
-**Transformer attention is a random graph.** In a language model with $n$ tokens and sparse attention, the attention pattern defines a random-looking bipartite graph. The connectivity of this graph determines information flow — whether distant tokens can influence each other and how quickly information propagates. Results from random graph theory (connectivity thresholds, small-world phenomena) directly predict when transformers can or cannot capture long-range dependencies.
+**Transformer attention is a random graph.** In a language model with $n$ tokens and sparse attention, the attention pattern defines a random-looking bipartite graph. The connectivity of this graph determines information flow - whether distant tokens can influence each other and how quickly information propagates. Results from random graph theory (connectivity thresholds, small-world phenomena) directly predict when transformers can or cannot capture long-range dependencies.
 
-**GNN expressiveness depends on graph structure.** The WL hierarchy and GIN's expressiveness guarantees depend on what graphs the model will see. If training graphs are sampled from an SBM, the GNN faces a specific community detection problem that has known information-theoretic limits — limits that bound what no GNN can achieve regardless of architecture.
+**GNN expressiveness depends on graph structure.** The WL hierarchy and GIN's expressiveness guarantees depend on what graphs the model will see. If training graphs are sampled from an SBM, the GNN faces a specific community detection problem that has known information-theoretic limits - limits that bound what no GNN can achieve regardless of architecture.
 
 **Overparameterized networks are sparse graphs.** The lottery ticket hypothesis says that dense networks contain sparse subnetworks (tickets) that train just as well. These sparse subnetworks have random-graph-like structure: they appear near the percolation threshold of the dense network.
 
@@ -140,27 +140,27 @@ The connection between random graphs and modern AI is deeper than benchmark gene
 
 ```
 THE FOUR CANONICAL RANDOM GRAPH MODELS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Model           Parameters          Key property
-  ─────────────────────────────────────────────────────────────────────
-  Erdős-Rényi     n, p (or n, m)      Phase transition at p = 1/n
+  ---------------------------------------------------------------------
+  Erdos-Renyi     n, p (or n, m)      Phase transition at p = 1/n
   G(n,p)          Independent edges   Poisson degree distribution
                                       Thresholds for all monotone props
 
-  Watts-Strogatz  n, k, β             High clustering + short paths
+  Watts-Strogatz  n, k, \beta             High clustering + short paths
   Small-World     Ring lattice +      Models social/neural networks
                   random rewiring     Navigability (Kleinberg)
 
-  Barabási-Albert n, m₀, m            Power-law degree distribution
+  Barabasi-Albert n, m_0, m            Power-law degree distribution
   Scale-Free      Preferential        Hubs, robustness to random failure
                   attachment          Most real-world networks
 
-  Stochastic      k, n₁,...,nₖ, B     Community structure
+  Stochastic      k, n_1,...,n_k, B     Community structure
   Block Model     Block membership    Kesten-Stigum threshold
   (SBM)           + probability matrix Benchmark for GNN node classif.
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 Each model captures one dominant feature of real-world networks:
@@ -172,44 +172,44 @@ Each model captures one dominant feature of real-world networks:
 
 Real networks typically exhibit several of these properties simultaneously. Hybrid models (e.g., SBM with degree correction, or preferential attachment with community structure) better match empirical data.
 
-### 1.4 Historical Timeline: 1959–2026
+### 1.4 Historical Timeline: 1959-2026
 
 ```
-RANDOM GRAPH THEORY: 1959–2026
-════════════════════════════════════════════════════════════════════════
+RANDOM GRAPH THEORY: 1959-2026
+========================================================================
 
-  1959  Erdős & Rényi introduce G(n,m); first random graph paper
-  1960  Erdős & Rényi prove giant component phase transition
-  1961  Erdős & Rényi prove connectivity threshold p = log(n)/n
-  1984  Bollobás writes first comprehensive textbook on random graphs
+  1959  Erdos & Renyi introduce G(n,m); first random graph paper
+  1960  Erdos & Renyi prove giant component phase transition
+  1961  Erdos & Renyi prove connectivity threshold p = log(n)/n
+  1984  Bollobas writes first comprehensive textbook on random graphs
   1995  Chung & Lu: random graphs with given expected degrees
   1998  Watts & Strogatz: small-world networks (Nature, ~36,000 cites)
-  1999  Barabási & Albert: scale-free networks (Science, ~50,000 cites)
-  2001  Lovász & Szegedy begin graphon theory (published 2006)
+  1999  Barabasi & Albert: scale-free networks (Science, ~50,000 cites)
+  2001  Lovasz & Szegedy begin graphon theory (published 2006)
   2001  Girvan & Newman: modularity and community detection
-  2007  Lovász & Szegedy: limits of dense graph sequences (JCTB)
+  2007  Lovasz & Szegedy: limits of dense graph sequences (JCTB)
   2011  Mossel, Neeman, Sly: Kesten-Stigum threshold (stochastic proof)
   2014  Abbe & Sandon: exact recovery threshold for SBM
   2015  You, Ying, Leskovec: GraphRNN graph generation
-  2018  Keriven & Peyré: graphon neural networks
+  2018  Keriven & Peyre: graphon neural networks
   2020  GraphWorld: benchmark generation via SBM
   2022  Rusch, Bronstein, Mishra: gradient over-squashing theory
   2023  DiGress: discrete diffusion for graph generation
   2024  Graphon attention transformers (sparse attention limits)
   2026  Graphon-based GNN universality: completeness results
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.5 Phase Transitions: The Central Metaphor
 
-The most striking feature of random graphs is the **phase transition**: a sudden, dramatic change in global structure as a parameter crosses a critical threshold. This is not merely a quantitative change but a qualitative one — the graph transitions from one phase (many small components) to another (one giant component plus small components).
+The most striking feature of random graphs is the **phase transition**: a sudden, dramatic change in global structure as a parameter crosses a critical threshold. This is not merely a quantitative change but a qualitative one - the graph transitions from one phase (many small components) to another (one giant component plus small components).
 
 **Physical analogy:** In ferromagnetism, a material transitions from disordered (many small magnetic domains) to ordered (one aligned domain) as temperature drops below the Curie point. The mathematics is identical: both are percolation phase transitions.
 
-**The critical exponent phenomenon:** Near the critical point $p_c = 1/n$, the giant component has size $\Theta(n^{2/3})$ — a polynomial intermediate between the subcritical $O(\log n)$ and supercritical $\Theta(n)$ regimes. This $n^{2/3}$ scaling is a universal critical exponent that appears in many other combinatorial and physical phase transitions.
+**The critical exponent phenomenon:** Near the critical point $p_c = 1/n$, the giant component has size $\Theta(n^{2/3})$ - a polynomial intermediate between the subcritical $O(\log n)$ and supercritical $\Theta(n)$ regimes. This $n^{2/3}$ scaling is a universal critical exponent that appears in many other combinatorial and physical phase transitions.
 
-**For AI:** Phase transitions in random graphs correspond to phase transitions in learning. A GNN trained to detect community structure in SBMs undergoes a computational phase transition at the Kesten-Stigum threshold — above it, polynomial-time algorithms succeed; below it, no efficient algorithm can (conditional on computational hardness conjectures). This is the rigorous mathematical statement of why some graph learning problems are fundamentally hard.
+**For AI:** Phase transitions in random graphs correspond to phase transitions in learning. A GNN trained to detect community structure in SBMs undergoes a computational phase transition at the Kesten-Stigum threshold - above it, polynomial-time algorithms succeed; below it, no efficient algorithm can (conditional on computational hardness conjectures). This is the rigorous mathematical statement of why some graph learning problems are fundamentally hard.
 
 ---
 
@@ -223,7 +223,7 @@ Let $\mathcal{G}_n$ denote the set of all labeled graphs on vertex set $[n] = \{
 
 The key examples:
 
-**$G(n,p)$** (Erdős-Rényi): Each edge $\{u,v\} \in \binom{[n]}{2}$ is included independently with probability $p$. The probability of a specific graph $g$ with $m$ edges is:
+**$G(n,p)$** (Erdos-Renyi): Each edge $\{u,v\} \in \binom{[n]}{2}$ is included independently with probability $p$. The probability of a specific graph $g$ with $m$ edges is:
 $$\mathbb{P}[G = g] = p^m (1-p)^{\binom{n}{2} - m}$$
 
 **$G(n,m)$** (fixed-edge): Uniform over all graphs with exactly $m$ edges:
@@ -238,7 +238,7 @@ $$\mathbb{P}[G = g] = \binom{\binom{n}{2}}{m}^{-1} \cdot \mathbf{1}[|E(g)| = m]$
 **Definition (w.h.p.):** We say $G(n,p)$ satisfies property $\mathcal{P}$ **with high probability** (w.h.p.) if:
 $$\lim_{n \to \infty} \mathbb{P}[G(n,p) \in \mathcal{P}] = 1$$
 
-This is distinct from "always" — there will always be rare samples that violate the property. But in the limit, the measure of the failure set goes to zero.
+This is distinct from "always" - there will always be rare samples that violate the property. But in the limit, the measure of the failure set goes to zero.
 
 **Notation conventions:**
 - $f(n) = o(g(n))$: $f/g \to 0$
@@ -256,7 +256,7 @@ This is distinct from "always" — there will always be rare samples that violat
 
 **Definition (Monotone property):** A graph property $\mathcal{P}$ is **monotone increasing** if whenever $G \in \mathcal{P}$ and $G' \supset G$ (additional edges), then $G' \in \mathcal{P}$. Examples: connectivity, containing a triangle, having a giant component.
 
-**Theorem (Bollobás-Thomason, 1987):** Every non-trivial monotone graph property has a **threshold function** $p^*(n)$ such that:
+**Theorem (Bollobas-Thomason, 1987):** Every non-trivial monotone graph property has a **threshold function** $p^*(n)$ such that:
 $$\lim_{n \to \infty} \mathbb{P}[G(n,p) \in \mathcal{P}] = \begin{cases} 0 & \text{if } p/p^* \to 0 \\ 1 & \text{if } p/p^* \to \infty \end{cases}$$
 
 The proof uses the **noise sensitivity / sharp threshold** theory: monotone properties exhibit sharp transitions (the window where $\mathbb{P}[\mathcal{P}]$ goes from near-0 to near-1 is $o(p^*)$ wide) due to the influence of edges being approximately equal.
@@ -289,11 +289,11 @@ The triangle threshold is $p^* = n^{-1}$: for $p \ll 1/n$, no triangles w.h.p.; 
 
 ---
 
-## 3. Erdős-Rényi Model
+## 3. Erdos-Renyi Model
 
 ### 3.1 Definitions: G(n,p) and G(n,m)
 
-The Erdős-Rényi model is the simplest and most mathematically tractable random graph model. Its beauty lies in the complete independence of edges, which makes exact calculations feasible.
+The Erdos-Renyi model is the simplest and most mathematically tractable random graph model. Its beauty lies in the complete independence of edges, which makes exact calculations feasible.
 
 **Definition $G(n,p)$:** The random graph on $[n]$ where each edge is independently present with probability $p \in [0,1]$.
 
@@ -313,7 +313,7 @@ The Erdős-Rényi model is the simplest and most mathematically tractable random
 | Supercritical | $p > 1/n$ | $c > 1$ | $\Theta(n)$ |
 | Connected | $p \ge \ln(n)/n$ | $c \ge \ln n$ | $n$ (whole graph) |
 
-**For AI:** When analyzing message passing in sparse GNNs on ER graphs, the regime determines whether information can flow globally. Below criticality ($c < 1$), most nodes are in isolated small components — the GNN can only see local structure. Above criticality, there's a giant component enabling global information flow.
+**For AI:** When analyzing message passing in sparse GNNs on ER graphs, the regime determines whether information can flow globally. Below criticality ($c < 1$), most nodes are in isolated small components - the GNN can only see local structure. Above criticality, there's a giant component enabling global information flow.
 
 ### 3.2 Degree Distribution: Poisson Limit
 
@@ -327,7 +327,7 @@ $$G_{B}(z) = \left(1 - \frac{c}{n} + \frac{cz}{n}\right)^{n-1} \to e^{c(z-1)} = 
 
 **Consequences of Poisson degree distribution:**
 
-1. **Exponential tail**: $\mathbb{P}[\deg(v) = k] = e^{-c} c^k / k!$ — degrees are concentrated near $c$
+1. **Exponential tail**: $\mathbb{P}[\deg(v) = k] = e^{-c} c^k / k!$ - degrees are concentrated near $c$
 2. **Max degree**: $\max_v \deg(v) \sim \frac{\log n}{\log \log n}$ (sublinear in $n$)
 3. **No hubs**: Unlike scale-free networks, ER graphs have no nodes with $\Omega(\sqrt{n})$ degree
 
@@ -335,9 +335,9 @@ $$G_{B}(z) = \left(1 - \frac{c}{n} + \frac{cz}{n}\right)^{n-1} \to e^{c(z-1)} = 
 
 ### 3.3 Giant Component Phase Transition
 
-This is the central theorem of random graph theory — one of the most beautiful results in all of combinatorics.
+This is the central theorem of random graph theory - one of the most beautiful results in all of combinatorics.
 
-**Theorem (Erdős-Rényi, 1960):** Let $c > 0$ be a constant and $p = c/n$. Let $L_1(G)$ denote the size of the largest connected component of $G \sim G(n,p)$.
+**Theorem (Erdos-Renyi, 1960):** Let $c > 0$ be a constant and $p = c/n$. Let $L_1(G)$ denote the size of the largest connected component of $G \sim G(n,p)$.
 
 1. **Subcritical** ($c < 1$): $L_1 / \ln n \to 1/I(c)$ w.h.p., where $I(c) = c - 1 - \ln c > 0$. In particular, $L_1 = O(\log n)$.
 
@@ -348,11 +348,11 @@ $$\beta = 1 - e^{-c\beta}$$
 
 The second-largest component has size $O(\log n)$.
 
-**The survival probability $\beta(c)$:** The equation $\beta = 1 - e^{-c\beta}$ has a probabilistic interpretation. Think of each vertex independently joining the giant component with probability $\beta$. A vertex joins if it has at least one neighbor that also joins. If neighbors join with probability $\beta$, and there are $\text{Poisson}(c)$ neighbors, the probability of having at least one joining neighbor is $1 - e^{-c\beta}$ — hence the fixed-point equation.
+**The survival probability $\beta(c)$:** The equation $\beta = 1 - e^{-c\beta}$ has a probabilistic interpretation. Think of each vertex independently joining the giant component with probability $\beta$. A vertex joins if it has at least one neighbor that also joins. If neighbors join with probability $\beta$, and there are $\text{Poisson}(c)$ neighbors, the probability of having at least one joining neighbor is $1 - e^{-c\beta}$ - hence the fixed-point equation.
 
 **Derivation via branching processes:** A key technique is to compare component exploration with a branching process. Starting from vertex $v$, reveal its neighbors one by one. Each neighbor independently has $\text{Poisson}(c)$ additional neighbors (in the limit). This is a Galton-Watson branching process with offspring distribution $\text{Poisson}(c)$.
 
-A Galton-Watson process with mean offspring $c$ survives (generates an infinite tree) with probability $\beta$ satisfying $\beta = 1 - e^{-c\beta}$. Below $c = 1$ (mean offspring $< 1$), the process dies out almost surely — hence subcritical. Above $c = 1$, there's a positive probability of survival — hence the giant component.
+A Galton-Watson process with mean offspring $c$ survives (generates an infinite tree) with probability $\beta$ satisfying $\beta = 1 - e^{-c\beta}$. Below $c = 1$ (mean offspring $< 1$), the process dies out almost surely - hence subcritical. Above $c = 1$, there's a positive probability of survival - hence the giant component.
 
 **Size of the giant component:**
 
@@ -365,11 +365,11 @@ A Galton-Watson process with mean offspring $c$ survives (generates an infinite 
 | 3.0 | 0.940 |
 | 5.0 | 0.993 |
 
-**For AI:** GNN expressiveness on random graphs undergoes a similar phase transition. In the subcritical regime, the WL algorithm (and GINs) see disconnected local neighborhoods — they cannot distinguish non-isomorphic components. In the supercritical regime, the global component provides rich structural information.
+**For AI:** GNN expressiveness on random graphs undergoes a similar phase transition. In the subcritical regime, the WL algorithm (and GINs) see disconnected local neighborhoods - they cannot distinguish non-isomorphic components. In the supercritical regime, the global component provides rich structural information.
 
 ### 3.4 Connectivity Threshold
 
-**Theorem (Erdős-Rényi, 1961):** Let $p = (\ln n + c) / n$ for a constant $c \in \mathbb{R}$. Then:
+**Theorem (Erdos-Renyi, 1961):** Let $p = (\ln n + c) / n$ for a constant $c \in \mathbb{R}$. Then:
 $$\lim_{n \to \infty} \mathbb{P}[G(n,p) \text{ is connected}] = e^{-e^{-c}}$$
 
 In particular:
@@ -389,7 +389,7 @@ $$\mathbb{P}[X_1 = 0] \to e^{-e^{-c}}$$
 
 Connectivity fails iff $X_1 > 0$ or there's a larger isolated component. One shows larger components disappear before isolated vertices, so connectivity threshold $=$ isolated vertex disappearance threshold.
 
-**Sharp threshold:** The window is $p = (\ln n + \omega(1))/n$ — any diverging $\omega$ suffices. This is an unusually sharp threshold (polynomial-width thresholds are more common).
+**Sharp threshold:** The window is $p = (\ln n + \omega(1))/n$ - any diverging $\omega$ suffices. This is an unusually sharp threshold (polynomial-width thresholds are more common).
 
 ### 3.5 Subgraph Counts and Triangle Thresholds
 
@@ -426,9 +426,9 @@ w.h.p. More precisely, $\text{diam} = (1 + o(1)) \log n / \log c$.
 
 **Why?** The giant component behaves like a random tree with branching factor $c$. Starting from any node, the neighborhood of radius $r$ has size $\sim c^r$. It reaches $n$ when $c^r \approx n$, i.e., $r \approx \log n / \log c$.
 
-**Characteristic path length:** This $O(\log n)$ diameter is the mathematical explanation for the **six degrees of separation** phenomenon. With $n = 10^9$ (Facebook) and $c \approx 100$ (100 friends), the diameter is $\log(10^9) / \log(100) \approx 4.5$ — indeed about 4-6 hops.
+**Characteristic path length:** This $O(\log n)$ diameter is the mathematical explanation for the **six degrees of separation** phenomenon. With $n = 10^9$ (Facebook) and $c \approx 100$ (100 friends), the diameter is $\log(10^9) / \log(100) \approx 4.5$ - indeed about 4-6 hops.
 
-**Contrast with small-world:** In the ring lattice (before rewiring), diameter is $n/(2k) = \Omega(n)$ — linear. Watts-Strogatz introduces just $\beta$ fraction of random rewirings to drop this to $O(\log n)$ while maintaining high clustering.
+**Contrast with small-world:** In the ring lattice (before rewiring), diameter is $n/(2k) = \Omega(n)$ - linear. Watts-Strogatz introduces just $\beta$ fraction of random rewirings to drop this to $O(\log n)$ while maintaining high clustering.
 
 ### 3.7 Spectral Properties of G(n,p)
 
@@ -436,7 +436,7 @@ w.h.p. More precisely, $\text{diam} = (1 + o(1)) \log n / \log c$.
 
 **Spectral decomposition:** Write $\mathbf{A} = \mathbb{E}[\mathbf{A}] + (\mathbf{A} - \mathbb{E}[\mathbf{A}])$. The fluctuation matrix $\mathbf{W} = \mathbf{A} - \mathbb{E}[\mathbf{A}]$ is a Wigner matrix (symmetric, zero-diagonal, i.i.d. entries above diagonal).
 
-**Theorem (Füredi-Komlós, 1981):** For $G(n,p)$ with $p$ constant, the eigenvalues of $\mathbf{A}$ satisfy:
+**Theorem (Furedi-Komlos, 1981):** For $G(n,p)$ with $p$ constant, the eigenvalues of $\mathbf{A}$ satisfy:
 - $\lambda_1 \sim np$ (outlier, corresponding to the average degree direction $\mathbf{1}/\sqrt{n}$)
 - $\lambda_2, \ldots, \lambda_n$ are in $[-(2+\epsilon)\sqrt{np(1-p)}, (2+\epsilon)\sqrt{np(1-p)}]$ w.h.p.
 
@@ -463,7 +463,7 @@ The Watts-Strogatz (WS) model was introduced in 1998 to explain a paradox: real-
 - $\beta \in [0,1]$: rewiring probability
   - $\beta = 0$: regular ring lattice (high clustering, long paths)
   - $\beta = 1$: approximately ER random graph (low clustering, short paths)
-  - $\beta \approx 0.01$–$0.1$: **small-world regime** (high clustering, short paths!)
+  - $\beta \approx 0.01$-$0.1$: **small-world regime** (high clustering, short paths!)
 
 **For AI:** Neural network connection graphs and attention patterns often exhibit small-world structure. The feedforward layers of transformers have short path lengths (like random graphs) while local attention heads maintain clustered connections (like lattices). Understanding this structure informs efficient attention design.
 
@@ -488,7 +488,7 @@ This is because a triangle involving $v$ requires all three edges to survive rew
 **Random graph ($\beta = 1$):** For ER with $p \approx k/n$:
 $$C_{\text{random}} \approx k/n \ll 1$$
 
-**Key observation:** For small $\beta$ (say $\beta = 0.05$), $C(\beta) \approx 0.75 \cdot (0.95)^3 \approx 0.64$ — still very high, close to the lattice value.
+**Key observation:** For small $\beta$ (say $\beta = 0.05$), $C(\beta) \approx 0.75 \cdot (0.95)^3 \approx 0.64$ - still very high, close to the lattice value.
 
 ### 4.3 Average Path Length
 
@@ -512,7 +512,7 @@ where $f(u) \sim \log(u)/u$ for large $u$. For $\beta \gg 2/(nk)$, the path leng
 | 0.5 | 0.195 | 4 |
 | 1.0 | 0.010 | 3 |
 
-The small-world regime ($\beta \approx 0.01$–$0.05$) achieves high $C$ and low $L$ simultaneously.
+The small-world regime ($\beta \approx 0.01$-$0.05$) achieves high $C$ and low $L$ simultaneously.
 
 ### 4.4 The Small-World Regime
 
@@ -546,7 +546,7 @@ Watts and Strogatz showed that small-world graphs have short paths, but Kleinber
 
 **Interpretation:** The power-law exponent $s = d$ (where $d$ is the grid dimension) uniquely enables efficient decentralized navigation. Real social networks approximate this condition, explaining how people can navigate social networks in few steps even with only local knowledge.
 
-**For AI:** This connects to hierarchical attention in transformers. FlashAttention-2 and related methods achieve efficient attention by exploiting the fact that attention scores decay with token distance — a continuous analog of Kleinberg's inverse power-law long-range links.
+**For AI:** This connects to hierarchical attention in transformers. FlashAttention-2 and related methods achieve efficient attention by exploiting the fact that attention scores decay with token distance - a continuous analog of Kleinberg's inverse power-law long-range links.
 
 ### 4.6 Social Network Evidence
 
@@ -555,21 +555,21 @@ Small-world structure has been empirically validated across many domains:
 - **Social networks:** Milgram's 1967 experiment found ~6 hops between strangers in the US; Facebook (2016) found average path length 3.57 for 1.6 billion users.
 - **Neural connectomes:** C. elegans (302 neurons), mouse visual cortex, human brain fMRI networks all show high clustering and short paths.
 - **Internet topology:** ASN-level and router-level graphs exhibit small-world properties.
-- **Citation networks:** Academic citation graphs have $C \approx 0.3$–$0.5$, well above the ER baseline.
+- **Citation networks:** Academic citation graphs have $C \approx 0.3$-$0.5$, well above the ER baseline.
 
-**Limitations:** WS does not generate power-law degree distributions. Real networks often exhibit BOTH small-world AND scale-free properties — requiring hybrid models.
+**Limitations:** WS does not generate power-law degree distributions. Real networks often exhibit BOTH small-world AND scale-free properties - requiring hybrid models.
 
 ---
 
-## 5. Barabási-Albert Scale-Free Model
+## 5. Barabasi-Albert Scale-Free Model
 
 ### 5.1 Preferential Attachment
 
-The Barabási-Albert (BA) model was introduced in 1999 to explain a universal observation: degree distributions in real-world networks follow a power law $P(k) \propto k^{-\gamma}$ with $\gamma \approx 2$–$3$. This is incompatible with the exponential tails of ER's Poisson distribution.
+The Barabasi-Albert (BA) model was introduced in 1999 to explain a universal observation: degree distributions in real-world networks follow a power law $P(k) \propto k^{-\gamma}$ with $\gamma \approx 2$-$3$. This is incompatible with the exponential tails of ER's Poisson distribution.
 
 The explanation: networks grow over time, and new nodes prefer to attach to high-degree nodes. This "rich get richer" mechanism generates hubs.
 
-**Construction (Barabási-Albert):**
+**Construction (Barabasi-Albert):**
 
 1. Start with $m_0 \ge m$ nodes with arbitrary connections.
 2. At each time step $t = m_0+1, m_0+2, \ldots, n$:
@@ -584,11 +584,11 @@ The denominator $\sum_w \deg(w) = 2|E|$ (handshaking lemma).
 - Scientists cite highly-cited papers
 - Airports add routes to hubs
 
-**For AI:** GNN training graphs from large knowledge bases (Wikidata, Freebase) exhibit scale-free degree distributions. GNN aggregation functions must handle this heterogeneity — a degree-10 node and a degree-1000 node require different treatment.
+**For AI:** GNN training graphs from large knowledge bases (Wikidata, Freebase) exhibit scale-free degree distributions. GNN aggregation functions must handle this heterogeneity - a degree-10 node and a degree-1000 node require different treatment.
 
 ### 5.2 Power-Law Degree Distribution
 
-**Theorem (Barabási-Albert, 1999; rigorous: Bollobás et al., 2001):** For $G \sim \text{BA}(n, m)$, as $n \to \infty$, the degree distribution satisfies:
+**Theorem (Barabasi-Albert, 1999; rigorous: Bollobas et al., 2001):** For $G \sim \text{BA}(n, m)$, as $n \to \infty$, the degree distribution satisfies:
 $$\mathbb{P}[\deg(v) = k] \to \frac{2m(m+1)}{k(k+1)(k+2)} \sim \frac{2m^2}{k^3} \text{ for large } k$$
 
 This is a **power law** with exponent $\gamma = 3$:
@@ -624,7 +624,7 @@ $$P(k) = -\frac{d}{dk}\mathbb{P}[k_i(t) > k] = \frac{2m^2}{k^3}$$
 
 This reproduces the power law $P(k) \propto k^{-3}$, consistent with the rigorous result.
 
-**Hub formation:** The oldest nodes grow fastest (degree $\propto \sqrt{t/t_i}$). Node $i$ added at time $t_i = 1$ has degree $\sim m\sqrt{n}$ at time $n$ — a hub with $\Theta(\sqrt{n})$ degree.
+**Hub formation:** The oldest nodes grow fastest (degree $\propto \sqrt{t/t_i}$). Node $i$ added at time $t_i = 1$ has degree $\sim m\sqrt{n}$ at time $n$ - a hub with $\Theta(\sqrt{n})$ degree.
 
 ### 5.4 Robustness and Fragility
 
@@ -637,7 +637,7 @@ For scale-free networks with $\gamma \le 3$ (including BA with $\gamma = 3$): $\
 
 **Targeted attack:** If the highest-degree nodes are removed first, the network is highly vulnerable. Removing even 5% of the highest-degree nodes can destroy the giant component of a BA network.
 
-**Implication for AI:** Neural network pruning that removes random weights (random failure) is much safer than pruning by magnitude (targeted attack) — magnitude-based pruning could inadvertently target the "hubs" of the implicit neural network graph.
+**Implication for AI:** Neural network pruning that removes random weights (random failure) is much safer than pruning by magnitude (targeted attack) - magnitude-based pruning could inadvertently target the "hubs" of the implicit neural network graph.
 
 ### 5.5 Scale-Free Networks in the Wild
 
@@ -647,7 +647,7 @@ For scale-free networks with $\gamma \le 3$ (including BA with $\gamma = 3$): $\
 - Protein-protein interaction: $\gamma \approx 2.4$
 - Actor collaboration: $\gamma \approx 2.3$
 
-**Controversy (2019):** Broido & Clauset (2019) argued that true power laws are rare — most claimed scale-free networks fit log-normal or other heavy-tailed distributions better. The debate continues, but the practical point stands: real networks have much heavier degree tails than ER Poisson.
+**Controversy (2019):** Broido & Clauset (2019) argued that true power laws are rare - most claimed scale-free networks fit log-normal or other heavy-tailed distributions better. The debate continues, but the practical point stands: real networks have much heavier degree tails than ER Poisson.
 
 **GNN implications:** Degree-heterogeneous graphs require careful normalization in GCN-style aggregation. GraphSAGE's neighborhood sampling provides approximate uniformity; PNA (Principal Neighbourhood Aggregation) uses multiple aggregators (mean, max, std) to handle degree heterogeneity robustly.
 
@@ -690,9 +690,9 @@ $$\frac{(a-b)^2}{2(a+b)} > 1$$
 
 The left side is the signal-to-noise ratio: $(a-b)$ measures community signal, $\sqrt{a+b}$ measures noise (average degree). When SNR $< 1$, the noise overwhelms the signal.
 
-**Spectral interpretation:** The second eigenvalue of the adjacency matrix satisfies $\lambda_2 \approx (a-b)/n \cdot n/2 = (a-b)/2$. The spectral radius of the noise (Wigner semicircle) is $2\sqrt{(a+b)/2}$. The signal eigenvalue emerges from the noise bulk iff $(a-b)/2 > 2\sqrt{(a+b)/2}$, i.e., $(a-b)^2 > 8(a+b)/2 = 4(a+b)$ — slightly different from KS due to different normalization, but same qualitative conclusion.
+**Spectral interpretation:** The second eigenvalue of the adjacency matrix satisfies $\lambda_2 \approx (a-b)/n \cdot n/2 = (a-b)/2$. The spectral radius of the noise (Wigner semicircle) is $2\sqrt{(a+b)/2}$. The signal eigenvalue emerges from the noise bulk iff $(a-b)/2 > 2\sqrt{(a+b)/2}$, i.e., $(a-b)^2 > 8(a+b)/2 = 4(a+b)$ - slightly different from KS due to different normalization, but same qualitative conclusion.
 
-**For GNNs:** GNNs trained on SBM graphs face exactly this detection problem. Below the Kesten-Stigum threshold, no GNN — regardless of depth, width, or architecture — can reliably classify nodes into communities. This is the hard limit on what graph learning can achieve.
+**For GNNs:** GNNs trained on SBM graphs face exactly this detection problem. Below the Kesten-Stigum threshold, no GNN - regardless of depth, width, or architecture - can reliably classify nodes into communities. This is the hard limit on what graph learning can achieve.
 
 **$k$-block SBM:** For $k$ communities, the threshold generalizes. The second eigenvalue of $B$ determines the computational threshold.
 
@@ -742,11 +742,11 @@ $$\mu_n = \frac{1}{n} \sum_{i=1}^n \delta_{\lambda_i(W_n)}$$
 converges weakly in probability to the semicircle law:
 $$\mu_{sc}(dx) = \frac{1}{2\pi\sigma^2}\sqrt{4\sigma^2 - x^2} \cdot \mathbf{1}_{|x| \le 2\sigma} dx$$
 
-**Support:** $[-2\sigma, 2\sigma]$ — all eigenvalues of $W_n$ lie in this interval asymptotically.
+**Support:** $[-2\sigma, 2\sigma]$ - all eigenvalues of $W_n$ lie in this interval asymptotically.
 
 **For $G(n,p)$:** The adjacency matrix $A$ centered and scaled: $W = (A - p\mathbf{1}\mathbf{1}^\top) / \sqrt{np(1-p)}$ has bulk eigenvalues following the semicircle law on $[-2, 2]$ (with $\sigma = 1$).
 
-The **outlier eigenvalue** $\lambda_1 \approx np$ comes from the mean matrix $p\mathbf{1}\mathbf{1}^\top$ — it pokes out of the bulk.
+The **outlier eigenvalue** $\lambda_1 \approx np$ comes from the mean matrix $p\mathbf{1}\mathbf{1}^\top$ - it pokes out of the bulk.
 
 **For SBM:** The adjacency matrix of an SBM decomposes as $A = \bar{A} + W$ where $\bar{A} = \mathbb{E}[A]$ is the block-structured mean matrix (rank $k$) and $W$ is a Wigner-like noise matrix. The $k$ outlier eigenvalues of $\bar{A}$ emerge from the semicircle bulk and encode the community structure, provided the signal-to-noise ratio exceeds the Kesten-Stigum threshold.
 
@@ -788,7 +788,7 @@ This is $o(1)$ iff $(a-b)/2 > 2\sqrt{(a+b)/2}$, i.e., the Kesten-Stigum conditio
 For $G(n,p)$ with $p$ constant:
 - Eigenvalues of $L_{sym}$ lie in $[0, 2]$ (always)
 - $\lambda_1(L_{sym}) = 0$ always (corresponding to $\mathbf{1}/\sqrt{n}$)
-- For $p$ fixed: $\lambda_n(L_{sym}) \to 2$, $\lambda_2(L_{sym}) \to 1$ — the bulk concentrates near 1
+- For $p$ fixed: $\lambda_n(L_{sym}) \to 2$, $\lambda_2(L_{sym}) \to 1$ - the bulk concentrates near 1
 
 **Algebraic connectivity (Fiedler value):** $\lambda_2(L)$ (unnormalized Laplacian) is the **Fiedler value**, which controls:
 - Convergence rate of random walks (mixing time $\propto 1/\lambda_2$)
@@ -803,7 +803,7 @@ For $G(n,p)$ with $p = c/n$, $c > 1$: $\lambda_2(L) \approx c - 2\sqrt{c} + O(1/
 
 ### 8.1 Dense Graph Sequences and the Cut Metric
 
-As graph size $n \to \infty$, what is the "limit" of a sequence of dense graphs? This question leads to graphon theory — the measure-theoretic framework that unifies all dense random graph models.
+As graph size $n \to \infty$, what is the "limit" of a sequence of dense graphs? This question leads to graphon theory - the measure-theoretic framework that unifies all dense random graph models.
 
 **Dense graph sequence:** A sequence $G_n$ of graphs with $|V(G_n)| = n$ and $|E(G_n)| = \Theta(n^2)$ (constant edge density).
 
@@ -828,13 +828,13 @@ After quotienting by relabelings (graph isomorphisms), we get the **cut distance
 
 | Graphon $W(x,y)$ | Corresponding model |
 |-----------------|---------------------|
-| $W(x,y) = p$ (constant) | Erdős-Rényi $G(n,p)$ |
+| $W(x,y) = p$ (constant) | Erdos-Renyi $G(n,p)$ |
 | $W(x,y) = \mathbf{1}[x+y > 1]$ | Half-graph |
 | $W(x,y) = \mathbf{1}[\lfloor kx \rfloor = \lfloor ky \rfloor] \cdot p + (1 - \mathbf{1}[\ldots]) \cdot q$ | $k$-block SBM |
 | $W(x,y) = x \cdot y$ | Product graphon (Chung-Lu style) |
 | $W(x,y) = \min(x,y)$ | Threshold model |
 
-**Lovász-Szegedy theorem (2006):** Every convergent sequence of dense graphs (in the cut metric) converges to a graphon. Conversely, every graphon arises as the limit of a graph sequence. The space of graphons with the cut metric is compact.
+**Lovasz-Szegedy theorem (2006):** Every convergent sequence of dense graphs (in the cut metric) converges to a graphon. Conversely, every graphon arises as the limit of a graph sequence. The space of graphons with the cut metric is compact.
 
 **For AI:** Graphons are the natural limiting objects for graph neural networks. A GNN $f$ maps graphs to outputs. If $f$ is *continuous in the cut metric*, then $f(G_n) \to f(W)$ whenever $G_n \to W$ in cut distance. This is precisely the condition for a GNN to be "robust" to graph size changes.
 
@@ -852,7 +852,7 @@ where $\text{hom}(F, G)$ counts graph homomorphisms $F \to G$.
 **Graphon version:** For a graphon $W$ and graph $F$ with $k$ vertices:
 $$t(F, W) = \int_{[0,1]^k} \prod_{(i,j) \in E(F)} W(x_i, x_j) \, d\mathbf{x}$$
 
-**Theorem (Lovász-Szegedy):** Two graphons $W$ and $W'$ are equivalent (isomorphic in the graphon sense) iff $t(F, W) = t(F, W')$ for all graphs $F$.
+**Theorem (Lovasz-Szegedy):** Two graphons $W$ and $W'$ are equivalent (isomorphic in the graphon sense) iff $t(F, W) = t(F, W')$ for all graphs $F$.
 
 **Graph parameters from homomorphism densities:**
 - Triangle density: $t(K_3, W) = \int W(x,y)W(y,z)W(x,z) \, dx\, dy\, dz$
@@ -862,15 +862,15 @@ $$t(F, W) = \int_{[0,1]^k} \prod_{(i,j) \in E(F)} W(x_i, x_j) \, d\mathbf{x}$$
 
 ### 8.4 Graphon Neural Networks
 
-**Definition (Graphon Neural Network, Keriven & Peyré, 2019):** A graphon neural network is a sequence of functions $f_n$ (on $n$-node graphs) that converge to a limiting function $f_W$ on graphons. Formally, $f_n$ is a GNN architecture such that as $G_n \to W$ in cut metric, $f_n(G_n) \to f_W(W)$.
+**Definition (Graphon Neural Network, Keriven & Peyre, 2019):** A graphon neural network is a sequence of functions $f_n$ (on $n$-node graphs) that converge to a limiting function $f_W$ on graphons. Formally, $f_n$ is a GNN architecture such that as $G_n \to W$ in cut metric, $f_n(G_n) \to f_W(W)$.
 
 **Key result:** GCN-style message passing with the propagation operator $T_W h(x) = \int_0^1 W(x,y) h(y) \, dy$ defines a graphon neural network. The discrete GCN is a finite approximation.
 
-**Universality of graphon NNs:** Maron et al. (2019) show that equivariant graph networks are universal approximators on graphons — any graphon property that is measurable can be approximated to arbitrary accuracy.
+**Universality of graphon NNs:** Maron et al. (2019) show that equivariant graph networks are universal approximators on graphons - any graphon property that is measurable can be approximated to arbitrary accuracy.
 
 **Limitation:** Universality on graphons is density-dependent. For SPARSE graph sequences (edge density $\to 0$), graphons become trivial (the zero graphon), and a different limit theory (graphexes, local limits) is needed.
 
-> **Forward reference:** Graphon theory connects directly to functional analysis — the operator $T_W h(x) = \int W(x,y)h(y) \, dy$ is an integral operator on $L^2[0,1]$. Spectral theory of compact operators (Hilbert-Schmidt theorem) governs its eigenvalue decomposition. → Full treatment: [Functional Analysis](../../12-Functional-Analysis/notes.md)
+> **Forward reference:** Graphon theory connects directly to functional analysis - the operator $T_W h(x) = \int W(x,y)h(y) \, dy$ is an integral operator on $L^2[0,1]$. Spectral theory of compact operators (Hilbert-Schmidt theorem) governs its eigenvalue decomposition. -> Full treatment: [Functional Analysis](../../12-Functional-Analysis/notes.md)
 
 ---
 
@@ -897,11 +897,11 @@ $$t(F, W) = \int_{[0,1]^k} \prod_{(i,j) \in E(F)} W(x_i, x_j) \, d\mathbf{x}$$
 
 Graph generation models learn to sample new graphs from a distribution. Framed probabilistically: learn a distribution $p_\theta(G)$ that matches a target distribution $p^*(G)$.
 
-**GRAN (Graph Recurrent Attention Networks, 2019):** Generates graphs node-by-node, at each step attending to previously generated nodes. The attention mechanism implicitly models preferential attachment — recently added high-degree nodes attract more attention, reproducing scale-free structure.
+**GRAN (Graph Recurrent Attention Networks, 2019):** Generates graphs node-by-node, at each step attending to previously generated nodes. The attention mechanism implicitly models preferential attachment - recently added high-degree nodes attract more attention, reproducing scale-free structure.
 
 **GDSS (Jo et al., 2022):** Score-based diffusion model for graphs. Joint diffusion over node features and edge features. Samples new graphs by reversing a diffusion process that gradually adds noise. The score function implicitly learns the SBM-like block structure of training graphs.
 
-**DiGress (Vignac et al., 2022):** Discrete diffusion — adds/removes edges following a Markov process. Denoising model is a graph transformer that learns to predict the original edge from the noised version. DiGress can generate molecular graphs and large social networks by learning implicit graphon structure.
+**DiGress (Vignac et al., 2022):** Discrete diffusion - adds/removes edges following a Markov process. Denoising model is a graph transformer that learns to predict the original edge from the noised version. DiGress can generate molecular graphs and large social networks by learning implicit graphon structure.
 
 **Random graph theory connection:** Graph generation is essentially graphon estimation. Given samples from $p^*(G)$ (real graphs), estimate the underlying graphon $W^*$ such that sampling from $W^*$ approximates $p^*$. The approximation quality is measured by the cut metric $d_\square$.
 
@@ -914,7 +914,7 @@ Graph generation models learn to sample new graphs from a distribution. Framed p
 **Random graph analysis of attention:**
 - **Connectivity**: Is the sparse attention graph connected? If not, information cannot flow between disconnected components. ER theory predicts connectivity iff expected degree $\ge \ln n$.
 - **Small-world**: BigBird combines local window attention (ring lattice) with random global tokens (rewiring) and special tokens (hubs). This exactly matches the Watts-Strogatz construction!
-- **Expander properties**: Expander graphs (high spectral gap) are the best sparse graphs for information flow. Ramanujan graphs achieve the optimal spectral gap — this motivates expander-based sparse attention.
+- **Expander properties**: Expander graphs (high spectral gap) are the best sparse graphs for information flow. Ramanujan graphs achieve the optimal spectral gap - this motivates expander-based sparse attention.
 
 **Result:** The random graph structure of sparse attention patterns determines the theoretical expressiveness of the transformer. An attention graph that is disconnected or has large diameter cannot capture long-range dependencies regardless of the weight values.
 
@@ -942,7 +942,7 @@ The winning ticket is a sparse subgraph that retains the connectivity and flow p
 
 **Random graph models as null models:** When analyzing a real social network, we ask: "Is the observed community structure more than what we'd expect by chance?" We compare to an ER null model with the same degree sequence (configuration model) and test whether the observed modularity exceeds the null expectation.
 
-**Link prediction:** Predicting missing edges $(u,v)$ in a social graph using random graph models. Under ER: $\mathbb{P}[(u,v) \in E] = p$ (same for all pairs). Under SBM: $\mathbb{P}[(u,v) \in E] = B_{\sigma(u), \sigma(v)}$ — within-community edges are more likely. GNNs for link prediction learn to approximate this block-structured probability.
+**Link prediction:** Predicting missing edges $(u,v)$ in a social graph using random graph models. Under ER: $\mathbb{P}[(u,v) \in E] = p$ (same for all pairs). Under SBM: $\mathbb{P}[(u,v) \in E] = B_{\sigma(u), \sigma(v)}$ - within-community edges are more likely. GNNs for link prediction learn to approximate this block-structured probability.
 
 ---
 
@@ -950,26 +950,26 @@ The winning ticket is a sparse subgraph that retains the connectivity and flow p
 
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|---------------|-----|
-| 1 | Confusing $G(n,p)$ and $G(n,m)$ | $G(n,p)$ has random edge count; $G(n,m)$ has exactly $m$ edges — they agree asymptotically but differ in finite samples | Use $G(n,p)$ when you want independence; $G(n,m)$ when you want exact count control |
-| 2 | Assuming ER is a good null model for all real graphs | ER lacks clustering, hubs, and communities — major features of real networks | Use configuration model (fixed degree sequence) or SBM as null model |
-| 3 | Saying Barabási-Albert generates power law with any exponent | BA always gives $\gamma = 3$; only extensions (fitness, rewiring) change $\gamma$ | Use generalized preferential attachment $\Pi(v) \propto \deg(v)^\alpha$ for $\gamma = 1 + 1/(\alpha - 1)$ |
+| 1 | Confusing $G(n,p)$ and $G(n,m)$ | $G(n,p)$ has random edge count; $G(n,m)$ has exactly $m$ edges - they agree asymptotically but differ in finite samples | Use $G(n,p)$ when you want independence; $G(n,m)$ when you want exact count control |
+| 2 | Assuming ER is a good null model for all real graphs | ER lacks clustering, hubs, and communities - major features of real networks | Use configuration model (fixed degree sequence) or SBM as null model |
+| 3 | Saying Barabasi-Albert generates power law with any exponent | BA always gives $\gamma = 3$; only extensions (fitness, rewiring) change $\gamma$ | Use generalized preferential attachment $\Pi(v) \propto \deg(v)^\alpha$ for $\gamma = 1 + 1/(\alpha - 1)$ |
 | 4 | Confusing clustering coefficient with transitivity | Local CC averages over vertices; global transitivity = $3 \times$ triangles / paths of length 2. They differ when degree distribution is heterogeneous | Use transitivity for global property; local CC for per-node property |
-| 5 | Thinking the Kesten-Stigum threshold is a computational limit | KS is an information-theoretic limit — it bounds what ANY algorithm can do, not just efficient ones. The computational hardness (SDP vs AMP) is a separate question | Distinguish between information-theoretic and computational thresholds |
+| 5 | Thinking the Kesten-Stigum threshold is a computational limit | KS is an information-theoretic limit - it bounds what ANY algorithm can do, not just efficient ones. The computational hardness (SDP vs AMP) is a separate question | Distinguish between information-theoretic and computational thresholds |
 | 6 | Applying graphon theory to sparse graphs | Graphons describe the limit of DENSE sequences (constant edge density). Sparse graphs ($m = O(n)$) have trivial graphon limits (the zero function) | Use local weak limits (Benjamini-Schramm) or graphex theory for sparse sequences |
 | 7 | Equating "scale-free" with "power law" | Scale-free means the DEGREE distribution is a power law. Many other distributions (log-normal, Pareto) look similar. Broido & Clauset (2019) show many claimed scale-free networks don't pass rigorous power-law tests | Use maximum likelihood to fit and compare competing distributions (power law, log-normal, exponential) |
 | 8 | Ignoring the giant component when computing path lengths | Average path length on a disconnected graph is undefined (infinite) or meaningless without restricting to the giant component | Always compute path lengths within the largest connected component |
 | 9 | Assuming WS small-world is scale-free | WS generates Poisson-like degree distributions (each node rewires independently). It has small-world property but NOT scale-free | Combine WS with preferential attachment for small-world + scale-free |
 | 10 | Using the adjacency matrix spectrum directly for SBM clustering when graph is sparse | For sparse SBM, the adjacency matrix eigenvalues don't separate cleanly (semicircle radius comparable to signal). Use regularized Laplacian or Bethe-Hessian instead | Replace $A$ with $L_{rw} = D^{-1}A$ or Bethe-Hessian $H(\rho) = (\rho^2-1)I - \rho A + D$ |
-| 11 | Treating the WS model as a generative process for new nodes | WS is defined on a fixed set of $n$ nodes with rewiring — it does not define how to add new nodes. It's not a growing network model | Use BA for growing network models; use WS for fixed-size networks |
+| 11 | Treating the WS model as a generative process for new nodes | WS is defined on a fixed set of $n$ nodes with rewiring - it does not define how to add new nodes. It's not a growing network model | Use BA for growing network models; use WS for fixed-size networks |
 | 12 | Forgetting that graphon equivalence classes ignore node labels | Two graphons $W$ and $W'$ are equivalent if one is a measure-preserving relabeling of the other. Most graph statistics depend only on the graphon equivalence class | Work with homomorphism densities (relabeling-invariant) when comparing graphons |
 
 ---
 
 ## 11. Exercises
 
-**Exercise 1** ★ — Phase Transition Simulation
+**Exercise 1** * - Phase Transition Simulation
 
-Simulate the Erdős-Rényi phase transition computationally. For $n = 2000$ nodes and $p = c/n$ with $c \in [0.5, 3.0]$:
+Simulate the Erdos-Renyi phase transition computationally. For $n = 2000$ nodes and $p = c/n$ with $c \in [0.5, 3.0]$:
 
 (a) Generate $G(n,p)$ for 20 values of $c$ linearly spaced in $[0.5, 3.0]$.
 
@@ -983,7 +983,7 @@ Simulate the Erdős-Rényi phase transition computationally. For $n = 2000$ node
 
 ---
 
-**Exercise 2** ★ — Degree Distribution Analysis
+**Exercise 2** * - Degree Distribution Analysis
 
 (a) Generate $G(n,p)$ with $n = 10000$ and $p = 5/n$. Compute the empirical degree distribution and overlay the theoretical $\text{Poisson}(5)$ PMF.
 
@@ -995,7 +995,7 @@ Simulate the Erdős-Rényi phase transition computationally. For $n = 2000$ node
 
 ---
 
-**Exercise 3** ★ — Small-World Analysis
+**Exercise 3** * - Small-World Analysis
 
 Implement the Watts-Strogatz model from scratch.
 
@@ -1009,7 +1009,7 @@ Implement the Watts-Strogatz model from scratch.
 
 ---
 
-**Exercise 4** ★★ — Stochastic Block Model and Community Detection
+**Exercise 4** ** - Stochastic Block Model and Community Detection
 
 (a) Sample an SBM with $n = 500$, $k = 2$ equal communities, $p = a/n$, $q = b/n$. Use $(a,b) = (20, 5)$ (above Kesten-Stigum threshold).
 
@@ -1019,11 +1019,11 @@ Implement the Watts-Strogatz model from scratch.
 
 (d) The Kesten-Stigum threshold for 2-block SBM is $(a-b)^2 = 2(a+b)$. Verify your experimental results are consistent with this threshold.
 
-(e) ★★★ Implement the belief propagation algorithm (AMP / approximate message passing) for the 2-block SBM and compare accuracy to spectral clustering near the threshold.
+(e) *** Implement the belief propagation algorithm (AMP / approximate message passing) for the 2-block SBM and compare accuracy to spectral clustering near the threshold.
 
 ---
 
-**Exercise 5** ★★ — Wigner's Semicircle Law
+**Exercise 5** ** - Wigner's Semicircle Law
 
 (a) Generate a Wigner matrix $W_n = (M + M^\top) / (2\sqrt{n})$ where $M$ has i.i.d. $\text{Normal}(0,1)$ entries, for $n \in \{50, 200, 500, 1000\}$.
 
@@ -1035,7 +1035,7 @@ Implement the Watts-Strogatz model from scratch.
 
 ---
 
-**Exercise 6** ★★ — Graphon Estimation
+**Exercise 6** ** - Graphon Estimation
 
 (a) Generate a sequence of SBM graphs with $n \in \{100, 500, 2000\}$, $k = 3$ communities, and block matrix $B = \begin{pmatrix} 0.8 & 0.1 & 0.1 \\ 0.1 & 0.7 & 0.2 \\ 0.1 & 0.2 & 0.6 \end{pmatrix}$.
 
@@ -1047,13 +1047,13 @@ Implement the Watts-Strogatz model from scratch.
 
 ---
 
-**Exercise 7** ★★★ — Giant Component Critical Window
+**Exercise 7** *** - Giant Component Critical Window
 
 This exercise studies the fine-grained behavior near the critical point $p = 1/n$.
 
 (a) For $p = (1 + \lambda n^{-1/3})/n$ with $\lambda \in [-3, 3]$ and $n \in \{500, 2000, 8000\}$, compute $L_1 / n^{2/3}$ for 50 trials each. Plot the distribution of $L_1/n^{2/3}$ vs $\lambda$.
 
-(b) Observe that the distribution has a universal shape (independent of $n$ for large $n$). This is the **Brownian excursion** limit — the critical window scaling is $n^{2/3}$ for the component size and $n^{1/3}$ for the window width.
+(b) Observe that the distribution has a universal shape (independent of $n$ for large $n$). This is the **Brownian excursion** limit - the critical window scaling is $n^{2/3}$ for the component size and $n^{1/3}$ for the window width.
 
 (c) Compute the mean and standard deviation of $L_1 / n^{2/3}$ as functions of $\lambda$. Show that the mean crosses 0 near $\lambda = 0$ but the transition is smooth (not a jump) at finite $n$.
 
@@ -1061,9 +1061,9 @@ This exercise studies the fine-grained behavior near the critical point $p = 1/n
 
 ---
 
-**Exercise 8** ★★★ — Preferential Attachment Dynamics
+**Exercise 8** *** - Preferential Attachment Dynamics
 
-(a) Implement the Barabási-Albert preferential attachment model for $n = 5000$ nodes with $m = 2$ edges per new node. Use the efficient alias method or linear scan for sampling.
+(a) Implement the Barabasi-Albert preferential attachment model for $n = 5000$ nodes with $m = 2$ edges per new node. Use the efficient alias method or linear scan for sampling.
 
 (b) After generation, fit the degree distribution tail to a power law $P(k) = C k^{-\gamma}$ using maximum likelihood estimation on $k \ge k_{\min}$ for suitable $k_{\min}$.
 
@@ -1082,15 +1082,15 @@ This exercise studies the fine-grained behavior near the critical point $p = 1/n
 | **ER Phase Transition** | Connectivity threshold determines information flow in GNNs on sparse graphs; GCN cannot aggregate across disconnected components, giving a hard limit on performance |
 | **Poisson Degree Distribution** | Most GNN benchmark graphs (Cora, Citeseer) have near-Poisson degrees; GCN's symmetric normalization is optimal for Poisson-degree graphs but suboptimal for scale-free |
 | **Kesten-Stigum Threshold** | Hard information-theoretic limit on community detection; no GNN can exceed this on SBM data regardless of architecture, depth, or width |
-| **Scale-Free Networks** | Real knowledge graphs (Wikidata, Freebase) are scale-free; hub nodes with $\Theta(\sqrt{n})$ degree dominate GCN aggregation — require degree-aware normalization or degree-bucketing |
+| **Scale-Free Networks** | Real knowledge graphs (Wikidata, Freebase) are scale-free; hub nodes with $\Theta(\sqrt{n})$ degree dominate GCN aggregation - require degree-aware normalization or degree-bucketing |
 | **Small-World Structure** | Transformer attention graphs have small-world properties; BigBird/Longformer mimic WS construction (local window + random long-range); designing optimal sparse attention = finding optimal WS parameters |
 | **Graphons** | Theoretical foundation for GNN universality; GNNs that are continuous in cut metric topology can generalize across graph sizes; graphon theory predicts which graph properties a GNN can and cannot learn |
 | **Graphon Neural Networks** | First provably universal GNN framework; used to prove that message-passing GNNs cannot distinguish non-isomorphic graphs with identical WL certificates |
-| **Spectral Gap** | Controls convergence rate of GNN over-smoothing (energy decays at rate $\lambda_2$); higher Fiedler value → faster smoothing → shallower optimal depth |
+| **Spectral Gap** | Controls convergence rate of GNN over-smoothing (energy decays at rate $\lambda_2$); higher Fiedler value -> faster smoothing -> shallower optimal depth |
 | **Davis-Kahan** | Explains why spectral GNNs (GCN) succeed above community detection threshold and fail below; same theorem underlies learning theory for graph classification |
-| **Wigner Semicircle** | Bulk eigenvalue distribution of noise in graph learning; signal from community structure must exceed semicircle radius to be learnable — same condition as Kesten-Stigum |
+| **Wigner Semicircle** | Bulk eigenvalue distribution of noise in graph learning; signal from community structure must exceed semicircle radius to be learnable - same condition as Kesten-Stigum |
 | **Configuration Model** | Null model for testing GNN hypotheses: does the GNN learn graph structure, or just degree sequence? Test by evaluating on configuration model graphs with same degree sequence |
-| **Random Graph Generation** | DiGress, GDSS, GRAN all learn distributions over graphs — effectively learning graphons. Quality measured by cut distance between learned and true graphon |
+| **Random Graph Generation** | DiGress, GDSS, GRAN all learn distributions over graphs - effectively learning graphons. Quality measured by cut distance between learned and true graphon |
 
 ---
 
@@ -1100,54 +1100,54 @@ This exercise studies the fine-grained behavior near the critical point $p = 1/n
 
 Random graph theory synthesizes several branches of mathematics developed in earlier sections:
 
-**From Spectral Graph Theory (§04):** The Laplacian eigenvalues $\lambda_2, \ldots, \lambda_n$ studied there take on probabilistic meaning here — for random graphs, they become random variables following the Wigner semicircle law. The spectral gap $\lambda_2$ that controls mixing time in deterministic graphs now becomes a random quantity whose distribution determines community detectability.
+**From Spectral Graph Theory (04):** The Laplacian eigenvalues $\lambda_2, \ldots, \lambda_n$ studied there take on probabilistic meaning here - for random graphs, they become random variables following the Wigner semicircle law. The spectral gap $\lambda_2$ that controls mixing time in deterministic graphs now becomes a random quantity whose distribution determines community detectability.
 
-**From Probability Theory (§07-Probability-Statistics):** All threshold results (giant component, connectivity, community detection) use first and second moment methods, Chernoff bounds, and the Poisson limit theorem. Branching process theory is the probabilistic tool that gives the exact threshold equation $\beta = 1 - e^{-c\beta}$.
+**From Probability Theory (07-Probability-Statistics):** All threshold results (giant component, connectivity, community detection) use first and second moment methods, Chernoff bounds, and the Poisson limit theorem. Branching process theory is the probabilistic tool that gives the exact threshold equation $\beta = 1 - e^{-c\beta}$.
 
-**From Graph Neural Networks (§05):** The SBM community detection problem IS the node classification problem that GNNs solve in practice. The Kesten-Stigum threshold gives the hard limit on what any GNN can achieve, while Davis-Kahan shows why spectral GNNs succeed above this threshold.
+**From Graph Neural Networks (05):** The SBM community detection problem IS the node classification problem that GNNs solve in practice. The Kesten-Stigum threshold gives the hard limit on what any GNN can achieve, while Davis-Kahan shows why spectral GNNs succeed above this threshold.
 
 ### Forward: What This Enables
 
-**Functional Analysis (§12):** The graphon operator $T_W h(x) = \int_0^1 W(x,y)h(y)\,dy$ is a Hilbert-Schmidt operator on $L^2[0,1]$. Its spectral theory — the Hilbert-Schmidt theorem giving a countable orthonormal eigenfunction expansion — is the infinite-dimensional generalization of the adjacency matrix eigendecomposition. This is the full treatment of graphon operators.
+**Functional Analysis (12):** The graphon operator $T_W h(x) = \int_0^1 W(x,y)h(y)\,dy$ is a Hilbert-Schmidt operator on $L^2[0,1]$. Its spectral theory - the Hilbert-Schmidt theorem giving a countable orthonormal eigenfunction expansion - is the infinite-dimensional generalization of the adjacency matrix eigendecomposition. This is the full treatment of graphon operators.
 
-**Graph Algorithms (§07):** Random graph models motivate efficient algorithms: spectral clustering (from SBM theory), Louvain community detection (from modularity theory), and link prediction (from random graph null models). The average-case complexity of graph problems is analyzed using random graph models.
+**Graph Algorithms (07):** Random graph models motivate efficient algorithms: spectral clustering (from SBM theory), Louvain community detection (from modularity theory), and link prediction (from random graph null models). The average-case complexity of graph problems is analyzed using random graph models.
 
-**Information Theory (§09):** The Kesten-Stigum threshold is an information-theoretic limit — it follows from a channel capacity argument. The mutual information between the community labels $\sigma$ and the observed graph $G$ is zero below the threshold, making recovery impossible regardless of computation. This connects random graphs to channel coding theory.
+**Information Theory (09):** The Kesten-Stigum threshold is an information-theoretic limit - it follows from a channel capacity argument. The mutual information between the community labels $\sigma$ and the observed graph $G$ is zero below the threshold, making recovery impossible regardless of computation. This connects random graphs to channel coding theory.
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §04 Spectral Graph Theory
-       │  Laplacians, eigenvalues, Cheeger inequality
-       │
-       ├──▶ §05 Graph Neural Networks
-       │         GCN, GAT, GIN, MPNN, expressiveness
-       │
-       └──▶ §06 Random Graphs  ◀═══ YOU ARE HERE
-                │
-                ├─ Erdős-Rényi: phase transitions, thresholds
-                ├─ Watts-Strogatz: small-world, navigation
-                ├─ Barabási-Albert: scale-free, preferential attachment
-                ├─ SBM: communities, Kesten-Stigum threshold
-                ├─ Spectral theory: semicircle law, Davis-Kahan
-                └─ Graphons: infinite limits, universality
-                       │
-                       ▼
-                §07 Graph Algorithms
-                       │
-                       ▼
-                §12 Functional Analysis ◀── graphon operators T_W
-                       Hilbert-Schmidt theory, L² spectral decomposition
+  04 Spectral Graph Theory
+       |  Laplacians, eigenvalues, Cheeger inequality
+       |
+       +--> 05 Graph Neural Networks
+       |         GCN, GAT, GIN, MPNN, expressiveness
+       |
+       +--> 06 Random Graphs  <=== YOU ARE HERE
+                |
+                +- Erdos-Renyi: phase transitions, thresholds
+                +- Watts-Strogatz: small-world, navigation
+                +- Barabasi-Albert: scale-free, preferential attachment
+                +- SBM: communities, Kesten-Stigum threshold
+                +- Spectral theory: semicircle law, Davis-Kahan
+                +- Graphons: infinite limits, universality
+                       |
+                       v
+                07 Graph Algorithms
+                       |
+                       v
+                12 Functional Analysis <-- graphon operators T_W
+                       Hilbert-Schmidt theory, L^2 spectral decomposition
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The central insight of this section — that random graph models are not merely toy examples but rigorous frameworks for understanding real network behavior — carries forward into every domain where graphs appear. In machine learning, understanding when community structure is detectable, when information can flow across a sparse graph, and when a graph distribution can be learned from samples are fundamental questions with precise mathematical answers, and those answers come from random graph theory.
+The central insight of this section - that random graph models are not merely toy examples but rigorous frameworks for understanding real network behavior - carries forward into every domain where graphs appear. In machine learning, understanding when community structure is detectable, when information can flow across a sparse graph, and when a graph distribution can be learned from samples are fundamental questions with precise mathematical answers, and those answers come from random graph theory.
 
 ---
 
-*[← Back to Graph Theory](../README.md) | [Next: Graph Algorithms →](../07-Graph-Algorithms/notes.md)*
+*[<- Back to Graph Theory](../README.md) | [Next: Graph Algorithms ->](../07-Graph-Algorithms/notes.md)*
 
 ---
 
@@ -1193,7 +1193,7 @@ Eigenvalues of $M$: $\lambda_+ = (a+b)/2$, $\lambda_- = (a-b)/2$.
 
 **Non-backtracking operator:** The correct spectral condition for SBM community detection uses the **non-backtracking (Hashimoto) operator** $B$ on directed edges. The eigenvalue of $B$ corresponding to community structure is $(a-b)/2$, and the bulk spectral radius is $\sqrt{(a+b)/2}$. Community detection is possible iff:
 $$\frac{a-b}{2} > \sqrt{\frac{a+b}{2}}$$
-i.e., $(a-b)^2 > 2(a+b)$ — precisely the Kesten-Stigum threshold.
+i.e., $(a-b)^2 > 2(a+b)$ - precisely the Kesten-Stigum threshold.
 
 ### A.3 Critical Branching Processes
 
@@ -1220,7 +1220,7 @@ The **configuration model** generates a random graph with a prescribed degree se
 **Result:** A random multigraph (may have self-loops and multi-edges) with the given degree sequence.
 
 **Properties:**
-- For degree sequences with bounded maximum degree: the number of self-loops and multi-edges is $O(1)$ — a simple graph w.h.p.
+- For degree sequences with bounded maximum degree: the number of self-loops and multi-edges is $O(1)$ - a simple graph w.h.p.
 - Conditioned on simplicity: uniform over all simple graphs with the given degree sequence
 
 **Why use it?** The configuration model is the correct null model for testing graph hypotheses. Instead of comparing to ER (wrong degree distribution), compare to configuration model (same degree distribution, no other structure). If a property (e.g., high clustering) exceeds what configuration model predicts, it's genuinely structural, not just a degree artifact.
@@ -1234,17 +1234,17 @@ $$\sum_k k(k-2) P(k) > 0 \iff \frac{\mathbb{E}[k^2]}{\mathbb{E}[k]} > 2$$
 
 **Interpretation:** The excess degree distribution $q_k = (k+1)P(k+1)/\mathbb{E}[k]$ governs the branching factor of the exploration process. The process is supercritical (giant component exists) iff the mean of $q_k$ exceeds 1, which is $\mathbb{E}[k(k-1)]/\mathbb{E}[k] > 1$.
 
-**For scale-free networks:** With $P(k) \propto k^{-\gamma}$, $\mathbb{E}[k^2]$ diverges when $\gamma \le 3$. Hence the Molloy-Reed criterion is always satisfied for BA-style scale-free networks — a giant component exists for arbitrarily sparse scale-free graphs.
+**For scale-free networks:** With $P(k) \propto k^{-\gamma}$, $\mathbb{E}[k^2]$ diverges when $\gamma \le 3$. Hence the Molloy-Reed criterion is always satisfied for BA-style scale-free networks - a giant component exists for arbitrarily sparse scale-free graphs.
 
-**For ER:** $P(k) = e^{-c} c^k / k!$ (Poisson), so $\mathbb{E}[k^2] = c^2 + c$ and $\mathbb{E}[k] = c$. Molloy-Reed: $(c^2 + c)/c > 2 \Leftrightarrow c + 1 > 2 \Leftrightarrow c > 1$ — exactly the ER threshold.
+**For ER:** $P(k) = e^{-c} c^k / k!$ (Poisson), so $\mathbb{E}[k^2] = c^2 + c$ and $\mathbb{E}[k] = c$. Molloy-Reed: $(c^2 + c)/c > 2 \Leftrightarrow c + 1 > 2 \Leftrightarrow c > 1$ - exactly the ER threshold.
 
 ### B.3 Clustering in Configuration Model
 
 For the configuration model:
 $$C_{\text{conf}} = \frac{(\mathbb{E}[k^2] - \mathbb{E}[k])^2}{n \cdot \mathbb{E}[k]^3} \to 0$$
-as $n \to \infty$ (for fixed degree distribution). The configuration model has vanishing clustering coefficient — it's locally tree-like.
+as $n \to \infty$ (for fixed degree distribution). The configuration model has vanishing clustering coefficient - it's locally tree-like.
 
-**Real networks vs. configuration model:** Comparing observed clustering to $C_{\text{conf}} \approx 0$ tests for genuine clustering beyond degree effects. Small-world networks have $C \gg C_{\text{conf}}$ — they have clustering not explained by degree distribution alone.
+**Real networks vs. configuration model:** Comparing observed clustering to $C_{\text{conf}} \approx 0$ tests for genuine clustering beyond degree effects. Small-world networks have $C \gg C_{\text{conf}}$ - they have clustering not explained by degree distribution alone.
 
 ---
 
@@ -1274,7 +1274,7 @@ Neural network weight pruning is isomorphic to bond percolation:
 
 For the network to maintain its computational capacity, it must retain a giant component. The percolation threshold $\rho_c$ gives the minimum retention rate.
 
-**Structured pruning:** Head pruning in transformers (removing entire attention heads) is site percolation on the attention head graph. Magnitude pruning selects edges by weight magnitude — approximately bond percolation with $\rho = $ fraction of weights retained.
+**Structured pruning:** Head pruning in transformers (removing entire attention heads) is site percolation on the attention head graph. Magnitude pruning selects edges by weight magnitude - approximately bond percolation with $\rho = $ fraction of weights retained.
 
 **Lottery ticket connection:** A winning lottery ticket is precisely a giant percolating subgraph that retains the "signal paths" of the original network. The existence of such subgraphs at high sparsity ($\rho \approx 0.1$) is guaranteed by percolation theory for sufficiently wide networks.
 
@@ -1294,7 +1294,7 @@ This is why expanders are theoretically optimal sparse attention patterns, even 
 
 ---
 
-## Appendix D: Threshold Functions — Complete Table
+## Appendix D: Threshold Functions - Complete Table
 
 | Property $\mathcal{P}$ | Threshold $p^*(n)$ | Window width | Notes |
 |------------------------|-------------------|-------------|-------|
@@ -1313,9 +1313,9 @@ This is why expanders are theoretically optimal sparse attention patterns, even 
 
 A threshold $p^*(n)$ is **sharp** if the transition from probability 0 to probability 1 occurs in a window of width $o(p^*)$. Connectivity and Hamiltonian cycles have sharp thresholds (window width $O(1/n) \ll \ln(n)/n$).
 
-A threshold is **coarse** if the window is $\Theta(p^*)$. Most subgraph appearance thresholds are coarse — the probability transitions from $\epsilon$ to $1-\epsilon$ over a multiplicative constant change in $p$.
+A threshold is **coarse** if the window is $\Theta(p^*)$. Most subgraph appearance thresholds are coarse - the probability transitions from $\epsilon$ to $1-\epsilon$ over a multiplicative constant change in $p$.
 
-**Friedgut's theorem (1999):** Every monotone property has a sharp threshold OR can be reduced to a "small" property. Most natural properties (connectivity, $k$-colorability) have sharp thresholds. This is the technical statement of the Bollobás-Thomason heuristic.
+**Friedgut's theorem (1999):** Every monotone property has a sharp threshold OR can be reduced to a "small" property. Most natural properties (connectivity, $k$-colorability) have sharp thresholds. This is the technical statement of the Bollobas-Thomason heuristic.
 
 ---
 
@@ -1328,12 +1328,12 @@ A **random geometric graph** $G(n, r)$ is constructed by:
 2. Connecting two nodes iff their Euclidean distance is $\le r$
 
 **Properties:**
-- **Soft threshold for connectivity:** $r^* = \sqrt{\ln n / (\pi n)}$ — same $\ln n / n$ scaling as ER
-- **High clustering:** Nodes close to each other share many common neighbors (geometric constraint) — $C \to 1$ as $r \to 0$ with $nr^2$ fixed
+- **Soft threshold for connectivity:** $r^* = \sqrt{\ln n / (\pi n)}$ - same $\ln n / n$ scaling as ER
+- **High clustering:** Nodes close to each other share many common neighbors (geometric constraint) - $C \to 1$ as $r \to 0$ with $nr^2$ fixed
 - **Bounded degree distribution:** All degrees in $[0, \pi n r^2]$
 - **No long-range edges:** Maximum edge length $= r$, giving large diameter for small $r$
 
-**For AI:** Random geometric graphs model sensor networks, robotic swarms, and spatial point processes. They also model attention in vision transformers where tokens correspond to image patches at geometric positions — nearby patches should have high attention, distant patches low.
+**For AI:** Random geometric graphs model sensor networks, robotic swarms, and spatial point processes. They also model attention in vision transformers where tokens correspond to image patches at geometric positions - nearby patches should have high attention, distant patches low.
 
 ### E.2 Comparison to Other Models
 
@@ -1365,7 +1365,7 @@ More generally, **kernel random graphs** use $A_{ij} \sim \text{Bernoulli}(k(x_i
 
 **Common motifs:**
 - **Feedforward loop** (3-node DAG): overrepresented in gene regulatory networks
-- **Bifan** (2→2→2 bipartite): common in neural circuits
+- **Bifan** (2->2->2 bipartite): common in neural circuits
 - **Clique** ($K_3$, $K_4$): overrepresented in social networks
 
 **Detection:** For each candidate subgraph $H$, compare $t(H, G_{\text{real}})$ (density in real graph) to $\mathbb{E}[t(H, G_{\text{config}})]$ (expected density under null model). Z-score $> 2$: motif. Z-score $< -2$: anti-motif.
@@ -1413,9 +1413,9 @@ $$\text{Exact recovery is possible w.h.p.} \iff \left(\sqrt{a} - \sqrt{b}\right)
 This is the CHI-squared divergence condition between the Poisson distributions with means $a$ and $b$.
 
 **The three thresholds:**
-1. **Impossible**: $(a-b)^2 \le 2(a+b)$ — no algorithm can detect communities
-2. **Weak recovery**: $(a-b)^2 > 2(a+b)$ — algorithms exist to partially recover
-3. **Exact recovery**: $(\sqrt{a} - \sqrt{b})^2 > 2$ — algorithms exist for exact recovery
+1. **Impossible**: $(a-b)^2 \le 2(a+b)$ - no algorithm can detect communities
+2. **Weak recovery**: $(a-b)^2 > 2(a+b)$ - algorithms exist to partially recover
+3. **Exact recovery**: $(\sqrt{a} - \sqrt{b})^2 > 2$ - algorithms exist for exact recovery
 
 These thresholds become relevant for GNN practitioners when designing tasks: is the community detection problem in your benchmark achievable at all? Which threshold regime does it fall in?
 
@@ -1427,22 +1427,22 @@ These thresholds become relevant for GNN practitioners when designing tasks: is 
 
 ```
 INPUT: Adjacency matrix A of SBM graph with k communities
-OUTPUT: Community assignments σ̂
+OUTPUT: Community assignments \sigma
 
-1. REGULARIZE: Compute A_reg = A + τ/n · 11^T (small ridge)
+1. REGULARIZE: Compute A_reg = A + \tau/n * 11^T (small ridge)
    (Prevents leading eigenvector being dominated by high-degree nodes)
 
 2. NORMALIZE: Compute L_sym = D^{-1/2} A_reg D^{-1/2}
 
-3. EIGENVECTORS: Compute top k eigenvectors U ∈ R^{n×k} of L_sym
+3. EIGENVECTORS: Compute top k eigenvectors U \in R^{n\timesk} of L_sym
 
 4. NORMALIZE ROWS: Let U_row = U / ||u_i||_2 (spherical projection)
 
-5. k-MEANS: Run k-means on rows of U_row, get cluster labels σ̂
+5. k-MEANS: Run k-means on rows of U_row, get cluster labels \sigma
 
-6. RETURN: σ̂ (up to global permutation)
+6. RETURN: \sigma (up to global permutation)
 
-COMPLEXITY: O(n·k/ε²) for sparse graphs (k power iterations)
+COMPLEXITY: O(n*k/\epsilon^2) for sparse graphs (k power iterations)
 ACCURACY: Achieves min error rate above Kesten-Stigum threshold
 ```
 
@@ -1457,7 +1457,7 @@ $$Q = \frac{1}{2m} \sum_{ij} \left[ A_{ij} - \frac{d_i d_j}{2m} \right] \delta(\
 
 **Repeat** until no further improvement.
 
-**Complexity:** $O(n \log n)$ empirically — the fastest practical community detection algorithm.
+**Complexity:** $O(n \log n)$ empirically - the fastest practical community detection algorithm.
 
 **Limitation:** Modularity has a resolution limit: communities smaller than $\sqrt{m}$ edges may not be detected. For fine-grained community structure, use alternatives (Infomap, hierarchical spectral methods).
 
@@ -1488,11 +1488,11 @@ def giant_component_fraction(A, n):
     return max_component / n
 ```
 
-For sparse adjacency lists (CSR format), BFS runs in $O(n + m)$ — linear in the graph size.
+For sparse adjacency lists (CSR format), BFS runs in $O(n + m)$ - linear in the graph size.
 
 ---
 
-*End of §06 Random Graphs notes.*
+*End of 06 Random Graphs notes.*
 
 ---
 
@@ -1506,9 +1506,9 @@ For **sparse** graph sequences where edge density $\to 0$, graphon theory breaks
 $$\frac{1}{n} |\{u \in V(G_n) : B_r(G_n, u) \cong (H, v)\}| \to \mathbb{P}[B_r(G, \rho) \cong (H, v)]$$
 where $B_r(G, u)$ is the ball of radius $r$ around $u$ in $G$.
 
-**For $G(n, c/n)$:** The local weak limit is the Galton-Watson tree with Poisson($c$) offspring distribution — an infinite random tree. This confirms the "locally tree-like" structure of sparse ER graphs.
+**For $G(n, c/n)$:** The local weak limit is the Galton-Watson tree with Poisson($c$) offspring distribution - an infinite random tree. This confirms the "locally tree-like" structure of sparse ER graphs.
 
-**For BA networks:** The local weak limit involves correlated degree distributions due to preferential attachment — the limiting tree is not a Galton-Watson tree but a Pólya urn tree.
+**For BA networks:** The local weak limit involves correlated degree distributions due to preferential attachment - the limiting tree is not a Galton-Watson tree but a Polya urn tree.
 
 **For SBM:** The local weak limit is a multi-type Galton-Watson tree where the types are community labels. This is the probabilistic foundation of the belief propagation algorithm for community detection.
 
@@ -1531,7 +1531,7 @@ for any fixed $\epsilon > 0$.
 
 ### I.3 Random Hypergraphs
 
-Real-world networks often have **higher-order interactions** — a chemistry reaction involves multiple molecules simultaneously. Hypergraphs capture this.
+Real-world networks often have **higher-order interactions** - a chemistry reaction involves multiple molecules simultaneously. Hypergraphs capture this.
 
 **Definition:** A hypergraph $H = (V, E)$ where edges $e \in E$ can contain any number of vertices.
 
@@ -1545,7 +1545,7 @@ Real-world networks often have **higher-order interactions** — a chemistry rea
 
 Real networks evolve over time. Several models capture network dynamics:
 
-**Forest Fire model (Leskovec et al., 2007):** A new node contacts a random "ambassador" and copies some of its links. Exhibits densification (average degree increases over time) and shrinking diameter — both observed in real growing networks.
+**Forest Fire model (Leskovec et al., 2007):** A new node contacts a random "ambassador" and copies some of its links. Exhibits densification (average degree increases over time) and shrinking diameter - both observed in real growing networks.
 
 **Copying model:** Each new node copies $m$ existing edges from a random source node. This generates power-law degree distributions similar to BA but with different exponent depending on copy probability.
 
@@ -1581,7 +1581,7 @@ $$\lesssim \frac{1}{n} \cdot \frac{(ce^{1-c})^k}{k^{3/2}}$$
 
 (using Stirling: $k! \approx k^k e^{-k} \sqrt{2\pi k}$, $k^{k-2}/k! \approx e^k k^{-2}/\sqrt{2\pi k}$)
 
-For $c < 1$: $ce^{1-c} < 1$ (since $f(c) = ce^{1-c}$ has $f(1) = 1$, $f'(1) = 0$, $f''(1) = -1 < 0$ — it's a maximum at $c = 1$). Let $\alpha = ce^{1-c} < 1$.
+For $c < 1$: $ce^{1-c} < 1$ (since $f(c) = ce^{1-c}$ has $f(1) = 1$, $f'(1) = 0$, $f''(1) = -1 < 0$ - it's a maximum at $c = 1$). Let $\alpha = ce^{1-c} < 1$.
 
 Summing over $k = 2, 3, \ldots, \infty$:
 $$\sum_k \mathbb{E}[X_k] \lesssim \frac{1}{n} \sum_k \alpha^k k^{-3/2} = \frac{C}{n} \to 0$$
@@ -1634,31 +1634,31 @@ This gives the Davis-Kahan bound. $\square$
 
 | Symbol | Meaning | First appears |
 |--------|---------|--------------|
-| $G(n,p)$ | Erdős-Rényi random graph, $n$ vertices, edge prob $p$ | §3.1 |
-| $G(n,m)$ | ER graph with exactly $m$ edges | §3.1 |
-| $L_1(G)$ | Size of largest connected component | §3.3 |
-| $\beta(c)$ | Giant component fraction, $\beta = 1 - e^{-c\beta}$ | §3.3 |
-| $C_v$ | Local clustering coefficient of vertex $v$ | §4.2 |
-| $L$ | Average path length | §4.3 |
-| $\Pi(v)$ | Preferential attachment probability of vertex $v$ | §5.1 |
-| $\text{SBM}(n, k, \sigma, B)$ | Stochastic Block Model | §6.1 |
-| $B \in [0,1]^{k\times k}$ | SBM block probability matrix | §6.1 |
-| $\sigma: [n] \to [k]$ | Community assignment | §6.1 |
+| $G(n,p)$ | Erdos-Renyi random graph, $n$ vertices, edge prob $p$ | 3.1 |
+| $G(n,m)$ | ER graph with exactly $m$ edges | 3.1 |
+| $L_1(G)$ | Size of largest connected component | 3.3 |
+| $\beta(c)$ | Giant component fraction, $\beta = 1 - e^{-c\beta}$ | 3.3 |
+| $C_v$ | Local clustering coefficient of vertex $v$ | 4.2 |
+| $L$ | Average path length | 4.3 |
+| $\Pi(v)$ | Preferential attachment probability of vertex $v$ | 5.1 |
+| $\text{SBM}(n, k, \sigma, B)$ | Stochastic Block Model | 6.1 |
+| $B \in [0,1]^{k\times k}$ | SBM block probability matrix | 6.1 |
+| $\sigma: [n] \to [k]$ | Community assignment | 6.1 |
 | $\rho(M)$ | Spectral radius of matrix $M$ | App. A.2 |
-| $\mu_{sc}$ | Wigner semicircle measure | §7.1 |
-| $d_\square(G, H)$ | Cut metric between graphs $G$ and $H$ | §8.1 |
-| $W: [0,1]^2 \to [0,1]$ | Graphon | §8.2 |
-| $t(F, W)$ | Homomorphism density of $F$ in $W$ | §8.3 |
-| $T_W$ | Graphon integral operator, $T_Wh(x) = \int W(x,y)h(y)dy$ | §8.4 |
-| $\text{w.h.p.}$ | With high probability (probability $\to 1$) | §2.2 |
-| $o(\cdot), O(\cdot), \Theta(\cdot), \omega(\cdot)$ | Asymptotic notation | §2.2 |
-| $I(c) = c - 1 - \ln c$ | Large deviation function for ER | §3.3 |
+| $\mu_{sc}$ | Wigner semicircle measure | 7.1 |
+| $d_\square(G, H)$ | Cut metric between graphs $G$ and $H$ | 8.1 |
+| $W: [0,1]^2 \to [0,1]$ | Graphon | 8.2 |
+| $t(F, W)$ | Homomorphism density of $F$ in $W$ | 8.3 |
+| $T_W$ | Graphon integral operator, $T_Wh(x) = \int W(x,y)h(y)dy$ | 8.4 |
+| $\text{w.h.p.}$ | With high probability (probability $\to 1$) | 2.2 |
+| $o(\cdot), O(\cdot), \Theta(\cdot), \omega(\cdot)$ | Asymptotic notation | 2.2 |
+| $I(c) = c - 1 - \ln c$ | Large deviation function for ER | 3.3 |
 | $\phi(s)$ | Probability generating function | App. A.1 |
 | $q_k$ | Excess degree distribution | App. B.2 |
 
 ---
 
-*[← Back to Graph Theory](../README.md) | [Next: Graph Algorithms →](../07-Graph-Algorithms/notes.md)*
+*[<- Back to Graph Theory](../README.md) | [Next: Graph Algorithms ->](../07-Graph-Algorithms/notes.md)*
 
 ---
 
@@ -1672,7 +1672,7 @@ This gives the Davis-Kahan bound. $\square$
 
 Define $f(\beta) = 1 - e^{-2.5\beta} - \beta$. We need $f(\beta) = 0$.
 
-- $f(0) = 0$ (trivial solution — subcritical regime would have this as the only root)
+- $f(0) = 0$ (trivial solution - subcritical regime would have this as the only root)
 - $f'(\beta) = 2.5 e^{-2.5\beta} - 1$; $f'(0) = 1.5 > 0$ (slope at 0 is positive)
 - $f$ is concave for $\beta > 0$, so there is one non-trivial root
 
@@ -1688,7 +1688,7 @@ Using bisection between 0.7 and 0.95:
 - $f(0.89) \approx 1 - 0.1084 - 0.89 = 0.0016 > 0$
 - $f(0.895) \approx 1 - 0.1072 - 0.895 = -0.0022 < 0$
 
-So $\beta \approx 0.892$ — about 89.2% of vertices are in the giant component.
+So $\beta \approx 0.892$ - about 89.2% of vertices are in the giant component.
 
 **Interpretation:** At average degree 2.5, the network is well into the supercritical regime. The vast majority of vertices are connected in one giant component, leaving only about 10.8% in small satellite components.
 
@@ -1706,7 +1706,7 @@ $(15-4)^2 = 11^2 = 121$
 
 $2(15+4) = 2 \cdot 19 = 38$
 
-$121 > 38$ ✓ — **Detection is possible.**
+$121 > 38$ OK - **Detection is possible.**
 
 SNR $= (a-b)^2 / (2(a+b)) = 121/38 \approx 3.18 \gg 1$.
 
@@ -1714,9 +1714,9 @@ SNR $= (a-b)^2 / (2(a+b)) = 121/38 \approx 3.18 \gg 1$.
 
 $\sqrt{15} \approx 3.873$, $\sqrt{4} = 2$.
 
-$(\sqrt{15} - \sqrt{4})^2 = (3.873 - 2)^2 = (1.873)^2 = 3.51 > 2$ ✓ — **Exact recovery is achievable.**
+$(\sqrt{15} - \sqrt{4})^2 = (3.873 - 2)^2 = (1.873)^2 = 3.51 > 2$ OK - **Exact recovery is achievable.**
 
-**Interpretation:** With $a = 15$ and $b = 4$, we have a relatively easy community detection problem — both detection and exact recovery are achievable. Spectral clustering should work well here.
+**Interpretation:** With $a = 15$ and $b = 4$, we have a relatively easy community detection problem - both detection and exact recovery are achievable. Spectral clustering should work well here.
 
 ### L.3 Small-World Parameter Calculation
 
@@ -1737,7 +1737,7 @@ $nk\beta/2 = 1000 \cdot 14 \cdot 0.261 / 2 = 1827$
 
 $L \approx (1000/14) \cdot \log(1827)/1827 \approx 71.4 \cdot 7.51/1827 \approx 0.29$
 
-This is too small — the approximation breaks down at large $\beta$. Numerically, $L(\beta = 0.26) \approx 3.5$ for $n=1000$, $k=14$, which is reasonably close to the target $L = 2.65$.
+This is too small - the approximation breaks down at large $\beta$. Numerically, $L(\beta = 0.26) \approx 3.5$ for $n=1000$, $k=14$, which is reasonably close to the target $L = 2.65$.
 
 **Conclusion:** WS parameters $(n=1000, k=14, \beta \approx 0.26)$ produce a graph close to C. elegans in both clustering and path length, validating the small-world model.
 
@@ -1760,7 +1760,7 @@ $$\hat{W}(x, y) = \hat{B}_{\lceil 3x \rceil, \lceil 3y \rceil}$$
 
 5. **Evaluate quality:** Compute cut distance $d_\square(\hat{W}, W^*)$ where $W^*$ is the true graphon. The cut distance converges to 0 as $n \to \infty$.
 
-**Error bound:** For a $k$-block SBM, the best graphon estimator achieves error $O(k/\sqrt{n})$ in cut distance (minimax optimal). With $n = 100$ and $k = 3$, expected cut distance $\approx 3/10 = 0.3$ — substantial estimation uncertainty.
+**Error bound:** For a $k$-block SBM, the best graphon estimator achieves error $O(k/\sqrt{n})$ in cut distance (minimax optimal). With $n = 100$ and $k = 3$, expected cut distance $\approx 3/10 = 0.3$ - substantial estimation uncertainty.
 
 ---
 
@@ -1774,9 +1774,9 @@ The Stochastic Block Model community detection problem is isomorphic to the **fe
 - Edges within communities are "ferromagnetic" (prefer aligned spins)
 - Edges between communities are "antiferromagnetic" (prefer anti-aligned)
 
-The Kesten-Stigum threshold corresponds to the **Nishimori temperature** in the disordered Ising model — the temperature at which the magnetization (overlap with ground truth) first becomes nonzero.
+The Kesten-Stigum threshold corresponds to the **Nishimori temperature** in the disordered Ising model - the temperature at which the magnetization (overlap with ground truth) first becomes nonzero.
 
-**Belief propagation = Cavity method:** The belief propagation algorithm for community detection in SBM is the Bethe approximation applied to the Ising model. Near the KS threshold, BP is asymptotically optimal — no polynomial-time algorithm can do better.
+**Belief propagation = Cavity method:** The belief propagation algorithm for community detection in SBM is the Bethe approximation applied to the Ising model. Near the KS threshold, BP is asymptotically optimal - no polynomial-time algorithm can do better.
 
 ### M.2 Percolation and Statistical Mechanics
 
@@ -1787,7 +1787,7 @@ Bond percolation on $\mathbb{Z}^2$ is a model in statistical mechanics. Its crit
 
 For ER graphs: $P_\infty(c) = \beta(c)$ with critical exponent 1 (mean-field universality class, since ER has "infinite dimension").
 
-**Conformal invariance (2D percolation):** Near criticality, 2D percolation is conformally invariant — the scaling limit is described by SLE (Schramm-Loewner Evolution). This deep connection between combinatorics and complex analysis has no direct ML application yet, but illustrates the richness of the field.
+**Conformal invariance (2D percolation):** Near criticality, 2D percolation is conformally invariant - the scaling limit is described by SLE (Schramm-Loewner Evolution). This deep connection between combinatorics and complex analysis has no direct ML application yet, but illustrates the richness of the field.
 
 ### M.3 Free Energy and the Replica Method
 
@@ -1798,13 +1798,13 @@ $$f = \lim_{n \to \infty} \frac{1}{n} \mathbb{E}[\log Z(\sigma, G)]$$
 
 where $Z = \sum_\sigma e^{H(\sigma, G)}$ and $H$ is the log-likelihood of the community assignment.
 
-The replica calculation predicts the exact phase diagram of the SBM — both the KS threshold and the exact recovery threshold — and was later made rigorous using interpolation methods (Guerra, Talagrand).
+The replica calculation predicts the exact phase diagram of the SBM - both the KS threshold and the exact recovery threshold - and was later made rigorous using interpolation methods (Guerra, Talagrand).
 
 **ML connection:** Free energy calculations in statistical physics are the rigorous foundation of variational inference in machine learning. The Bethe free energy (used in belief propagation) is the physics analog of the ELBO (evidence lower bound) in variational autoencoders.
 
 ---
 
-*End of §06-Random-Graphs notes.*
+*End of 06-Random-Graphs notes.*
 
 ---
 
@@ -1834,7 +1834,7 @@ For $c > 1$: there are two fixed points (0 and the positive root); return the po
 | 2.5 | 0.892 | $0.892 \pm 0.005$ |
 | 3.0 | 0.940 | $0.940 \pm 0.003$ |
 
-**Why $L_2$ peaks at criticality:** The second-largest component size peaks at $c = 1$ (size $\sim n^{2/3}$) because this is where the giant component is just forming — there are many large components competing. For $c > 1$, the giant component absorbs everything, leaving only $O(\log n)$ satellites.
+**Why $L_2$ peaks at criticality:** The second-largest component size peaks at $c = 1$ (size $\sim n^{2/3}$) because this is where the giant component is just forming - there are many large components competing. For $c > 1$, the giant component absorbs everything, leaving only $O(\log n)$ satellites.
 
 ### N.2 Solution Notes for Exercise 4 (Community Detection)
 
@@ -1900,29 +1900,29 @@ For BA with $m = 2$ and $k_{\min} = 10$: expect $\hat{\gamma} \approx 3.0 \pm 0.
 
 ### O.1 Textbooks
 
-1. **Bollobás, B.** (2001). *Random Graphs* (2nd ed.). Cambridge University Press.
-   — The definitive mathematical treatment; covers ER theory exhaustively.
+1. **Bollobas, B.** (2001). *Random Graphs* (2nd ed.). Cambridge University Press.
+   - The definitive mathematical treatment; covers ER theory exhaustively.
 
-2. **Janson, S., Łuczak, T., Rucinski, A.** (2000). *Random Graphs*. Wiley.
-   — More accessible than Bollobás; covers first and second moment methods thoroughly.
+2. **Janson, S., Luczak, T., Rucinski, A.** (2000). *Random Graphs*. Wiley.
+   - More accessible than Bollobas; covers first and second moment methods thoroughly.
 
-3. **Lovász, L.** (2012). *Large Networks and Graph Limits*. AMS.
-   — The definitive treatment of graphon theory by its creator.
+3. **Lovasz, L.** (2012). *Large Networks and Graph Limits*. AMS.
+   - The definitive treatment of graphon theory by its creator.
 
 4. **Durrett, R.** (2007). *Random Graph Dynamics*. Cambridge University Press.
-   — Dynamical random graphs and their applications to epidemics and social networks.
+   - Dynamical random graphs and their applications to epidemics and social networks.
 
 ### O.2 Foundational Papers
 
-1. **Erdős, P., Rényi, A.** (1960). On the evolution of random graphs. *Magyar Tud. Akad. Mat. Kutató Int. Közl.*, 5, 17–61.
+1. **Erdos, P., Renyi, A.** (1960). On the evolution of random graphs. *Magyar Tud. Akad. Mat. Kutato Int. Kozl.*, 5, 17-61.
 
-2. **Watts, D.J., Strogatz, S.H.** (1998). Collective dynamics of 'small-world' networks. *Nature*, 393, 440–442.
+2. **Watts, D.J., Strogatz, S.H.** (1998). Collective dynamics of 'small-world' networks. *Nature*, 393, 440-442.
 
-3. **Barabási, A.-L., Albert, R.** (1999). Emergence of scaling in random networks. *Science*, 286, 509–512.
+3. **Barabasi, A.-L., Albert, R.** (1999). Emergence of scaling in random networks. *Science*, 286, 509-512.
 
-4. **Lovász, L., Szegedy, B.** (2006). Limits of dense graph sequences. *J. Combin. Theory Ser. B*, 96, 933–957.
+4. **Lovasz, L., Szegedy, B.** (2006). Limits of dense graph sequences. *J. Combin. Theory Ser. B*, 96, 933-957.
 
-5. **Mossel, E., Neeman, J., Sly, A.** (2015). Reconstruction and estimation in the planted partition model. *Probab. Theory Related Fields*, 162, 431–461.
+5. **Mossel, E., Neeman, J., Sly, A.** (2015). Reconstruction and estimation in the planted partition model. *Probab. Theory Related Fields*, 162, 431-461.
 
 6. **Abbe, E., Sandon, C.** (2015). Community detection in the stochastic block models by spectral methods. *arXiv:1503.00609*.
 
@@ -1930,7 +1930,7 @@ For BA with $m = 2$ and $k_{\min} = 10$: expect $\hat{\gamma} \approx 3.0 \pm 0.
 
 1. **Palowitch, J. et al.** (2022). GraphWorld: Fake Graphs Bring Real Insights for GNNs. *KDD 2022*.
 
-2. **Keriven, N., Peyré, G.** (2019). Universal Invariant and Equivariant Graph Neural Networks. *NeurIPS 2019*.
+2. **Keriven, N., Peyre, G.** (2019). Universal Invariant and Equivariant Graph Neural Networks. *NeurIPS 2019*.
 
 3. **Vignac, C. et al.** (2022). DiGress: Discrete Denoising diffusion for graph generation. *ICLR 2023*.
 
@@ -1940,7 +1940,7 @@ For BA with $m = 2$ and $k_{\min} = 10$: expect $\hat{\gamma} \approx 3.0 \pm 0.
 
 ---
 
-*[← Back to Graph Theory](../README.md) | [Next: Graph Algorithms →](../07-Graph-Algorithms/notes.md)*
+*[<- Back to Graph Theory](../README.md) | [Next: Graph Algorithms ->](../07-Graph-Algorithms/notes.md)*
 
 ---
 
@@ -1990,7 +1990,7 @@ This is the fundamental connection between algebraic (spectral gap) and geometri
 
 ---
 
-*[← Back to Graph Theory](../README.md) | [Next: Graph Algorithms →](../07-Graph-Algorithms/notes.md)*
+*[<- Back to Graph Theory](../README.md) | [Next: Graph Algorithms ->](../07-Graph-Algorithms/notes.md)*
 
 ---
 
@@ -1998,45 +1998,45 @@ This is the fundamental connection between algebraic (spectral gap) and geometri
 
 ```
 RANDOM GRAPH QUICK REFERENCE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  ERDŐS-RÉNYI G(n,p)
-  ──────────────────
-  • Average degree:   np
-  • Degree dist:      Poisson(np) as n→∞
-  • Giant component:  exists iff p > 1/n  →  fraction β(c) w/ c=np
-  • Connectivity:     w.h.p. iff p ≥ ln(n)/n
-  • Diameter:         ~ log(n)/log(np) when connected
-  • Clustering:       ~ p → 0  (locally tree-like)
+  ERDOS-RENYI G(n,p)
+  ------------------
+  - Average degree:   np
+  - Degree dist:      Poisson(np) as n->\infty
+  - Giant component:  exists iff p > 1/n  ->  fraction \beta(c) w/ c=np
+  - Connectivity:     w.h.p. iff p \geq ln(n)/n
+  - Diameter:         ~ log(n)/log(np) when connected
+  - Clustering:       ~ p -> 0  (locally tree-like)
 
-  WATTS-STROGATZ (n, k, β)
-  ─────────────────────────
-  • Degree:            ≈ k (Poisson-like spread from rewiring)
-  • Clustering:        C(0)(1-β)³  where C(0) ≈ 3/4 for large k
-  • Path length:       O(log n) for any β > 0
-  • Small-world:       β ∈ [1/(nk), 0.3] gives C≫C_ER and L≈L_ER
+  WATTS-STROGATZ (n, k, \beta)
+  -------------------------
+  - Degree:            \approx k (Poisson-like spread from rewiring)
+  - Clustering:        C(0)(1-\beta)^3  where C(0) \approx 3/4 for large k
+  - Path length:       O(log n) for any \beta > 0
+  - Small-world:       \beta \in [1/(nk), 0.3] gives C\ggC_ER and L\approxL_ER
 
-  BARABÁSI-ALBERT (n, m)
-  ───────────────────────
-  • Degree dist:       P(k) ~ 2m²/k³  (power law γ=3)
-  • Max degree:        ~ m√n  (oldest node)
-  • Diameter:          ~ log(n)/log(log(n))
-  • Clustering:        C ~ (log n)²/n → 0  (no clustering!)
+  BARABASI-ALBERT (n, m)
+  -----------------------
+  - Degree dist:       P(k) ~ 2m^2/k^3  (power law \gamma=3)
+  - Max degree:        ~ m\sqrtn  (oldest node)
+  - Diameter:          ~ log(n)/log(log(n))
+  - Clustering:        C ~ (log n)^2/n -> 0  (no clustering!)
 
-  STOCHASTIC BLOCK MODEL SBM(n,k,σ,B)
-  ─────────────────────────────────────
-  • KS threshold:      (a-b)² = 2(a+b)  for 2-block, p=a/n, q=b/n
-  • Exact recovery:    (√a - √b)² = 2   for log-degree regime
-  • Spectral alg:      works above KS threshold
-  • GNN limit:         No GNN beats KS threshold on SBM data
+  STOCHASTIC BLOCK MODEL SBM(n,k,\sigma,B)
+  -------------------------------------
+  - KS threshold:      (a-b)^2 = 2(a+b)  for 2-block, p=a/n, q=b/n
+  - Exact recovery:    (\sqrta - \sqrtb)^2 = 2   for log-degree regime
+  - Spectral alg:      works above KS threshold
+  - GNN limit:         No GNN beats KS threshold on SBM data
 
-  GRAPHONS W:[0,1]²→[0,1]
-  ─────────────────────────
-  • Dense graph limit: every dense G-sequence converges to a graphon
-  • Sampling:          draw ξᵢ~U[0,1]; edge (i,j) w.p. W(ξᵢ,ξⱼ)
-  • ER graphon:        W(x,y) = p  (constant)
-  • SBM graphon:       W(x,y) = B_{⌈kx⌉,⌈ky⌉}  (step function)
-  • Operator:          T_W h(x) = ∫₀¹ W(x,y)h(y)dy  (Hilbert-Schmidt)
+  GRAPHONS W:[0,1]^2->[0,1]
+  -------------------------
+  - Dense graph limit: every dense G-sequence converges to a graphon
+  - Sampling:          draw \xi^i~U[0,1]; edge (i,j) w.p. W(\xi^i,\xi_j)
+  - ER graphon:        W(x,y) = p  (constant)
+  - SBM graphon:       W(x,y) = B_{\lceilkx\rceil,\lceilky\rceil}  (step function)
+  - Operator:          T_W h(x) = \int_0^1 W(x,y)h(y)dy  (Hilbert-Schmidt)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```

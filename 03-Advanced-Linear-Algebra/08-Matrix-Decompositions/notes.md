@@ -1,27 +1,27 @@
-[← Back to Advanced Linear Algebra](../README.md) | [← Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md) | [Next: Calculus Fundamentals →](../../04-Calculus-Fundamentals/README.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md) | [Next: Calculus Fundamentals ->](../../04-Calculus-Fundamentals/README.md)
 
 ---
 
 # Matrix Decompositions
 
-> _"The purpose of computing is insight, not numbers — and no insight is more powerful than factoring a matrix into pieces whose structure you understand."_
+> _"The purpose of computing is insight, not numbers - and no insight is more powerful than factoring a matrix into pieces whose structure you understand."_
 
 ## Overview
 
 Every practical computation with matrices reduces, ultimately, to a factorization. Solving $A\mathbf{x} = \mathbf{b}$? Factor $A = LU$ and solve two triangular systems. Fitting a linear model? Factor the data matrix $A = QR$ and solve a triangular system stably. Sampling from a multivariate Gaussian? Factor the covariance $\Sigma = LL^\top$ and transform independent normals. Estimating the rank of a nearly singular matrix? Factor with column pivoting and read off the diagonal of $R$.
 
-This section develops the three foundational computational decompositions: **LU factorization** (Gaussian elimination with pivoting, the workhorse for general square systems), **QR factorization via Householder and Givens** (the stable method for least squares and rank-revealing problems), and a **brief computational recap of Cholesky** (the SPD specialist, developed fully in §07). The emphasis throughout is computational: how these algorithms work, why they are numerically stable, what can go wrong, and how to implement them efficiently.
+This section develops the three foundational computational decompositions: **LU factorization** (Gaussian elimination with pivoting, the workhorse for general square systems), **QR factorization via Householder and Givens** (the stable method for least squares and rank-revealing problems), and a **brief computational recap of Cholesky** (the SPD specialist, developed fully in 07). The emphasis throughout is computational: how these algorithms work, why they are numerically stable, what can go wrong, and how to implement them efficiently.
 
-The machine learning connections are direct and load-bearing. Every Newton step requires solving a Hessian system — that is LU or Cholesky. Every least-squares layer (linear probing, ridge regression on features) uses QR under the hood in numerically reliable implementations. Gaussian process inference — the backbone of Bayesian optimization and uncertainty-aware ML — is Cholesky factorization applied thousands of times. Differentiating through factorizations (for implicit differentiation of constrained problems) requires understanding the algebraic structure developed here. And the emerging field of randomized numerical linear algebra, which underlies methods like LoRA and sketch-and-solve preconditioning, is built on randomized LU and QR.
+The machine learning connections are direct and load-bearing. Every Newton step requires solving a Hessian system - that is LU or Cholesky. Every least-squares layer (linear probing, ridge regression on features) uses QR under the hood in numerically reliable implementations. Gaussian process inference - the backbone of Bayesian optimization and uncertainty-aware ML - is Cholesky factorization applied thousands of times. Differentiating through factorizations (for implicit differentiation of constrained problems) requires understanding the algebraic structure developed here. And the emerging field of randomized numerical linear algebra, which underlies methods like LoRA and sketch-and-solve preconditioning, is built on randomized LU and QR.
 
 ## Prerequisites
 
-- LU, QR, Cholesky brief introductions — [Chapter 2 §02: Matrix Operations](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
-- Eigenvalues, spectral theorem — [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
-- SVD — [§02: Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md)
-- Gram-Schmidt, QR theory, orthogonal matrices — [§05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md)
-- Matrix norms, condition numbers — [§06: Matrix Norms](../06-Matrix-Norms/notes.md)
-- Positive definite matrices, Cholesky full theory, LDLᵀ — [§07: Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md)
+- LU, QR, Cholesky brief introductions - [Chapter 2 02: Matrix Operations](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
+- Eigenvalues, spectral theorem - [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
+- SVD - [02: Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md)
+- Gram-Schmidt, QR theory, orthogonal matrices - [05: Orthogonality and Orthonormality](../05-Orthogonality-and-Orthonormality/notes.md)
+- Matrix norms, condition numbers - [06: Matrix Norms](../06-Matrix-Norms/notes.md)
+- Positive definite matrices, Cholesky full theory, LDL^T - [07: Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md)
 
 ## Companion Notebooks
 
@@ -84,7 +84,7 @@ After completing this section, you will be able to:
 - [5. Cholesky Factorization (Computational Recap)](#5-cholesky-factorization-computational-recap)
   - [5.1 Brief Overview](#51-brief-overview)
   - [5.2 Cholesky as Specialized LU](#52-cholesky-as-specialized-lu)
-  - [5.3 LDLᵀ for Indefinite Systems](#53-ldlt-for-indefinite-systems)
+  - [5.3 LDL^T for Indefinite Systems](#53-ldlt-for-indefinite-systems)
   - [5.4 Blocked Cholesky and LAPACK dpotrf](#54-blocked-cholesky-and-lapack-dpotrf)
 - [6. Numerical Stability and Error Analysis](#6-numerical-stability-and-error-analysis)
   - [6.1 Forward vs Backward Error](#61-forward-vs-backward-error)
@@ -114,7 +114,7 @@ After completing this section, you will be able to:
 
 ### 1.1 The Factorization Paradigm
 
-Every problem in computational linear algebra is, at its heart, a search for structure. When you factor a matrix into simpler pieces — triangular, orthogonal, diagonal — you transform a hard problem into a sequence of easy ones. The word "easy" is precise: triangular systems can be solved in $O(n^2)$ operations by substitution; orthogonal transformations are numerically perfect (they preserve norms exactly); diagonal systems are trivially solvable. A decomposition is a way of peeling back complexity to reveal the structural skeleton underneath.
+Every problem in computational linear algebra is, at its heart, a search for structure. When you factor a matrix into simpler pieces - triangular, orthogonal, diagonal - you transform a hard problem into a sequence of easy ones. The word "easy" is precise: triangular systems can be solved in $O(n^2)$ operations by substitution; orthogonal transformations are numerically perfect (they preserve norms exactly); diagonal systems are trivially solvable. A decomposition is a way of peeling back complexity to reveal the structural skeleton underneath.
 
 This perspective explains why factorizations are not merely computational conveniences. They are mathematical revelations. LU factorization reveals which rows are "heavy" (large pivots dominate) and which are "light" (small pivots signal near-singularity). QR factorization reveals the orthogonal complement of the column space via the zero rows of $R$. Cholesky factorization reveals the "matrix square root" $L$ that encodes the geometry of a positive definite quadratic form. Each decomposition is a lens tuned to a different structural feature.
 
@@ -130,7 +130,7 @@ $$x_1 = b_1 / L_{11}$$
 $$x_2 = (b_2 - L_{21}x_1) / L_{22}$$
 $$x_i = \left(b_i - \sum_{j=1}^{i-1} L_{ij} x_j\right) / L_{ii}$$
 
-This is **forward substitution**: each unknown is determined uniquely by those already computed. The computation requires exactly $n^2/2$ multiplications and $n^2/2$ additions — $O(n^2)$ total. Similarly, an upper triangular system $U\mathbf{x} = \mathbf{b}$ is solved by **backward substitution** from bottom to top.
+This is **forward substitution**: each unknown is determined uniquely by those already computed. The computation requires exactly $n^2/2$ multiplications and $n^2/2$ additions - $O(n^2)$ total. Similarly, an upper triangular system $U\mathbf{x} = \mathbf{b}$ is solved by **backward substitution** from bottom to top.
 
 The key properties of triangular systems:
 1. **Existence and uniqueness:** a triangular system has a unique solution if and only if all diagonal entries are nonzero.
@@ -138,7 +138,7 @@ The key properties of triangular systems:
 3. **Parallelism:** the sequential dependency (each unknown requires all previous) limits parallelism, but blocked implementations can exploit level-2 BLAS parallelism within panels.
 4. **Structural exploitation:** sparse triangular systems (band, arrowhead, bidiagonal) can be solved in $O(nk)$ for bandwidth $k$.
 
-**Non-example:** a general dense $n \times n$ system $A\mathbf{x} = \mathbf{b}$ cannot be solved by substitution directly — it requires $O(n^3)$ work. The entire purpose of LU, QR, and Cholesky is to reduce the general case to triangular cases.
+**Non-example:** a general dense $n \times n$ system $A\mathbf{x} = \mathbf{b}$ cannot be solved by substitution directly - it requires $O(n^3)$ work. The entire purpose of LU, QR, and Cholesky is to reduce the general case to triangular cases.
 
 ### 1.3 Three Canonical Decompositions
 
@@ -150,19 +150,19 @@ The three decompositions in this section partition the space of structured matri
 | QR | Any rectangular $m \times n$, $m \geq n$ | $A = QR$ | Least squares, rank determination, eigenvalue algorithms |
 | Cholesky | Symmetric positive definite | $A = LL^\top$ | SPD systems, Gaussian sampling, log-det computation |
 
-**Why three?** Each exploits a different structural property. LU uses no special structure beyond invertibility; it is the most general and therefore requires more care (pivoting for stability). QR uses orthogonality, which is the most numerically pristine structure — $Q$ has condition number 1 by definition. Cholesky uses both symmetry and positive definiteness, which allows working with only half the matrix and guarantees the factorization exists without pivoting.
+**Why three?** Each exploits a different structural property. LU uses no special structure beyond invertibility; it is the most general and therefore requires more care (pivoting for stability). QR uses orthogonality, which is the most numerically pristine structure - $Q$ has condition number 1 by definition. Cholesky uses both symmetry and positive definiteness, which allows working with only half the matrix and guarantees the factorization exists without pivoting.
 
 **The hierarchy of stability:** Cholesky $>$ QR $>$ LU (partially pivoted) $>$ LU (no pivoting). As you sacrifice structure, you need more algorithmic sophistication to maintain numerical reliability.
 
 ### 1.4 Why This Matters for AI
 
-Matrix factorizations are not background infrastructure — they are in the critical path of the most computationally expensive operations in modern AI.
+Matrix factorizations are not background infrastructure - they are in the critical path of the most computationally expensive operations in modern AI.
 
-**Gaussian process regression** (used in Bayesian optimization, uncertainty quantification, and hyperparameter tuning) requires computing $K^{-1}\mathbf{y}$ and $\log\det K$ for an $n \times n$ kernel matrix $K$. Both require Cholesky factorization. A single GP training step on $n = 10{,}000$ points costs $O(n^3) = 10^{12}$ operations — factorization is the bottleneck.
+**Gaussian process regression** (used in Bayesian optimization, uncertainty quantification, and hyperparameter tuning) requires computing $K^{-1}\mathbf{y}$ and $\log\det K$ for an $n \times n$ kernel matrix $K$. Both require Cholesky factorization. A single GP training step on $n = 10{,}000$ points costs $O(n^3) = 10^{12}$ operations - factorization is the bottleneck.
 
-**Second-order optimization** (Newton's method, natural gradient, K-FAC) requires solving Hessian or Fisher information systems $H\boldsymbol{\delta} = \mathbf{g}$. For K-FAC (Kronecker-Factored Approximate Curvature, Martens & Grosse 2015), the Fisher approximation is block-diagonal with Kronecker structure, and each block is inverted via Cholesky — thousands of small Cholesky factorizations per training step.
+**Second-order optimization** (Newton's method, natural gradient, K-FAC) requires solving Hessian or Fisher information systems $H\boldsymbol{\delta} = \mathbf{g}$. For K-FAC (Kronecker-Factored Approximate Curvature, Martens & Grosse 2015), the Fisher approximation is block-diagonal with Kronecker structure, and each block is inverted via Cholesky - thousands of small Cholesky factorizations per training step.
 
-**Linear probing and fine-tuning** — fitting a linear model on top of frozen features — is a least-squares problem. Numerically reliable implementations use QR (e.g., `numpy.linalg.lstsq` calls LAPACK's `dgelsd` which uses divide-and-conquer SVD, or `dgelsy` which uses column-pivoted QR).
+**Linear probing and fine-tuning** - fitting a linear model on top of frozen features - is a least-squares problem. Numerically reliable implementations use QR (e.g., `numpy.linalg.lstsq` calls LAPACK's `dgelsd` which uses divide-and-conquer SVD, or `dgelsy` which uses column-pivoted QR).
 
 **Differentiating through factorizations** is required whenever a factorization appears inside a differentiable computational graph. PyTorch's `torch.linalg.cholesky_solve` and JAX's `jax.lax.linalg.cholesky` support automatic differentiation through the factorization via implicit function theorem.
 
@@ -255,7 +255,7 @@ So the product of inverses, $L = E_{21}^{-1} E_{31}^{-1} \cdots E_{n,n-1}^{-1}$,
 
 $$A = LU$$
 
-**The multipliers go directly into $L$:** one of the most elegant facts in numerical linear algebra is that the multipliers $m_{ij}$ used during elimination appear, without any further computation, as the subdiagonal entries $L_{ij}$ of the factor $L$. No separate computation of $L$ is required — it is built up in-place during elimination.
+**The multipliers go directly into $L$:** one of the most elegant facts in numerical linear algebra is that the multipliers $m_{ij}$ used during elimination appear, without any further computation, as the subdiagonal entries $L_{ij}$ of the factor $L$. No separate computation of $L$ is required - it is built up in-place during elimination.
 
 ---
 
@@ -309,7 +309,7 @@ Naive LU (no pivoting) fails catastrophically when:
 
 1. **Zero pivots:** If $A_{kk}^{(k)} = 0$ during step $k$, the division by the pivot is undefined. This happens even for non-singular matrices that happen to have zero leading principal minors.
 
-2. **Small pivots — numerical catastrophe:** Consider:
+2. **Small pivots - numerical catastrophe:** Consider:
 $$A = \begin{pmatrix} \varepsilon & 1 \\ 1 & 1 \end{pmatrix}, \quad \varepsilon = 10^{-16}$$
 Naive LU gives multiplier $m_{21} = 1/\varepsilon = 10^{16}$, and $U_{22} = 1 - 10^{16} \cdot 1 \approx -10^{16}$ (in floating-point, this overwhelms the exact value $1 - 1/\varepsilon = ({\varepsilon - 1})/\varepsilon$). The computed solution $\hat{\mathbf{x}}$ can have relative error of order 1 even when the exact solution is well-conditioned.
 
@@ -319,7 +319,7 @@ Without pivoting, $\rho_n$ can grow as $2^{n-1}$ in the worst case (Wilkinson's 
 
 **Example of catastrophic failure:**
 $$A = \begin{pmatrix} 10^{-20} & 1 \\ 1 & 2 \end{pmatrix}, \quad \mathbf{b} = \begin{pmatrix} 1 \\ 3 \end{pmatrix}$$
-Exact solution: $\mathbf{x} = (1, 1)^\top$ approximately. Naive LU in IEEE double precision gives multiplier $m_{21} = 10^{20}$, yielding $U_{22} = 2 - 10^{20} \approx -10^{20}$ — a catastrophic cancellation.
+Exact solution: $\mathbf{x} = (1, 1)^\top$ approximately. Naive LU in IEEE double precision gives multiplier $m_{21} = 10^{20}$, yielding $U_{22} = 2 - 10^{20} \approx -10^{20}$ - a catastrophic cancellation.
 
 **For AI:** PyTorch's `torch.linalg.lu` uses partial pivoting by default. `numpy.linalg.solve` calls LAPACK `dgesv` which uses partial pivoting. Never use unpivoted LU for numerical computation.
 
@@ -362,9 +362,9 @@ At step $k$: find $(p, q) = \arg\max_{i \geq k, j \geq k} |A_{ij}|$, then swap r
 
 **Growth factor bound:** Complete pivoting satisfies the tighter bound:
 $$\rho_n \leq (n \cdot 2^1 \cdot 3^{1/2} \cdot 4^{1/3} \cdots n^{1/(n-1)})^{1/2}$$
-which grows much more slowly than $2^{n-1}$ but is still superlinear. Numerically, complete pivoting is extremely stable — no practical example of large growth is known.
+which grows much more slowly than $2^{n-1}$ but is still superlinear. Numerically, complete pivoting is extremely stable - no practical example of large growth is known.
 
-**Cost:** Finding the global maximum at each step requires examining the full trailing submatrix, adding $O(n^2)$ comparisons per step and $O(n^3)$ total — which triples the leading constant relative to partial pivoting. This is the reason complete pivoting is rarely used in practice.
+**Cost:** Finding the global maximum at each step requires examining the full trailing submatrix, adding $O(n^2)$ comparisons per step and $O(n^3)$ total - which triples the leading constant relative to partial pivoting. This is the reason complete pivoting is rarely used in practice.
 
 **When to use complete pivoting:**
 - When stability is paramount (e.g., certified computation, interval arithmetic)
@@ -377,15 +377,15 @@ which grows much more slowly than $2^{n-1}$ but is still superlinear. Numericall
 
 **Rook pivoting** is a middle ground between partial and complete pivoting. At step $k$:
 
-1. Find the largest element in column $k$ (as in partial pivoting) — say row $p$.
+1. Find the largest element in column $k$ (as in partial pivoting) - say row $p$.
 2. Check if $|A_{pk}|$ is also the largest in row $p$. If yes, use $(p, k)$ as pivot.
 3. If not, find the largest in row $p$, swap columns, repeat until convergence.
 
-The name comes from the chess rook: the pivot search alternates between column and row moves until it finds a position that is simultaneously the largest in its row and column — a "rook position."
+The name comes from the chess rook: the pivot search alternates between column and row moves until it finds a position that is simultaneously the largest in its row and column - a "rook position."
 
 **Properties:**
 - **Growth factor:** $\rho_n \leq 2^{n-1}$ but in practice much smaller than partial pivoting.
-- **Cost:** $O(n^2)$ additional work per step in the worst case but typically $O(n)$ in practice (convergence in 1–2 alternations).
+- **Cost:** $O(n^2)$ additional work per step in the worst case but typically $O(n)$ in practice (convergence in 1-2 alternations).
 - **Rank-revealing:** Rook pivoting reveals rank approximately as well as complete pivoting.
 
 **Theorem (Foster 1997):** For a matrix of rank $r$, rook pivoting ensures $|R_{11}| / |R_{kk}| \leq \sqrt{n}$ for $k > r$, making the diagonal jump at position $r+1$ clearly visible.
@@ -410,11 +410,11 @@ where $\kappa_\infty(A) = \|A\|_\infty \|A^{-1}\|_\infty$ is the condition numbe
 
 **Implication for practice:** If $\kappa(A) \approx 10^k$ in double precision, you lose $k$ digits of accuracy. With $u \approx 10^{-16}$, you have $16 - k$ correct digits in $\hat{\mathbf{x}}$.
 
-**Backward stability of QR:** QR (Householder) is backward stable with growth factor $\rho_n = 1$ — Householder reflectors are orthogonal and preserve norms exactly. This is why QR is preferred for ill-conditioned systems.
+**Backward stability of QR:** QR (Householder) is backward stable with growth factor $\rho_n = 1$ - Householder reflectors are orthogonal and preserve norms exactly. This is why QR is preferred for ill-conditioned systems.
 
 ### 3.8 Blocked LU for Cache Efficiency
 
-Modern hardware has a deep memory hierarchy (L1: 32KB, L2: 256KB, L3: 8MB, DRAM: ∞). The key metric for algorithmic performance is **arithmetic intensity**: floating-point operations per byte of data moved. BLAS operations have different intensities:
+Modern hardware has a deep memory hierarchy (L1: 32KB, L2: 256KB, L3: 8MB, DRAM: \infty). The key metric for algorithmic performance is **arithmetic intensity**: floating-point operations per byte of data moved. BLAS operations have different intensities:
 
 | Operation | BLAS level | Flops | Data | Intensity |
 |---|---|---|---|---|
@@ -441,24 +441,24 @@ The trailing submatrix update (`A -= L_right @ U_k_right`) is a pure DGEMM and d
 
 **LAPACK routine:** `DGETRF` implements blocked LU with partial pivoting. The block size $b$ is tuned automatically per platform via the `ilaenv` oracle.
 
-**For AI:** Blocked LU is the algorithm behind PyTorch's `torch.linalg.lu_factor`, `jax.scipy.linalg.lu`, and scipy's `lu_factor`. For GPU, cuSOLVER implements batched blocked LU for thousands of small systems simultaneously — critical for K-FAC training.
+**For AI:** Blocked LU is the algorithm behind PyTorch's `torch.linalg.lu_factor`, `jax.scipy.linalg.lu`, and scipy's `lu_factor`. For GPU, cuSOLVER implements batched blocked LU for thousands of small systems simultaneously - critical for K-FAC training.
 
 ### 3.9 Solving Ax = b via LU
 
 Given the LU factorization $PA = LU$, solving $A\mathbf{x} = \mathbf{b}$ proceeds in four steps:
 
 1. **Apply permutation:** $\mathbf{c} = P\mathbf{b}$ (O(n), just index lookup)
-2. **Forward solve:** solve $L\mathbf{y} = \mathbf{c}$ (O(n²), forward substitution)
-3. **Backward solve:** solve $U\mathbf{x} = \mathbf{y}$ (O(n²), backward substitution)
+2. **Forward solve:** solve $L\mathbf{y} = \mathbf{c}$ (O(n^2), forward substitution)
+3. **Backward solve:** solve $U\mathbf{x} = \mathbf{y}$ (O(n^2), backward substitution)
 4. **(Optional) Iterative refinement:** compute $\mathbf{r} = \mathbf{b} - A\hat{\mathbf{x}}$, solve for correction $\delta\mathbf{x}$, update
 
-The total cost after factorization is $2n^2$ flops — linear in $n^2$, negligible compared to the $\frac{2n^3}{3}$ factorization cost for large $n$.
+The total cost after factorization is $2n^2$ flops - linear in $n^2$, negligible compared to the $\frac{2n^3}{3}$ factorization cost for large $n$.
 
 **Multiple right-hand sides:** For $k$ different vectors $\mathbf{b}_1, \ldots, \mathbf{b}_k$, one factorization costing $\frac{2n^3}{3}$ is followed by $k$ triangular solves each costing $2n^2$. This is the key economic argument for LU: amortize the factorization cost over many solves.
 
 **Computing the determinant:** $\det(A) = \det(P^{-1})\det(L)\det(U) = (-1)^s \prod_{i=1}^n U_{ii}$, where $s$ is the number of row swaps. Since $L$ is unit lower triangular, $\det(L) = 1$.
 
-**Computing $A^{-1}$:** Solve $A\mathbf{x}^{(k)} = \mathbf{e}_k$ for $k = 1, \ldots, n$ (one factorization, $n$ triangular solves). But explicitly forming $A^{-1}$ is almost always unnecessary and should be avoided — solve the system directly instead.
+**Computing $A^{-1}$:** Solve $A\mathbf{x}^{(k)} = \mathbf{e}_k$ for $k = 1, \ldots, n$ (one factorization, $n$ triangular solves). But explicitly forming $A^{-1}$ is almost always unnecessary and should be avoided - solve the system directly instead.
 
 ### 3.10 Rank-Deficient LU
 
@@ -471,7 +471,7 @@ $$\operatorname{rank}(A) = r \iff U_{11}, \ldots, U_{rr} \text{ are "large" and 
 
 **Rank-revealing LU:** Column-pivoted LU (complete or rook pivoting) provides better rank-revelation: the diagonal entries of $U$ decay in a manner that reflects the true rank structure.
 
-**Better alternative for rank-deficient problems:** Use **rank-revealing QR** (RRQR, §4.6) or **SVD**. The SVD provides the definitive rank determination via singular value thresholding — but costs $O(n^3)$ just as LU does. RRQR provides a cheaper, nearly-as-reliable alternative.
+**Better alternative for rank-deficient problems:** Use **rank-revealing QR** (RRQR, 4.6) or **SVD**. The SVD provides the definitive rank determination via singular value thresholding - but costs $O(n^3)$ just as LU does. RRQR provides a cheaper, nearly-as-reliable alternative.
 
 **For AI:** Neural network weight matrices often have approximate low rank (Hu et al., 2022 show that fine-tuning adapters are intrinsically low-dimensional). Rank-deficient LU can be used to detect this structure, but RRQR or randomized SVD are preferred in practice.
 
@@ -481,7 +481,7 @@ $$\operatorname{rank}(A) = r \iff U_{11}, \ldots, U_{rr} \text{ are "large" and 
 
 ### 4.1 From Gram-Schmidt to Algorithms
 
-**Recall from §05:** The QR factorization $A = QR$ of an $m \times n$ matrix ($m \geq n$) decomposes $A$ into an orthonormal factor $Q \in \mathbb{R}^{m \times n}$ (or $m \times m$ for the full QR) and an upper triangular factor $R \in \mathbb{R}^{n \times n}$. This was constructed via Gram-Schmidt orthogonalization in §05.
+**Recall from 05:** The QR factorization $A = QR$ of an $m \times n$ matrix ($m \geq n$) decomposes $A$ into an orthonormal factor $Q \in \mathbb{R}^{m \times n}$ (or $m \times m$ for the full QR) and an upper triangular factor $R \in \mathbb{R}^{n \times n}$. This was constructed via Gram-Schmidt orthogonalization in 05.
 
 **The problem with classical Gram-Schmidt:** Classical Gram-Schmidt (CGS) is mathematically correct but numerically unstable for ill-conditioned matrices. The computed $Q$ can lose orthogonality catastrophically: for a matrix with condition number $10^8$, the computed $Q$ from CGS may have $\|Q^\top Q - I\|_F \approx 10^8 \cdot u \approx 10^{-8}$, causing significant errors in subsequent computations.
 
@@ -497,7 +497,7 @@ $$\operatorname{rank}(A) = r \iff U_{11}, \ldots, U_{rr} \text{ are "large" and 
 
 $$H = I - 2\frac{\mathbf{v}\mathbf{v}^\top}{\mathbf{v}^\top\mathbf{v}} = I - \frac{2}{\|\mathbf{v}\|_2^2}\mathbf{v}\mathbf{v}^\top$$
 
-where $\mathbf{v} \in \mathbb{R}^m$ is a nonzero **Householder vector**. The matrix $H$ is symmetric ($H = H^\top$) and orthogonal ($H^\top H = H^2 = I$), so $H^{-1} = H$ — it is its own inverse.
+where $\mathbf{v} \in \mathbb{R}^m$ is a nonzero **Householder vector**. The matrix $H$ is symmetric ($H = H^\top$) and orthogonal ($H^\top H = H^2 = I$), so $H^{-1} = H$ - it is its own inverse.
 
 **Geometric interpretation:** $H$ reflects vectors across the hyperplane perpendicular to $\mathbf{v}$. Every point $\mathbf{x}$ in the hyperplane satisfies $H\mathbf{x} = \mathbf{x}$ (invariant). Every point $c\mathbf{v}$ along the $\mathbf{v}$ direction satisfies $Hc\mathbf{v} = -c\mathbf{v}$ (negated).
 
@@ -510,7 +510,7 @@ $$H = I - \frac{2}{\|\mathbf{v}\|_2^2}\mathbf{v}\mathbf{v}^\top, \quad H\mathbf{
 
 **The sign convention (critical for stability):** We choose $\alpha = -\operatorname{sign}(a_1)\|\mathbf{a}\|_2$ to **avoid cancellation** in computing $v_1 = a_1 - \alpha$. If $a_1 > 0$, choosing $\alpha = -\|\mathbf{a}\|_2$ gives $v_1 = a_1 + \|\mathbf{a}\|_2 > a_1$, avoiding the catastrophic subtraction that would occur with $\alpha = +\|\mathbf{a}\|_2$.
 
-**Cost of applying $H$:** Computing $H\mathbf{x}$ directly costs $O(m^2)$ (matrix-vector product), but using the formula $H\mathbf{x} = \mathbf{x} - 2\mathbf{v}(\mathbf{v}^\top\mathbf{x})/(\mathbf{v}^\top\mathbf{v})$ costs only $O(m)$ — first compute the scalar $s = \mathbf{v}^\top\mathbf{x}$, then update $\mathbf{x} \leftarrow \mathbf{x} - (2s/\|\mathbf{v}\|^2)\mathbf{v}$. This is the **implicit representation** of $H$.
+**Cost of applying $H$:** Computing $H\mathbf{x}$ directly costs $O(m^2)$ (matrix-vector product), but using the formula $H\mathbf{x} = \mathbf{x} - 2\mathbf{v}(\mathbf{v}^\top\mathbf{x})/(\mathbf{v}^\top\mathbf{v})$ costs only $O(m)$ - first compute the scalar $s = \mathbf{v}^\top\mathbf{x}$, then update $\mathbf{x} \leftarrow \mathbf{x} - (2s/\|\mathbf{v}\|^2)\mathbf{v}$. This is the **implicit representation** of $H$.
 
 ### 4.3 Householder QR Algorithm
 
@@ -558,7 +558,7 @@ with $c = \cos\theta$ and $s = \sin\theta$ in positions $(i,i)$, $(i,j)$, $(j,i)
 
 **Zeroing a specific entry:** Given $\mathbf{x}$ with entries $x_i$ and $x_j$, choose:
 $$r = \sqrt{x_i^2 + x_j^2}, \quad c = x_i/r, \quad s = -x_j/r$$
-Then $(G\mathbf{x})_i = r$, $(G\mathbf{x})_j = 0$ — the rotation zeros out $x_j$ while preserving $x_i$ as $r$.
+Then $(G\mathbf{x})_i = r$, $(G\mathbf{x})_j = 0$ - the rotation zeros out $x_j$ while preserving $x_i$ as $r$.
 
 **Numerically stable computation (LAPACK DLARTG):**
 ```
@@ -579,7 +579,7 @@ This avoids overflow and underflow in computing $\sqrt{x_i^2 + x_j^2}$.
 
 **Algorithm:** Apply Givens rotations sequentially to zero out subdiagonal entries of $A$ column by column. To zero $A_{ij}$ ($i > j$), apply $G(j, i, \theta)$ on the left.
 
-For a dense $m \times n$ matrix, the total number of Givens rotations needed is $mn - n(n+1)/2 \approx mn$, each costing $O(m)$ flops — total $O(m^2 n)$, which is worse than Householder QR for dense matrices.
+For a dense $m \times n$ matrix, the total number of Givens rotations needed is $mn - n(n+1)/2 \approx mn$, each costing $O(m)$ flops - total $O(m^2 n)$, which is worse than Householder QR for dense matrices.
 
 **Advantage for sparse matrices:** Each Givens rotation touches exactly two rows and two columns. If $A$ has a known sparsity pattern, Givens rotations can be sequenced to minimize fill-in (new nonzeros created by the transformation). In contrast, a single Householder reflector $H_k$ is a rank-2 update that touches an entire panel, potentially creating dense fill.
 
@@ -609,13 +609,13 @@ ensuring that $R_{11}$ (the leading $r \times r$ block) captures essentially all
 **Connection to SVD:** RRQR is a cheap ($O(mn^2)$) approximation to the SVD. It provides the same rank information and a good basis for the column space, but singular values only approximately. For exact singular values, use SVD at $O(mn^2 + n^3)$ cost.
 
 **For AI:**
-- **LoRA (Hu et al., 2022):** Low-Rank Adaptation uses rank-$r$ decompositions of weight updates $\Delta W = BA$. Choosing $r$ requires rank estimation — RRQR is one approach.
+- **LoRA (Hu et al., 2022):** Low-Rank Adaptation uses rank-$r$ decompositions of weight updates $\Delta W = BA$. Choosing $r$ requires rank estimation - RRQR is one approach.
 - **DoRA (Liu et al., 2024):** Decomposes weight matrices into magnitude and direction; RRQR is used to identify the principal components.
 - **Intrinsic dimensionality:** RRQR-based rank estimation reveals the intrinsic dimensionality of weight matrices, guiding compression decisions.
 
 ### 4.7 Tall-Skinny QR (TSQR)
 
-**Motivation:** For matrices $A \in \mathbb{R}^{m \times n}$ with $m \gg n$ (tall and skinny — e.g., $m = 10^9$, $n = 100$), standard Householder QR communicates $O(n^2)$ data between levels of the memory hierarchy at each of $n$ steps, totaling $O(n^3)$ words of communication. For distributed or GPU computation, this is the bottleneck.
+**Motivation:** For matrices $A \in \mathbb{R}^{m \times n}$ with $m \gg n$ (tall and skinny - e.g., $m = 10^9$, $n = 100$), standard Householder QR communicates $O(n^2)$ data between levels of the memory hierarchy at each of $n$ steps, totaling $O(n^3)$ words of communication. For distributed or GPU computation, this is the bottleneck.
 
 **TSQR algorithm (Demmel et al., 2008):**
 1. **Local factorization:** Partition $A$ into $P$ panels $A_1, \ldots, A_P$ (one per processor/GPU block).
@@ -634,7 +634,7 @@ ensuring that $R_{11}$ (the leading $r \times r$ block) captures essentially all
 
 **Problem:** Given $A \in \mathbb{R}^{m \times n}$ with $m > n$ (overdetermined) and $\mathbf{b} \in \mathbb{R}^m$, find $\mathbf{x}^*$ minimizing $\|A\mathbf{x} - \mathbf{b}\|_2^2$.
 
-**Method 1 (Normal equations):** $\mathbf{x}^* = (A^\top A)^{-1} A^\top \mathbf{b}$. Form $A^\top A$, factor via Cholesky, solve. Cost: $O(mn^2 + n^3)$. Problem: $\kappa(A^\top A) = \kappa(A)^2$ — squaring the condition number doubles the digits lost.
+**Method 1 (Normal equations):** $\mathbf{x}^* = (A^\top A)^{-1} A^\top \mathbf{b}$. Form $A^\top A$, factor via Cholesky, solve. Cost: $O(mn^2 + n^3)$. Problem: $\kappa(A^\top A) = \kappa(A)^2$ - squaring the condition number doubles the digits lost.
 
 **Method 2 (QR):** Factor $A = QR$ (thin QR), then:
 $$\|A\mathbf{x} - \mathbf{b}\|_2^2 = \|QR\mathbf{x} - \mathbf{b}\|_2^2 = \|R\mathbf{x} - Q^\top\mathbf{b}\|_2^2 + \|(I - QQ^\top)\mathbf{b}\|_2^2$$
@@ -660,45 +660,45 @@ Minimizing over $\mathbf{x}$: solve $R\mathbf{x} = Q^\top\mathbf{b}$ (upper tria
 
 ### 5.1 Brief Overview
 
-> **Full treatment:** The complete theory of Cholesky factorization — existence proofs, LDLᵀ, modified Cholesky, log-determinant, connection to PSD cone — is in [§07: Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md). This section covers only the computational aspects not covered in §07: the relationship to LU, blocked algorithms, and LAPACK routines.
+> **Full treatment:** The complete theory of Cholesky factorization - existence proofs, LDL^T, modified Cholesky, log-determinant, connection to PSD cone - is in [07: Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md). This section covers only the computational aspects not covered in 07: the relationship to LU, blocked algorithms, and LAPACK routines.
 
 For a symmetric positive definite matrix $A \succ 0$, the **Cholesky factorization** is:
 $$A = LL^\top$$
-where $L$ is unit lower triangular with positive diagonal entries $L_{ii} > 0$. The factorization exists and is unique for every $A \succ 0$ (Theorem from §07).
+where $L$ is unit lower triangular with positive diagonal entries $L_{ii} > 0$. The factorization exists and is unique for every $A \succ 0$ (Theorem from 07).
 
 **Why Cholesky for SPD systems:**
-1. **Efficiency:** Cholesky costs $\frac{n^3}{3}$ flops — exactly half of LU's $\frac{2n^3}{3}$ — because symmetry halves the work.
-2. **Storage:** Only the lower triangle needs to be stored (n(n+1)/2 entries vs n² for LU).
+1. **Efficiency:** Cholesky costs $\frac{n^3}{3}$ flops - exactly half of LU's $\frac{2n^3}{3}$ - because symmetry halves the work.
+2. **Storage:** Only the lower triangle needs to be stored (n(n+1)/2 entries vs n^2 for LU).
 3. **No pivoting needed:** Positive definiteness guarantees $L_{ii} > 0$ at every step without any row interchanges.
 4. **Stability:** Cholesky is backward stable for SPD matrices without any pivoting.
 
 ### 5.2 Cholesky as Specialized LU
 
-The connection between Cholesky and LU: for a symmetric positive definite $A$, the LU factorization (without pivoting, which exists since all leading principal minors of $A$ are positive) gives $A = LU$. But $A = A^\top$ implies $LU = U^\top L^\top$, so $U = DL^\top$ where $D = \operatorname{diag}(U_{11}, \ldots, U_{nn})$. Thus $A = L D L^\top$ (the LDLᵀ form). Since $A \succ 0$, all diagonal entries $D_{ii} > 0$, and we can define $\tilde{L} = L D^{1/2}$ to get $A = \tilde{L}\tilde{L}^\top$ — the Cholesky factorization.
+The connection between Cholesky and LU: for a symmetric positive definite $A$, the LU factorization (without pivoting, which exists since all leading principal minors of $A$ are positive) gives $A = LU$. But $A = A^\top$ implies $LU = U^\top L^\top$, so $U = DL^\top$ where $D = \operatorname{diag}(U_{11}, \ldots, U_{nn})$. Thus $A = L D L^\top$ (the LDL^T form). Since $A \succ 0$, all diagonal entries $D_{ii} > 0$, and we can define $\tilde{L} = L D^{1/2}$ to get $A = \tilde{L}\tilde{L}^\top$ - the Cholesky factorization.
 
 **Cholesky algorithm (jth column):**
 $$L_{jj} = \sqrt{A_{jj} - \sum_{k=1}^{j-1} L_{jk}^2}$$
 $$L_{ij} = \frac{1}{L_{jj}}\left(A_{ij} - \sum_{k=1}^{j-1} L_{ik}L_{jk}\right), \quad i = j+1, \ldots, n$$
 
-The argument of the square root must be positive — this is guaranteed by positive definiteness.
+The argument of the square root must be positive - this is guaranteed by positive definiteness.
 
 **Cost analysis:**
 - Column $j$ costs: 1 square root + $O(j)$ flops for $L_{jj}$, plus $(n-j) \cdot O(j)$ flops for $L_{ij}$
 - Total: $\sum_{j=1}^{n} O(nj) = O(n^3/3)$, exactly half of LU
 
-### 5.3 LDLᵀ for Indefinite Systems
+### 5.3 LDL^T for Indefinite Systems
 
-For symmetric indefinite matrices (not necessarily PD), Cholesky cannot be applied directly (negative square roots). The **LDLᵀ factorization** computes:
+For symmetric indefinite matrices (not necessarily PD), Cholesky cannot be applied directly (negative square roots). The **LDL^T factorization** computes:
 $$P A P^\top = L D L^\top$$
 where $L$ is unit lower triangular, $D$ is block diagonal with $1 \times 1$ and $2 \times 2$ blocks (to handle negative eigenvalues), and $P$ is a permutation.
 
-**Bunch-Kaufman pivoting:** The $2 \times 2$ blocks in $D$ capture pairs of eigenvalues of opposite sign, avoiding the square root altogether. The pivoting strategy (Bunch & Kaufman 1977) ensures $|L_{ij}| \leq (1 + \sqrt{17})/8 \approx 0.64$ — a stability bound analogous to $|L_{ij}| \leq 1$ for partial pivoting in LU.
+**Bunch-Kaufman pivoting:** The $2 \times 2$ blocks in $D$ capture pairs of eigenvalues of opposite sign, avoiding the square root altogether. The pivoting strategy (Bunch & Kaufman 1977) ensures $|L_{ij}| \leq (1 + \sqrt{17})/8 \approx 0.64$ - a stability bound analogous to $|L_{ij}| \leq 1$ for partial pivoting in LU.
 
 **Applications in ML:**
-- **Indefinite Hessians:** At saddle points (common early in neural network training), the Hessian is indefinite. LDLᵀ factors it without the positive-definiteness requirement, enabling second-order descent directions even at saddle points.
-- **Modified Cholesky:** Adding a diagonal shift $\delta I$ to make $A + \delta I \succ 0$ before Cholesky factorization is the standard approach in L-BFGS-B and quasi-Newton methods. See §07 for the modified Cholesky algorithm.
+- **Indefinite Hessians:** At saddle points (common early in neural network training), the Hessian is indefinite. LDL^T factors it without the positive-definiteness requirement, enabling second-order descent directions even at saddle points.
+- **Modified Cholesky:** Adding a diagonal shift $\delta I$ to make $A + \delta I \succ 0$ before Cholesky factorization is the standard approach in L-BFGS-B and quasi-Newton methods. See 07 for the modified Cholesky algorithm.
 
-**LAPACK routine:** `DSYTRF` implements LDLᵀ with Bunch-Kaufman pivoting.
+**LAPACK routine:** `DSYTRF` implements LDL^T with Bunch-Kaufman pivoting.
 
 ### 5.4 Blocked Cholesky and LAPACK dpotrf
 
@@ -741,7 +741,7 @@ $$\text{forward error} \leq \kappa(A) \cdot \text{backward error} + O(u^2)$$
 
 This separates the algorithm's contribution (backward error, controlled by stability) from the problem's inherent difficulty (condition number $\kappa(A)$, intrinsic to the matrix). A backward-stable algorithm does the best possible: it cannot do better than $\kappa(A) \cdot u$.
 
-**Why backward error is the right measure:** A backward-stable algorithm produces exact solutions to slightly perturbed problems. If the input data itself has error of order $u$ (which it does — all real data has measurement error), then backward-stable computation introduces no additional error beyond what the input uncertainty already implies.
+**Why backward error is the right measure:** A backward-stable algorithm produces exact solutions to slightly perturbed problems. If the input data itself has error of order $u$ (which it does - all real data has measurement error), then backward-stable computation introduces no additional error beyond what the input uncertainty already implies.
 
 **Example:** Computing $\hat{x} = (1.0 + 10^{-16}) / (1.0 + 10^{-16}) = 1.0$ in floating-point. The forward error is zero, but the backward error is also zero (exact computation). Now: $\hat{x} = 10^{-16} / 10^{-17} = 10.0$, while the true answer is $10.0 + O(10^{-16})$. Forward error is tiny; backward error is tiny.
 
@@ -786,13 +786,13 @@ where $\kappa_f$ is the condition number of $f$. The condition number determines
 
 **Iterative refinement algorithm:**
 ```
-1. Factor A ≈ PA = LU in low precision (FP16 or FP32)
-2. Solve Ax_0 = b using L, U in low precision          → x_0
+1. Factor A \approx PA = LU in low precision (FP16 or FP32)
+2. Solve Ax_0 = b using L, U in low precision          -> x_0
 3. For k = 0, 1, 2, ...:
    a. Compute residual r_k = b - A x_k  (in HIGH precision, FP64)
-   b. Solve L U δ_k = r_k               (in LOW precision — cheap)
-   c. Update x_{k+1} = x_k + δ_k
-4. Converge when ||r_k|| / ||b|| < ε_target
+   b. Solve L U \delta_k = r_k               (in LOW precision - cheap)
+   c. Update x_{k+1} = x_k + \delta_k
+4. Converge when ||r_k|| / ||b|| < \epsilon_target
 ```
 
 **Convergence:** Iterative refinement converges in $O(1)$ iterations if the initial precision is high enough relative to $\kappa(A)$. Specifically, if $\kappa(A) \cdot u_{\text{factor}} < 1$, refinement converges to FP64 precision in 2-3 steps.
@@ -803,7 +803,7 @@ where $\kappa_f$ is the condition number of $f$. The condition number determines
 
 ### 6.5 Ill-Conditioned Systems and Regularization
 
-When $\kappa(A)$ is very large, even backward-stable algorithms produce solutions with large forward error. The cure is regularization — changing the problem to a nearby well-conditioned one.
+When $\kappa(A)$ is very large, even backward-stable algorithms produce solutions with large forward error. The cure is regularization - changing the problem to a nearby well-conditioned one.
 
 **Tikhonov regularization:** Replace $A\mathbf{x} = \mathbf{b}$ with $\min_\mathbf{x} \|A\mathbf{x} - \mathbf{b}\|^2 + \lambda\|\mathbf{x}\|^2$. The solution is $\mathbf{x}_\lambda = (A^\top A + \lambda I)^{-1} A^\top \mathbf{b}$. The regularized condition number is:
 $$\kappa(A^\top A + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda}$$
@@ -831,11 +831,11 @@ Modern computer architecture has a deep memory hierarchy:
 
 **The roofline model:** An algorithm's performance is limited by the minimum of:
 1. Peak arithmetic throughput (FLOP/s)
-2. Memory bandwidth × arithmetic intensity (bytes/flop)
+2. Memory bandwidth \times arithmetic intensity (bytes/flop)
 
-A naive matrix-vector multiply $\mathbf{y} = A\mathbf{x}$ reads $n^2 + 2n$ words and performs $2n^2$ flops — arithmetic intensity $O(1)$. It is **memory bandwidth bound**: DRAM bandwidth, not arithmetic units, limits performance.
+A naive matrix-vector multiply $\mathbf{y} = A\mathbf{x}$ reads $n^2 + 2n$ words and performs $2n^2$ flops - arithmetic intensity $O(1)$. It is **memory bandwidth bound**: DRAM bandwidth, not arithmetic units, limits performance.
 
-A matrix-matrix multiply $C = AB$ reads $2n^2$ words and performs $2n^3$ flops — arithmetic intensity $O(n)$. For large $n$, it is **compute bound** and can achieve near-peak FLOP/s.
+A matrix-matrix multiply $C = AB$ reads $2n^2$ words and performs $2n^3$ flops - arithmetic intensity $O(n)$. For large $n$, it is **compute bound** and can achieve near-peak FLOP/s.
 
 **The key insight for blocked algorithms:** Reformulate the bottleneck step as a matrix-matrix multiply (BLAS-3), not as a matrix-vector multiply (BLAS-2). This changes arithmetic intensity from $O(1)$ to $O(n)$, giving $O(n)$-fold speedup on modern hardware.
 
@@ -851,13 +851,13 @@ A = [A_{11} A_{12}]    Factor: [L_{11}   0  ] [U_{11} U_{12}]
 Step 1: Factor A_11 = L_{11} U_{11}           (small, BLAS-2)
 Step 2: L_{21} = A_{21} U_{11}^{-1}           (DTRSM, BLAS-3)
 Step 3: U_{12} = L_{11}^{-1} A_{12}           (DTRSM, BLAS-3)  
-Step 4: A_{22} -= L_{21} U_{12}               (DGEMM, BLAS-3) ← dominates
+Step 4: A_{22} -= L_{21} U_{12}               (DGEMM, BLAS-3) <- dominates
 Step 5: Recurse on A_{22}
 ```
 
 **WY representation for blocked Householder QR:** A product of $b$ Householder reflectors $H_1 \cdots H_b$ can be written as $I - WY^\top$ where $W, Y \in \mathbb{R}^{m \times b}$. Applying $I - WY^\top$ to a matrix $C$ costs $O(mbn)$ using BLAS-3 `DGEMM`. LAPACK's `DGEQRF` uses this representation for blocked Householder QR.
 
-**Performance:** On a modern CPU with AVX-512, blocked DGEMM achieves $> 80\%$ of peak FLOP/s for $n > 500$. Without blocking (using BLAS-2), performance drops to $< 10\%$ of peak. The $8 \times$ speedup from blocking is why production factorization libraries use block sizes of $64$–$256$.
+**Performance:** On a modern CPU with AVX-512, blocked DGEMM achieves $> 80\%$ of peak FLOP/s for $n > 500$. Without blocking (using BLAS-2), performance drops to $< 10\%$ of peak. The $8 \times$ speedup from blocking is why production factorization libraries use block sizes of $64$-$256$.
 
 ### 7.3 LAPACK Routine Reference
 
@@ -872,7 +872,7 @@ Step 5: Recurse on A_{22}
 | `DGELSY` | Least squares via column-pivoted QR | Rank-deficient safe |
 | `DPOTRF` | Cholesky ($A = LL^\top$ or $UU^\top$) | Returns INFO error if not SPD |
 | `DPOTRS` | Solve $AX = B$ using DPOTRF output | SPD matrix only |
-| `DSYTRF` | LDLᵀ for symmetric indefinite | Bunch-Kaufman pivoting |
+| `DSYTRF` | LDL^T for symmetric indefinite | Bunch-Kaufman pivoting |
 | `DSYTRS` | Solve using DSYTRF output | |
 
 **LAPACK naming convention:** `D` = double precision, `S` = single, `Z` = complex double; `GE` = general, `PO` = positive definite, `SY` = symmetric; `TRF` = triangular factorization, `TRS` = triangular solve, `TRI` = triangular inverse.
@@ -886,10 +886,10 @@ For sparse matrices (e.g., from finite-element discretization, graph Laplacians,
 **Fill-in:** When a sparse matrix is factored, the $L$ and $U$ factors typically contain more nonzeros than $A$ itself. The additional nonzeros are called **fill-in**.
 
 **Reordering to minimize fill-in:**
-- **Minimum degree ordering (AMD):** Greedy heuristic — eliminate the variable connected to fewest others first. Approximate minimum degree (AMD) is the production algorithm.
+- **Minimum degree ordering (AMD):** Greedy heuristic - eliminate the variable connected to fewest others first. Approximate minimum degree (AMD) is the production algorithm.
 - **Nested dissection:** Recursively partition the matrix graph using separator sets; theoretically optimal for regular 2D grids ($O(n^{1.5})$ fill vs $O(n^2)$ without reordering).
 
-**Supernodal methods:** CHOLMOD (Davis & Hager, 2009) uses "supernodes" — groups of columns with identical sparsity pattern — and applies dense BLAS-3 operations to each supernode, recovering high arithmetic intensity.
+**Supernodal methods:** CHOLMOD (Davis & Hager, 2009) uses "supernodes" - groups of columns with identical sparsity pattern - and applies dense BLAS-3 operations to each supernode, recovering high arithmetic intensity.
 
 **For AI:**
 - **Graph neural networks:** The adjacency matrix of a graph is sparse. Solving GNN systems requires sparse Cholesky or LU.
@@ -912,8 +912,8 @@ $$\mathbf{w}^* = \arg\min_\mathbf{w} \|X\mathbf{w} - \mathbf{y}\|_2^2$$
 3. Solve $R\mathbf{w}^* = \hat{\mathbf{y}}$ (backward substitution)
 
 **Why QR over normal equations in practice:**
-- Normal equations form $X^\top X$, which has condition number $\kappa(X)^2$. For typical neural network feature matrices ($\kappa \sim 10^4$–$10^6$), this squares to $10^8$–$10^{12}$, losing 8-12 digits of precision in double.
-- QR maintains condition number $\kappa(X)$ throughout — twice as many correct digits.
+- Normal equations form $X^\top X$, which has condition number $\kappa(X)^2$. For typical neural network feature matrices ($\kappa \sim 10^4$-$10^6$), this squares to $10^8$-$10^{12}$, losing 8-12 digits of precision in double.
+- QR maintains condition number $\kappa(X)$ throughout - twice as many correct digits.
 
 **Ridge regression via augmented QR:** $\min \|X\mathbf{w} - \mathbf{y}\|^2 + \lambda\|\mathbf{w}\|^2$ is equivalent to:
 $$\tilde{X} = \begin{pmatrix} X \\ \sqrt{\lambda} I_d \end{pmatrix}, \quad \tilde{\mathbf{y}} = \begin{pmatrix} \mathbf{y} \\ \mathbf{0} \end{pmatrix}$$
@@ -925,7 +925,7 @@ Factor $\tilde{X} = QR$ and solve $R\mathbf{w} = Q^\top \tilde{\mathbf{y}}$. Thi
 
 **Newton's method** for minimizing $\mathcal{L}(\boldsymbol{\theta})$ applies the update:
 $$\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - H_t^{-1} \nabla\mathcal{L}(\boldsymbol{\theta}_t)$$
-where $H_t = \nabla^2\mathcal{L}(\boldsymbol{\theta}_t)$ is the Hessian. This requires solving the linear system $H_t \boldsymbol{\delta} = \nabla\mathcal{L}$ at each step — a direct application of LU or Cholesky factorization.
+where $H_t = \nabla^2\mathcal{L}(\boldsymbol{\theta}_t)$ is the Hessian. This requires solving the linear system $H_t \boldsymbol{\delta} = \nabla\mathcal{L}$ at each step - a direct application of LU or Cholesky factorization.
 
 **Cost per step:** $O(p^3)$ where $p = |\boldsymbol{\theta}|$. For GPT-3 with $p = 175 \times 10^9$, this is astronomically expensive. Full Newton is infeasible for large neural networks.
 
@@ -935,7 +935,7 @@ where $A_l \in \mathbb{R}^{d_l \times d_l}$ and $G_l \in \mathbb{R}^{d_{l+1} \ti
 $$(A_l \otimes G_l)^{-1} = A_l^{-1} \otimes G_l^{-1}$$
 with $A_l^{-1}$ and $G_l^{-1}$ computed via Cholesky factorization of each factor separately.
 
-**Cost per K-FAC step:** $O(\sum_l (d_l^3 + d_{l+1}^3))$ — sum over layers, each requiring two Cholesky factorizations of small matrices. For a 10-layer network with hidden dim 1024: $\approx 10 \times 2 \times 10^9 = 2 \times 10^{10}$ flops, feasible on modern hardware.
+**Cost per K-FAC step:** $O(\sum_l (d_l^3 + d_{l+1}^3))$ - sum over layers, each requiring two Cholesky factorizations of small matrices. For a 10-layer network with hidden dim 1024: $\approx 10 \times 2 \times 10^9 = 2 \times 10^{10}$ flops, feasible on modern hardware.
 
 **Shampoo (Gupta et al., 2018; Anil et al., 2020):** Maintains full-matrix preconditioners per layer:
 $$G_t = G_{t-1} + g_t g_t^\top, \quad P_t = G_t^{-1/4}$$
@@ -956,11 +956,11 @@ enables efficient computation of:
 1. $\boldsymbol{\alpha} = (K_{nn} + \sigma^2 I)^{-1}\mathbf{y}$: forward + backward solve with $L$, cost $O(n^3)$ once, $O(n^2)$ for new right-hand sides
 2. $\log p(\mathbf{y} \mid X, \boldsymbol{\theta}) = -\frac{1}{2}\mathbf{y}^\top\boldsymbol{\alpha} - \sum_i \log L_{ii} - \frac{n}{2}\log 2\pi$: the log-likelihood used for hyperparameter optimization
 
-**Bottleneck:** For $n = 10{,}000$ training points, $K_{nn}$ is $10^4 \times 10^4$, and Cholesky costs $\frac{(10^4)^3}{3} \approx 3 \times 10^{11}$ flops — seconds on a GPU, but prohibitive for $n = 10^6$.
+**Bottleneck:** For $n = 10{,}000$ training points, $K_{nn}$ is $10^4 \times 10^4$, and Cholesky costs $\frac{(10^4)^3}{3} \approx 3 \times 10^{11}$ flops - seconds on a GPU, but prohibitive for $n = 10^6$.
 
 **Scalable GP methods:**
 - **Inducing point methods (Titsias 2009):** Introduce $m \ll n$ inducing points; compute $m \times m$ Cholesky instead of $n \times n$. GPyTorch implements this as `gpytorch.models.ApproximateGP`.
-- **SKI/KISS-GP (Wilson & Nickisch 2015):** Structure kernel interpolation — exploit grid structure to decompose $K_{nn}$ as a Kronecker product, enabling $O(n)$ Cholesky-like solves.
+- **SKI/KISS-GP (Wilson & Nickisch 2015):** Structure kernel interpolation - exploit grid structure to decompose $K_{nn}$ as a Kronecker product, enabling $O(n)$ Cholesky-like solves.
 - **CG + Lanczos:** Conjugate gradient-based methods (Gardner et al., 2018) avoid explicit Cholesky by iteratively solving the system, used in GPyTorch's `LinearCG` backend.
 
 **For AI:** GP regression is the inference engine of Bayesian optimization (BoHB, Lindauer et al., 2022), which is used for hyperparameter tuning of large language models. Every BoO iteration requires a Cholesky factorization.
@@ -979,7 +979,7 @@ where $\boldsymbol{\lambda} = A^{-\top}(\partial\ell/\partial\mathbf{x})$ is the
 
 **Implicit differentiation:** Rather than differentiating through the factorization algorithm itself (which would unroll all $O(n^3)$ operations), implicit differentiation differentiates through the **solution condition** $A\mathbf{x}^* = \mathbf{b}$:
 $$A \frac{\partial\mathbf{x}^*}{\partial\boldsymbol{\theta}} = \frac{\partial\mathbf{b}}{\partial\boldsymbol{\theta}} - \frac{\partial A}{\partial\boldsymbol{\theta}}\mathbf{x}^*$$
-This requires solving one additional linear system per output — $O(n^2)$ using the already-computed factorization.
+This requires solving one additional linear system per output - $O(n^2)$ using the already-computed factorization.
 
 **For AI:** Differentiating through linear solvers is central to:
 - **Meta-learning:** MAML and its variants differentiate through inner-loop optimization steps
@@ -989,20 +989,20 @@ This requires solving one additional linear system per output — $O(n^2)$ using
 
 ### 8.5 Randomized Factorizations
 
-**Motivation:** For matrices where only a low-rank approximation is needed, exact factorization costs $O(mn^2)$ — wasteful if rank $r \ll n$. Randomized methods achieve $O(mnr)$ or even $O(mn \log r)$ using random projections.
+**Motivation:** For matrices where only a low-rank approximation is needed, exact factorization costs $O(mn^2)$ - wasteful if rank $r \ll n$. Randomized methods achieve $O(mnr)$ or even $O(mn \log r)$ using random projections.
 
 **Randomized QR (sketch-and-apply):**
 1. **Sketch:** $Y = A\Omega$ where $\Omega \in \mathbb{R}^{n \times (r+p)}$ is a random Gaussian matrix ($p \approx 10$ oversampling)
 2. **Orthogonalize:** Factor $Y = QR$ (thin QR of the sketch)
 3. **Project:** $B = Q^\top A$ (project $A$ onto the sketched subspace)
 4. **Factor:** $B = \tilde{Q}\tilde{R}$ (thin QR of the $\ell \times n$ matrix)
-5. **Output:** $A \approx (Q\tilde{Q})\tilde{R}$ — a rank-$(r+p)$ QR approximation
+5. **Output:** $A \approx (Q\tilde{Q})\tilde{R}$ - a rank-$(r+p)$ QR approximation
 
 **Cost:** Steps 1-4 cost $O(mn(r+p))$, negligible compared to $O(mn^2)$ for exact QR.
 
 **Error bound (Halko-Martinsson-Tropp, 2011):** With probability $\geq 1 - 6p^{-p}$:
 $$\|A - Q Q^\top A\|_2 \leq \left(1 + 11\sqrt{r+p}\right)\sigma_{r+1}(A)$$
-The approximation is near-optimal — within a polynomial factor of the Eckart-Young lower bound.
+The approximation is near-optimal - within a polynomial factor of the Eckart-Young lower bound.
 
 **Randomized LU (Yu et al., 2018):** Applies random column sampling to produce a structured LU factorization useful for rank-deficient matrices.
 
@@ -1010,7 +1010,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 **DoRA (Liu et al., 2024):** Decomposes $W = m \cdot (W/\|W\|_c)$ where $\|W\|_c$ is the column norm. The directional component $W/\|W\|_c$ is approximated via LoRA. This uses the QR decomposition of each weight column.
 
-**GALORE (Zhao et al., 2024):** Gradient Low-Rank Projection — projects gradients onto their principal subspace via randomized SVD before applying Adam updates. The projection matrix is computed via randomized QR every 200 steps.
+**GALORE (Zhao et al., 2024):** Gradient Low-Rank Projection - projects gradients onto their principal subspace via randomized SVD before applying Adam updates. The projection matrix is computed via randomized QR every 200 steps.
 
 ---
 
@@ -1021,7 +1021,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 | 1 | Using LU without pivoting for numerical computation | Zero or small pivots cause catastrophic cancellation; growth factor can reach $2^{n-1}$ | Always use partial pivoting (`scipy.linalg.lu`, LAPACK `dgetrf`) |
 | 2 | Forming $A^{-1}$ explicitly to solve $A\mathbf{x} = \mathbf{b}$ | Computing $A^{-1}$ costs $O(n^3)$ and introduces additional round-off; $A^{-1}\mathbf{b}$ is less accurate than the triangular solve | Use `scipy.linalg.solve` or `lu_solve` with the stored factorization |
 | 3 | Applying Cholesky to a non-SPD matrix | Negative square roots cause `NaN`; the algorithm may "succeed" silently with complex values or incorrect results | Check `np.linalg.eigvalsh(A).min() > 0` or catch `LinAlgError` from failed Cholesky |
-| 4 | Using normal equations for ill-conditioned least squares | $\kappa(A^\top A) = \kappa(A)^2$ — doubles the digits lost; for $\kappa \sim 10^6$, you lose all precision | Use `scipy.linalg.lstsq` (QR-based) or explicitly factor via Householder QR |
+| 4 | Using normal equations for ill-conditioned least squares | $\kappa(A^\top A) = \kappa(A)^2$ - doubles the digits lost; for $\kappa \sim 10^6$, you lose all precision | Use `scipy.linalg.lstsq` (QR-based) or explicitly factor via Householder QR |
 | 5 | Confusing thin and full QR | Full QR: $Q \in \mathbb{R}^{m \times m}$, $R \in \mathbb{R}^{m \times n}$. Thin QR: $Q \in \mathbb{R}^{m \times n}$, $R \in \mathbb{R}^{n \times n}$. Using the wrong one gives wrong dimensions | Use `mode='economic'` in `scipy.linalg.qr` or `full_matrices=False` in `numpy.linalg.qr` for thin QR |
 | 6 | Ignoring the growth factor in stability analysis | Partial pivoting has theoretical growth factor $2^{n-1}$; while rare in practice, adversarial inputs exist | For certified computation, use complete pivoting or switch to Householder QR |
 | 7 | Re-factoring A for each right-hand side | LU/QR factorization costs $O(n^3)$; each additional solve costs only $O(n^2)$ | Cache the factorization (`lu_factor` returns LU; `qr` returns Q,R) and call `lu_solve` or backsolve repeatedly |
@@ -1029,13 +1029,13 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 | 9 | Using classical Gram-Schmidt for QR instead of Householder | CGS loses orthogonality for ill-conditioned matrices; $\|\hat{Q}^\top\hat{Q} - I\| = O(\kappa(A) \cdot u)$ | Use `scipy.linalg.qr` (Householder) or `numpy.linalg.qr` |
 | 10 | Misinterpreting rank from LU diagonal | LU (even with partial pivoting) doesn't give a reliable rank estimate; the pivot threshold is ambiguous | Use RRQR (`scipy.linalg.qr(pivoting=True)`) or SVD for rank determination |
 | 11 | Ignoring mixed precision issues in GPU factorizations | FP16 Cholesky has $u = 5 \times 10^{-4}$; for $\kappa(A) > 10^4$, FP16 factorization gives only 0 correct digits | Use FP32 or FP64 for factorizations; apply iterative refinement if FP16 is needed for speed |
-| 12 | Differentiating through factorization naively by unrolling | Unrolling $O(n^3)$ elimination steps creates $O(n^3)$ graph edges — memory explosion | Use implicit differentiation through the solution condition $A\mathbf{x} = \mathbf{b}$; PyTorch's `linalg.solve` handles this automatically |
+| 12 | Differentiating through factorization naively by unrolling | Unrolling $O(n^3)$ elimination steps creates $O(n^3)$ graph edges - memory explosion | Use implicit differentiation through the solution condition $A\mathbf{x} = \mathbf{b}$; PyTorch's `linalg.solve` handles this automatically |
 
 ---
 
 ## 10. Exercises
 
-**Exercise 1 (★):** Implement forward and backward substitution.
+**Exercise 1 (*):** Implement forward and backward substitution.
 
 (a) Write a function `forward_sub(L, b)` that solves $L\mathbf{x} = \mathbf{b}$ for unit lower triangular $L$ (no division needed).
 
@@ -1045,7 +1045,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (d) Measure the accuracy: for a random $100 \times 100$ lower triangular system with entries from $\mathcal{N}(0,1)$, compute $\|L\hat{\mathbf{x}} - \mathbf{b}\|_\infty / \|\mathbf{b}\|_\infty$ (residual) and compare to machine epsilon.
 
-**Exercise 2 (★):** Implement naive LU and demonstrate failure.
+**Exercise 2 (*):** Implement naive LU and demonstrate failure.
 
 (a) Implement `lu_naive(A)` that performs Gaussian elimination without pivoting, returning $(L, U)$.
 
@@ -1055,7 +1055,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (d) Explain the failure in terms of the growth factor. What is $\rho_2$ for this matrix?
 
-**Exercise 3 (★):** Implement LU with partial pivoting and verify $PA = LU$.
+**Exercise 3 (*):** Implement LU with partial pivoting and verify $PA = LU$.
 
 (a) Implement `lu_pivot(A)` returning $(P, L, U)$ where $P$ is stored as a permutation vector.
 
@@ -1065,7 +1065,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (d) Compute $\det(A)$ from the LU factorization as $(-1)^s \prod_i U_{ii}$ and verify against `numpy.linalg.det`.
 
-**Exercise 4 (★★):** Implement a Householder reflector and apply it.
+**Exercise 4 (**):** Implement a Householder reflector and apply it.
 
 (a) Implement `householder_vector(a)` that computes the Householder vector $\mathbf{v}$ such that $H\mathbf{a} = \alpha\mathbf{e}_1$ with the correct sign convention to avoid cancellation.
 
@@ -1075,7 +1075,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (d) Show that the naive computation `(I - 2*v*v.T/norm(v)**2) @ a` gives the same result but is less efficient. Time both for a large vector.
 
-**Exercise 5 (★★):** Implement Householder QR and compare to scipy.
+**Exercise 5 (**):** Implement Householder QR and compare to scipy.
 
 (a) Implement `householder_qr(A)` that returns the upper triangular factor $R$ and stores Householder vectors.
 
@@ -1087,7 +1087,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (e) For an ill-conditioned $A$ with $\kappa(A) = 10^8$, compare the orthogonality $\|Q^\top Q - I\|_F$ of your Householder QR vs classical Gram-Schmidt.
 
-**Exercise 6 (★★):** Rank estimation via column-pivoted QR.
+**Exercise 6 (**):** Rank estimation via column-pivoted QR.
 
 (a) Create a rank-4 matrix: $A = U S V^\top$ where $S = \operatorname{diag}(100, 10, 1, 0.1, 0.001, 0.001, 0.001)$ and $U, V$ are random orthogonal.
 
@@ -1099,7 +1099,7 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (e) Compare to the SVD-based rank estimation. Which is more reliable? Which is faster?
 
-**Exercise 7 (★★★):** GP regression with Cholesky.
+**Exercise 7 (***):** GP regression with Cholesky.
 
 (a) Implement `rbf_kernel(X1, X2, ell, sf)` computing $k(x_i, x_j) = s_f^2 \exp(-\|x_i - x_j\|^2 / (2\ell^2))$.
 
@@ -1107,11 +1107,11 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 (c) Implement `gp_predict(X_train, y_train, X_test, ell, sf, sigma_n)` using Cholesky factorization for all linear solves (no explicit matrix inverse).
 
-(d) Compute the log marginal likelihood $\log p(\mathbf{y} \mid X) = -\frac{1}{2}\mathbf{y}^\top K^{-1}\mathbf{y} - \frac{1}{2}\log\det K - \frac{n}{2}\log 2\pi$ using `log_det_chol` (2∑log diagonal of L).
+(d) Compute the log marginal likelihood $\log p(\mathbf{y} \mid X) = -\frac{1}{2}\mathbf{y}^\top K^{-1}\mathbf{y} - \frac{1}{2}\log\det K - \frac{n}{2}\log 2\pi$ using `log_det_chol` (2\sumlog diagonal of L).
 
-(e) Optimize $(\ell, s_f)$ via grid search maximizing the log marginal likelihood. Plot the GP posterior mean and ±2σ credible interval.
+(e) Optimize $(\ell, s_f)$ via grid search maximizing the log marginal likelihood. Plot the GP posterior mean and \pm2\sigma credible interval.
 
-**Exercise 8 (★★★):** Differentiating through Cholesky — gradient of log-determinant.
+**Exercise 8 (***):** Differentiating through Cholesky - gradient of log-determinant.
 
 (a) For an SPD matrix $A$, the gradient of $\log\det A$ w.r.t. $A$ is $A^{-1}$. Verify this numerically: compute $\nabla_A \log\det A$ via finite differences and via $L^{-\top}L^{-1}$ (using Cholesky), compare.
 
@@ -1147,66 +1147,66 @@ The approximation is near-optimal — within a polynomial factor of the Eckart-Y
 
 ## 12. Conceptual Bridge
 
-**From §07 (Positive Definite Matrices):** Section 07 developed the theory of positive definite matrices and gave the full treatment of the Cholesky factorization: existence proof (the Cholesky product theorem), the LDLᵀ variant, the connection to log-determinants, and the PSD cone. This section builds directly on that theory, treating Cholesky as one of three production-grade computational tools alongside LU and QR. The student who understands §07's theory will see §08's Cholesky discussion as pure application — taking the mathematical theorem and implementing it efficiently.
+**From 07 (Positive Definite Matrices):** Section 07 developed the theory of positive definite matrices and gave the full treatment of the Cholesky factorization: existence proof (the Cholesky product theorem), the LDL^T variant, the connection to log-determinants, and the PSD cone. This section builds directly on that theory, treating Cholesky as one of three production-grade computational tools alongside LU and QR. The student who understands 07's theory will see 08's Cholesky discussion as pure application - taking the mathematical theorem and implementing it efficiently.
 
-**The computational turn:** Sections 01-07 of Chapter 3 developed mathematical structures: eigenvalues, SVD, PCA, linear maps, orthogonality, norms, and positive definiteness. Section 08 marks a turn toward the computational: algorithms, numerical stability, blocking, LAPACK. This turn is not a descent in abstraction but a different kind of mathematics — the mathematics of floating-point arithmetic, error propagation, and algorithm design under hardware constraints. Both kinds are essential for AI/ML practice.
+**The computational turn:** Sections 01-07 of Chapter 3 developed mathematical structures: eigenvalues, SVD, PCA, linear maps, orthogonality, norms, and positive definiteness. Section 08 marks a turn toward the computational: algorithms, numerical stability, blocking, LAPACK. This turn is not a descent in abstraction but a different kind of mathematics - the mathematics of floating-point arithmetic, error propagation, and algorithm design under hardware constraints. Both kinds are essential for AI/ML practice.
 
-**Into Chapter 4 (Calculus):** The matrix factorizations developed here are the computational backbone of calculus-based optimization. The Hessian matrix $H_f(\mathbf{x})$ (Chapter 4, §05) is positive definite at local minima — and therefore amenable to Cholesky. Newton's method (Chapter 4, §06) requires solving Hessian systems via LU or Cholesky at each step. The Jacobian matrix (Chapter 4, §04) appears in the normal equations for nonlinear least squares (Gauss-Newton, Levenberg-Marquardt), which are solved via QR. The machinery of §08 is the engine that makes calculus-based optimization computable.
+**Into Chapter 4 (Calculus):** The matrix factorizations developed here are the computational backbone of calculus-based optimization. The Hessian matrix $H_f(\mathbf{x})$ (Chapter 4, 05) is positive definite at local minima - and therefore amenable to Cholesky. Newton's method (Chapter 4, 06) requires solving Hessian systems via LU or Cholesky at each step. The Jacobian matrix (Chapter 4, 04) appears in the normal equations for nonlinear least squares (Gauss-Newton, Levenberg-Marquardt), which are solved via QR. The machinery of 08 is the engine that makes calculus-based optimization computable.
 
-**Into Chapter 8 (Optimization):** The optimization chapter (Chapter 8) develops gradient descent, Newton's method, interior-point methods, and constrained optimization — all of which require the factorizations of §08 in their inner loops. The K-FAC connection to natural gradient optimization, the QR connection to least-squares problems, and the Cholesky connection to GP-based Bayesian optimization are all elaborated with full optimization context in Chapter 8.
+**Into Chapter 8 (Optimization):** The optimization chapter (Chapter 8) develops gradient descent, Newton's method, interior-point methods, and constrained optimization - all of which require the factorizations of 08 in their inner loops. The K-FAC connection to natural gradient optimization, the QR connection to least-squares problems, and the Cholesky connection to GP-based Bayesian optimization are all elaborated with full optimization context in Chapter 8.
 
 ```
 MATRIX DECOMPOSITIONS IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Chapter 2: Linear Algebra Basics
-  ├── §02 Matrix Operations ──────── brief LU/QR/Cholesky preview
-  └── §04 Determinants ──────────── det(A) = ∏ U_ii from LU
+  +-- 02 Matrix Operations -------- brief LU/QR/Cholesky preview
+  +-- 04 Determinants ------------ det(A) = \prod U_ii from LU
 
   Chapter 3: Advanced Linear Algebra
-  ├── §01 Eigenvalues ────────────── QR iteration uses Householder QR
-  ├── §02 SVD ────────────────────── thin QR as step in SVD algorithm
-  ├── §05 Orthogonality ──────────── QR theory (Gram-Schmidt)
-  ├── §07 Positive Definite ──────── Cholesky THEORY (full treatment)
-  └── §08 Matrix Decompositions ◄── YOU ARE HERE
-       ├── LU (canonical home)      PA = LU with partial pivoting
-       ├── QR algorithms            Householder, Givens, RRQR, TSQR
-       └── Cholesky (computational) Blocked dpotrf, LDLᵀ for indef.
+  +-- 01 Eigenvalues -------------- QR iteration uses Householder QR
+  +-- 02 SVD ---------------------- thin QR as step in SVD algorithm
+  +-- 05 Orthogonality ------------ QR theory (Gram-Schmidt)
+  +-- 07 Positive Definite -------- Cholesky THEORY (full treatment)
+  +-- 08 Matrix Decompositions <-- YOU ARE HERE
+       +-- LU (canonical home)      PA = LU with partial pivoting
+       +-- QR algorithms            Householder, Givens, RRQR, TSQR
+       +-- Cholesky (computational) Blocked dpotrf, LDL^T for indef.
 
   Chapter 4: Calculus Fundamentals
-  ├── §04 Jacobian ───────────────── Gauss-Newton needs QR
-  └── §05 Hessian ────────────────── Cholesky at local minima
+  +-- 04 Jacobian ----------------- Gauss-Newton needs QR
+  +-- 05 Hessian ------------------ Cholesky at local minima
 
   Chapter 8: Optimization
-  ├── Newton's method ────────────── LU/Cholesky for Hessian systems
-  ├── K-FAC ──────────────────────── Kronecker-Cholesky per layer
-  └── Interior point methods ─────── Cholesky at each Newton step
+  +-- Newton's method -------------- LU/Cholesky for Hessian systems
+  +-- K-FAC ------------------------ Kronecker-Cholesky per layer
+  +-- Interior point methods ------- Cholesky at each Newton step
 
   ML Applications (load-bearing)
-  ├── GP regression ──────────────── Cholesky (O(n³) bottleneck)
-  ├── K-FAC / Shampoo ────────────── blocked Cholesky per layer
-  ├── LoRA / GaLore ──────────────── randomized QR for rank selection
-  ├── Linear probing ─────────────── Householder QR least squares
-  └── Bayesian optimization ──────── GP + Cholesky every step
+  +-- GP regression ---------------- Cholesky (O(n^3) bottleneck)
+  +-- K-FAC / Shampoo -------------- blocked Cholesky per layer
+  +-- LoRA / GaLore ---------------- randomized QR for rank selection
+  +-- Linear probing --------------- Householder QR least squares
+  +-- Bayesian optimization -------- GP + Cholesky every step
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The three factorizations of this section — LU, QR, and Cholesky — are not abstract mathematical objects. They are the algorithms that run inside every call to `numpy.linalg.solve`, `scipy.linalg.qr`, `torch.linalg.cholesky`, and LAPACK's `dgesv`, `dgeqrf`, `dpotrf`. Understanding them at this level — theorem, algorithm, numerical stability, and AI application — completes the computational linear algebra foundation needed for everything that follows.
+The three factorizations of this section - LU, QR, and Cholesky - are not abstract mathematical objects. They are the algorithms that run inside every call to `numpy.linalg.solve`, `scipy.linalg.qr`, `torch.linalg.cholesky`, and LAPACK's `dgesv`, `dgeqrf`, `dpotrf`. Understanding them at this level - theorem, algorithm, numerical stability, and AI application - completes the computational linear algebra foundation needed for everything that follows.
 
-[← Back to Advanced Linear Algebra](../README.md) | [← Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md) | [Next: Calculus Fundamentals →](../../04-Calculus-Fundamentals/README.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- Positive Definite Matrices](../07-Positive-Definite-Matrices/notes.md) | [Next: Calculus Fundamentals ->](../../04-Calculus-Fundamentals/README.md)
 
 ---
 
 ## Appendix A: Complete Algorithms and Pseudocode
 
-### A.1 LU with Partial Pivoting — Full Pseudocode
+### A.1 LU with Partial Pivoting - Full Pseudocode
 
 The following pseudocode gives the complete in-place LU factorization with partial pivoting. The matrix $A$ is overwritten: the strict lower triangle stores the multipliers $m_{ij}$ (the subdiagonal entries of $L$, since $L_{ii} = 1$ is implicit), and the upper triangle plus diagonal stores $U$.
 
 ```
 Algorithm LU_PARTIAL_PIVOT(A):
-    Input:  A ∈ ℝ^{n×n}
+    Input:  A \in \mathbb{R}^{n\timesn}
     Output: Modified A (lower: L multipliers, upper+diag: U), pivot vector piv
 
     piv = [1, 2, ..., n]   # permutation record
@@ -1221,12 +1221,12 @@ Algorithm LU_PARTIAL_PIVOT(A):
                 max_row = i
 
         # Step 2: Swap rows k and max_row
-        if max_row ≠ k:
-            swap A[k, :] ↔ A[max_row, :]
-            swap piv[k] ↔ piv[max_row]
+        if max_row \neq k:
+            swap A[k, :] <-> A[max_row, :]
+            swap piv[k] <-> piv[max_row]
 
         # Step 3: Check for (near-)singular pivot
-        if |A[k,k]| < ε:
+        if |A[k,k]| < \epsilon:
             warn("Near-singular pivot at step k")
 
         # Step 4: Compute multipliers and update
@@ -1253,15 +1253,15 @@ Solve Ax = b using LU_PARTIAL_PIVOT:
 ```
 
 **Implementation notes:**
-- The inner loop `for j = k+1 to n: A[i,j] -= A[i,k] * A[k,j]` is a **SAXPY** operation (Scalar A times X Plus Y) — BLAS level 1, vectorizable.
-- The full step 4 over all $i$ simultaneously is a **rank-1 update** $A[k+1:n, k+1:n] -= \mathbf{m} \mathbf{u}^\top$ — BLAS level 2 `DGER`.
+- The inner loop `for j = k+1 to n: A[i,j] -= A[i,k] * A[k,j]` is a **SAXPY** operation (Scalar A times X Plus Y) - BLAS level 1, vectorizable.
+- The full step 4 over all $i$ simultaneously is a **rank-1 update** $A[k+1:n, k+1:n] -= \mathbf{m} \mathbf{u}^\top$ - BLAS level 2 `DGER`.
 - Blocked version batches $b$ steps into a panel and uses **DGEMM** for the trailing update.
 
-### A.2 Householder QR — Full Pseudocode
+### A.2 Householder QR - Full Pseudocode
 
 ```
 Algorithm HOUSEHOLDER_QR(A):
-    Input:  A ∈ ℝ^{m×n}, m ≥ n
+    Input:  A \in \mathbb{R}^{m\timesn}, m \geq n
     Output: Modified A (upper triangle: R; lower triangle: Householder vectors),
             beta vector (scaling factors)
 
@@ -1295,7 +1295,7 @@ Algorithm HOUSEHOLDER_QR(A):
     return A, beta
 
 Recover Q (thin, first n columns):
-    Q = I_{m×n}
+    Q = I_{m\timesn}
     for k = n downto 1:
         # Reconstruct v from stored lower triangle
         v = [1; A[k+1:m, k]]                 # prepend implicit 1
@@ -1326,7 +1326,7 @@ Algorithm GIVENS_QR_BANDED(A, ku, kl):
     return R (upper banded), Q (product of Givens rotations)
 ```
 
-**Complexity:** $O(nk_\ell(k_\ell + k_u))$ — linear in $n$ for fixed bandwidth. This is the algorithm used in tridiagonal eigensolvers.
+**Complexity:** $O(nk_\ell(k_\ell + k_u))$ - linear in $n$ for fixed bandwidth. This is the algorithm used in tridiagonal eigensolvers.
 
 ---
 
@@ -1339,11 +1339,11 @@ Algorithm GIVENS_QR_BANDED(A, ku, kl):
 2. All leading principal minors $\det(A_k) \neq 0$ for $k = 1, \ldots, n-1$.
 3. Gaussian elimination completes without encountering a zero pivot.
 
-*Proof of (1) ⟺ (2):* We use induction. Base case $n = 1$: trivial. Inductive step: write $A = \begin{pmatrix} A_{n-1} & \mathbf{b} \\ \mathbf{c}^\top & d \end{pmatrix}$. If $A_{n-1}$ has an LU factorization $A_{n-1} = L_{n-1}U_{n-1}$ (by induction, iff all leading minors of $A_{n-1}$ are nonzero), then:
+*Proof of (1) <=> (2):* We use induction. Base case $n = 1$: trivial. Inductive step: write $A = \begin{pmatrix} A_{n-1} & \mathbf{b} \\ \mathbf{c}^\top & d \end{pmatrix}$. If $A_{n-1}$ has an LU factorization $A_{n-1} = L_{n-1}U_{n-1}$ (by induction, iff all leading minors of $A_{n-1}$ are nonzero), then:
 
 $$A = \begin{pmatrix} L_{n-1} & \mathbf{0} \\ \mathbf{c}^\top U_{n-1}^{-1} & 1 \end{pmatrix} \begin{pmatrix} U_{n-1} & L_{n-1}^{-1}\mathbf{b} \\ \mathbf{0}^\top & s \end{pmatrix}$$
 
-where $s = d - \mathbf{c}^\top A_{n-1}^{-1}\mathbf{b}$ is the **Schur complement** (see §07). This gives a valid LU factorization with all blocks well-defined. $\square$
+where $s = d - \mathbf{c}^\top A_{n-1}^{-1}\mathbf{b}$ is the **Schur complement** (see 07). This gives a valid LU factorization with all blocks well-defined. $\square$
 
 **Corollary:** The Schur complement $s = d - \mathbf{c}^\top A_{n-1}^{-1}\mathbf{b}$ is the last pivot. It equals $\det(A)/\det(A_{n-1})$. This shows that the pivot sequence in Gaussian elimination directly encodes the leading minors via their ratios.
 
@@ -1363,7 +1363,7 @@ $$(A + \delta A)\hat{\mathbf{x}} = \mathbf{b}, \quad \|\delta A\|_\infty \leq c(
 The forward error bound then follows from the perturbation lemma:
 $$\frac{\|\hat{\mathbf{x}} - \mathbf{x}^*\|_\infty}{\|\mathbf{x}^*\|_\infty} \leq \kappa_\infty(A) \cdot \frac{c(n) u g_n \|A\|_\infty}{\|A\|_\infty} + O(u^2)$$
 
-The fundamental lesson: **error = condition number × backward error**. The algorithm controls the backward error; the problem controls the condition number.
+The fundamental lesson: **error = condition number \times backward error**. The algorithm controls the backward error; the problem controls the condition number.
 
 ### B.3 Optimality of Householder QR
 
@@ -1393,7 +1393,7 @@ The QR factors are perturbed proportionally to $\kappa(A)$, not $\kappa(A)^2$ as
 
 ### C.1 LU and the Spectral Decomposition
 
-The LU factorization of $A$ is not directly related to the eigendecomposition $A = Q\Lambda Q^{-1}$, but the two share a common ancestor: **block triangularization**. The Schur decomposition $A = UTU^*$ (with $T$ upper triangular, $U$ unitary) is a complex-field generalization where $T$ is upper triangular with eigenvalues on the diagonal — the "LU" of the spectral world.
+The LU factorization of $A$ is not directly related to the eigendecomposition $A = Q\Lambda Q^{-1}$, but the two share a common ancestor: **block triangularization**. The Schur decomposition $A = UTU^*$ (with $T$ upper triangular, $U$ unitary) is a complex-field generalization where $T$ is upper triangular with eigenvalues on the diagonal - the "LU" of the spectral world.
 
 The **QR algorithm** for eigenvalues alternates QR factorizations and similarity transformations to drive $A$ toward upper triangular (Schur) form. Each QR step is one Householder QR followed by one matrix-matrix product. After convergence, the diagonal of $T$ gives the eigenvalues. This is the most important use of Householder QR in all of numerical linear algebra.
 
@@ -1403,13 +1403,13 @@ For a symmetric positive definite matrix, the Cholesky factorization $A = LL^\to
 
 $$L = U\Lambda^{1/2} R^\top$$
 
-where $R$ is the upper triangular factor of a QR decomposition of $U$. Explicitly: $L = QR$ where $Q = U$ and $R = \Lambda^{1/2} V^\top$ for some orthogonal $V$ — but this is not the standard Cholesky. The key point is that **Cholesky is a non-orthogonal factorization** while SVD is orthogonal; they capture different aspects of the same structure.
+where $R$ is the upper triangular factor of a QR decomposition of $U$. Explicitly: $L = QR$ where $Q = U$ and $R = \Lambda^{1/2} V^\top$ for some orthogonal $V$ - but this is not the standard Cholesky. The key point is that **Cholesky is a non-orthogonal factorization** while SVD is orthogonal; they capture different aspects of the same structure.
 
 **Practical consequence:** The Cholesky factor $L$ is not related to the eigenvectors of $A$ in a simple way. Computing the matrix square root $A^{1/2}$ (which requires eigenvectors) is more expensive than Cholesky.
 
 ### C.3 QR and the Gram-Schmidt-Cholesky Identity
 
-The Gram-Schmidt process applied to the columns of $A$ produces the thin QR $A = QR$. But the normal equations give $(A^\top A) = R^\top R$ — a Cholesky factorization of the Gram matrix! This identity $A^\top A = R^\top R$ explains why:
+The Gram-Schmidt process applied to the columns of $A$ produces the thin QR $A = QR$. But the normal equations give $(A^\top A) = R^\top R$ - a Cholesky factorization of the Gram matrix! This identity $A^\top A = R^\top R$ explains why:
 - QR of $A$ and Cholesky of $A^\top A$ produce the same $R$
 - Computing QR of $A$ is equivalent to computing Cholesky of $A^\top A$ in exact arithmetic
 - In floating-point, QR is more stable (works with $\kappa(A)$) while Cholesky of $A^\top A$ works with $\kappa(A)^2$
@@ -1418,7 +1418,7 @@ The Gram-Schmidt process applied to the columns of $A$ produces the thin QR $A =
 
 Beyond LU, QR, and Cholesky, recent methods have developed **structure-revealing factorizations** that select actual columns/rows of $A$:
 
-**CUR decomposition:** $A \approx CUR$ where $C$ contains a subset of columns of $A$, $R$ contains a subset of rows, and $U$ is a small "bridge" matrix. Unlike LU/QR, $C$ and $R$ are actual data columns — interpretable and memory-efficient.
+**CUR decomposition:** $A \approx CUR$ where $C$ contains a subset of columns of $A$, $R$ contains a subset of rows, and $U$ is a small "bridge" matrix. Unlike LU/QR, $C$ and $R$ are actual data columns - interpretable and memory-efficient.
 
 **Interpolative decomposition (ID):** $A \approx A_{:,J} B$ where $J$ is a subset of column indices and $B$ is a well-conditioned matrix. The ID is computed via column-pivoted QR: the pivot columns from RRQR form $J$.
 
@@ -1437,21 +1437,21 @@ import scipy.linalg as la
 # === LU Factorization ===
 # scipy.linalg.lu (returns P, L, U as separate matrices)
 P, L, U = la.lu(A)
-# verify: A ≈ P @ L @ U
+# verify: A \approx P @ L @ U
 
 # scipy.linalg.lu_factor (returns compact (LU, piv) for solving)
 lu, piv = la.lu_factor(A)
 x = la.lu_solve((lu, piv), b)     # solves Ax = b
 
 # === QR Factorization ===
-# Full QR (Q is m×m)
+# Full QR (Q is m\timesm)
 Q, R = la.qr(A)                   # default: full
-# Thin/economy QR (Q is m×n for m×n matrix A)
+# Thin/economy QR (Q is m\timesn for m\timesn matrix A)
 Q, R = la.qr(A, mode='economic')
 
 # Column-pivoted QR (rank-revealing)
 Q, R, P = la.qr(A, pivoting=True)
-# verify: A[:, P] ≈ Q @ R  (P is permutation array)
+# verify: A[:, P] \approx Q @ R  (P is permutation array)
 rank_est = np.sum(np.abs(np.diag(R)) > 1e-10 * np.abs(R[0,0]))
 
 # Apply Q^T without forming Q
@@ -1536,7 +1536,7 @@ grad_A = jax.grad(log_det_spd)(A)  # should equal A^{-1}
 
 ### E.1 Condition Number Estimation
 
-Computing the exact condition number $\kappa(A) = \|A\|_2 \|A^{-1}\|_2 = \sigma_1/\sigma_n$ requires computing all singular values — $O(n^3)$ work. LAPACK provides **cheap condition number estimators** via **inverse iteration**:
+Computing the exact condition number $\kappa(A) = \|A\|_2 \|A^{-1}\|_2 = \sigma_1/\sigma_n$ requires computing all singular values - $O(n^3)$ work. LAPACK provides **cheap condition number estimators** via **inverse iteration**:
 
 **LAPACK `DGECON`:** Given the LU factorization of $A$ (already computed for solving), estimates $\kappa_1(A) = \|A\|_1 \|A^{-1}\|_1$ in $O(n^2)$ via a sequence of triangular solves. The estimate is typically within a factor of 10 of the true condition number.
 
@@ -1594,23 +1594,23 @@ def iterative_refinement(A, b, max_iter=3, tol=1e-14):
 
 ### F.1 LU as a Basis Change
 
-The LU factorization $PA = LU$ can be interpreted geometrically. The unit lower triangular matrix $L$ represents a **shearing transformation** — it maps the standard basis $\{\mathbf{e}_i\}$ to the columns of $L$, which form a "lower triangular" basis. The upper triangular $U$ then represents the coordinates of the rows of $A$ in this new basis.
+The LU factorization $PA = LU$ can be interpreted geometrically. The unit lower triangular matrix $L$ represents a **shearing transformation** - it maps the standard basis $\{\mathbf{e}_i\}$ to the columns of $L$, which form a "lower triangular" basis. The upper triangular $U$ then represents the coordinates of the rows of $A$ in this new basis.
 
-Concretely: each step of Gaussian elimination adds multiples of row $k$ to lower rows, which is a shear in the "row space" of $A$. The cumulative effect is a change to a triangular basis — the essence of LU.
+Concretely: each step of Gaussian elimination adds multiples of row $k$ to lower rows, which is a shear in the "row space" of $A$. The cumulative effect is a change to a triangular basis - the essence of LU.
 
 ### F.2 QR as a Rotation to Triangular Form
 
 The Householder QR factorization $A = QR$ is geometrically a **rotation of the column space of $A$ to align with the coordinate axes**. Each Householder reflector $H_k$ reflects the $k$-th "residual" column to align with $\mathbf{e}_k$, zeroing out all entries below the diagonal.
 
-After $n$ reflections, the matrix $Q = H_1 H_2 \cdots H_n$ is a composition of orthogonal reflections — itself orthogonal — that has rotated $A$ to upper triangular form $R$.
+After $n$ reflections, the matrix $Q = H_1 H_2 \cdots H_n$ is a composition of orthogonal reflections - itself orthogonal - that has rotated $A$ to upper triangular form $R$.
 
 **Geometric insight:** The columns of $Q$ form an orthonormal basis for the column space of $A$. The entries of $R$ give the coordinates of the original columns of $A$ in this orthonormal basis. This is the Gram-Schmidt process, done via reflections rather than projections.
 
 ### F.3 Cholesky as the Matrix Square Root Factorization
 
-For $A \succ 0$, the Cholesky factor $L$ satisfies $A = LL^\top$ — making $L$ a "matrix square root" of $A$ in a specific sense. Unlike the symmetric square root $A^{1/2} = Q\Lambda^{1/2}Q^\top$ (which is symmetric), the Cholesky factor $L$ is lower triangular.
+For $A \succ 0$, the Cholesky factor $L$ satisfies $A = LL^\top$ - making $L$ a "matrix square root" of $A$ in a specific sense. Unlike the symmetric square root $A^{1/2} = Q\Lambda^{1/2}Q^\top$ (which is symmetric), the Cholesky factor $L$ is lower triangular.
 
-**Geometric interpretation:** The linear map $T : \mathbb{R}^n \to \mathbb{R}^n$ defined by $T\mathbf{x} = L\mathbf{x}$ transforms the unit ball $\{\mathbf{x} : \|\mathbf{x}\| \leq 1\}$ into the ellipsoid $\{\mathbf{y} : \mathbf{y}^\top A^{-1} \mathbf{y} \leq 1\}$ — the level set of the quadratic form $q(\mathbf{y}) = \mathbf{y}^\top A^{-1}\mathbf{y}$. This is why Cholesky factorization is the foundation of sampling from $\mathcal{N}(\boldsymbol{\mu}, A)$: if $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, I)$, then $L\mathbf{z} + \boldsymbol{\mu} \sim \mathcal{N}(\boldsymbol{\mu}, LL^\top) = \mathcal{N}(\boldsymbol{\mu}, A)$.
+**Geometric interpretation:** The linear map $T : \mathbb{R}^n \to \mathbb{R}^n$ defined by $T\mathbf{x} = L\mathbf{x}$ transforms the unit ball $\{\mathbf{x} : \|\mathbf{x}\| \leq 1\}$ into the ellipsoid $\{\mathbf{y} : \mathbf{y}^\top A^{-1} \mathbf{y} \leq 1\}$ - the level set of the quadratic form $q(\mathbf{y}) = \mathbf{y}^\top A^{-1}\mathbf{y}$. This is why Cholesky factorization is the foundation of sampling from $\mathcal{N}(\boldsymbol{\mu}, A)$: if $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, I)$, then $L\mathbf{z} + \boldsymbol{\mu} \sim \mathcal{N}(\boldsymbol{\mu}, LL^\top) = \mathcal{N}(\boldsymbol{\mu}, A)$.
 
 **Uniqueness:** The Cholesky factor $L$ with positive diagonal entries is unique for every $A \succ 0$. The symmetric square root $A^{1/2}$ is also unique and PSD, but it is NOT the same as $L$ (they differ by an orthogonal factor).
 
@@ -1621,11 +1621,11 @@ The space of all $n \times n$ invertible matrices $GL_n(\mathbb{R})$ acts on the
 - **QR factorizations** correspond to $GL_n = O(n) \cdot B_+$ where $O(n)$ is the orthogonal group. This decomposition is always unique (no exceptional cases, unlike LU).
 - The **flag manifold** $Fl(n) = GL_n / B_+$ parameterizes complete flags $V_1 \subset V_2 \subset \cdots \subset V_n = \mathbb{R}^n$ and is the natural geometric setting for both LU and QR.
 
-This connection to Lie group theory underlies the deep relationship between matrix factorizations and the geometry of symmetric spaces — a topic developed in Chapter 12 (Functional Analysis).
+This connection to Lie group theory underlies the deep relationship between matrix factorizations and the geometry of symmetric spaces - a topic developed in Chapter 12 (Functional Analysis).
 
 ---
 
-## Appendix G: Randomized Algorithms — Deeper Theory
+## Appendix G: Randomized Algorithms - Deeper Theory
 
 ### G.1 The Randomized SVD via QR
 
@@ -1633,14 +1633,14 @@ The **Halko-Martinsson-Tropp (2011)** algorithm computes a rank-$r$ approximatio
 
 ```
 Algorithm RANDOMIZED_SVD(A, r, p):
-    # Oversampling: target rank r + p (p ≈ 10)
-    Ω = randn(n, r+p)              # Gaussian sketch matrix
-    Y = A @ Ω                       # Sketch: Y ∈ ℝ^{m×(r+p)}
-    Q, _ = qr(Y)                   # Orthonormalize: Q ∈ ℝ^{m×(r+p)}
-    B = Q.T @ A                    # Project: B ∈ ℝ^{(r+p)×n}
-    Û, Σ, Vt = svd(B, full_matrices=False)  # SVD of small matrix
-    U = Q @ Û                      # Lift back to full space
-    return U[:, :r], Σ[:r], Vt[:r, :]
+    # Oversampling: target rank r + p (p \approx 10)
+    \Omega = randn(n, r+p)              # Gaussian sketch matrix
+    Y = A @ \Omega                       # Sketch: Y \in \mathbb{R}^{m\times(r+p)}
+    Q, _ = qr(Y)                   # Orthonormalize: Q \in \mathbb{R}^{m\times(r+p)}
+    B = Q.T @ A                    # Project: B \in \mathbb{R}^{(r+p)\timesn}
+    U, \Sigma, Vt = svd(B, full_matrices=False)  # SVD of small matrix
+    U = Q @ U                      # Lift back to full space
+    return U[:, :r], \Sigma[:r], Vt[:r, :]
 ```
 
 **Error bound:** With probability $\geq 1 - \delta$:
@@ -1651,7 +1651,7 @@ For $p = 10$: error is $\approx 2\sigma_{r+1}(A)$ with probability $> 99\%$.
 **Power iteration improvement:** For matrices with slowly decaying singular values, applying $Y = (AA^\top)^q A\Omega$ (with $q = 1$ or $2$ power iterations) dramatically improves accuracy:
 $$\|A - \hat{A}_r\|_2 \leq \left(\frac{\sigma_{r+1}(A)}{\sigma_r(A)}\right)^{2q}\!\!\cdot \text{(base error)}$$
 
-**For AI — GaLore (Zhao et al., 2024):** GaLore uses randomized SVD to project gradient matrices $G_t \in \mathbb{R}^{m \times n}$ onto their principal $r$-dimensional subspace every $T = 200$ steps. The projection matrix $P_t \in \mathbb{R}^{n \times r}$ is computed via randomized SVD of the gradient, then Adam is applied to the projected gradients $G_t P_t \in \mathbb{R}^{m \times r}$. This reduces optimizer memory by $n/r$ while maintaining training quality.
+**For AI - GaLore (Zhao et al., 2024):** GaLore uses randomized SVD to project gradient matrices $G_t \in \mathbb{R}^{m \times n}$ onto their principal $r$-dimensional subspace every $T = 200$ steps. The projection matrix $P_t \in \mathbb{R}^{n \times r}$ is computed via randomized SVD of the gradient, then Adam is applied to the projected gradients $G_t P_t \in \mathbb{R}^{m \times r}$. This reduces optimizer memory by $n/r$ while maintaining training quality.
 
 ### G.2 Structured Random Matrices
 
@@ -1674,17 +1674,17 @@ Instead of dense Gaussian $\Omega$, structured random matrices enable faster ske
 
 ```
 User Code (Python/Julia/MATLAB)
-    ↓
+    down
 SciPy / NumPy / PyTorch / JAX (Python wrappers)
-    ↓
+    down
 LAPACK (high-level: LU, QR, Cholesky, eigensolvers)
-    ↓
-BLAS Level 3 (DGEMM, DSYRK, DTRSM — blocked, cache-optimal)
-BLAS Level 2 (DGEMV, DGER — matrix-vector)
-BLAS Level 1 (DDOT, DAXPY, DNRM2 — vector)
-    ↓
+    down
+BLAS Level 3 (DGEMM, DSYRK, DTRSM - blocked, cache-optimal)
+BLAS Level 2 (DGEMV, DGER - matrix-vector)
+BLAS Level 1 (DDOT, DAXPY, DNRM2 - vector)
+    down
 Hardware-optimized BLAS (MKL, OpenBLAS, cuBLAS, BLIS)
-    ↓
+    down
 CPU/GPU Tensor Cores / AVX-512 / AMX tiles
 ```
 
@@ -1700,23 +1700,23 @@ CPU/GPU Tensor Cores / AVX-512 / AMX tiles
 
 ```
 Need to solve Ax = b?
-├── A is SPD? → DPOTRF (Cholesky) + DPOTRS
-├── A is symmetric indefinite? → DSYTRF (LDLᵀ) + DSYTRS
-├── A is general square? → DGESV (= DGETRF + DGETRS, partial pivot)
-└── A is triangular? → DTRTRS (triangular solve directly)
++-- A is SPD? -> DPOTRF (Cholesky) + DPOTRS
++-- A is symmetric indefinite? -> DSYTRF (LDL^T) + DSYTRS
++-- A is general square? -> DGESV (= DGETRF + DGETRS, partial pivot)
++-- A is triangular? -> DTRTRS (triangular solve directly)
 
 Need to solve min ||Ax - b||?
-├── A is full-rank, well-conditioned? → DGELS (QR-based least squares)
-├── A may be rank-deficient? → DGELSY (column-pivoted QR)
-└── Need minimum-norm solution? → DGELSD (divide-and-conquer SVD)
++-- A is full-rank, well-conditioned? -> DGELS (QR-based least squares)
++-- A may be rank-deficient? -> DGELSY (column-pivoted QR)
++-- Need minimum-norm solution? -> DGELSD (divide-and-conquer SVD)
 
 Need eigenvalues?
-├── A is symmetric? → DSYEV (or DSYEVD for large n)
-└── A is general? → DGEEV (QR iteration)
++-- A is symmetric? -> DSYEV (or DSYEVD for large n)
++-- A is general? -> DGEEV (QR iteration)
 
 Need SVD?
-├── Full SVD? → DGESVD or DGESDD (divide-and-conquer, faster)
-└── Truncated SVD? → Use randomized SVD (not in LAPACK)
++-- Full SVD? -> DGESVD or DGESDD (divide-and-conquer, faster)
++-- Truncated SVD? -> Use randomized SVD (not in LAPACK)
 ```
 
 CHUNK_APPENDIX
@@ -1725,36 +1725,36 @@ CHUNK_APPENDIX
 
 ## Appendix I: Practical Decision Guide for Practitioners
 
-### I.1 Which Factorization to Use? — Decision Tree
+### I.1 Which Factorization to Use? - Decision Tree
 
 The choice among LU, QR, and Cholesky depends on matrix structure, problem type, and numerical requirements. The following decision framework covers the vast majority of practical cases.
 
 ```
 MATRIX FACTORIZATION SELECTION GUIDE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
  Is A symmetric?
- ├── YES: Is A positive definite? (all eigenvalues > 0)
- │   ├── YES: → CHOLESKY (dpotrf)
- │   │         Cost: n³/3 flops. Fastest, most stable for SPD.
- │   │         Use for: Gaussians, GP regression, K-FAC, Fisher
- │   └── NO:  → LDLᵀ (dsytrf, Bunch-Kaufman pivoting)
- │              Cost: n³/3 flops. Handles indefinite (saddle pts).
- │              Use for: indefinite Hessians, Newton at saddle pts
- └── NO:  Is A square?
-     ├── YES: → LU with partial pivoting (dgetrf)
-     │         Cost: 2n³/3 flops. General purpose.
-     │         Use for: Solving Ax=b, computing det(A)
-     └── NO:  Is A overdetermined (m > n)? → LEAST SQUARES
-         ├── Well-conditioned & fast? → Normal equations + Cholesky
-         │   Cost: mn² + n³/3. Squares condition number.
-         ├── General / numerically safe? → Householder QR (dgelsy)
-         │   Cost: 2mn² - 2n³/3. Standard choice.
-         └── May be rank-deficient? → Column-pivoted QR or SVD
-             RRQR: O(mn²), good rank estimate
-             SVD:  O(mn²+n³), exact singular values
+ +-- YES: Is A positive definite? (all eigenvalues > 0)
+ |   +-- YES: -> CHOLESKY (dpotrf)
+ |   |         Cost: n^3/3 flops. Fastest, most stable for SPD.
+ |   |         Use for: Gaussians, GP regression, K-FAC, Fisher
+ |   +-- NO:  -> LDL^T (dsytrf, Bunch-Kaufman pivoting)
+ |              Cost: n^3/3 flops. Handles indefinite (saddle pts).
+ |              Use for: indefinite Hessians, Newton at saddle pts
+ +-- NO:  Is A square?
+     +-- YES: -> LU with partial pivoting (dgetrf)
+     |         Cost: 2n^3/3 flops. General purpose.
+     |         Use for: Solving Ax=b, computing det(A)
+     +-- NO:  Is A overdetermined (m > n)? -> LEAST SQUARES
+         +-- Well-conditioned & fast? -> Normal equations + Cholesky
+         |   Cost: mn^2 + n^3/3. Squares condition number.
+         +-- General / numerically safe? -> Householder QR (dgelsy)
+         |   Cost: 2mn^2 - 2n^3/3. Standard choice.
+         +-- May be rank-deficient? -> Column-pivoted QR or SVD
+             RRQR: O(mn^2), good rank estimate
+             SVD:  O(mn^2+n^3), exact singular values
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### I.2 Numerical Precision Requirements
@@ -1776,7 +1776,7 @@ For a matrix of size $n \times n$:
 | LU | $n^2$ (in-place) | $\frac{2}{3}n^3$ | $2n^2$ |
 | QR (Householder) | $mn$ + $n^2$ | $2mn^2 - \frac{2}{3}n^3$ | $2mn$ for $Q^\top b$, $n^2$ for backsolve |
 | Cholesky | $\frac{n(n+1)}{2}$ | $\frac{1}{3}n^3$ | $n^2$ |
-| LDLᵀ | $\frac{n(n+1)}{2}$ | $\frac{1}{3}n^3$ | $n^2$ |
+| LDL^T | $\frac{n(n+1)}{2}$ | $\frac{1}{3}n^3$ | $n^2$ |
 
 **Memory for large $n$:**
 - $n = 10{,}000$: LU requires $10^8$ doubles = 800 MB (fits in GPU HBM)
@@ -1806,12 +1806,12 @@ For a matrix of size $n \times n$:
 | `scipy.linalg.lu_solve((lu,piv), b)` | LAPACK DGETRS | Amortized over many b |
 | `torch.linalg.solve(A, b)` | cuSOLVER DGESV (GPU) / MKL (CPU) | Autograd supported |
 | `torch.linalg.cholesky(A)` | cuSOLVER DPOTRF (GPU) | Autograd via implicit diff |
-| `jax.numpy.linalg.solve(A, b)` | XLA:HLO → cuSOLVER / LAPACK | JIT, vmap, grad |
+| `jax.numpy.linalg.solve(A, b)` | XLA:HLO -> cuSOLVER / LAPACK | JIT, vmap, grad |
 | `sklearn.linear_model.Ridge(solver='cholesky')` | LAPACK DPOTRS | Normal equations + Cholesky |
 
 ---
 
-## Appendix J: Extended Example — GP Hyperparameter Optimization
+## Appendix J: Extended Example - GP Hyperparameter Optimization
 
 This appendix walks through a complete GP regression pipeline showing how LU, QR, and Cholesky all appear in different roles within the same ML workflow.
 
@@ -1821,7 +1821,7 @@ We have $n = 200$ observations $\{(x^{(i)}, y^{(i)})\}_{i=1}^n$ from $f(x) = \si
 
 ### J.2 Where Each Factorization Appears
 
-**Cholesky — computing the GP posterior:**
+**Cholesky - computing the GP posterior:**
 
 The kernel matrix $K = K_{nn} + \sigma_n^2 I \succ 0$ is factored via Cholesky:
 $$L = \operatorname{chol}(K), \quad \boldsymbol{\alpha} = L^{-\top}(L^{-1}\mathbf{y})$$
@@ -1829,33 +1829,33 @@ $$\log p(\mathbf{y}) = -\frac{1}{2}\mathbf{y}^\top\boldsymbol{\alpha} - \sum_i\l
 
 The log-determinant $\sum_i \log L_{ii}$ is computed from the Cholesky diagonal at zero additional cost.
 
-**LU (implicit, via matrix-vector products) — CG solver for large $n$:**
+**LU (implicit, via matrix-vector products) - CG solver for large $n$:**
 
 For $n = 10^4$, direct Cholesky costs $10^{12}$ flops. Instead, conjugate gradient (CG) is used to solve $(K_{nn} + \sigma_n^2 I)\boldsymbol{\alpha} = \mathbf{y}$ iteratively. Each CG iteration requires one matrix-vector product $K_{nn}\mathbf{v}$, plus the application of a **preconditioner**.
 
 The preconditioner is a low-rank + diagonal approximation $(U\Lambda U^\top + \sigma_n^2 I)^{-1}$, where $U\Lambda U^\top$ is a rank-$r$ approximation of $K_{nn}$ computed via randomized SVD (which uses QR internally). The preconditioned CG converges in $O(r)$ iterations instead of $O(\kappa(K))$.
 
-**QR — selecting inducing points:**
+**QR - selecting inducing points:**
 
 For the sparse GP with $m \ll n$ inducing points, the inducing point locations are selected via column-pivoted QR on the feature matrix:
 $$\Phi = \begin{pmatrix} \phi(x^{(1)})^\top \\ \vdots \\ \phi(x^{(n)})^\top \end{pmatrix} \in \mathbb{R}^{n \times r}$$
-The pivot columns of `scipy.linalg.qr(Φ.T, pivoting=True)` identify the most "important" training points — those that span the feature space. These become the inducing points.
+The pivot columns of `scipy.linalg.qr(\Phi.T, pivoting=True)` identify the most "important" training points - those that span the feature space. These become the inducing points.
 
-**Cholesky — computing the evidence lower bound (ELBO) for inducing point GP:**
+**Cholesky - computing the evidence lower bound (ELBO) for inducing point GP:**
 
-The sparse GP ELBO requires computing the Cholesky of the $m \times m$ inducing point kernel matrix $K_{mm}$ plus a correction term — again $O(m^3)$ with $m \ll n$.
+The sparse GP ELBO requires computing the Cholesky of the $m \times m$ inducing point kernel matrix $K_{mm}$ plus a correction term - again $O(m^3)$ with $m \ll n$.
 
 ### J.3 Hyperparameter Optimization
 
 The hyperparameters $\theta = (\ell, s_f, \sigma_n)$ are optimized by maximizing the log marginal likelihood $\log p(\mathbf{y} \mid X, \theta)$ via gradient-based optimization (L-BFGS or Adam). Each gradient evaluation requires:
 
-1. A new Cholesky factorization of $K(\theta)$ — $O(n^3)$
+1. A new Cholesky factorization of $K(\theta)$ - $O(n^3)$
 2. Computing $\partial\log p / \partial\theta_k = \frac{1}{2}\operatorname{tr}\left[({\boldsymbol{\alpha}}\boldsymbol{\alpha}^\top - K^{-1})\frac{\partial K}{\partial\theta_k}\right]$
-3. Each trace computation uses: $\operatorname{tr}(A B) = \sum_{i,j} A_{ij}B_{ji} = \operatorname{vec}(A)^\top\operatorname{vec}(B)$ — $O(n^2)$ per hyperparameter
+3. Each trace computation uses: $\operatorname{tr}(A B) = \sum_{i,j} A_{ij}B_{ji} = \operatorname{vec}(A)^\top\operatorname{vec}(B)$ - $O(n^2)$ per hyperparameter
 
-Total cost per hyperparameter gradient: $O(n^3 + pn^2)$ for $p$ hyperparameters. For $n = 1000$, $p = 3$: about $3 \times 10^9$ flops — feasible in seconds on modern hardware.
+Total cost per hyperparameter gradient: $O(n^3 + pn^2)$ for $p$ hyperparameters. For $n = 1000$, $p = 3$: about $3 \times 10^9$ flops - feasible in seconds on modern hardware.
 
-This complete pipeline illustrates that a single ML workflow (GP regression with hyperparameter optimization) relies on Cholesky (3+ times, for different matrices), randomized QR (for inducing points), and CG with preconditioner (which involves implicit LU-like operations) — all in service of a Bayesian inference computation.
+This complete pipeline illustrates that a single ML workflow (GP regression with hyperparameter optimization) relies on Cholesky (3+ times, for different matrices), randomized QR (for inducing points), and CG with preconditioner (which involves implicit LU-like operations) - all in service of a Bayesian inference computation.
 
 CHUNK_APPENDIXI
 
@@ -1894,12 +1894,12 @@ where $P_t$ comes from the right singular vectors of $G_t$ (randomized SVD). Ada
 ### K.4 Numerical Linear Algebra for AI Accelerators
 
 **Tensor Cores and Mixed Precision:** NVIDIA A100/H100 Tensor Cores perform $D = AB + C$ where $A, B$ are FP16/BF16 and $C, D$ are FP32, achieving $312$ TFLOPS (FP16) vs $19.5$ TFLOPS (FP64). All modern factorization libraries exploit this:
-- **cuSOLVER RF** (Iterative Refinement): FP16 factor + FP32 residual + FP32 correction — full FP32 accuracy at near-FP16 throughput
+- **cuSOLVER RF** (Iterative Refinement): FP16 factor + FP32 residual + FP32 correction - full FP32 accuracy at near-FP16 throughput
 - **cuBLAS Tensor Core GEMM**: All blocked factorizations (LU, QR, Cholesky trailing updates) use TC-GEMM for the dominant computation
 
 **Intel AMX (Advanced Matrix Extensions):** New Intel architecture extensions (Sapphire Rapids, 2023) add hardware matrix tile registers and tile-based GEMM instructions. BLIS and MKL exploit AMX for $2\times$ speedup over AVX-512 on blocked factorizations.
 
-**AMD MI300X:** 192 GB HBM3 + 5.3 TB/s bandwidth enables $n = 65{,}000$ Cholesky factorization in GPU memory — sufficient for large GP regression without blocking across devices.
+**AMD MI300X:** 192 GB HBM3 + 5.3 TB/s bandwidth enables $n = 65{,}000$ Cholesky factorization in GPU memory - sufficient for large GP regression without blocking across devices.
 
 ---
 
@@ -1924,8 +1924,8 @@ For quick reference, here are the key theorems and facts from this section:
 **Cholesky Factorization:**
 - Exists iff $A \succ 0$ (equivalently: all eigenvalues positive).
 - Cost: $\frac{1}{3}n^3$ flops (half of LU); unconditionally backward stable without pivoting.
-- Log-determinant: $\log\det A = 2\sum_i\log L_{ii}$ — exact, $O(n)$ after Cholesky.
-- Gradient: $\nabla_A\log\det A = A^{-1}$ — computed in $O(n^2)$ via Cholesky solve.
+- Log-determinant: $\log\det A = 2\sum_i\log L_{ii}$ - exact, $O(n)$ after Cholesky.
+- Gradient: $\nabla_A\log\det A = A^{-1}$ - computed in $O(n^2)$ via Cholesky solve.
 
 **Backward Stability:**
 - Forward error $\leq \kappa(A) \times$ backward error (fundamental inequality).
@@ -1936,7 +1936,7 @@ CHUNK_FINAL
 
 ---
 
-## Appendix M: Exercises — Further Problems
+## Appendix M: Exercises - Further Problems
 
 ### M.1 Theoretical Extensions
 
@@ -1950,7 +1950,7 @@ CHUNK_FINAL
 (a) $H = H^\top$ (symmetric)
 (b) $H^\top H = I$ (orthogonal)
 (c) $\det(H) = -1$ (orientation-reversing)
-(d) $H^2 = I$ (involutory — its own inverse)
+(d) $H^2 = I$ (involutory - its own inverse)
 
 **Problem M.5.** Prove that QR with column pivoting finds the best rank-$r$ approximation in the following sense: if $\operatorname{rank}(A) = r$ and $P$ is chosen so that $|R_{11}| \geq |R_{22}| \geq \cdots$, then the leading $r \times r$ block $R_{11}$ of $R$ satisfies $\sigma_r(R_{11}) \geq \sigma_r(A) / \sqrt{1 + r(n-r)}$.
 
@@ -1974,40 +1974,40 @@ Compare and explain the improvement using backward error theory.
 
 ## References
 
-1. Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations* (4th ed.). Johns Hopkins University Press. — The definitive reference for all material in this section.
+1. Golub, G. H. & Van Loan, C. F. (2013). *Matrix Computations* (4th ed.). Johns Hopkins University Press. - The definitive reference for all material in this section.
 
-2. Trefethen, L. N. & Bau, D. (1997). *Numerical Linear Algebra*. SIAM. — Exceptionally clear treatment of Householder QR and backward error analysis.
+2. Trefethen, L. N. & Bau, D. (1997). *Numerical Linear Algebra*. SIAM. - Exceptionally clear treatment of Householder QR and backward error analysis.
 
-3. Higham, N. J. (2002). *Accuracy and Stability of Numerical Algorithms* (2nd ed.). SIAM. — Comprehensive analysis of numerical stability; source for all error bounds cited here.
+3. Higham, N. J. (2002). *Accuracy and Stability of Numerical Algorithms* (2nd ed.). SIAM. - Comprehensive analysis of numerical stability; source for all error bounds cited here.
 
-4. Demmel, J. W. (1997). *Applied Numerical Linear Algebra*. SIAM. — Excellent treatment of LU pivoting strategies and condition estimation.
+4. Demmel, J. W. (1997). *Applied Numerical Linear Algebra*. SIAM. - Excellent treatment of LU pivoting strategies and condition estimation.
 
-5. Householder, A. S. (1958). Unitary triangularization of a nonsymmetric matrix. *Journal of the ACM*, 5(4), 339–342. — Original Householder reflector paper.
+5. Householder, A. S. (1958). Unitary triangularization of a nonsymmetric matrix. *Journal of the ACM*, 5(4), 339-342. - Original Householder reflector paper.
 
-6. Wilkinson, J. H. (1961). Error analysis of direct methods of matrix inversion. *Journal of the ACM*, 8(3), 281–330. — Foundational backward error analysis for LU.
+6. Wilkinson, J. H. (1961). Error analysis of direct methods of matrix inversion. *Journal of the ACM*, 8(3), 281-330. - Foundational backward error analysis for LU.
 
-7. Halko, N., Martinsson, P.-G., & Tropp, J. A. (2011). Finding structure with randomness: Probabilistic algorithms for constructing approximate matrix decompositions. *SIAM Review*, 53(2), 217–288. — Randomized QR/SVD framework.
+7. Halko, N., Martinsson, P.-G., & Tropp, J. A. (2011). Finding structure with randomness: Probabilistic algorithms for constructing approximate matrix decompositions. *SIAM Review*, 53(2), 217-288. - Randomized QR/SVD framework.
 
-8. Martens, J. & Grosse, R. (2015). Optimizing neural networks with Kronecker-factored approximate curvature. *ICML 2015*. — K-FAC: Cholesky for Fisher information blocks.
+8. Martens, J. & Grosse, R. (2015). Optimizing neural networks with Kronecker-factored approximate curvature. *ICML 2015*. - K-FAC: Cholesky for Fisher information blocks.
 
-9. Hu, E. J. et al. (2022). LoRA: Low-rank adaptation of large language models. *ICLR 2022*. — Low-rank decomposition for fine-tuning.
+9. Hu, E. J. et al. (2022). LoRA: Low-rank adaptation of large language models. *ICLR 2022*. - Low-rank decomposition for fine-tuning.
 
-10. Zhao, J. et al. (2024). GaLore: Memory-efficient LLM training by gradient low-rank projection. *ICML 2024*. — Randomized SVD/QR for gradient compression.
+10. Zhao, J. et al. (2024). GaLore: Memory-efficient LLM training by gradient low-rank projection. *ICML 2024*. - Randomized SVD/QR for gradient compression.
 
-11. Bunch, J. R. & Kaufman, L. (1977). Some stable methods for calculating inertia and solving symmetric linear systems. *Mathematics of Computation*, 31(137), 163–179. — LDLᵀ with Bunch-Kaufman pivoting.
+11. Bunch, J. R. & Kaufman, L. (1977). Some stable methods for calculating inertia and solving symmetric linear systems. *Mathematics of Computation*, 31(137), 163-179. - LDL^T with Bunch-Kaufman pivoting.
 
-12. Anderson, E. et al. (1999). *LAPACK Users' Guide* (3rd ed.). SIAM. — LAPACK routine reference and algorithmic details.
+12. Anderson, E. et al. (1999). *LAPACK Users' Guide* (3rd ed.). SIAM. - LAPACK routine reference and algorithmic details.
 
-13. Gardner, J. R. et al. (2018). GPyTorch: Blackbox matrix-matrix Gaussian process inference with GPU acceleration. *NeurIPS 2018*. — CG-based GP inference for large-scale regression.
+13. Gardner, J. R. et al. (2018). GPyTorch: Blackbox matrix-matrix Gaussian process inference with GPU acceleration. *NeurIPS 2018*. - CG-based GP inference for large-scale regression.
 
-14. Demmel, J., Grigori, L., Hoemmen, M., & Langou, J. (2008). Communication-optimal parallel and sequential QR and LU factorizations. *SIAM Journal on Scientific Computing*, 34(1), A206–A239. — TSQR and communication-avoiding algorithms.
+14. Demmel, J., Grigori, L., Hoemmen, M., & Langou, J. (2008). Communication-optimal parallel and sequential QR and LU factorizations. *SIAM Journal on Scientific Computing*, 34(1), A206-A239. - TSQR and communication-avoiding algorithms.
 
-15. Shah, J. et al. (2024). FlashAttention-3: Fast and accurate attention with asynchrony and low-precision. *arXiv:2407.08608*. — Block-tiled attention exploiting BLAS-3 structure.
+15. Shah, J. et al. (2024). FlashAttention-3: Fast and accurate attention with asynchrony and low-precision. *arXiv:2407.08608*. - Block-tiled attention exploiting BLAS-3 structure.
 
 
 ---
 
-## Appendix M: Exercises — Further Problems
+## Appendix M: Exercises - Further Problems
 
 ### M.1 Theoretical Extensions
 

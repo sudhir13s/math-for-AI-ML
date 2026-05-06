@@ -1,32 +1,32 @@
-[← Back to Chapter 10](../README.md) | [Next: Numerical Optimization →](../03-Numerical-Optimization/notes.md)
+[<- Back to Chapter 10](../README.md) | [Next: Numerical Optimization ->](../03-Numerical-Optimization/notes.md)
 
 ---
 
 # Numerical Linear Algebra
 
-> _"It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts — and in linear algebra, the theory of stable computation is entirely about facts: actual rounding errors, actual condition numbers, actual flop counts."_
+> _"It is a capital mistake to theorize before one has data. Insensibly one begins to twist facts to suit theories, instead of theories to suit facts - and in linear algebra, the theory of stable computation is entirely about facts: actual rounding errors, actual condition numbers, actual flop counts."_
 
 ## Overview
 
-Numerical linear algebra is the study of algorithms for solving the core computational problems of linear algebra — linear systems, least squares, eigenvalue problems, and matrix factorizations — in the presence of floating-point arithmetic. The central challenge: mathematical equivalence does not imply numerical equivalence. The Gaussian elimination formula $x = A^{-1}b$ is mathematically exact but computationally disastrous without pivoting; the Normal equations $A^\top A x = A^\top b$ are correct but the QR approach is more numerically stable.
+Numerical linear algebra is the study of algorithms for solving the core computational problems of linear algebra - linear systems, least squares, eigenvalue problems, and matrix factorizations - in the presence of floating-point arithmetic. The central challenge: mathematical equivalence does not imply numerical equivalence. The Gaussian elimination formula $x = A^{-1}b$ is mathematically exact but computationally disastrous without pivoting; the Normal equations $A^\top A x = A^\top b$ are correct but the QR approach is more numerically stable.
 
-This section covers the algorithms that power deep learning, scientific computing, and data analysis: LU with partial pivoting, QR via Householder reflectors, iterative solvers for large sparse systems, the conjugate gradient method, and the numerical sensitivity of eigenvalue problems. Every algorithm is analyzed through the lens of backward stability — the gold standard for numerical linear algebra.
+This section covers the algorithms that power deep learning, scientific computing, and data analysis: LU with partial pivoting, QR via Householder reflectors, iterative solvers for large sparse systems, the conjugate gradient method, and the numerical sensitivity of eigenvalue problems. Every algorithm is analyzed through the lens of backward stability - the gold standard for numerical linear algebra.
 
 **AI connections:** Every gradient computation requires a matrix-vector product; attention mechanisms compute $QK^\top V$ via batched matrix-matrix multiplications; training large language models involves solving implicit linear systems via iterative optimization. The choice of algorithm and its numerical properties directly affect convergence, stability, and generalization.
 
 ## Prerequisites
 
-- [§01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) — machine epsilon, condition numbers, backward stability
-- [§02-Linear-Algebra-Basics/03-Systems-of-Equations](../../02-Linear-Algebra-Basics/03-Systems-of-Equations/notes.md) — Gaussian elimination, existence, uniqueness
-- [§03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md) — LU, QR, Cholesky theory
-- [§03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md) — eigenvalue theory
+- [Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) - machine epsilon, condition numbers, backward stability
+- [Section02-Linear-Algebra-Basics/03-Systems-of-Equations](../../02-Linear-Algebra-Basics/03-Systems-of-Equations/notes.md) - Gaussian elimination, existence, uniqueness
+- [Section03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md) - LU, QR, Cholesky theory
+- [Section03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md) - eigenvalue theory
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | LU factorization, QR, iterative solvers, conjugate gradient, condition estimation |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises on stability, pivoting, iterative methods, and AI applications |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises on stability, pivoting, iterative methods, and AI applications |
 
 ## Learning Objectives
 
@@ -102,7 +102,7 @@ $$Rx = Q^\top b$$
 Both are mathematically equivalent when $A$ has full column rank, but their **condition numbers differ**:
 $$\kappa(A^\top A) = \kappa(A)^2$$
 
-If $A$ has condition number $\kappa(A) = 10^7$ (common in practice), then $A^\top A$ has condition number $10^{14}$ — beyond fp64 precision. QR factorization preserves $\kappa(A)$.
+If $A$ has condition number $\kappa(A) = 10^7$ (common in practice), then $A^\top A$ has condition number $10^{14}$ - beyond fp64 precision. QR factorization preserves $\kappa(A)$.
 
 **For AI:** When training neural networks, you are implicitly solving linear systems at every step. The choice of optimizer (SGD vs Adam vs second-order methods), the use of batch normalization, and the initialization strategy all reflect numerical linear algebra considerations, even if they are rarely stated as such.
 
@@ -124,46 +124,46 @@ The fundamental theorem then states: forward error $\leq$ condition number $\tim
 
 ```
 NUMERICAL LINEAR ALGEBRA: HISTORICAL TIMELINE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1947  von Neumann & Goldstine — first systematic error analysis of
+  1947  von Neumann & Goldstine - first systematic error analysis of
         Gaussian elimination; estimated stability incorrectly (pessimistic)
 
-  1951  Turing — defined matrix condition number $\kappa(A)$;
+  1951  Turing - defined matrix condition number $\kappa(A)$;
         connected it to loss of significant digits
 
-  1954  Wilkinson — proved Gaussian elimination with partial pivoting
+  1954  Wilkinson - proved Gaussian elimination with partial pivoting
         is backward stable in practice; introduced error analysis
         methodology that became the foundation of the field
 
-  1958  Householder — reflector-based QR factorization; proved backward
+  1958  Householder - reflector-based QR factorization; proved backward
         stable; superior to Gram-Schmidt for loss of orthogonality
 
-  1961  Lanczos — Lanczos iteration for symmetric eigenvalue problems;
+  1961  Lanczos - Lanczos iteration for symmetric eigenvalue problems;
         precursor to modern Krylov subspace methods
 
-  1965  Golub & Kahan — bidiagonalization for SVD computation;
+  1965  Golub & Kahan - bidiagonalization for SVD computation;
         established SVD as numerically accessible
 
-  1968  Wilkinson — "The Algebraic Eigenvalue Problem"; definitive
+  1968  Wilkinson - "The Algebraic Eigenvalue Problem"; definitive
         reference on eigenvalue computation stability
 
-  1976  Paige & Saunders — MINRES and SYMMLQ; stable iterative methods
+  1976  Paige & Saunders - MINRES and SYMMLQ; stable iterative methods
         for symmetric systems
 
-  1986  Saad & Schultz — GMRES algorithm; now standard for non-symmetric
+  1986  Saad & Schultz - GMRES algorithm; now standard for non-symmetric
         iterative solution
 
-  1994  LAPACK released — standardized implementation of all major
+  1994  LAPACK released - standardized implementation of all major
         backward-stable dense linear algebra routines
 
-  2008  Buttari et al. — mixed-precision iterative refinement;
+  2008  Buttari et al. - mixed-precision iterative refinement;
         fp16 factorization + fp64 refinement
 
-  2022+ — cuBLAS, cuSOLVER using Tensor Cores (tf32/bf16) for
+  2022+ - cuBLAS, cuSOLVER using Tensor Cores (tf32/bf16) for
         matrix operations in LLM training and inference
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -183,9 +183,9 @@ Let $f: \mathbb{R}^n \to \mathbb{R}^m$ be the mathematical function we want to c
 **Relative backward error:** $\|\delta x\| / \|x\|$
 
 **Algorithm $\hat{f}$ is:**
-- **Accurate** if forward error $= O(\varepsilon_{\text{mach}})$ — computes the answer to full precision
-- **Backward stable** if relative backward error $= O(\varepsilon_{\text{mach}})$ — solves a nearby problem exactly
-- **Forward stable** if relative forward error $= O(\kappa(f, x) \varepsilon_{\text{mach}})$ — optimal up to condition number
+- **Accurate** if forward error $= O(\varepsilon_{\text{mach}})$ - computes the answer to full precision
+- **Backward stable** if relative backward error $= O(\varepsilon_{\text{mach}})$ - solves a nearby problem exactly
+- **Forward stable** if relative forward error $= O(\kappa(f, x) \varepsilon_{\text{mach}})$ - optimal up to condition number
 
 **Example: inner product** $f(x, y) = x^\top y$
 
@@ -197,7 +197,7 @@ So naive inner product is backward stable (relative backward error $\leq n \vare
 But the condition number of the inner product is:
 $$\kappa = \frac{\|x\| \|y\|}{|x^\top y|}$$
 
-which can be huge when $x \approx -y$ (catastrophic cancellation). The forward error $\leq \kappa \cdot n \varepsilon_{\text{mach}}$ can be large, but the algorithm itself is not to blame — the problem is ill-conditioned.
+which can be huge when $x \approx -y$ (catastrophic cancellation). The forward error $\leq \kappa \cdot n \varepsilon_{\text{mach}}$ can be large, but the algorithm itself is not to blame - the problem is ill-conditioned.
 
 ### 2.2 The Fundamental Theorem
 
@@ -206,7 +206,7 @@ $$\frac{\|\hat{f}(x) - f(x)\|}{\|f(x)\|} \leq \kappa(f, x) \cdot \eta + O(\eta^2
 
 where $\kappa(f, x)$ is the condition number of $f$ at $x$.
 
-**Interpretation:** The forward error is at most condition number times backward error. A backward stable algorithm with $\eta = O(\varepsilon_{\text{mach}})$ gives forward error $O(\kappa \varepsilon_{\text{mach}})$, which is the best possible — no algorithm can be more accurate in general.
+**Interpretation:** The forward error is at most condition number times backward error. A backward stable algorithm with $\eta = O(\varepsilon_{\text{mach}})$ gives forward error $O(\kappa \varepsilon_{\text{mach}})$, which is the best possible - no algorithm can be more accurate in general.
 
 **For AI:** This theorem tells us when to worry:
 - $\kappa < 10^7$ with fp64: fine, we have $\sim 7$ accurate digits
@@ -247,7 +247,7 @@ $$\frac{\|\delta x\|}{\|x\|} \leq \|A\| \|A^{-1}\| \left( \frac{\|\delta b\|}{\|
 
 ## 3. Gaussian Elimination and LU Factorization
 
-> **Scope note:** This section covers the *numerical stability* of LU factorization — pivoting, backward error analysis, and growth factors. The mathematical theory of LU (existence, uniqueness, relationship to determinants) is in [§03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md).
+> **Scope note:** This section covers the *numerical stability* of LU factorization - pivoting, backward error analysis, and growth factors. The mathematical theory of LU (existence, uniqueness, relationship to determinants) is in [Section03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md).
 
 ### 3.1 LU without Pivoting: Why It Fails
 
@@ -322,13 +322,13 @@ For **banded matrices** with bandwidth $w$ (nonzero entries only within $w$ diag
 
 **For AI:** The attention matrix in transformers is $n \times n$ but has local structure. Efficient attention algorithms exploit this: sliding window attention (bandwidth $w$), strided attention, and Longformer all use banded or sparse attention patterns that reduce cost from $O(n^2)$ to $O(nw)$.
 
-**Sparse direct solvers:** For general sparse $A$, the key challenge is **fill-in** — LU introduces nonzero entries where $A$ had zeros. Fill-in is minimized by reordering rows/columns (e.g., minimum degree ordering, nested dissection). Modern sparse solvers (PARDISO, MUMPS, SuperLU) use sophisticated reordering strategies.
+**Sparse direct solvers:** For general sparse $A$, the key challenge is **fill-in** - LU introduces nonzero entries where $A$ had zeros. Fill-in is minimized by reordering rows/columns (e.g., minimum degree ordering, nested dissection). Modern sparse solvers (PARDISO, MUMPS, SuperLU) use sophisticated reordering strategies.
 
 ---
 
 ## 4. QR Factorization: The Numerically Stable Approach
 
-> **Scope note:** QR factorization theory (existence, uniqueness, Gram-Schmidt, Givens rotations) is in [§03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md). This section focuses on numerical stability.
+> **Scope note:** QR factorization theory (existence, uniqueness, Gram-Schmidt, Givens rotations) is in [Section03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md). This section focuses on numerical stability.
 
 ### 4.1 Why Normal Equations Fail
 
@@ -366,7 +366,7 @@ where $Q = H_1 H_2 \cdots H_n$ is orthogonal (product of orthogonal matrices) an
 
 **Numerical stability:** Each Householder reflector $H_k$ is orthogonal exactly, so multiplying by $H_k$ does not increase rounding errors. This makes the algorithm backward stable.
 
-**Implementation detail:** In practice, Householder QR is implemented implicitly — we never form $Q$ explicitly. Instead, we store the $n$ vectors $v_k$ and apply $Q^\top b = H_n \cdots H_1 b$ by successively applying each reflector (cost: $O(mn)$ per reflector, $O(mn^2)$ total).
+**Implementation detail:** In practice, Householder QR is implemented implicitly - we never form $Q$ explicitly. Instead, we store the $n$ vectors $v_k$ and apply $Q^\top b = H_n \cdots H_1 b$ by successively applying each reflector (cost: $O(mn)$ per reflector, $O(mn^2)$ total).
 
 ### 4.3 Gram-Schmidt and Modified Gram-Schmidt
 
@@ -422,7 +422,7 @@ For $\kappa(A) = 10^4$ in fp64: Householder gives 11 correct digits; Normal equa
 
 ## 5. Cholesky Factorization
 
-> **Scope note:** Cholesky factorization theory (existence for SPD matrices, relationship to LU) is in [§03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md). This section covers numerical aspects.
+> **Scope note:** Cholesky factorization theory (existence for SPD matrices, relationship to LU) is in [Section03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md). This section covers numerical aspects.
 
 ### 5.1 Positive Definiteness and Stability
 
@@ -446,7 +446,7 @@ In practice, matrices that are theoretically SPD may be only nearly SPD due to:
 2. **Modified Cholesky:** If $\hat{\ell}_{kk}^2 < 0$ during factorization, add a small correction to the diagonal.
 3. **Eigenvalue floor:** Clip small eigenvalues: $A \leftarrow V \max(\Lambda, \epsilon I) V^\top$.
 
-**For AI:** 
+**For AI:**
 - Adam optimizer maintains a running estimate of the squared gradient (Hessian diagonal proxy). This must stay positive, so Adam clips to a minimum value $\epsilon = 10^{-8}$ in the update formula.
 - Second-order methods (K-FAC, Shampoo) factor approximate Hessians via Cholesky. Numerical indefiniteness is handled by damping: $A + \lambda I$.
 - Batch covariance matrices in normalization layers must be SPD; the $\varepsilon$ in `BatchNorm(eps=1e-5)` serves this role.
@@ -455,7 +455,7 @@ In practice, matrices that are theoretically SPD may be only nearly SPD due to:
 
 ## 6. Iterative Methods
 
-Direct methods (LU, QR, Cholesky) require $O(n^3)$ work and $O(n^2)$ storage — feasible for $n \leq 10^4$ but impractical for $n = 10^6$ (e.g., discretized PDEs, large graph problems). **Iterative methods** compute $x^{(k)} \to x$ without forming or factoring $A$, requiring only **matrix-vector products** $Av$.
+Direct methods (LU, QR, Cholesky) require $O(n^3)$ work and $O(n^2)$ storage - feasible for $n \leq 10^4$ but impractical for $n = 10^6$ (e.g., discretized PDEs, large graph problems). **Iterative methods** compute $x^{(k)} \to x$ without forming or factoring $A$, requiring only **matrix-vector products** $Av$.
 
 ### 6.1 Jacobi and Gauss-Seidel
 
@@ -471,7 +471,7 @@ $$x^{(k+1)}_i = \frac{1}{a_{ii}} \left( b_i - \sum_{j < i} a_{ij} x^{(k+1)}_j - 
 
 **For diagonally dominant matrices** ($|a_{ii}| > \sum_{j \neq i} |a_{ij}|$), both converge. Gauss-Seidel typically converges faster (by a factor of 2 in terms of iterations for SPD systems).
 
-**For AI:** Jacobi is embarrassingly parallel — all updates are independent. Gauss-Seidel requires sequential updates but has better convergence. In distributed deep learning, Jacobi-like parallel gradient updates correspond to asynchronous SGD with stale gradients.
+**For AI:** Jacobi is embarrassingly parallel - all updates are independent. Gauss-Seidel requires sequential updates but has better convergence. In distributed deep learning, Jacobi-like parallel gradient updates correspond to asynchronous SGD with stale gradients.
 
 ### 6.2 Conjugate Gradient Method
 
@@ -499,7 +499,7 @@ $$\frac{\|x - x_k\|_A}{\|x - x_0\|_A} \leq 2 \left( \frac{\sqrt{\kappa} - 1}{\sq
 
 where $\kappa = \kappa(A) = \lambda_{\max} / \lambda_{\min}$.
 
-For $\kappa = 100$: after $k = 10$ steps, error ratio $\leq 2 \cdot (0.818)^{10} \approx 0.27$ — reduces error by factor 4.
+For $\kappa = 100$: after $k = 10$ steps, error ratio $\leq 2 \cdot (0.818)^{10} \approx 0.27$ - reduces error by factor 4.
 
 For $\kappa = 10000$: need $k \approx 100$ steps for same reduction.
 
@@ -513,7 +513,7 @@ For $\kappa = 10000$: need $k \approx 100$ steps for same reduction.
 
 CG convergence rate depends on $\kappa(A)$. **Preconditioning** transforms the system to improve conditioning:
 
-**Preconditioned CG:** Instead of solving $Ax = b$, solve $M^{-1}Ax = M^{-1}b$ where $M$ is a **preconditioner** — an easy-to-invert approximation of $A$.
+**Preconditioned CG:** Instead of solving $Ax = b$, solve $M^{-1}Ax = M^{-1}b$ where $M$ is a **preconditioner** - an easy-to-invert approximation of $A$.
 
 The convergence rate becomes $O(\sqrt{\kappa(M^{-1}A)})$ instead of $O(\sqrt{\kappa(A)})$.
 
@@ -525,7 +525,7 @@ The convergence rate becomes $O(\sqrt{\kappa(M^{-1}A)})$ instead of $O(\sqrt{\ka
 | Sparse Approximate Inverse | Minimize $\|AM - I\|_F$ sparsity | $O(n)$ matvec | Highly parallel |
 | AMG (Algebraic Multigrid) | Hierarchical coarsening | $O(n)$ cycle | Near-optimal for elliptic PDEs |
 
-**For AI:** Diagonal preconditioning is Adam: $M = \text{diag}(v)$ where $v$ is the running second-moment estimate. Adam's $\sqrt{v}$ denominator pre-scales gradients by an approximation of the Hessian diagonal — this is diagonal preconditioning applied to the implicit linear system of gradient descent.
+**For AI:** Diagonal preconditioning is Adam: $M = \text{diag}(v)$ where $v$ is the running second-moment estimate. Adam's $\sqrt{v}$ denominator pre-scales gradients by an approximation of the Hessian diagonal - this is diagonal preconditioning applied to the implicit linear system of gradient descent.
 
 ### 6.4 GMRES for Non-Symmetric Systems
 
@@ -537,7 +537,7 @@ For non-symmetric $A$, CG does not apply. **GMRES** (Generalized Minimal Residua
 
 **Key properties:**
 - Guaranteed convergence (unlike non-restarted Jacobi/GS)
-- Memory grows as $O(kn)$ — restart every $m$ steps: GMRES(m)
+- Memory grows as $O(kn)$ - restart every $m$ steps: GMRES(m)
 - Optimal over the Krylov subspace at each step
 
 **For AI:** GMRES is used in physics-informed neural networks (PINNs) and neural ODEs where the implicit time-stepping requires solving non-symmetric linear systems at each step.
@@ -546,7 +546,7 @@ For non-symmetric $A$, CG does not apply. **GMRES** (Generalized Minimal Residua
 
 ## 7. Eigenvalue Computation
 
-> **Scope note:** Eigenvalue theory (characteristic polynomial, diagonalizability, spectral theorem) is in [§03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md). This section covers numerical eigenvalue computation.
+> **Scope note:** Eigenvalue theory (characteristic polynomial, diagonalizability, spectral theorem) is in [Section03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md). This section covers numerical eigenvalue computation.
 
 ### 7.1 Power Iteration
 
@@ -585,7 +585,7 @@ The sequence $A_0, A_1, A_2, \ldots$ converges to a triangular (or quasi-triangu
 - **Shifts:** Use shifts $\sigma_k$ to accelerate convergence: factor $A_k - \sigma_k I = Q_k R_k$, then $A_{k+1} = R_k Q_k + \sigma_k I$. The Wilkinson shift is standard.
 - **Deflation:** When a subdiagonal entry becomes small, the problem decouples into two smaller problems.
 
-**Convergence:** With shifts, the QR algorithm typically converges cubically — finding all $n$ eigenvalues in $O(n^3)$ total flops.
+**Convergence:** With shifts, the QR algorithm typically converges cubically - finding all $n$ eigenvalues in $O(n^3)$ total flops.
 
 ### 7.3 Sensitivity of Eigenvalues
 
@@ -594,7 +594,7 @@ $$\min_j |\lambda_i(A+E) - \lambda_j(A)| \leq \kappa(X) \|E\|$$
 
 The condition number of the eigenvector matrix $X$ determines eigenvalue sensitivity.
 
-**For symmetric matrices:** $X$ is orthogonal, so $\kappa(X) = 1$ — eigenvalues of symmetric matrices are perfectly conditioned with respect to symmetric perturbations (Weyl's theorem).
+**For symmetric matrices:** $X$ is orthogonal, so $\kappa(X) = 1$ - eigenvalues of symmetric matrices are perfectly conditioned with respect to symmetric perturbations (Weyl's theorem).
 
 **For non-symmetric matrices:** Ill-conditioned eigenvectors lead to ill-conditioned eigenvalues. Example: Jordan blocks have $\kappa(X) = \infty$ (or rather, exponentially large for near-Jordan matrices).
 
@@ -610,14 +610,14 @@ The condition number of the eigenvector matrix $X$ determines eigenvalue sensiti
 
 Normal equations: $(A^\top A + \lambda I) x = A^\top b$
 
-Adding $\lambda I$ is Tikhonov regularization — it improves conditioning:
+Adding $\lambda I$ is Tikhonov regularization - it improves conditioning:
 $$\kappa(A^\top A + \lambda I) = \frac{\sigma_1^2 + \lambda}{\sigma_n^2 + \lambda} \leq \frac{\sigma_1^2}{\lambda}$$
 
 For the "kernel trick" (wide matrices, $m \ll n$): use the equivalent formulation $(AA^\top + \lambda I) \alpha = b$ where $\alpha \in \mathbb{R}^m$, then $x = A^\top \alpha$. The system is $m \times m$ instead of $n \times n$.
 
 **Numerically stable implementation:** Do NOT form $A^\top A$. Instead:
 1. Factor $A = QR$ (Householder, cost: $O(mn^2)$)
-2. Solve $(R^\top R + \lambda I) x = R^\top Q^\top b$ — a smaller well-conditioned system
+2. Solve $(R^\top R + \lambda I) x = R^\top Q^\top b$ - a smaller well-conditioned system
 
 Or use the SVD: $A = U\Sigma V^\top$, then $x = V (\Sigma^2 + \lambda I)^{-1} \Sigma U^\top b$.
 
@@ -626,14 +626,14 @@ Or use the SVD: $A = U\Sigma V^\top$, then $x = V (\Sigma^2 + \lambda I)^{-1} \S
 The attention mechanism computes:
 $$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V$$
 
-In practice, this is computed over multiple heads and batch elements simultaneously — **batched matrix multiplication** (BGEMM):
+In practice, this is computed over multiple heads and batch elements simultaneously - **batched matrix multiplication** (BGEMM):
 - $Q, K, V \in \mathbb{R}^{B \times H \times N \times d_k}$ (batch, heads, sequence length, head dim)
 - $QK^\top$: batched GEMM, cost $O(BHN^2 d_k)$, executed as one kernel call on GPU
 
 **Numerical considerations:**
 - The $1/\sqrt{d_k}$ scaling is numerically motivated (keeps $QK^\top$ elements near unit scale for well-behaved softmax)
 - FlashAttention (Dao et al., 2022) avoids materializing the $N \times N$ attention matrix by using a **tiled algorithm** that keeps blocks in SRAM
-- Flash attention uses online softmax with iterative rescaling — directly applying the backward stability ideas from numerical linear algebra
+- Flash attention uses online softmax with iterative rescaling - directly applying the backward stability ideas from numerical linear algebra
 
 ### 8.3 Iterative Refinement in Neural Solvers
 
@@ -659,7 +659,7 @@ For a quadratic $f(x) = \frac{1}{2}x^\top H x - b^\top x$:
 - Optimal step: $\eta^* = 2/(\lambda_{\max} + \lambda_{\min})$
 - Convergence rate: $\left(\frac{\kappa - 1}{\kappa + 1}\right)^k$
 
-For $\kappa = 10^4$: convergence factor $\approx 0.9998$ per step — need $\sim 10^4$ steps for $e^{-1}$ reduction.
+For $\kappa = 10^4$: convergence factor $\approx 0.9998$ per step - need $\sim 10^4$ steps for $e^{-1}$ reduction.
 
 For $\kappa = 1$: convergence in 1 step (perfect conditioning).
 
@@ -673,16 +673,16 @@ For $\kappa = 1$: convergence in 1 step (perfect conditioning).
 
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|---------------|-----|
-| 1 | Using `np.linalg.inv(A) @ b` to solve $Ax = b$ | Forms $A^{-1}$ explicitly — $O(n^3)$ cost, numerically inferior | Use `np.linalg.solve(A, b)` |
+| 1 | Using `np.linalg.inv(A) @ b` to solve $Ax = b$ | Forms $A^{-1}$ explicitly - $O(n^3)$ cost, numerically inferior | Use `np.linalg.solve(A, b)` |
 | 2 | Forming $A^\top A$ for least squares | Squares the condition number: $\kappa(A^\top A) = \kappa(A)^2$ | Use `np.linalg.lstsq(A, b)` which uses QR |
 | 3 | Assuming Gaussian elimination without pivoting is stable | Without pivoting, tiny pivots amplify rounding errors exponentially | Always use GEPP (`scipy.linalg.lu` with permutation) |
-| 4 | Using `np.linalg.cond(A)` as a cheap operation | `cond` computes SVD internally — $O(n^3)$ cost | Use it for debugging; avoid in inner loops |
+| 4 | Using `np.linalg.cond(A)` as a cheap operation | `cond` computes SVD internally - $O(n^3)$ cost | Use it for debugging; avoid in inner loops |
 | 5 | Solving many right-hand sides by calling `solve` repeatedly | Each call re-factors $A$ | Use `lu_factor` + `lu_solve` to reuse factorization |
 | 6 | Ignoring sparsity | Dense operations on sparse matrices waste memory and computation | Use `scipy.sparse` matrices and sparse solvers |
-| 7 | Expecting CG to converge in few iterations without a preconditioner | CG rate is $O(\sqrt{\kappa})$ — slow for ill-conditioned systems | Add a diagonal or IC preconditioner |
+| 7 | Expecting CG to converge in few iterations without a preconditioner | CG rate is $O(\sqrt{\kappa})$ - slow for ill-conditioned systems | Add a diagonal or IC preconditioner |
 | 8 | Using Classical Gram-Schmidt for QR | Loss of orthogonality is $O(\kappa(A)^2 \varepsilon)$ | Use Modified Gram-Schmidt or Householder |
 | 9 | Forming $Q$ explicitly in Householder QR | Costs $O(n^3)$ extra; usually unnecessary | Apply $Q^\top b$ implicitly via stored reflectors |
-| 10 | Interpreting `numpy.linalg.matrix_rank` for nearly singular matrices | Uses a singular value threshold — results are threshold-dependent | Always check singular values directly; use regularization |
+| 10 | Interpreting `numpy.linalg.matrix_rank` for nearly singular matrices | Uses a singular value threshold - results are threshold-dependent | Always check singular values directly; use regularization |
 | 11 | Assuming positive definite matrices are safe to Cholesky-factorize without checks | Near-zero eigenvalues become negative in floating point | Add diagonal loading: `A + eps * np.eye(n)` |
 | 12 | Using eigenvalue decomposition for symmetric matrices via `eig` | `eig` uses general (non-symmetric) algorithm; slower and less stable | Always use `eigh` for symmetric/Hermitian matrices |
 
@@ -690,7 +690,7 @@ For $\kappa = 1$: convergence in 1 step (perfect conditioning).
 
 ## 10. Exercises
 
-### Exercise 1 ★ — LU Factorization with Partial Pivoting
+### Exercise 1 * - LU Factorization with Partial Pivoting
 
 Implement Gaussian elimination with partial pivoting from scratch.
 
@@ -702,7 +702,7 @@ Implement Gaussian elimination with partial pivoting from scratch.
 
 (d) Demonstrate that without pivoting (always choosing the diagonal as pivot), the solution fails for $A = \begin{pmatrix} 1 & 2 \\ 2 & 4.0001 \end{pmatrix}$ with $\varepsilon = 10^{-15}$ perturbation.
 
-### Exercise 2 ★ — Stability Comparison: Normal Equations vs QR
+### Exercise 2 * - Stability Comparison: Normal Equations vs QR
 
 Compare the least squares solvers on an ill-conditioned matrix.
 
@@ -712,7 +712,7 @@ Compare the least squares solvers on an ill-conditioned matrix.
 
 (c) Plot relative error vs condition number (vary the decay rate of singular values).
 
-### Exercise 3 ★★ — Implementing Conjugate Gradient
+### Exercise 3 ** - Implementing Conjugate Gradient
 
 Implement the CG algorithm for SPD systems.
 
@@ -724,7 +724,7 @@ Implement the CG algorithm for SPD systems.
 
 (d) Add diagonal preconditioning: solve $(D^{-1/2} A D^{-1/2}) y = D^{-1/2} b$ where $D = \text{diag}(A)$. Compare convergence with and without preconditioning.
 
-### Exercise 4 ★★ — Iterative Refinement
+### Exercise 4 ** - Iterative Refinement
 
 Implement mixed-precision iterative refinement.
 
@@ -736,7 +736,7 @@ Implement mixed-precision iterative refinement.
 
 (d) Report the forward error after each refinement step for a moderately ill-conditioned system ($\kappa \approx 10^4$).
 
-### Exercise 5 ★★ — Power Iteration and PageRank
+### Exercise 5 ** - Power Iteration and PageRank
 
 Implement power iteration to compute the dominant eigenvector.
 
@@ -746,7 +746,7 @@ Implement power iteration to compute the dominant eigenvector.
 
 (c) Compare convergence rate to the predicted $|\lambda_2 / \lambda_1|^k$. Compute $\lambda_2$ via `numpy.linalg.eig`.
 
-### Exercise 6 ★★★ — Condition Number and Gradient Descent Convergence
+### Exercise 6 *** - Condition Number and Gradient Descent Convergence
 
 Demonstrate the condition number's role in optimization convergence.
 
@@ -758,7 +758,7 @@ Demonstrate the condition number's role in optimization convergence.
 
 (d) Run CG on the same problems. Compare the number of steps to $10^{-6}$ accuracy.
 
-### Exercise 7 ★★ — Modified Gram-Schmidt QR
+### Exercise 7 ** - Modified Gram-Schmidt QR
 
 Implement Modified Gram-Schmidt and analyze loss of orthogonality.
 
@@ -768,7 +768,7 @@ Implement Modified Gram-Schmidt and analyze loss of orthogonality.
 
 (c) Plot orthogonality loss vs $\kappa(A)$ for all three methods.
 
-### Exercise 8 ★★★ — Sparse Systems and Preconditioning
+### Exercise 8 *** - Sparse Systems and Preconditioning
 
 Work with sparse linear systems from a 1D PDE discretization.
 
@@ -788,10 +788,10 @@ Work with sparse linear systems from a 1D PDE discretization.
 |--------|--------|
 | **BLAS/cuBLAS operations** | Every forward pass in a neural network is a sequence of matrix multiplications. The stability of BLAS routines directly impacts training |
 | **Adam as diagonal preconditioner** | Adam's $1/\sqrt{v_t}$ scaling implements diagonal preconditioning for the implicit linear system of gradient descent |
-| **FlashAttention** | Uses numerically stable tiled attention computation — directly applies backward stability principles to avoid materializing the full attention matrix |
+| **FlashAttention** | Uses numerically stable tiled attention computation - directly applies backward stability principles to avoid materializing the full attention matrix |
 | **Mixed-precision training** | fp16 factorizations + fp32 refinement mirrors mixed-precision iterative refinement from numerical linear algebra |
 | **K-FAC optimization** | Approximate second-order method using block-diagonal Kronecker-factored Hessian; requires stable Cholesky factorization of each block |
-| **Spectral normalization** | GAN training stability via normalizing weight matrices by $\sigma_{\max}(W)$ — computed via power iteration |
+| **Spectral normalization** | GAN training stability via normalizing weight matrices by $\sigma_{\max}(W)$ - computed via power iteration |
 | **Gradient clipping** | Addresses ill-conditioning of the loss Hessian; analogous to limiting the condition number of each step |
 | **Neural ODEs** | Require solving implicit linear systems at each time step; use GMRES or CG for efficiency |
 | **LoRA/low-rank adaptation** | Exploits low-rank structure: instead of updating $W \in \mathbb{R}^{m \times n}$, update $W + AB$ with $A \in \mathbb{R}^{m \times r}$, $B \in \mathbb{R}^{r \times n}$, $r \ll m, n$ |
@@ -801,34 +801,34 @@ Work with sparse linear systems from a 1D PDE discretization.
 
 ## 12. Conceptual Bridge
 
-This section sits at the intersection of pure mathematical theory and practical computational science. You came in knowing that $Ax = b$ has a unique solution when $A$ is invertible — this section showed you that *how* you solve it matters as much as *whether* a solution exists.
+This section sits at the intersection of pure mathematical theory and practical computational science. You came in knowing that $Ax = b$ has a unique solution when $A$ is invertible - this section showed you that *how* you solve it matters as much as *whether* a solution exists.
 
-**What you learned:** The key insight is **backward stability** — the right standard for numerical algorithms. Backward stable algorithms solve a nearby problem exactly; the condition number then determines how much forward error this implies. LU with partial pivoting, Householder QR, and Cholesky are all backward stable. Classical Gram-Schmidt, normal equations, and LU without pivoting are not.
+**What you learned:** The key insight is **backward stability** - the right standard for numerical algorithms. Backward stable algorithms solve a nearby problem exactly; the condition number then determines how much forward error this implies. LU with partial pivoting, Householder QR, and Cholesky are all backward stable. Classical Gram-Schmidt, normal equations, and LU without pivoting are not.
 
-**Looking backward:** This section builds directly on [§01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) (machine epsilon, rounding model, condition numbers) and [§03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md) (mathematical existence and properties of LU, QR, Cholesky). If the theoretical content of factorizations is unfamiliar, revisit those sections.
+**Looking backward:** This section builds directly on [Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) (machine epsilon, rounding model, condition numbers) and [Section03-Advanced-Linear-Algebra/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md) (mathematical existence and properties of LU, QR, Cholesky). If the theoretical content of factorizations is unfamiliar, revisit those sections.
 
-**Looking forward:** The iterative methods here (CG, GMRES) reappear in [§03 Numerical Optimization](../03-Numerical-Optimization/notes.md) as tools for solving the linear systems that arise in Newton's method and trust region methods. The condition number analysis connects to convergence theory for gradient descent, which is the core of training deep neural networks.
+**Looking forward:** The iterative methods here (CG, GMRES) reappear in [Section03 Numerical Optimization](../03-Numerical-Optimization/notes.md) as tools for solving the linear systems that arise in Newton's method and trust region methods. The condition number analysis connects to convergence theory for gradient descent, which is the core of training deep neural networks.
 
 ```
-CHAPTER §10 POSITION: NUMERICAL METHODS
-════════════════════════════════════════════════════════════════════════
+CHAPTER Section10 POSITION: NUMERICAL METHODS
+========================================================================
 
-  §01 Floating-Point Arithmetic   ←  You are here (prerequisites)
-    └──► §02 Numerical Linear Algebra  ←  THIS SECTION
-              └──► §03 Numerical Optimization
-                        └──► §04 Interpolation & Approximation
-                                  └──► §05 Numerical Integration
+  Section01 Floating-Point Arithmetic   <-  You are here (prerequisites)
+    +--> Section02 Numerical Linear Algebra  <-  THIS SECTION
+              +--> Section03 Numerical Optimization
+                        +--> Section04 Interpolation & Approximation
+                                  +--> Section05 Numerical Integration
 
   BRIDGES FROM THIS SECTION:
-    ┌─────────────────────────────────────────────────────────────┐
-    │  LU/QR stability          → §08 Optimization (line search)  │
-    │  CG method                → §03 Numerical Optimization       │
-    │  Preconditioning theory   → §08 Optimization (Adam analysis) │
-    │  Eigenvalue algorithms    → §11 Graph Theory (spectral)      │
-    │  Matrix condition numbers → §03 Advanced LA (decompositions) │
-    └─────────────────────────────────────────────────────────────┘
+    +-------------------------------------------------------------+
+    |  LU/QR stability          -> Section08 Optimization (line search)  |
+    |  CG method                -> Section03 Numerical Optimization       |
+    |  Preconditioning theory   -> Section08 Optimization (Adam analysis) |
+    |  Eigenvalue algorithms    -> Section11 Graph Theory (spectral)      |
+    |  Matrix condition numbers -> Section03 Advanced LA (decompositions) |
+    +-------------------------------------------------------------+
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -849,22 +849,22 @@ def lu_partial_pivot(A):
     A = A.astype(np.float64).copy()
     P = np.eye(n)
     L = np.zeros((n, n))
-    
+
     for k in range(n - 1):
         # Find pivot: largest element in column k, rows k..n-1
         pivot_row = k + np.argmax(np.abs(A[k:, k]))
-        
+
         # Swap rows k and pivot_row in A, L, P
         if pivot_row != k:
             A[[k, pivot_row], :]   = A[[pivot_row, k], :]
             P[[k, pivot_row], :]   = P[[pivot_row, k], :]
             L[[k, pivot_row], :k]  = L[[pivot_row, k], :k]
-        
+
         # Eliminate below the diagonal
         for i in range(k + 1, n):
             L[i, k] = A[i, k] / A[k, k]
             A[i, k:] -= L[i, k] * A[k, k:]
-    
+
     L += np.eye(n)  # Add diagonal ones
     U = np.triu(A)  # Upper triangular part
     return P, L, U
@@ -918,24 +918,24 @@ def householder_qr(A):
     m, n = A.shape
     A = A.copy().astype(np.float64)
     Q = np.eye(m)
-    
+
     for k in range(min(m, n)):
         # Extract column k below the diagonal
         x = A[k:, k].copy()
-        
+
         # Build Householder reflector to zero out x[1:]
         e1 = np.zeros_like(x)
         e1[0] = 1.0
         sign = 1.0 if x[0] >= 0 else -1.0
         v = x + sign * np.linalg.norm(x) * e1
         v = v / np.linalg.norm(v)
-        
+
         # Apply: A[k:, k:] -= 2 v (v^T A[k:, k:])
         A[k:, k:] -= 2.0 * np.outer(v, v @ A[k:, k:])
-        
+
         # Accumulate Q: Q[k:, :] -= 2 v (v^T Q[k:, :])
         Q[k:, :] -= 2.0 * np.outer(v, v @ Q[k:, :])
-    
+
     R = np.triu(A)
     return Q.T, R  # Q^T was accumulated; return Q = (Q^T)^T
 
@@ -951,7 +951,7 @@ def solve_qr(A, b):
 
 ---
 
-## Appendix C: Conjugate Gradient — Detailed Derivation
+## Appendix C: Conjugate Gradient - Detailed Derivation
 
 The CG method can be derived from several perspectives. The most illuminating is the **energy minimization** view.
 
@@ -963,7 +963,7 @@ where $A$ is SPD. The minimum satisfies $\nabla f(x) = Ax - b = 0$, i.e., $Ax = 
 **Steepest descent** would use the gradient $-\nabla f = r = b - Ax$:
 $$x_{k+1} = x_k + \alpha_k r_k, \quad \alpha_k = \frac{r_k^\top r_k}{r_k^\top A r_k}$$
 
-But steepest descent exhibits **zig-zagging** — successive search directions are perpendicular, leading to slow convergence with $O(\kappa)$ iterations.
+But steepest descent exhibits **zig-zagging** - successive search directions are perpendicular, leading to slow convergence with $O(\kappa)$ iterations.
 
 **Key idea of CG:** Choose search directions that are **$A$-conjugate** (mutually orthogonal under the $A$-inner product $\langle u, v \rangle_A = u^\top A v$):
 $$p_i^\top A p_j = 0 \quad \text{for } i \neq j$$
@@ -992,7 +992,7 @@ $$A = \begin{pmatrix}
 -1 & -1 & -1 & \cdots & -1 & 1
 \end{pmatrix}$$
 
-After GEPP on this matrix, the $(n,n)$ entry of $U$ equals $2^{n-1}$. For $n = 53$, this would exceed fp64 range — an exponential growth. However, this matrix almost never arises in practice.
+After GEPP on this matrix, the $(n,n)$ entry of $U$ equals $2^{n-1}$. For $n = 53$, this would exceed fp64 range - an exponential growth. However, this matrix almost never arises in practice.
 
 **Empirical growth factors:**
 | Matrix type | Typical $\rho$ | Notes |
@@ -1048,7 +1048,7 @@ x, info = gmres(A, b, tol=1e-10, maxiter=1000)
 
 # === Condition Number ===
 
-kappa = nla.cond(A)           # Via SVD — O(n^3)
+kappa = nla.cond(A)           # Via SVD - O(n^3)
 kappa_1 = nla.cond(A, 1)      # 1-norm condition (faster via LAPACK)
 
 # Estimate condition number cheaply (after LU):
@@ -1079,7 +1079,7 @@ This is backward stable with backward error $O(n \varepsilon_{\text{mach}})$.
 **Forward error:** The condition number of a lower triangular system is:
 $$\kappa(L) = \|L\|_\infty \|L^{-1}\|_\infty$$
 
-For well-conditioned triangular systems (as produced by LU with partial pivoting), $\kappa(L) = O(n)$ — the forward error is $O(n^2 \varepsilon_{\text{mach}})$.
+For well-conditioned triangular systems (as produced by LU with partial pivoting), $\kappa(L) = O(n)$ - the forward error is $O(n^2 \varepsilon_{\text{mach}})$.
 
 **Practical implication:** Even for ill-conditioned $A$, if you solve via LU with partial pivoting, the triangular solve steps are individually backward stable. The overall error comes from the conditioning of $A$, not from numerical instability of the algorithm.
 
@@ -1121,11 +1121,11 @@ Q, R = torch.linalg.qr(A)  # Householder QR
 
 **GPU execution:** All torch.linalg operations execute on GPU if tensors are on GPU. Batched operations are especially efficient: `torch.linalg.solve` with batch dimension uses cuBLAS batched GETRS.
 
-**Gradient computation:** `torch.linalg` operations support automatic differentiation. The gradient of `torch.linalg.solve(A, b)` with respect to `A` and `b` is computed via the adjoint method — no explicit matrix inverse is formed.
+**Gradient computation:** `torch.linalg` operations support automatic differentiation. The gradient of `torch.linalg.solve(A, b)` with respect to `A` and `b` is computed via the adjoint method - no explicit matrix inverse is formed.
 
 ---
 
-## Appendix H: Krylov Subspace Methods — Unified View
+## Appendix H: Krylov Subspace Methods - Unified View
 
 The **Krylov subspace** $\mathcal{K}_k(A, r_0) = \text{span}\{r_0, Ar_0, A^2 r_0, \ldots, A^{k-1}r_0\}$ is the fundamental concept underlying all modern iterative methods.
 
@@ -1166,13 +1166,13 @@ for i in range(n):
     for j_idx in range(row_ptr[i], row_ptr[i+1]):
         y[i] += val[j_idx] * x[col_idx[j_idx]]
 ```
-This is $O(\text{nnz})$ per multiply — for matrices with $\text{nnz} \ll n^2$, dramatically cheaper than dense matvec.
+This is $O(\text{nnz})$ per multiply - for matrices with $\text{nnz} \ll n^2$, dramatically cheaper than dense matvec.
 
 **For AI:** Sparse attention in transformers uses sparse matrix representations. The attention mask is stored as a sparse pattern; the attention computation becomes a sparse matrix-matrix product (SpMM).
 
 ---
 
-## Appendix J: Worked Example — Condition Number Effect on Least Squares
+## Appendix J: Worked Example - Condition Number Effect on Least Squares
 
 Consider fitting a polynomial through noisy data. Using the Vandermonde matrix:
 
@@ -1197,41 +1197,41 @@ c_qr, _, _, _ = np.linalg.lstsq(V, y)          # Stable
 
 **Result:** For high-degree polynomials, the Vandermonde matrix is extremely ill-conditioned. The QR solution via `lstsq` will be far more accurate than the Normal equations approach.
 
-**Fix:** Use Chebyshev nodes $x_i = \cos((2i-1)\pi/(2n))$ instead of equally-spaced nodes. The resulting Vandermonde-like matrix has dramatically lower condition number (see §04 Interpolation and Approximation).
+**Fix:** Use Chebyshev nodes $x_i = \cos((2i-1)\pi/(2n))$ instead of equally-spaced nodes. The resulting Vandermonde-like matrix has dramatically lower condition number (see Section04 Interpolation and Approximation).
 
 ---
 
-## Appendix K: Quick Reference — Algorithm Complexity and Stability
+## Appendix K: Quick Reference - Algorithm Complexity and Stability
 
 ```
 NUMERICAL LINEAR ALGEBRA: ALGORITHM COMPARISON
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   DIRECT METHODS (Dense A, n x n):
-  
+
   Algorithm         Flops      Storage   Stable?   Use when
-  ─────────────────────────────────────────────────────────────
-  LU (no pivot)     2n³/3      n²        NO        Only if A is SPD
-  LU (partial)      2n³/3      n²        YES*      General square A
-  QR (Householder)  4m n²/3    mn        YES       Least squares
-  QR (MGS)          2mn²       mn        Partial   Streaming/iterative
-  Cholesky          n³/3       n²/2      YES       SPD matrices
-  SVD               ~11n³      mn        YES       Rank-def, analysis
+  -------------------------------------------------------------
+  LU (no pivot)     2n^3/3      n^2        NO        Only if A is SPD
+  LU (partial)      2n^3/3      n^2        YES*      General square A
+  QR (Householder)  4m n^2/3    mn        YES       Least squares
+  QR (MGS)          2mn^2       mn        Partial   Streaming/iterative
+  Cholesky          n^3/3       n^2/2      YES       SPD matrices
+  SVD               ~11n^3      mn        YES       Rank-def, analysis
 
   * Stable in practice; theoretical worst case 2^(n-1) growth
 
   ITERATIVE METHODS (Sparse A, nnz nonzeros):
-  
+
   Algorithm         Cost/iter  Converges?  Precond?  Use when
-  ─────────────────────────────────────────────────────────────
+  -------------------------------------------------------------
   Jacobi            O(nnz)     If D-dom.   N/A       Parallel arch
   Gauss-Seidel      O(nnz)     If D-dom.   N/A       Sequential
   CG                O(nnz)     SPD only    YES       SPD sparse
   MINRES            O(nnz)     Sym. only   YES       Sym. indef.
-  GMRES             O(k·nnz)   Always      YES       Non-symmetric
+  GMRES             O(k\\cdotnnz)   Always      YES       Non-symmetric
   BiCGStab          O(nnz)     Often       YES       Non-sym, cheaper
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1260,15 +1260,15 @@ Modern large language models rely on numerical linear algebra at every level:
 - $W' = W + \frac{\alpha}{r} BA$ where $B \in \mathbb{R}^{m \times r}$, $A \in \mathbb{R}^{r \times n}$
 - Initialization: $B = 0$ (so $W' = W$ initially), $A \sim \mathcal{N}(0, 1/r)$
 - Numerically stable: rank-$r$ updates don't affect the conditioning of $W$
-- DoRA: $W' = \|W\|_F \cdot \frac{W + BA}{\|W + BA\|_F}$ — normalizes by column norms (related to spectral normalization)
+- DoRA: $W' = \|W\|_F \cdot \frac{W + BA}{\|W + BA\|_F}$ - normalizes by column norms (related to spectral normalization)
 
 ---
 
-*[← Back to Chapter 10](../README.md) | [Next: Numerical Optimization →](../03-Numerical-Optimization/notes.md)*
+*[<- Back to Chapter 10](../README.md) | [Next: Numerical Optimization ->](../03-Numerical-Optimization/notes.md)*
 
 ---
 
-## Appendix M: Extended Theory — Structured Linear Systems
+## Appendix M: Extended Theory - Structured Linear Systems
 
 ### M.1 Toeplitz Systems
 
@@ -1339,7 +1339,7 @@ with error $\|A - A_r\|_F = \sqrt{\sum_{i>r} \sigma_i^2}$.
 3. Compute SVD of the small matrix $B = Q^\top A$: $B = U_B \Sigma V^\top$
 4. Return $U = Q U_B$, $\Sigma$, $V$
 
-This is $O(mn(r+p))$ — much faster than $O(\min(m,n)mn)$ for full SVD when $r \ll \min(m,n)$.
+This is $O(mn(r+p))$ - much faster than $O(\min(m,n)mn)$ for full SVD when $r \ll \min(m,n)$.
 
 ---
 
@@ -1351,12 +1351,12 @@ The attention computation $S = QK^\top / \sqrt{d_k}$ produces an $N \times N$ ma
 
 **Scale issue:** With $d_k = 128$ and random $Q, K$ with unit-norm rows, dot products $q_i^\top k_j$ have magnitude $\sim d_k = 128$. After division by $\sqrt{d_k} = \sqrt{128} \approx 11$, the scaled scores have magnitude $\sim \sqrt{d_k} = 11$.
 
-In fp16 (range ±65504), this is safe. But the **softmax** of scores with magnitude 11 is nearly a one-hot distribution:
+In fp16 (range +/-65504), this is safe. But the **softmax** of scores with magnitude 11 is nearly a one-hot distribution:
 $$\text{softmax}([11, -11]) = \left[\frac{e^{11}}{e^{11} + e^{-11}}, \frac{e^{-11}}{e^{11}+e^{-11}}\right] \approx [1, 2 \times 10^{-10}]$$
 
-This is extreme but not a numerical problem per se — softmax with the max-subtraction trick handles it.
+This is extreme but not a numerical problem per se - softmax with the max-subtraction trick handles it.
 
-**Memory issue:** For $N = 8192$ and 8 attention heads, storing $S$ requires $8192^2 \times 8 \times 2 \approx 1$ GB — too large for GPU SRAM. FlashAttention avoids this via tiling.
+**Memory issue:** For $N = 8192$ and 8 attention heads, storing $S$ requires $8192^2 \times 8 \times 2 \approx 1$ GB - too large for GPU SRAM. FlashAttention avoids this via tiling.
 
 **FlashAttention tile computation:** Process $Q$ in blocks of $B_r$ rows and $K, V$ in blocks of $B_c$ columns. For each tile, compute local scores, apply local softmax with rescaling, accumulate into output. The key identity:
 
@@ -1387,50 +1387,50 @@ Computing the Hessian spectrum requires eigenvalue algorithms. For large network
 ## Appendix P: Summary Reference Card
 
 ```
-§02 NUMERICAL LINEAR ALGEBRA — SUMMARY CARD
-════════════════════════════════════════════════════════════════════════
+Section02 NUMERICAL LINEAR ALGEBRA - SUMMARY CARD
+========================================================================
 
   CORE PRINCIPLE: Backward stability = exact answer to nearby problem
-  Forward error ≤ κ(A) × backward error
+  Forward error \\leq (A) x backward error
 
   KEY CONDITION NUMBERS:
-    κ(A)     ─ digits lost: log₁₀(κ)
-    κ(AᵀA)   = κ(A)²  ─  use QR not normal equations!
-    κ(LL^T)  = 1      ─  Cholesky adds no error (for SPD)
+    (A)     - digits lost: log_1_0()
+    (A^TA)   = (A)^2  -  use QR not normal equations!
+    (LL^T)  = 1      -  Cholesky adds no error (for SPD)
 
   ALGORITHM SELECTION:
-    Square Ax = b, well-conditioned    →  GEPP (LU)
-    Square Ax = b, SPD                 →  Cholesky
-    Least squares, ill-conditioned     →  Householder QR
-    Least squares, well-conditioned    →  Normal equations OK
-    Large sparse, SPD                  →  CG + preconditioner
-    Large sparse, non-symmetric        →  GMRES + preconditioner
+    Square Ax = b, well-conditioned    ->  GEPP (LU)
+    Square Ax = b, SPD                 ->  Cholesky
+    Least squares, ill-conditioned     ->  Householder QR
+    Least squares, well-conditioned    ->  Normal equations OK
+    Large sparse, SPD                  ->  CG + preconditioner
+    Large sparse, non-symmetric        ->  GMRES + preconditioner
 
   GROWTH FACTOR RULE OF THUMB:
-    LU without pivoting:  ρ can be ∞
-    LU with partial pivot: ρ ≤ 2^{n-1}, in practice O(n^{2/3})
-    Cholesky:             ρ = 1 exactly
+    LU without pivoting:  \\rho can be \\infty
+    LU with partial pivot: \\rho \\leq 2^{n-1}, in practice O(n^{2/3})
+    Cholesky:             \\rho = 1 exactly
 
   ITERATIVE METHOD CONVERGENCE:
-    CG:    ε after k iters ≤ 2·((√κ-1)/(√κ+1))^k ‖e₀‖_A
+    CG:    \\varepsilon after k iters \\leq 2\\cdot((\\sqrt-1)/(\\sqrt+1))^k e_0_A
     GS:    converges for diagonally dominant / SPD matrices
     GMRES: always converges (no divergence), but can be slow
 
   PYTHON API CHEATSHEET:
-    nla.solve(A, b)         ─  LU with partial pivoting
-    nla.lstsq(A, b)         ─  Householder QR
-    sla.cho_factor/cho_solve─  Cholesky for SPD
-    sp.linalg.cg(A, b)      ─  Conjugate gradient
-    sp.linalg.gmres(A, b)   ─  GMRES
+    nla.solve(A, b)         -  LU with partial pivoting
+    nla.lstsq(A, b)         -  Householder QR
+    sla.cho_factor/cho_solve-  Cholesky for SPD
+    sp.linalg.cg(A, b)      -  Conjugate gradient
+    sp.linalg.gmres(A, b)   -  GMRES
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-*[← Back to §01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) | [Next: §03 Numerical Optimization →](../03-Numerical-Optimization/notes.md)*
+*[<- Back to Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) | [Next: Section03 Numerical Optimization ->](../03-Numerical-Optimization/notes.md)*
 
 ---
 
-## Appendix Q: Iterative Refinement — Full Analysis
+## Appendix Q: Iterative Refinement - Full Analysis
 
 ### Q.1 Standard Iterative Refinement
 
@@ -1470,12 +1470,12 @@ This means after one refinement step, the error is reduced to $O(\kappa(A) \vare
 The full algorithm from (Carson & Higham, 2018):
 
 ```
-Input: A (fp64), b (fp64), desired accuracy ε
-Output: x (fp64) with ||Ax - b||/||b|| < ε
+Input: A (fp64), b (fp64), desired accuracy \\varepsilon
+Output: x (fp64) with ||Ax - b||/||b|| < \\varepsilon
 
 Phase 1: Low-precision factorization
-  Â = fl32(A)                    # Cast to fp32
-  P, L, U = lu_factor(Â)        # Factor in fp32
+  A = fl32(A)                    # Cast to fp32
+  P, L, U = lu_factor(A)        # Factor in fp32
 
 Phase 2: Refinement loop
   x = 0
@@ -1484,7 +1484,7 @@ Phase 2: Refinement loop
     d = lu_solve(L, U, P, fl32(r))  # Solve in fp32
     x += fl64(d)                     # Accumulate in fp64
     r = b - A @ x                   # New residual in fp64
-    if ||r||/||b|| < ε: break
+    if ||r||/||b|| < \\varepsilon: break
 
 Return x
 ```
@@ -1550,23 +1550,23 @@ $$\frac{\|\hat{y} - y\|}{\|y\|} \leq n \varepsilon_{\text{mach}} \kappa(A)_{\tex
 
 ## Appendix T: Connections to Related Sections
 
-| Concept | This Section (§02) | Related Section |
+| Concept | This Section (Section02) | Related Section |
 |---------|-------------------|-----------------|
-| LU factorization existence | Numerical stability of GEPP | [§03-Advanced-LA/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md): theory |
-| QR factorization | Householder stability, MGS vs CGS | [§03-Advanced-LA/08](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md): existence, Gram-Schmidt theory |
-| Eigenvalue algorithms | Power iteration, QR algorithm | [§03-Advanced-LA/01-Eigenvalues](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md): theory |
-| Condition number basics | Perturbation theory, error amplification | [§01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md): definition |
-| CG as optimizer | Matrix system solver | [§03 Numerical Optimization](../03-Numerical-Optimization/notes.md): CG for optimization |
-| SVD applications | Numerical rank, truncated SVD | [§03-Advanced-LA/02-SVD](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md): theory |
-| Sparse attention patterns | Sparse matrix-vector products | [§11 Graph Theory](../../11-Graph-Theory/notes.md): graph algorithms |
+| LU factorization existence | Numerical stability of GEPP | [Section03-Advanced-LA/08-Matrix-Decompositions](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md): theory |
+| QR factorization | Householder stability, MGS vs CGS | [Section03-Advanced-LA/08](../../03-Advanced-Linear-Algebra/08-Matrix-Decompositions/notes.md): existence, Gram-Schmidt theory |
+| Eigenvalue algorithms | Power iteration, QR algorithm | [Section03-Advanced-LA/01-Eigenvalues](../../03-Advanced-Linear-Algebra/01-Eigenvalues-and-Eigenvectors/notes.md): theory |
+| Condition number basics | Perturbation theory, error amplification | [Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md): definition |
+| CG as optimizer | Matrix system solver | [Section03 Numerical Optimization](../03-Numerical-Optimization/notes.md): CG for optimization |
+| SVD applications | Numerical rank, truncated SVD | [Section03-Advanced-LA/02-SVD](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md): theory |
+| Sparse attention patterns | Sparse matrix-vector products | [Section11 Graph Theory](../../11-Graph-Theory/notes.md): graph algorithms |
 
 ---
 
-*[← Back to Chapter 10](../README.md) | [Next: Numerical Optimization →](../03-Numerical-Optimization/notes.md)*
+*[<- Back to Chapter 10](../README.md) | [Next: Numerical Optimization ->](../03-Numerical-Optimization/notes.md)*
 
 ---
 
-## Appendix U: Deep Dive — Preconditioned Conjugate Gradient
+## Appendix U: Deep Dive - Preconditioned Conjugate Gradient
 
 ### U.1 The Full PCG Algorithm
 
@@ -1615,7 +1615,7 @@ Total: $O(\sqrt{\kappa(M^{-1}A)} \cdot \text{nnz})$ for $\varepsilon$-accurate s
 
 ---
 
-## Appendix V: Worked Example — Full Solution of a Least Squares Problem
+## Appendix V: Worked Example - Full Solution of a Least Squares Problem
 
 **Problem:** Fit a polynomial of degree $d = 5$ to $m = 30$ noisy data points.
 
@@ -1651,9 +1651,9 @@ print(f"Residual (QR):     {np.linalg.norm(A @ c_qr    - y_noisy):.6f}")
 ```
 
 **Expected output:**
-- For degree 5 with $x \in [0, 1]$: $\kappa(A) \approx 10^5$ — still manageable
-- For degree 10 with $x \in [0, 1]$: $\kappa(A) \approx 10^{12}$ — Normal equations fail, QR still works
-- For degree 15: $\kappa(A) > 10^{15}$ — even QR starts losing accuracy; need Chebyshev nodes
+- For degree 5 with $x \in [0, 1]$: $\kappa(A) \approx 10^5$ - still manageable
+- For degree 10 with $x \in [0, 1]$: $\kappa(A) \approx 10^{12}$ - Normal equations fail, QR still works
+- For degree 15: $\kappa(A) > 10^{15}$ - even QR starts losing accuracy; need Chebyshev nodes
 
 **Key lesson:** The numerical behavior of polynomial fitting is entirely determined by $\kappa(A)$, which depends on both the degree and the spacing of evaluation points. Chebyshev nodes minimize the Lebesgue constant, which is related to (but not identical to) the condition number.
 
@@ -1684,7 +1684,7 @@ $$\|I - \hat{Q}^\top \hat{Q}\| = O(\kappa^2 \varepsilon_{\text{mach}})$$
 
 **Intuition:** At step $k$, we project $a_k$ against all previous $\hat{q}_i$. The error in each $\hat{q}_i$ is amplified by subsequent projections. After $k$ steps, errors in $\hat{q}_1$ have been "propagated" $k-1$ times through imperfect projections, leading to $O(\kappa^2)$ error in the loss of orthogonality.
 
-Modified Gram-Schmidt projects against the *updated* $a_k$ at each step, breaking the error propagation chain and achieving $O(\kappa \varepsilon_{\text{mach}})$ — still worse than Householder's $O(\varepsilon_{\text{mach}})$ but much better than CGS.
+Modified Gram-Schmidt projects against the *updated* $a_k$ at each step, breaking the error propagation chain and achieving $O(\kappa \varepsilon_{\text{mach}})$ - still worse than Householder's $O(\varepsilon_{\text{mach}})$ but much better than CGS.
 
 ---
 
@@ -1708,13 +1708,13 @@ Modified Gram-Schmidt projects against the *updated* $a_k$ at each step, breakin
 
 ---
 
-*[← Back to §01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) | [Next: §03 Numerical Optimization →](../03-Numerical-Optimization/notes.md)*
+*[<- Back to Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) | [Next: Section03 Numerical Optimization ->](../03-Numerical-Optimization/notes.md)*
 
 ---
 
 ## Appendix Y: Extended Exercises with Solutions
 
-### Y.1 The Leaning Matrix Problem (★★)
+### Y.1 The Leaning Matrix Problem (**)
 
 Consider the matrix:
 $$A_\varepsilon = \begin{pmatrix} 1 & 1 \\ \varepsilon & 0 \\ 0 & \varepsilon \end{pmatrix}, \quad \varepsilon = 10^{-8}$$
@@ -1729,7 +1729,7 @@ eps = 1e-8
 A = np.array([[1, 1], [eps, 0], [0, eps]])
 AtA = A.T @ A
 print(f"A^T A = {AtA}")
-# [[1, 1], [1, 1]] — singular! eps^2 = 1e-16 < machine_eps = 2.2e-16
+# [[1, 1], [1, 1]] - singular! eps^2 = 1e-16 < machine_eps = 2.2e-16
 
 b = np.array([1, eps, eps])
 
@@ -1746,7 +1746,7 @@ print(f"QR: {x_qr}")  # Approximately [0.5, 0.5]
 print(f"Residual QR: {np.linalg.norm(A @ x_qr - b):.2e}")
 ```
 
-### Y.2 Ill-Conditioned System via Scaling (★)
+### Y.2 Ill-Conditioned System via Scaling (*)
 
 Two matrices that are mathematically equivalent but numerically different:
 
@@ -1775,7 +1775,7 @@ print(f"Error: {np.linalg.norm(x1 - x2_transformed):.2e}")
 
 **Lesson:** Always equilibrate (scale) your system before solving. `scipy.linalg.solve` with `overwrite_a=False` does this automatically via LAPACK's `dgesvx`.
 
-### Y.3 Conjugate Gradient Rate Verification (★★)
+### Y.3 Conjugate Gradient Rate Verification (**)
 
 Verify the CG convergence bound experimentally:
 
@@ -1787,7 +1787,7 @@ def cg_solve(A, b, tol=1e-12, max_iter=1000):
     p = r.copy()
     rs_old = r @ r
     errors = [np.linalg.norm(r)]
-    
+
     for _ in range(max_iter):
         Ap = A @ p
         alpha = rs_old / (p @ Ap)
@@ -1799,7 +1799,7 @@ def cg_solve(A, b, tol=1e-12, max_iter=1000):
             break
         p = r + (rs_new / rs_old) * p
         rs_old = rs_new
-    
+
     return x, errors
 
 # Create SPD matrix with known condition number
@@ -1855,7 +1855,7 @@ After completing this section, you should be able to:
 - [ ] Connect LoRA to the low-rank approximation theory
 - [ ] Explain how K-FAC uses Kronecker-factored matrices for efficient second-order optimization
 
-**Difficulty distribution:** This material spans from algorithmic implementation (★) through convergence analysis (★★) to research-level connections like K-FAC and FlashAttention (★★★). The core material (§1-§6) is accessible to anyone who has completed §02-Linear-Algebra-Basics; the advanced applications (§7-§8) benefit from additional exposure to optimization and deep learning.
+**Difficulty distribution:** This material spans from algorithmic implementation (*) through convergence analysis (**) to research-level connections like K-FAC and FlashAttention (***). The core material (Section1-Section6) is accessible to anyone who has completed Section02-Linear-Algebra-Basics; the advanced applications (Section7-Section8) benefit from additional exposure to optimization and deep learning.
 
 
 ---
@@ -1891,17 +1891,17 @@ Result accumulated in: 16 registers (fp32)
 
 | Level | Size | Bandwidth | Latency |
 |-------|------|-----------|---------|
-| Registers | 256 KB/SM | ∞ | 1 cycle |
+| Registers | 256 KB/SM | \\infty | 1 cycle |
 | L1/Shared | 96 KB/SM | 128 TB/s | 20 cycles |
 | L2 cache | 40 MB | 12 TB/s | 200 cycles |
 | HBM (GPU DRAM) | 80 GB | 2 TB/s | 500 cycles |
-| PCIe (CPU↔GPU) | — | 64 GB/s | ms |
+| PCIe (CPU<->GPU) | - | 64 GB/s | ms |
 
 **Roofline model:** An algorithm is **compute-bound** if the number of flops is large relative to data movement; **memory-bound** if it's the opposite.
 
-- Dense matmul ($n=1024$): $O(n^3)$ flops, $O(n^2)$ reads → arithmetic intensity $O(n)$ → compute-bound
-- SpMV ($\text{nnz}$ sparse): $O(\text{nnz})$ flops, $O(\text{nnz})$ reads → arithmetic intensity $O(1)$ → memory-bound
-- FlashAttention: converts $O(N^2)$ memory reads to $O(N \cdot d_k)$ by blocking → shifts from memory-bound to compute-bound
+- Dense matmul ($n=1024$): $O(n^3)$ flops, $O(n^2)$ reads -> arithmetic intensity $O(n)$ -> compute-bound
+- SpMV ($\text{nnz}$ sparse): $O(\text{nnz})$ flops, $O(\text{nnz})$ reads -> arithmetic intensity $O(1)$ -> memory-bound
+- FlashAttention: converts $O(N^2)$ memory reads to $O(N \cdot d_k)$ by blocking -> shifts from memory-bound to compute-bound
 
 ### AA.3 Mixed Precision in Practice
 
@@ -1938,22 +1938,22 @@ scaler.update()
 The development of numerical linear algebra as a field was driven by the first digital computers (ENIAC, 1945; ACE, 1950; UNIVAC, 1951). Gaussian elimination had been used by hand for centuries, but the question of whether it would work reliably on early (extremely noisy, vacuum-tube-based) computers was open.
 
 **The stability debate (1947-1954):**
-- Von Neumann and Goldstine (1947) analyzed Gaussian elimination and concluded it might be dangerously unstable — their bound on the error was $O(4^n \varepsilon_{\text{mach}})$, suggesting exponential growth
+- Von Neumann and Goldstine (1947) analyzed Gaussian elimination and concluded it might be dangerously unstable - their bound on the error was $O(4^n \varepsilon_{\text{mach}})$, suggesting exponential growth
 - Turing (1948) introduced the condition number and argued that the growth was much more benign in practice
-- Wilkinson (1954) proved that with partial pivoting, the growth factor satisfies $\rho \leq 2^{n-1}$ in the worst case but $O(n^{2/3})$ in practice — vindicating GEPP as the standard method
+- Wilkinson (1954) proved that with partial pivoting, the growth factor satisfies $\rho \leq 2^{n-1}$ in the worst case but $O(n^{2/3})$ in practice - vindicating GEPP as the standard method
 
 **Householder's contribution (1958):**
 After Gram-Schmidt's orthogonalization was found to be numerically unstable for ill-conditioned matrices, Householder derived the reflector-based QR that achieves backward stability. This became the standard for solving least squares problems.
 
 **The Lanczos problem (1950-1980):**
-Lanczos (1950) proposed his tridiagonalization algorithm for symmetric eigenvalue problems, but it was found to be numerically unreliable — the computed Krylov vectors rapidly lost orthogonality. It took 30 years of research to understand when and why it works (Paige, 1980) and to develop practical implementations with selective reorthogonalization.
+Lanczos (1950) proposed his tridiagonalization algorithm for symmetric eigenvalue problems, but it was found to be numerically unreliable - the computed Krylov vectors rapidly lost orthogonality. It took 30 years of research to understand when and why it works (Paige, 1980) and to develop practical implementations with selective reorthogonalization.
 
 **Modern era (1987-present):**
 The LAPACK project standardized high-performance implementations of all major algorithms. The emergence of GPU computing (2007+) required adapting these algorithms for massively parallel hardware. The development of mixed-precision algorithms and iterative refinement has become critical for LLM training at scale.
 
 ---
 
-*[← Back to Chapter 10](../README.md) | [Next: Numerical Optimization →](../03-Numerical-Optimization/notes.md)*
+*[<- Back to Chapter 10](../README.md) | [Next: Numerical Optimization ->](../03-Numerical-Optimization/notes.md)*
 
 ---
 
@@ -1961,15 +1961,15 @@ The LAPACK project standardized high-performance implementations of all major al
 
 ### CC.1 True/False Questions
 
-1. Gaussian elimination with partial pivoting is always backward stable. *(False — the growth factor can be $2^{n-1}$, but this almost never happens)*
+1. Gaussian elimination with partial pivoting is always backward stable. *(False - the growth factor can be $2^{n-1}$, but this almost never happens)*
 2. The condition number of $A^\top A$ equals $\kappa(A)^2$. *(True)*
 3. CG converges in at most $n$ steps in exact arithmetic. *(True)*
-4. A backward stable algorithm always produces a small forward error. *(False — the condition number can amplify the backward error)*
-5. Householder QR is always preferred over MGS for orthogonalization. *(False — MGS is preferred for streaming applications)*
+4. A backward stable algorithm always produces a small forward error. *(False - the condition number can amplify the backward error)*
+5. Householder QR is always preferred over MGS for orthogonalization. *(False - MGS is preferred for streaming applications)*
 6. The Cholesky factorization is unique for SPD matrices. *(True, with positive diagonal)*
-7. For SPD matrices, LU and Cholesky give the same factorization. *(False — LU has $LU$ form, Cholesky has $LL^\top$ form)*
+7. For SPD matrices, LU and Cholesky give the same factorization. *(False - LU has $LU$ form, Cholesky has $LL^\top$ form)*
 8. GMRES always finds the solution in at most $n$ iterations. *(True in exact arithmetic; in practice, restart before $n$)*
-9. Diagonal scaling cannot change the condition number of a matrix. *(False — scaling dramatically affects condition number)*
+9. Diagonal scaling cannot change the condition number of a matrix. *(False - scaling dramatically affects condition number)*
 10. Adam's $1/\sqrt{v}$ denominator is a form of diagonal preconditioning. *(True)*
 
 ### CC.2 Fill in the Blanks
@@ -1992,10 +1992,10 @@ The LAPACK project standardized high-performance implementations of all major al
 
 ---
 
-*This section is part of the §10 Numerical Methods chapter. All algorithms presented are implemented in [theory.ipynb](theory.ipynb) with numerical verification.*
+*This section is part of the Section10 Numerical Methods chapter. All algorithms presented are implemented in [theory.ipynb](theory.ipynb) with numerical verification.*
 
-*[← Back to §01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) | [Next: §03 Numerical Optimization →](../03-Numerical-Optimization/notes.md)*
+*[<- Back to Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md) | [Next: Section03 Numerical Optimization ->](../03-Numerical-Optimization/notes.md)*
 
-**Section statistics:** 12 main sections, 28 subsections, 12 common mistakes, 8 exercises, 28 appendices. All algorithms are numerically verified in the companion notebook.
+**Section statistics:** 12 main sections, 28 subsections, 12 common mistakes, 10 exercises, 28 appendices. All algorithms are numerically verified in the companion notebook.
 
-*End of §02 Numerical Linear Algebra*
+*End of Section02 Numerical Linear Algebra*

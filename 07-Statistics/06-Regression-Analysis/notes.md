@@ -1,6 +1,6 @@
 # Regression Analysis
 
-[← Back to Chapter 7: Statistics](../README.md) | [Next Chapter: Optimization →](../../08-Optimization/README.md)
+[<- Back to Chapter 7: Statistics](../README.md) | [Next Chapter: Optimization ->](../../08-Optimization/README.md)
 
 ---
 
@@ -71,7 +71,7 @@ regression remains the standard against which those models must justify their ex
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations and simulations for OLS geometry, diagnostics, regularization, logistic and Poisson regression, GLMs, and ML-facing regression workflows |
-| [exercises.ipynb](exercises.ipynb) | 9 graded exercises covering covariance-to-slope derivations, matrix OLS, intervals, multicollinearity, Ridge/Lasso, logistic and Poisson models, influence, and linear-probe style applications |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises covering covariance-to-slope derivations, matrix OLS, intervals, multicollinearity, Ridge/Lasso, logistic and Poisson models, influence, and linear-probe style applications |
 
 ## Learning Objectives
 
@@ -555,7 +555,7 @@ one indicator column can represent the shift relative to a reference category.
 
 **Example 3: interaction term.**
 If prompt length affects latency differently under batch mode,
-then a feature like `length × batch_size` can encode that slope change.
+then a feature like `length x batch_size` can encode that slope change.
 
 Non-examples:
 
@@ -1699,67 +1699,67 @@ They also make excellent fallback models when richer systems become unstable or 
 These exercises are mirrored in `exercises.ipynb`,
 where each problem is followed by a runnable scaffold cell and a full reference solution.
 
-1. **Exercise 1 `*` - From Covariance to Slope**  
+1. **Exercise 1 `*` - From Covariance to Slope**
    Let $(x_i,y_i)$ be paired observations.
-   (a) Derive the simple-regression slope from the least-squares objective.  
-   (b) Rewrite the slope as sample covariance divided by sample variance.  
-   (c) Express it in terms of the sample correlation coefficient and sample standard deviations.  
+   (a) Derive the simple-regression slope from the least-squares objective.
+   (b) Rewrite the slope as sample covariance divided by sample variance.
+   (c) Express it in terms of the sample correlation coefficient and sample standard deviations.
    (d) Explain why scaling $x$ changes the slope but not the fitted values after reparameterization.
 
-2. **Exercise 2 `*` - Matrix OLS and Residual Orthogonality**  
-   Given a small design matrix $X$ with intercept and response vector $\mathbf{y}$,  
-   (a) compute $\hat{\boldsymbol{\beta}} = (X^\top X)^{-1}X^\top \mathbf{y}$,  
-   (b) compute the fitted values and residuals,  
-   (c) verify numerically that $X^\top \mathbf{e}=\mathbf{0}$, and  
+2. **Exercise 2 `*` - Matrix OLS and Residual Orthogonality**
+   Given a small design matrix $X$ with intercept and response vector $\mathbf{y}$,
+   (a) compute $\hat{\boldsymbol{\beta}} = (X^\top X)^{-1}X^\top \mathbf{y}$,
+   (b) compute the fitted values and residuals,
+   (c) verify numerically that $X^\top \mathbf{e}=\mathbf{0}$, and
    (d) interpret the orthogonality condition geometrically.
 
-3. **Exercise 3 `*` - Regression Intervals**  
-   For a fitted simple regression with known residual variance estimate,  
-   (a) compute a confidence interval for the slope,  
-   (b) compute a confidence interval for the mean response at a new point,  
-   (c) compute a prediction interval for a new observation, and  
+3. **Exercise 3 `*` - Regression Intervals**
+   For a fitted simple regression with known residual variance estimate,
+   (a) compute a confidence interval for the slope,
+   (b) compute a confidence interval for the mean response at a new point,
+   (c) compute a prediction interval for a new observation, and
    (d) explain why the prediction interval is wider.
 
-4. **Exercise 4 `**` - Diagnosing Multicollinearity**  
-   Using a design matrix with highly correlated predictors,  
-   (a) compute the condition number,  
-   (b) compute VIF values,  
-   (c) compare OLS coefficients before and after a small perturbation, and  
+4. **Exercise 4 `**` - Diagnosing Multicollinearity**
+   Using a design matrix with highly correlated predictors,
+   (a) compute the condition number,
+   (b) compute VIF values,
+   (c) compare OLS coefficients before and after a small perturbation, and
    (d) explain why prediction can remain stable while interpretation becomes unstable.
 
-5. **Exercise 5 `**` - Ridge vs Lasso Under Correlated Predictors**  
-   Fit OLS, Ridge, and Lasso to a small dataset with redundant features.  
-   (a) Compare coefficient norms,  
-   (b) identify which coefficients Lasso sets to zero,  
-   (c) compare prediction error on a held-out point, and  
+5. **Exercise 5 `**` - Ridge vs Lasso Under Correlated Predictors**
+   Fit OLS, Ridge, and Lasso to a small dataset with redundant features.
+   (a) Compare coefficient norms,
+   (b) identify which coefficients Lasso sets to zero,
+   (c) compare prediction error on a held-out point, and
    (d) explain the different geometric behavior of the L1 and L2 penalties.
 
-6. **Exercise 6 `**` - Logistic Regression and Odds Ratios**  
-   For a binary-outcome dataset,  
-   (a) compute predicted probabilities from a logistic model,  
-   (b) convert a coefficient to an odds ratio,  
-   (c) identify the decision boundary under threshold $0.5$, and  
+6. **Exercise 6 `**` - Logistic Regression and Odds Ratios**
+   For a binary-outcome dataset,
+   (a) compute predicted probabilities from a logistic model,
+   (b) convert a coefficient to an odds ratio,
+   (c) identify the decision boundary under threshold $0.5$, and
    (d) explain why a linear-probability model is less appropriate here.
 
-7. **Exercise 7 `**` - Poisson Regression for Event Rates**  
-   Using count data and exposure values,  
-   (a) build a log-rate model with an offset,  
-   (b) compute predicted rates,  
-   (c) interpret a coefficient multiplicatively, and  
+7. **Exercise 7 `**` - Poisson Regression for Event Rates**
+   Using count data and exposure values,
+   (a) build a log-rate model with an offset,
+   (b) compute predicted rates,
+   (c) interpret a coefficient multiplicatively, and
    (d) explain what overdispersion would look like.
 
-8. **Exercise 8 `***` - Leverage, Influence, and Cook's Distance**  
-   In a small regression problem with one unusual predictor point,  
-   (a) compute leverage scores,  
-   (b) approximate or compute Cook's distance,  
-   (c) compare the fit with and without the influential point, and  
+8. **Exercise 8 `***` - Leverage, Influence, and Cook's Distance**
+   In a small regression problem with one unusual predictor point,
+   (a) compute leverage scores,
+   (b) approximate or compute Cook's distance,
+   (c) compare the fit with and without the influential point, and
    (d) explain whether the point looks like valuable structure or likely contamination.
 
-9. **Exercise 9 `***` - Linear Probes and Regularized Readouts**  
-   Treat a matrix of frozen embeddings as predictors and labels as the response.  
-   (a) Fit a regularized linear or logistic readout,  
-   (b) compare weak and strong regularization,  
-   (c) explain how this mirrors a probe on hidden states, and  
+9. **Exercise 9 `***` - Linear Probes and Regularized Readouts**
+   Treat a matrix of frozen embeddings as predictors and labels as the response.
+   (a) Fit a regularized linear or logistic readout,
+   (b) compare weak and strong regularization,
+   (c) explain how this mirrors a probe on hidden states, and
    (d) state one reason probe accuracy should not be overinterpreted as causal understanding.
 
 ---

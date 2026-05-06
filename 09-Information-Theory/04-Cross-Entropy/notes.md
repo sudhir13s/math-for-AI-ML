@@ -1,4 +1,4 @@
-[← Back to Curriculum](../../README.md) | [Previous: Mutual Information ←](../03-Mutual-Information/notes.md) | [Next: Fisher Information →](../05-Fisher-Information/notes.md)
+[<- Back to Curriculum](../../README.md) | [Previous: Mutual Information <-](../03-Mutual-Information/notes.md) | [Next: Fisher Information ->](../05-Fisher-Information/notes.md)
 
 ---
 
@@ -35,19 +35,19 @@ implementation, and its modern use in 2026-era AI systems.
 
 ## Prerequisites
 
-- **Entropy and conditional entropy** — [01-Entropy](../01-Entropy/notes.md)
-- **KL divergence and relative entropy** — [02-KL-Divergence](../02-KL-Divergence/notes.md)
-- **Mutual information as uncertainty reduction** — [03-Mutual-Information](../03-Mutual-Information/notes.md)
-- **Expectation, empirical averages, and log-likelihoods** — [06-Probability-Theory/04-Expectation-and-Moments](../../06-Probability-Theory/04-Expectation-and-Moments/notes.md)
-- **Maximum likelihood estimation basics** — [07-Statistics/02-Estimation-Theory](../../07-Statistics/02-Estimation-Theory/notes.md)
-- **Softmax and log-softmax mechanics** — preview in [13-ML-Specific-Math/02-Activation-Functions](../../13-ML-Specific-Math/02-Activation-Functions/notes.md)
+- **Entropy and conditional entropy** - [01-Entropy](../01-Entropy/notes.md)
+- **KL divergence and relative entropy** - [02-KL-Divergence](../02-KL-Divergence/notes.md)
+- **Mutual information as uncertainty reduction** - [03-Mutual-Information](../03-Mutual-Information/notes.md)
+- **Expectation, empirical averages, and log-likelihoods** - [06-Probability-Theory/04-Expectation-and-Moments](../../06-Probability-Theory/04-Expectation-and-Moments/notes.md)
+- **Maximum likelihood estimation basics** - [07-Statistics/02-Estimation-Theory](../../07-Statistics/02-Estimation-Theory/notes.md)
+- **Softmax and log-softmax mechanics** - preview in [13-ML-Specific-Math/02-Activation-Functions](../../13-ML-Specific-Math/02-Activation-Functions/notes.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations, coding examples, stable softmax/log-sum-exp demos, and perplexity experiments |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises covering theory identities, BCE/CE derivations, stable computation, and modern AI use cases |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises covering theory identities, BCE/CE derivations, stable computation, and modern AI use cases |
 
 ## Learning Objectives
 
@@ -161,7 +161,7 @@ Model we use:
   code lengths are based on q(x)
 
 Per-symbol code length under q:
-  L_q(x) ≈ -log q(x)
+  L_q(x)  -log q(x)
 
 Expected length on true data:
   E_{x ~ p}[-log q(x)] = H(p, q)
@@ -212,7 +212,7 @@ The basic story can be phrased three equivalent ways:
 These three viewpoints are mathematically identical, but each highlights a
 different piece of intuition:
 
-- coding explains why the quantity is called “cross-entropy”
+- coding explains why the quantity is called "cross-entropy"
 - prediction explains why low-probability mistakes are punished so sharply
 - optimization explains why nearly every probabilistic classifier minimizes it
 
@@ -363,7 +363,7 @@ $$ H(\delta_c, q) = -\log q(c). $$
 This is exactly the common supervised-learning loss on a single example.
 
 **Non-example.**
-It is wrong to write “cross-entropy between two arbitrary vectors” unless the
+It is wrong to write "cross-entropy between two arbitrary vectors" unless the
 vectors are valid probability distributions or are clearly interpreted as such.
 Raw logits are not probabilities. Applying the CE formula directly to logits is
 nonsensical.
@@ -448,8 +448,8 @@ then the sequence cross-entropy is
 
 $$ H(p,q) = \mathbb{E}_{X_{1:T}\sim p} \left[ -\log q(X_{1:T}) \right] = \mathbb{E}_{X_{1:T}\sim p} \left[ -\sum_{t=1}^T \log q(X_t \mid X_{<t}) \right]. $$
 
-This additive decomposition is why language-model training looks like “sum the
-token losses.” It is not a heuristic. It is exactly the log-factorization of
+This additive decomposition is why language-model training looks like "sum the
+token losses." It is not a heuristic. It is exactly the log-factorization of
 the joint model.
 
 The average per-token cross-entropy is
@@ -567,8 +567,8 @@ There are three common special cases:
 3. **Support error**: if $q$ assigns zero probability where $p$ assigns
    positive probability, cross-entropy becomes infinite.
 
-The bound is often used implicitly in language modeling. People say “the model
-cannot push perplexity below the entropy rate of the data source,” which is the
+The bound is often used implicitly in language modeling. People say "the model
+cannot push perplexity below the entropy rate of the data source," which is the
 sequence version of the same statement.
 
 ### 3.3 Mismatched Coding Interpretation
@@ -586,7 +586,7 @@ excess expected codelength is
 
 $$ H(p,q)-H(p)=D_{\mathrm{KL}}(p\|q). $$
 
-That difference is not merely “some statistical gap.” It is the exact expected
+That difference is not merely "some statistical gap." It is the exact expected
 coding inefficiency incurred by modeling the source incorrectly.
 
 ```text
@@ -607,7 +607,7 @@ Meaning:
 ===============================================================
 ```
 
-This picture makes the name “cross-entropy” less mysterious. We take the
+This picture makes the name "cross-entropy" less mysterious. We take the
 entropy-style expectation under one distribution and cross it with logarithmic
 costs defined by another.
 
@@ -671,7 +671,7 @@ The autoregressive cross-entropy rate measures the average uncertainty the model
 still has about the next symbol once it sees the past.
 
 In practice, finite-context models only approximate this ideal because they
-cannot condition on an infinite past. Hugging Face’s perplexity documentation
+cannot condition on an infinite past. Hugging Face's perplexity documentation
 explicitly warns that fixed-context models need sliding-window approximations if
 we want a better estimate of the fully factorized sequence probability. That is
 an implementation detail with theoretical teeth: context truncation changes the
@@ -782,7 +782,7 @@ $\hat{p}$ after explicit sigmoid evaluation.
 
 It is also useful to compare BCE with plain accuracy on a single example. If
 the true label is $1$, then predicting $0.51$ and predicting $0.99$ both
-count as “correct” under accuracy. BCE distinguishes them sharply:
+count as "correct" under accuracy. BCE distinguishes them sharply:
 
 - $-\log 0.51$ is still relatively large
 - $-\log 0.99$ is very small
@@ -851,8 +851,8 @@ Soft targets appear in several important settings:
 - **annotator aggregation**: multiple human labels produce a soft empirical
   distribution over classes
 
-The interpretation changes from “probability on the correct class” to
-“probability mass allocated across the whole target distribution.”
+The interpretation changes from "probability on the correct class" to
+"probability mass allocated across the whole target distribution."
 
 This distinction is crucial. With one-hot labels, all non-true classes are
 treated identically. With soft targets, the loss can encode structure among
@@ -862,8 +862,8 @@ incorrect classes:
 - synonyms may deserve nonzero mass
 - near-equivalent translations may share credit
 
-This richer target geometry is part of why distillation can transfer “dark
-knowledge” that is invisible in hard labels.
+This richer target geometry is part of why distillation can transfer "dark
+knowledge" that is invisible in hard labels.
 
 ### 4.5 Sequence Cross-Entropy, Token Averaging, and Perplexity
 
@@ -888,7 +888,7 @@ $$ \operatorname{PPL} = \exp\left( \frac{1}{T}\sum_{t=1}^T -\log q_\theta(x_t \m
 
 when natural logarithms are used.
 
-Hugging Face’s language-modeling documentation makes two important points that
+Hugging Face's language-modeling documentation makes two important points that
 are easy to miss:
 
 1. perplexity is specifically natural for autoregressive or causal language
@@ -937,7 +937,7 @@ $$ \log\operatorname{softmax}(\mathbf{z})_c = z_c - m - \log\sum_j e^{z_j-m}. $$
 This identity is not optional implementation polish. It is the reason real
 training code works reliably.
 
-PyTorch’s official documentation reflects this design:
+PyTorch's official documentation reflects this design:
 
 - `CrossEntropyLoss` expects **logits**, not probabilities
 - `BCEWithLogitsLoss` fuses sigmoid with binary cross-entropy
@@ -997,7 +997,7 @@ So the gradient does exactly what we want:
 
 - increase the correct probability
 - decrease the incorrect probabilities
-- do so in proportion to the model’s own confidence structure
+- do so in proportion to the model's own confidence structure
 
 This is one reason softmax plus cross-entropy is such an elegant pair. The
 Jacobian of softmax and the derivative of log-loss cancel into a beautifully
@@ -1082,7 +1082,7 @@ This also highlights a contrast with accuracy:
 That is a much stronger learning signal, and it is the right one whenever
 calibrated probabilities matter.
 
-The “strictly proper” language also protects against a common misunderstanding.
+The "strictly proper" language also protects against a common misunderstanding.
 Cross-entropy is not preferred merely because it is differentiable. It is
 preferred because it is truth-inducing: in expectation, the best forecast under
 this rule is the true distribution itself. That is a much deeper reason.
@@ -1191,12 +1191,12 @@ Effect:
 ```
 
 One important nuance from later empirical work is that label smoothing is not a
-universal free lunch. The NeurIPS 2019 study “When Does Label Smoothing Help?”
+universal free lunch. The NeurIPS 2019 study "When Does Label Smoothing Help?"
 showed that its benefits depend on task structure, class relationships, and the
 evaluation metric of interest. In some distillation settings, naive smoothing
 can even interfere with knowledge transfer.
 
-So the right conclusion is not “always smooth labels.” It is:
+So the right conclusion is not "always smooth labels." It is:
 
 - label smoothing changes the target distribution
 - changing the target distribution changes what cross-entropy asks the model to
@@ -1204,9 +1204,9 @@ So the right conclusion is not “always smooth labels.” It is:
 - that can be beneficial or harmful depending on the problem
 
 Another useful way to think about smoothing is that it injects a tiny amount of
-target entropy by hand. Hard labels say “the world is deterministic at this
-example.” Smoothed labels say “the world may still have ambiguity, annotation
-noise, or semantic neighborhood structure.” That philosophical shift is small in
+target entropy by hand. Hard labels say "the world is deterministic at this
+example." Smoothed labels say "the world may still have ambiguity, annotation
+noise, or semantic neighborhood structure." That philosophical shift is small in
 notation and large in effect.
 
 ### 6.2 Knowledge Distillation and Soft Cross-Entropy
@@ -1220,8 +1220,8 @@ $$ \ell_{\mathrm{KD}} = -\sum_{k=1}^K t_k \log \hat{p}_k. $$
 This is just cross-entropy again, but now the target is itself a learned
 distribution.
 
-Hinton, Vinyals, and Dean’s distillation work made this idea famous because the
-teacher’s non-argmax probabilities carry extra structure:
+Hinton, Vinyals, and Dean's distillation work made this idea famous because the
+teacher's non-argmax probabilities carry extra structure:
 
 - which wrong classes are close to the right one
 - how uncertain the teacher is
@@ -1259,7 +1259,7 @@ This tells the optimizer to care more about mistakes on minority classes.
 #### Binary positive weighting
 
 For binary or multi-label BCE, a common implementation uses a `pos_weight`
-factor. PyTorch’s `BCEWithLogitsLoss` documentation explicitly describes this as
+factor. PyTorch's `BCEWithLogitsLoss` documentation explicitly describes this as
 a recall/precision tradeoff mechanism under imbalance.
 
 #### Masking and ignored positions
@@ -1287,7 +1287,7 @@ are modifications of how the same logarithmic scoring rule is aggregated over
 classes, examples, or positions.
 
 This is worth emphasizing because engineers often treat weighting, masking, and
-ignoring as “just implementation details.” They are implementation details, but
+ignoring as "just implementation details." They are implementation details, but
 they are also modeling decisions. They define which errors the empirical
 cross-entropy estimator treats as important.
 
@@ -1340,7 +1340,7 @@ the right objective when the goal is honest probabilistic prediction under the
 given target distribution. If the problem itself differs from that objective,
 the loss may need to be modified or supplemented.
 
-That framing helps avoid the unproductive question “Is CE good or bad?” It is
+That framing helps avoid the unproductive question "Is CE good or bad?" It is
 better to ask:
 
 - what target distribution is being treated as truth?
@@ -1421,8 +1421,8 @@ categorical distributions, but the conditioning context now includes a long
 history.
 
 This is one place where the information-theory view is especially clarifying.
-The loss is not “token accuracy with differentiability attached.” It is average
-surprise under the model’s conditional next-token distribution.
+The loss is not "token accuracy with differentiability attached." It is average
+surprise under the model's conditional next-token distribution.
 
 That perspective also explains why improvements in CE can feel small
 numerically but large behaviorally. Shaving a few hundredths off token-level CE
@@ -1451,7 +1451,7 @@ next-token surprise requires modeling many kinds of structure at once:
 - style
 - local and long-range dependencies
 
-Cross-entropy itself does not “know” these categories. It only measures whether
+Cross-entropy itself does not "know" these categories. It only measures whether
 the right token received enough probability mass. But minimizing that criterion
 across diverse corpora forces the model to learn the latent regularities that
 make the corpus predictable.
@@ -1496,8 +1496,8 @@ to four classes rather than
 
 $$ [1,0,0,0]. $$
 
-The second vector says only “class 1 is correct.” The first says “class 2 is
-meaningfully plausible, classes 3 and 4 much less so.” That relative structure
+The second vector says only "class 1 is correct." The first says "class 2 is
+meaningfully plausible, classes 3 and 4 much less so." That relative structure
 is often exactly what a smaller student needs in order to generalize well.
 
 Cross-entropy is the right tool here because it compares full distributions, not
@@ -1534,7 +1534,7 @@ learn because you can ask:
 2. what probability distribution is being modeled over them?
 3. where is the cross-entropy hidden inside the objective?
 
-Often the answer is “very close to the surface.”
+Often the answer is "very close to the surface."
 
 ---
 
@@ -1543,7 +1543,7 @@ Often the answer is “very close to the surface.”
 | # | Mistake | Why It Is Wrong | Fix |
 | --- | --- | --- | --- |
 | 1 | Treating cross-entropy and entropy as the same thing | Entropy depends on one distribution; cross-entropy depends on a source-model pair $(p,q)$ | Keep the model mismatch explicitly visible |
-| 2 | Saying CE is “just classification loss” | CE is an information-theoretic quantity that becomes a loss under probabilistic modeling | Learn the coding and NLL interpretations too |
+| 2 | Saying CE is "just classification loss" | CE is an information-theoretic quantity that becomes a loss under probabilistic modeling | Learn the coding and NLL interpretations too |
 | 3 | Applying `softmax` and then calling `CrossEntropyLoss` | PyTorch CE expects logits and does log-softmax internally for stability | Pass raw logits to fused CE routines |
 | 4 | Using `sigmoid` and then `BCELoss` when logits are available | This is less numerically stable than a fused logits-based version | Use `BCEWithLogitsLoss` |
 | 5 | Comparing perplexity across different tokenizers | Different tokenizers define different event spaces and token counts | Compare PPL only under matched tokenization/eval protocol |
@@ -1559,39 +1559,39 @@ Often the answer is “very close to the surface.”
 
 ## 9. Exercises
 
-1. **Exercise 1 (★): Discrete Cross-Entropy by Hand**  
+1. **Exercise 1 (*): Discrete Cross-Entropy by Hand**  
    Let $p=(0.7,0.2,0.1)$ and $q=(0.5,0.3,0.2)$. Compute $H(p)$,
    $H(p,q)$, and $D_{\mathrm{KL}}(p\|q)$, then verify the identity
    $H(p,q)=H(p)+D_{\mathrm{KL}}(p\|q)$.
 
-2. **Exercise 2 (★): One-Hot Targets and Log-Loss**  
+2. **Exercise 2 (*): One-Hot Targets and Log-Loss**  
    Show that if the target is a point mass on class $c$, then categorical
    cross-entropy reduces to $-\log \hat{p}_c$. Explain why this means CE
    punishes confident mistakes so strongly.
 
-3. **Exercise 3 (★): Bernoulli Likelihood to BCE**  
+3. **Exercise 3 (*): Bernoulli Likelihood to BCE**  
    Starting from the Bernoulli model
    $q_\theta(y \mid \mathbf{x})=\hat{p}^{\,y}(1-\hat{p})^{1-y}$, derive the
    binary cross-entropy formula.
 
-4. **Exercise 4 (★★): Softmax Cross-Entropy Gradient**  
+4. **Exercise 4 (**): Softmax Cross-Entropy Gradient**  
    Derive $\nabla_{\mathbf{z}}\ell = \hat{\mathbf{p}}-\mathbf{y}$ for the
    one-hot categorical case.
 
-5. **Exercise 5 (★★): Sequence Cross-Entropy and Perplexity**  
+5. **Exercise 5 (**): Sequence Cross-Entropy and Perplexity**  
    Given token log-likelihoods for a short sequence, compute the average
    cross-entropy per token and convert it to perplexity. Then explain why the
    same model can have different perplexities under different tokenizers.
 
-6. **Exercise 6 (★★): Stable Log-Sum-Exp**  
+6. **Exercise 6 (**): Stable Log-Sum-Exp**  
    Implement naive `softmax -> log` and stable `log_softmax` for large logits,
    then demonstrate why the naive version fails numerically.
 
-7. **Exercise 7 (★★★): Label Smoothing or Distillation**  
+7. **Exercise 7 (***): Label Smoothing or Distillation**  
    On a toy multiclass example, compare one-hot CE against smoothed-target CE or
    teacher-target CE. Explain what supervision information the soft target adds.
 
-8. **Exercise 8 (★★★): Weighted or Masked Cross-Entropy in Practice**  
+8. **Exercise 8 (***): Weighted or Masked Cross-Entropy in Practice**  
    Construct either:
    - a class-imbalanced classification example and compare weighted vs unweighted CE, or
    - a padded sequence example and compare correct masked averaging to naive averaging.
@@ -1731,17 +1731,17 @@ Cross-entropy is one of its central dialects.
 
 ## References
 
-1. Shannon, C. E. (1948). “A Mathematical Theory of Communication.” *Bell System Technical Journal*. [PDF](https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf)
-2. Kullback, S., and Leibler, R. A. (1951). “On Information and Sufficiency.” *Annals of Mathematical Statistics*.
+1. Shannon, C. E. (1948). "A Mathematical Theory of Communication." *Bell System Technical Journal*. [PDF](https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf)
+2. Kullback, S., and Leibler, R. A. (1951). "On Information and Sufficiency." *Annals of Mathematical Statistics*.
 3. Cover, T. M., and Thomas, J. A. (2006). *Elements of Information Theory* (2nd ed.). Wiley.
 4. MacKay, D. J. C. (2003). *Information Theory, Inference, and Learning Algorithms*. Cambridge University Press.
 5. Duchi, J. C. *Statistics 311 / EE377 Lecture Notes*. [Online](https://web.stanford.edu/class/stats311/lecture-notes.pdf)
-6. Stanford EE276. “Lecture 2: Entropy and Related Quantities.” [PDF](https://web.stanford.edu/class/ee276/files/lectures/lecture2.pdf)
+6. Stanford EE276. "Lecture 2: Entropy and Related Quantities." [PDF](https://web.stanford.edu/class/ee276/files/lectures/lecture2.pdf)
 7. PyTorch Documentation. [`torch.nn.CrossEntropyLoss`](https://docs.pytorch.org/docs/2.11/generated/torch.nn.CrossEntropyLoss.html)
 8. PyTorch Documentation. [`torch.nn.BCEWithLogitsLoss`](https://docs.pytorch.org/docs/2.11/generated/torch.nn.BCEWithLogitsLoss.html)
-9. Hugging Face Transformers Documentation. “Perplexity of fixed-length models.” [Docs](https://huggingface.co/docs/transformers/v4.42.0/en/perplexity)
-10. Vaswani, A., et al. (2017). “Attention Is All You Need.” [arXiv](https://arxiv.org/abs/1706.03762)
-11. Hinton, G., Vinyals, O., and Dean, J. (2015). “Distilling the Knowledge in a Neural Network.” [PDF](https://www.cs.toronto.edu/~hinton/absps/distillation.pdf)
-12. Müller, R., Kornblith, S., and Hinton, G. (2019). “When Does Label Smoothing Help?” [NeurIPS PDF](https://papers.neurips.cc/paper_files/paper/2019/file/f1748d6b0fd9d439f71450117eba2725-Paper.pdf)
-13. Dawid, A. P., and Musio, M. (2014). “Theory and Applications of Proper Scoring Rules.” *Metron*.
-14. The Book of Statistical Proofs. “The log probability scoring rule is a strictly proper scoring rule.” [Proof](https://statproofbook.github.io/P/lpsr-spsr.html)
+9. Hugging Face Transformers Documentation. "Perplexity of fixed-length models." [Docs](https://huggingface.co/docs/transformers/v4.42.0/en/perplexity)
+10. Vaswani, A., et al. (2017). "Attention Is All You Need." [arXiv](https://arxiv.org/abs/1706.03762)
+11. Hinton, G., Vinyals, O., and Dean, J. (2015). "Distilling the Knowledge in a Neural Network." [PDF](https://www.cs.toronto.edu/~hinton/absps/distillation.pdf)
+12. Muller, R., Kornblith, S., and Hinton, G. (2019). "When Does Label Smoothing Help?" [NeurIPS PDF](https://papers.neurips.cc/paper_files/paper/2019/file/f1748d6b0fd9d439f71450117eba2725-Paper.pdf)
+13. Dawid, A. P., and Musio, M. (2014). "Theory and Applications of Proper Scoring Rules." *Metron*.
+14. The Book of Statistical Proofs. "The log probability scoring rule is a strictly proper scoring rule." [Proof](https://statproofbook.github.io/P/lpsr-spsr.html)

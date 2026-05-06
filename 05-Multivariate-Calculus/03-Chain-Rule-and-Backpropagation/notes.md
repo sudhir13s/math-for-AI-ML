@@ -1,39 +1,39 @@
-[← Back to Multivariate Calculus](../README.md) | [Next: Optimality Conditions →](../04-Optimality-Conditions/notes.md)
+[<- Back to Multivariate Calculus](../README.md) | [Next: Optimality Conditions ->](../04-Optimality-Conditions/notes.md)
 
 ---
 
 # Chain Rule and Backpropagation
 
 > _"Backpropagation is an algorithm for computing gradients efficiently in a computational graph. At its heart, it is nothing more than the chain rule of calculus applied repeatedly."_
-> — Goodfellow, Bengio & Courville, _Deep Learning_ (2016)
+> - Goodfellow, Bengio & Courville, _Deep Learning_ (2016)
 
 ## Overview
 
-The chain rule is the single most important theorem in applied mathematics for machine learning. Every time a neural network is trained — whether a two-layer MLP or a 70-billion parameter language model — the update step depends on computing gradients of a scalar loss with respect to millions or billions of parameters. That computation is **backpropagation**, and backpropagation is nothing more than the multivariate chain rule applied systematically to a computational graph.
+The chain rule is the single most important theorem in applied mathematics for machine learning. Every time a neural network is trained - whether a two-layer MLP or a 70-billion parameter language model - the update step depends on computing gradients of a scalar loss with respect to millions or billions of parameters. That computation is **backpropagation**, and backpropagation is nothing more than the multivariate chain rule applied systematically to a computational graph.
 
-This section develops the chain rule from first principles and then derives backpropagation rigorously. We prove every formula from scratch: the general Jacobian chain rule, the VJP (vector-Jacobian product) form that makes backprop efficient, the recurrence relation for the error signal $\boldsymbol{\delta}^{[l]}$, and the gradient formulae for every layer type that appears in modern transformers. We also analyse the pathologies — vanishing and exploding gradients — with mathematical precision, and derive the interventions that cure them: careful initialisation, residual connections, and normalisation layers.
+This section develops the chain rule from first principles and then derives backpropagation rigorously. We prove every formula from scratch: the general Jacobian chain rule, the VJP (vector-Jacobian product) form that makes backprop efficient, the recurrence relation for the error signal $\boldsymbol{\delta}^{[l]}$, and the gradient formulae for every layer type that appears in modern transformers. We also analyse the pathologies - vanishing and exploding gradients - with mathematical precision, and derive the interventions that cure them: careful initialisation, residual connections, and normalisation layers.
 
-The connection to automatic differentiation (§05) is previewed but not developed here: this section establishes *what* is computed (the chain rule gradient) while §05 establishes *how* it is computed mechanically by an AD engine.
+The connection to automatic differentiation (05) is previewed but not developed here: this section establishes *what* is computed (the chain rule gradient) while 05 establishes *how* it is computed mechanically by an AD engine.
 
 ## Prerequisites
 
-- **Partial derivatives, gradient, directional derivative** — [§01 Partial Derivatives and Gradients](../01-Partial-Derivatives-and-Gradients/notes.md)
-- **Jacobian matrix, Fréchet derivative, VJP/JVP** — [§02 Jacobians and Hessians](../02-Jacobians-and-Hessians/notes.md)
-- **Single-variable chain rule, Taylor series** — [§04 Calculus Fundamentals](../../04-Calculus-Fundamentals/README.md)
-- **Matrix multiplication, transpose** — [§02 Linear Algebra Basics](../../02-Linear-Algebra-Basics/README.md)
+- **Partial derivatives, gradient, directional derivative** - [01 Partial Derivatives and Gradients](../01-Partial-Derivatives-and-Gradients/notes.md)
+- **Jacobian matrix, Frchet derivative, VJP/JVP** - [02 Jacobians and Hessians](../02-Jacobians-and-Hessians/notes.md)
+- **Single-variable chain rule, Taylor series** - [04 Calculus Fundamentals](../../04-Calculus-Fundamentals/README.md)
+- **Matrix multiplication, transpose** - [02 Linear Algebra Basics](../../02-Linear-Algebra-Basics/README.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Chain rule verification, backprop from scratch, all layer gradients, vanishing/exploding gradient simulation, checkpointing |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises: chain rule through LoRA backward pass and BPTT |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises: chain rule through LoRA backward pass and BPTT |
 
 ## Learning Objectives
 
 After completing this section, you will be able to:
 
-1. State and prove the general chain rule $J_{f\circ g}(\mathbf{x}) = J_f(g(\mathbf{x}))\cdot J_g(\mathbf{x})$ via the Fréchet derivative
+1. State and prove the general chain rule $J_{f\circ g}(\mathbf{x}) = J_f(g(\mathbf{x}))\cdot J_g(\mathbf{x})$ via the Frchet derivative
 2. Explain why the VJP form $\nabla_\mathbf{x}\mathcal{L} = J_g(\mathbf{x})^\top\nabla_{g(\mathbf{x})}\mathcal{L}$ is the fundamental equation of backpropagation
 3. Define a computational graph, perform forward and backward passes, handle gradient accumulation at branches
 4. Derive the backprop recurrence $\boldsymbol{\delta}^{[l]} = (W^{[l+1]})^\top\boldsymbol{\delta}^{[l+1]}\odot\sigma'(\mathbf{z}^{[l]})$ from first principles
@@ -53,23 +53,23 @@ After completing this section, you will be able to:
   - [1.2 Backpropagation as Iterated Chain Rule](#12-backpropagation-as-iterated-chain-rule)
   - [1.3 Historical Context](#13-historical-context)
   - [1.4 Why Backprop Defines Modern AI](#14-why-backprop-defines-modern-ai)
-- [2. The Multivariate Chain Rule — Full Theory](#2-the-multivariate-chain-rule--full-theory)
-  - [2.1 The General Chain Rule — Proof](#21-the-general-chain-rule--proof)
+- [2. The Multivariate Chain Rule - Full Theory](#2-the-multivariate-chain-rule--full-theory)
+  - [2.1 The General Chain Rule - Proof](#21-the-general-chain-rule--proof)
   - [2.2 Three Cases in Increasing Generality](#22-three-cases-in-increasing-generality)
-  - [2.3 The VJP Form — Foundation of Backprop](#23-the-vjp-form--foundation-of-backprop)
+  - [2.3 The VJP Form - Foundation of Backprop](#23-the-vjp-form--foundation-of-backprop)
   - [2.4 Long Chains and Telescoping Products](#24-long-chains-and-telescoping-products)
   - [2.5 Differentiating Through Discrete Operations](#25-differentiating-through-discrete-operations)
 - [3. Computation Graphs](#3-computation-graphs)
   - [3.1 Formal DAG Definition](#31-formal-dag-definition)
   - [3.2 Forward Pass](#32-forward-pass)
-  - [3.3 Backward Pass — Reverse Accumulation](#33-backward-pass--reverse-accumulation)
+  - [3.3 Backward Pass - Reverse Accumulation](#33-backward-pass--reverse-accumulation)
   - [3.4 Gradient Accumulation at Branching Nodes](#34-gradient-accumulation-at-branching-nodes)
   - [3.5 Dynamic vs Static Graphs](#35-dynamic-vs-static-graphs)
-- [4. Backpropagation — Complete Derivation](#4-backpropagation--complete-derivation)
+- [4. Backpropagation - Complete Derivation](#4-backpropagation--complete-derivation)
   - [4.1 Notation and Setup](#41-notation-and-setup)
   - [4.2 Forward Pass Equations](#42-forward-pass-equations)
   - [4.3 Output Layer Gradient](#43-output-layer-gradient)
-  - [4.4 Backpropagation Recurrence — Proof](#44-backpropagation-recurrence--proof)
+  - [4.4 Backpropagation Recurrence - Proof](#44-backpropagation-recurrence--proof)
   - [4.5 Weight and Bias Gradients](#45-weight-and-bias-gradients)
   - [4.6 Batched Backpropagation](#46-batched-backpropagation)
 - [5. Gradient Derivations for Key ML Operations](#5-gradient-derivations-for-key-ml-operations)
@@ -82,7 +82,7 @@ After completing this section, you will be able to:
 - [6. Vanishing and Exploding Gradients](#6-vanishing-and-exploding-gradients)
   - [6.1 Gradient Magnitude Analysis](#61-gradient-magnitude-analysis)
   - [6.2 Activation Functions and Gradient Flow](#62-activation-functions-and-gradient-flow)
-  - [6.3 Weight Initialisation — Xavier and He](#63-weight-initialisation--xavier-and-he)
+  - [6.3 Weight Initialisation - Xavier and He](#63-weight-initialisation--xavier-and-he)
   - [6.4 Residual Connections as Gradient Highways](#64-residual-connections-as-gradient-highways)
   - [6.5 Gradient Clipping](#65-gradient-clipping)
   - [6.6 Normalisation Effect on Gradient Flow](#66-normalisation-effect-on-gradient-flow)
@@ -97,7 +97,7 @@ After completing this section, you will be able to:
   - [8.3 Straight-Through Estimator](#83-straight-through-estimator)
   - [8.4 Higher-Order Gradients](#84-higher-order-gradients)
 - [9. Transformer Backpropagation in Depth](#9-transformer-backpropagation-in-depth)
-  - [9.1 One Transformer Layer — Full Gradient Flow](#91-one-transformer-layer--full-gradient-flow)
+  - [9.1 One Transformer Layer - Full Gradient Flow](#91-one-transformer-layer--full-gradient-flow)
   - [9.2 LoRA Backward Pass](#92-lora-backward-pass)
   - [9.3 Gradient Accumulation for Large Batches](#93-gradient-accumulation-for-large-batches)
   - [9.4 Distributed Gradient Synchronisation](#94-distributed-gradient-synchronisation)
@@ -122,28 +122,28 @@ The multivariate generalisation replaces scalars with vectors and scalar derivat
 
 $$J_{f\circ g}(\mathbf{x}) = J_f(g(\mathbf{x})) \cdot J_g(\mathbf{x})$$
 
-The product is now matrix multiplication. This is not a different rule — it is the same rule, stated in the correct language for vector-valued functions. The single-variable rule is the special case $n = m = p = 1$ where Jacobians degenerate to scalars.
+The product is now matrix multiplication. This is not a different rule - it is the same rule, stated in the correct language for vector-valued functions. The single-variable rule is the special case $n = m = p = 1$ where Jacobians degenerate to scalars.
 
 ```
 SCALAR CHAIN RULE vs JACOBIAN CHAIN RULE
-════════════════════════════════════════════════════════════════════════
 
-  Scalar:    x ─→ g ─→ u ─→ f ─→ y
-             ℝ    ℝ    ℝ    ℝ    ℝ
+
+  Scalar:    x -> g -> u -> f -> y
+             R    R    R    R    R
              dy/dx = (dy/du)(du/dx)   [scalar multiplication]
 
-  Vector:    x ─→ g ─→ u ─→ f ─→ y
-             ℝᵖ   ℝⁿ   ℝⁿ   ℝᵐ   ℝᵐ
-             J_{f∘g} = J_f · J_g     [matrix multiplication]
-             (m×p) = (m×n) · (n×p)
+  Vector:    x -> g -> u -> f -> y
+             R   R   R   R   R
+             J_{fog} = J_f * J_g     [matrix multiplication]
+             (mxp) = (mxn) * (nxp)
 
   The dimensions work out exactly like matrix multiplication.
   The chain rule IS matrix multiplication for Jacobians.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-What makes the multivariate version non-trivial is that $J_f$ must be evaluated at $g(\mathbf{x})$ — the output of the inner function — not at $\mathbf{x}$ itself. This point-dependence is where the local linear approximation lives: the Jacobian $J_f(g(\mathbf{x}))$ is the best linear approximation to $f$ at the specific point $g(\mathbf{x})$, and $J_g(\mathbf{x})$ is the best linear approximation to $g$ at $\mathbf{x}$.
+What makes the multivariate version non-trivial is that $J_f$ must be evaluated at $g(\mathbf{x})$ - the output of the inner function - not at $\mathbf{x}$ itself. This point-dependence is where the local linear approximation lives: the Jacobian $J_f(g(\mathbf{x}))$ is the best linear approximation to $f$ at the specific point $g(\mathbf{x})$, and $J_g(\mathbf{x})$ is the best linear approximation to $g$ at $\mathbf{x}$.
 
 ### 1.2 Backpropagation as Iterated Chain Rule
 
@@ -151,7 +151,7 @@ A deep neural network is a long composition of functions:
 
 $$\mathcal{L} = \ell\bigl(f_L(\cdots f_2(f_1(\mathbf{x}))\cdots)\bigr)$$
 
-where each $f_l$ is a layer (linear + activation), $\ell$ is the loss function, and $\mathcal{L}$ is a scalar. Computing $\nabla_{\mathbf{w}^{[l]}}\mathcal{L}$ — the gradient of the loss with respect to layer $l$'s parameters — requires applying the chain rule through every layer from $l$ to $L$.
+where each $f_l$ is a layer (linear + activation), $\ell$ is the loss function, and $\mathcal{L}$ is a scalar. Computing $\nabla_{\mathbf{w}^{[l]}}\mathcal{L}$ - the gradient of the loss with respect to layer $l$'s parameters - requires applying the chain rule through every layer from $l$ to $L$.
 
 The chain rule gives:
 
@@ -161,7 +161,7 @@ where $\boldsymbol{\delta}^{[l]} = \nabla_{\mathbf{z}^{[l]}}\mathcal{L}$ is the 
 
 $$\boldsymbol{\delta}^{[l]} = J_{f_{l+1},\mathbf{a}}(\mathbf{z}^{[l]})^\top \cdot \boldsymbol{\delta}^{[l+1]}$$
 
-This recurrence propagates the error signal backward from layer $L$ to layer 1 — hence "backpropagation." At each step, we multiply by the transposed Jacobian of the next layer. The entire algorithm is:
+This recurrence propagates the error signal backward from layer $L$ to layer 1 - hence "backpropagation." At each step, we multiply by the transposed Jacobian of the next layer. The entire algorithm is:
 
 1. **Forward pass**: compute and store $\mathbf{z}^{[l]}$, $\mathbf{a}^{[l]}$ for $l = 1, \ldots, L$
 2. **Initialise**: $\boldsymbol{\delta}^{[L]} = \nabla_{\mathbf{z}^{[L]}}\mathcal{L}$
@@ -179,9 +179,9 @@ Backpropagation is not a fundamentally different concept from the chain rule. It
 | 1960 | Kelley | Gradient computation for optimal control (independent discovery of backprop concept) |
 | 1970 | Linnainmaa | First complete description of reverse-mode automatic differentiation for computing gradients |
 | 1974 | Werbos | First application to neural networks in his PhD thesis |
-| 1986 | Rumelhart, Hinton, Williams | Popularised backpropagation in "Learning representations by back-propagating errors" — the paper that launched the neural network revolution |
+| 1986 | Rumelhart, Hinton, Williams | Popularised backpropagation in "Learning representations by back-propagating errors" - the paper that launched the neural network revolution |
 | 1989 | LeCun | Applied backprop to convolutional networks for handwritten digit recognition |
-| 2012 | Krizhevsky, Sutskever, Hinton | AlexNet demonstrated GPU-accelerated backprop at scale — kicked off the deep learning era |
+| 2012 | Krizhevsky, Sutskever, Hinton | AlexNet demonstrated GPU-accelerated backprop at scale - kicked off the deep learning era |
 | 2015 | Google Brain, Facebook AI | PyTorch/TensorFlow: automatic differentiation engines that compute backprop automatically |
 | 2017 | Vaswani et al. | Transformer: backprop through multi-head attention; the architecture underlying GPT, BERT, LLaMA |
 | 2021 | Hu et al. (LoRA) | Parameter-efficient fine-tuning by limiting gradient flow to low-rank subspaces |
@@ -191,7 +191,7 @@ Backpropagation is not a fundamentally different concept from the chain rule. It
 
 Every large language model, image classifier, and diffusion model trained today relies on backpropagation for every gradient update. The scale is staggering: training GPT-4 reportedly required $\sim 10^{25}$ floating-point operations, the vast majority of which are forward and backward passes through the transformer network.
 
-**Backprop enables gradient-based learning at scale** because its cost is proportional to the cost of the forward pass — typically $O(n \cdot \text{FLOPs}(f))$ where $n$ is the number of parameters. Alternative approaches (finite differences, evolution strategies, zeroth-order methods) are orders of magnitude more expensive.
+**Backprop enables gradient-based learning at scale** because its cost is proportional to the cost of the forward pass - typically $O(n \cdot \text{FLOPs}(f))$ where $n$ is the number of parameters. Alternative approaches (finite differences, evolution strategies, zeroth-order methods) are orders of magnitude more expensive.
 
 **Three properties make backprop indispensable:**
 
@@ -201,35 +201,35 @@ Every large language model, image classifier, and diffusion model trained today 
 
 3. **Composability**: Any differentiable function composed of differentiable primitives has an automatically computable gradient. This is why PyTorch/JAX can differentiate arbitrary Python code that uses differentiable operations.
 
-**For AI in 2026:** The gradient is the workhorse of every training algorithm: SGD, Adam, AdaGrad, Muon, SOAP — all are gradient-based. Fine-tuning (LoRA, QLoRA, DoRA), RLHF (PPO, DPO, GRPO), distillation, and continual learning all depend on backprop. Even methods that appear gradient-free (evolutionary strategies, black-box optimisation) are often used *because* they approximate the gradient in settings where backprop is unavailable (non-differentiable objectives, external APIs).
+**For AI in 2026:** The gradient is the workhorse of every training algorithm: SGD, Adam, AdaGrad, Muon, SOAP - all are gradient-based. Fine-tuning (LoRA, QLoRA, DoRA), RLHF (PPO, DPO, GRPO), distillation, and continual learning all depend on backprop. Even methods that appear gradient-free (evolutionary strategies, black-box optimisation) are often used *because* they approximate the gradient in settings where backprop is unavailable (non-differentiable objectives, external APIs).
 
 ---
 
-## 2. The Multivariate Chain Rule — Full Theory
+## 2. The Multivariate Chain Rule - Full Theory
 
-### 2.1 The General Chain Rule — Proof
+### 2.1 The General Chain Rule - Proof
 
-We prove the chain rule using the Fréchet derivative from §02. Recall:
+We prove the chain rule using the Frchet derivative from 02. Recall:
 
-**Definition.** $f: U \subseteq \mathbb{R}^n \to \mathbb{R}^m$ is Fréchet differentiable at $\mathbf{x}$ if there exists a linear map $L_\mathbf{x}: \mathbb{R}^n \to \mathbb{R}^m$ such that
+**Definition.** $f: U \subseteq \mathbb{R}^n \to \mathbb{R}^m$ is Frchet differentiable at $\mathbf{x}$ if there exists a linear map $L_\mathbf{x}: \mathbb{R}^n \to \mathbb{R}^m$ such that
 
 $$\lim_{\|\boldsymbol{\delta}\|\to 0}\frac{\|f(\mathbf{x}+\boldsymbol{\delta}) - f(\mathbf{x}) - L_\mathbf{x}\boldsymbol{\delta}\|}{\|\boldsymbol{\delta}\|} = 0$$
 
 The matrix of $L_\mathbf{x}$ is the Jacobian $J_f(\mathbf{x})$.
 
-**Theorem (Chain Rule).** Let $g: \mathbb{R}^p \to \mathbb{R}^n$ be Fréchet differentiable at $\mathbf{x}$, and $f: \mathbb{R}^n \to \mathbb{R}^m$ be Fréchet differentiable at $g(\mathbf{x})$. Then $h = f \circ g: \mathbb{R}^p \to \mathbb{R}^m$ is Fréchet differentiable at $\mathbf{x}$ and
+**Theorem (Chain Rule).** Let $g: \mathbb{R}^p \to \mathbb{R}^n$ be Frchet differentiable at $\mathbf{x}$, and $f: \mathbb{R}^n \to \mathbb{R}^m$ be Frchet differentiable at $g(\mathbf{x})$. Then $h = f \circ g: \mathbb{R}^p \to \mathbb{R}^m$ is Frchet differentiable at $\mathbf{x}$ and
 
 $$J_h(\mathbf{x}) = J_f(g(\mathbf{x}))\cdot J_g(\mathbf{x})$$
 
-**Proof.** Let $\mathbf{u}_0 = g(\mathbf{x})$. We need to show that $J_f(\mathbf{u}_0)J_g(\mathbf{x})$ is the Fréchet derivative of $h$ at $\mathbf{x}$. Write:
+**Proof.** Let $\mathbf{u}_0 = g(\mathbf{x})$. We need to show that $J_f(\mathbf{u}_0)J_g(\mathbf{x})$ is the Frchet derivative of $h$ at $\mathbf{x}$. Write:
 
 $$h(\mathbf{x}+\boldsymbol{\delta}) - h(\mathbf{x}) = f(g(\mathbf{x}+\boldsymbol{\delta})) - f(g(\mathbf{x}))$$
 
-Let $\boldsymbol{\eta} = g(\mathbf{x}+\boldsymbol{\delta}) - g(\mathbf{x})$. Since $g$ is Fréchet differentiable:
+Let $\boldsymbol{\eta} = g(\mathbf{x}+\boldsymbol{\delta}) - g(\mathbf{x})$. Since $g$ is Frchet differentiable:
 
 $$\boldsymbol{\eta} = J_g(\mathbf{x})\boldsymbol{\delta} + \mathbf{r}_g(\boldsymbol{\delta}), \quad \frac{\|\mathbf{r}_g(\boldsymbol{\delta})\|}{\|\boldsymbol{\delta}\|} \to 0 \text{ as } \boldsymbol{\delta} \to \mathbf{0}$$
 
-Now apply Fréchet differentiability of $f$ at $\mathbf{u}_0$:
+Now apply Frchet differentiability of $f$ at $\mathbf{u}_0$:
 
 $$f(\mathbf{u}_0 + \boldsymbol{\eta}) - f(\mathbf{u}_0) = J_f(\mathbf{u}_0)\boldsymbol{\eta} + \mathbf{r}_f(\boldsymbol{\eta}), \quad \frac{\|\mathbf{r}_f(\boldsymbol{\eta})\|}{\|\boldsymbol{\eta}\|} \to 0 \text{ as } \boldsymbol{\eta} \to \mathbf{0}$$
 
@@ -245,7 +245,7 @@ We show the remainder is $o(\|\boldsymbol{\delta}\|)$:
 
 Therefore $J_h(\mathbf{x}) = J_f(g(\mathbf{x}))J_g(\mathbf{x})$. $\square$
 
-**When the chain rule fails.** The chain rule requires both $g$ at $\mathbf{x}$ and $f$ at $g(\mathbf{x})$ to be Fréchet differentiable. If either fails — for example at a ReLU kink where $\mathbf{z}^{[l]} = 0$ — the classical chain rule does not apply. In practice, these measure-zero sets are handled by choosing a subgradient (any element of the Clarke subdifferential), which is what deep learning frameworks do automatically.
+**When the chain rule fails.** The chain rule requires both $g$ at $\mathbf{x}$ and $f$ at $g(\mathbf{x})$ to be Frchet differentiable. If either fails - for example at a ReLU kink where $\mathbf{z}^{[l]} = 0$ - the classical chain rule does not apply. In practice, these measure-zero sets are handled by choosing a subgradient (any element of the Clarke subdifferential), which is what deep learning frameworks do automatically.
 
 ### 2.2 Three Cases in Increasing Generality
 
@@ -255,7 +255,7 @@ Therefore $J_h(\mathbf{x}) = J_f(g(\mathbf{x}))J_g(\mathbf{x})$. $\square$
 
 $$J_h = J_f(g(\mathbf{x})) \cdot J_g(\mathbf{x}) \in \mathbb{R}^{1\times n}$$
 
-Taking the transpose: $\nabla_\mathbf{x} h = J_g(\mathbf{x})^\top \nabla_{g(\mathbf{x})} f$ — the gradient of $h$ with respect to $\mathbf{x}$ is the transposed Jacobian of $g$ times the gradient of $f$. **This is the VJP equation, the core of backprop.**
+Taking the transpose: $\nabla_\mathbf{x} h = J_g(\mathbf{x})^\top \nabla_{g(\mathbf{x})} f$ - the gradient of $h$ with respect to $\mathbf{x}$ is the transposed Jacobian of $g$ times the gradient of $f$. **This is the VJP equation, the core of backprop.**
 
 **Case 3: Vector composition $h: \mathbb{R}^p \to \mathbb{R}^m$.** The most general case; Jacobians are full matrices and the chain rule is full matrix multiplication:
 
@@ -263,7 +263,7 @@ $$J_h(\mathbf{x}) = J_f(g(\mathbf{x})) \cdot J_g(\mathbf{x}) \in \mathbb{R}^{m\t
 
 The dimensions verify: $(m\times p) = (m\times n)(n\times p)$. The "inner dimension" $n$ (the dimension of the intermediate space $\mathbb{R}^n$) cancels in the product, exactly as in matrix multiplication.
 
-### 2.3 The VJP Form — Foundation of Backprop
+### 2.3 The VJP Form - Foundation of Backprop
 
 **Definition (VJP).** For $g: \mathbb{R}^n \to \mathbb{R}^m$ and a "cotangent" vector $\mathbf{u} \in \mathbb{R}^m$, the **vector-Jacobian product** is:
 
@@ -297,9 +297,9 @@ This is a product of $L$ matrices. The spectral norm of the product satisfies:
 
 $$\|J_h\|_2 \leq \prod_{l=1}^L \|J_{f_l}\|_2$$
 
-If each $\|J_{f_l}\|_2 = \rho$, then $\|J_h\|_2 \leq \rho^L$. For $\rho < 1$, the gradient vanishes exponentially; for $\rho > 1$, it explodes. This is the mathematical source of the vanishing/exploding gradient problem (§6).
+If each $\|J_{f_l}\|_2 = \rho$, then $\|J_h\|_2 \leq \rho^L$. For $\rho < 1$, the gradient vanishes exponentially; for $\rho > 1$, it explodes. This is the mathematical source of the vanishing/exploding gradient problem (6).
 
-**Efficient computation: reverse order.** In the forward direction, we compute $\mathbf{a}^{[1]}, \ldots, \mathbf{a}^{[L]}$ left to right. In the backward direction, we compute the error signals $\boldsymbol{\delta}^{[L]}, \boldsymbol{\delta}^{[L-1]}, \ldots, \boldsymbol{\delta}^{[1]}$ right to left, reusing stored activations. The key observation: at step $l$, we only need $\boldsymbol{\delta}^{[l+1]}$ and the stored activation $\mathbf{a}^{[l]}$ (or $\mathbf{z}^{[l]}$) — we do not need to recompute from scratch.
+**Efficient computation: reverse order.** In the forward direction, we compute $\mathbf{a}^{[1]}, \ldots, \mathbf{a}^{[L]}$ left to right. In the backward direction, we compute the error signals $\boldsymbol{\delta}^{[L]}, \boldsymbol{\delta}^{[L-1]}, \ldots, \boldsymbol{\delta}^{[1]}$ right to left, reusing stored activations. The key observation: at step $l$, we only need $\boldsymbol{\delta}^{[l+1]}$ and the stored activation $\mathbf{a}^{[l]}$ (or $\mathbf{z}^{[l]}$) - we do not need to recompute from scratch.
 
 ### 2.5 Differentiating Through Discrete Operations
 
@@ -309,7 +309,7 @@ Some operations in neural networks are discontinuous or discrete: argmax (in bea
 
 $$\frac{\partial \mathcal{L}}{\partial x} \approx \frac{\partial \mathcal{L}}{\partial q(x)} \quad \text{(pass gradient through as if $q$ were the identity)}$$
 
-In code: `y = round(x).detach() + x - x.detach()` — adds $x$ in the forward pass (cancels) but contributes its gradient in the backward pass. STE is used in VQ-VAE, binary neural networks, and quantisation-aware training.
+In code: `y = round(x).detach() + x - x.detach()` - adds $x$ in the forward pass (cancels) but contributes its gradient in the backward pass. STE is used in VQ-VAE, binary neural networks, and quantisation-aware training.
 
 **REINFORCE (score function estimator).** For a stochastic node $y \sim p_\theta(y|x)$ and loss $\mathcal{L}(y)$, the gradient of $\mathbb{E}[\mathcal{L}(y)]$ with respect to $\theta$ is:
 
@@ -340,44 +340,44 @@ A **computation graph** is a directed acyclic graph $G = (V, E)$ encoding how sc
 
 ```
 PRIMITIVE OPERATIONS AND THEIR LOCAL GRADIENTS
-═══════════════════════════════════════════════════════════════════════
+
 
   Operation          Forward           Local gradient (wrt input i)
-  ─────────────────────────────────────────────────────────────────
-  z = x + y          z = x + y         ∂z/∂x = 1,  ∂z/∂y = 1
-  z = x · y          z = xy            ∂z/∂x = y,  ∂z/∂y = x
-  z = exp(x)         z = eˣ            ∂z/∂x = eˣ
-  z = log(x)         z = ln x          ∂z/∂x = 1/x
-  z = relu(x)        z = max(0,x)      ∂z/∂x = 𝟙[x>0]  (a.e.)
-  z = W x + b        Wx+b              ∂z/∂W = xᵀ (as outer),  ∂z/∂x = Wᵀ
-  z = softmax(x)     eˣⁱ/Σeˣʲ         diag(p) - ppᵀ  (see §02)
-  ─────────────────────────────────────────────────────────────────
+  
+  z = x + y          z = x + y         partialz/partialx = 1,  partialz/partialy = 1
+  z = x * y          z = xy            partialz/partialx = y,  partialz/partialy = x
+  z = exp(x)         z = e            partialz/partialx = e
+  z = log(x)         z = ln x          partialz/partialx = 1/x
+  z = relu(x)        z = max(0,x)      partialz/partialx = [x>0]  (a.e.)
+  z = W x + b        Wx+b              partialz/partialW = x (as outer),  partialz/partialx = W
+  z = softmax(x)     e/Sigmae         diag(p) - pp  (see 02)
+  
 
   Every deep learning framework maintains a lookup table of these
   primitives together with their vjp implementations.
 
-═══════════════════════════════════════════════════════════════════════
+
 ```
 
-**Topological ordering** — a linear ordering $\pi$ of $V$ such that for every edge $(u,v) \in E$, $u$ appears before $v$ in $\pi$.  Topological order exists iff $G$ is acyclic (Kahn's algorithm, 1962).  Both the forward pass and the backward pass respect topological order (the latter in reverse).
+**Topological ordering** - a linear ordering $\pi$ of $V$ such that for every edge $(u,v) \in E$, $u$ appears before $v$ in $\pi$.  Topological order exists iff $G$ is acyclic (Kahn's algorithm, 1962).  Both the forward pass and the backward pass respect topological order (the latter in reverse).
 
 **For AI:** Every modern deep learning framework (PyTorch, JAX, TensorFlow) represents a neural network as a computation graph.  PyTorch builds the graph dynamically during the forward pass via the autograd tape; JAX traces the graph statically via XLA compilation.
 
-### 3.2 Forward Pass — Value Propagation
+### 3.2 Forward Pass - Value Propagation
 
 The **forward pass** evaluates all node values in topological order, caching intermediates required by the backward pass.
 
 **Algorithm (Forward Pass):**
 ```
-Input:  graph G = (V, E),  input values {x₁,…,xₙ}
+Input:  graph G = (V, E),  input values {x_1,...,x}
 Output: loss value v_N,    cache of intermediates
 
   For v in topological_order(G):
     if v is an input node:
       cache[v] = x_v  (given)
     else:
-      cache[v] = φ_v(cache[u₁], …, cache[uₖ])
-                 where u₁,…,uₖ = parents(v)
+      cache[v] = phi_v(cache[u_1], ..., cache[u])
+                 where u_1,...,u = parents(v)
 
   return cache[v_N]
 ```
@@ -386,11 +386,11 @@ Output: loss value v_N,    cache of intermediates
 
 $$\text{Memory} = L \cdot B \cdot T \cdot d \cdot \text{sizeof(float16)} \approx 96 \times 32 \times 4096 \times 8192 \times 2 \approx 200\,\text{GB}$$
 
-This is why gradient checkpointing (§7) is essential for large models.
+This is why gradient checkpointing (7) is essential for large models.
 
 **What gets cached?** A memory-optimal forward pass only caches values that appear in at least one local gradient formula.  For a linear layer $\mathbf{z} = W\mathbf{x} + \mathbf{b}$, the backward needs $\mathbf{x}$ (to compute $\nabla_W$) but not $\mathbf{z}$ (already accumulated into the output).
 
-### 3.3 Backward Pass — Gradient Accumulation
+### 3.3 Backward Pass - Gradient Accumulation
 
 The backward pass evaluates **adjoint values** $\bar{v} = \partial \mathcal{L}/\partial v$ for every node, in **reverse topological order**.
 
@@ -402,7 +402,7 @@ where we treat $v$ as a scalar intermediate (extending to tensors componentwise)
 
 **Initialisation:** $\bar{v}_N = 1$ (the loss node).
 
-**Backward recurrence:** For a node $v$ with children (successors) $c_1, \ldots, c_m$ — nodes that depend on $v$:
+**Backward recurrence:** For a node $v$ with children (successors) $c_1, \ldots, c_m$ - nodes that depend on $v$:
 
 $$\bar{v} = \sum_{j=1}^{m} \bar{c}_j \cdot \frac{\partial c_j}{\partial v}$$
 
@@ -411,13 +411,13 @@ This is exactly the chain rule applied in reverse.
 **Algorithm (Backward Pass):**
 ```
 Input:  graph G,  cache from forward pass
-Output: ∂ℒ/∂v for all v ∈ V
+Output: partial/partialv for all v in V
 
-  adjoint[v_N] ← 1
+  adjoint[v_N] <- 1
   For v in reverse_topological_order(G):
     For each parent u of v:
-      adjoint[u] += adjoint[v] · ∂v/∂u(cache)
-                    ─────────────────────────────
+      adjoint[u] += adjoint[v] * partialv/partialu(cache)
+                    
                     local_vjp(v, u, adjoint[v])
 
   return {adjoint[u] : u is a parameter node}
@@ -437,28 +437,28 @@ $$\bar{u} = \sum_{j=1}^{m} \bar{c}_j \cdot \frac{\partial c_j}{\partial u}$$
 
 $$\frac{\partial \mathcal{L}}{\partial u} = \sum_{j=1}^{m} \frac{\partial \mathcal{L}}{\partial c_j} \cdot \frac{\partial c_j}{\partial u} = \sum_{j=1}^{m} \bar{c}_j \cdot \frac{\partial c_j}{\partial u} \qquad \square$$
 
-**Example — residual connection:**
+**Example - residual connection:**
 
 ```
 RESIDUAL BRANCH: u feeds into both F(u) and the skip path
-═══════════════════════════════════════════════════════════════
+
 
           u
          / \
         /   \
-      F(u)   \  ← identity skip
+      F(u)   \  <- identity skip
         \   /
          \ /
     z = F(u) + u
 
   Forward:   z = F(u) + u
-  Backward:  ū = z̄ · ∂F(u)/∂u  +  z̄ · 1
-                = z̄ · J_F(u)  +  z̄
+  Backward:   = z * partialF(u)/partialu  +  z * 1
+                = z * J_F(u)  +  z
 
   The identity skip guarantees a gradient highway:
-  even if J_F(u) ≈ 0 (saturated layer), z̄ flows back unchanged.
+  even if J_F(u) ~= 0 (saturated layer), z flows back unchanged.
 
-═══════════════════════════════════════════════════════════════
+
 ```
 
 This is the deep reason residual networks (He et al., 2016) solved the vanishing gradient problem: the skip connection creates a constant-1 term in the backward accumulation, guaranteeing $\bar{u} \geq \bar{z}$ in gradient magnitude.
@@ -469,20 +469,20 @@ Two design philosophies produce different tradeoffs:
 
 ```
 DYNAMIC GRAPHS (PyTorch eager mode)    STATIC GRAPHS (JAX jit / TF graph)
-══════════════════════════════════     ══════════════════════════════════
+     
 
 Graph built anew each forward pass     Graph compiled once, reused
 
-✓ Natural Python control flow          ✓ XLA/CUDA fusion, kernel merging
-✓ Easy debugging (print anywhere)      ✓ Memory-optimal buffer allocation
-✓ Variable-length sequences trivial    ✓ Can export/serve without Python
-✗ Graph construction overhead          ✗ Tracing must handle all branches
-✗ Less compiler optimisation           ✗ Python side-effects invisible
+ Natural Python control flow           XLA/CUDA fusion, kernel merging
+ Easy debugging (print anywhere)       Memory-optimal buffer allocation
+ Variable-length sequences trivial     Can export/serve without Python
+ Graph construction overhead           Tracing must handle all branches
+ Less compiler optimisation            Python side-effects invisible
 
 Examples: PyTorch, early Chainer       Examples: JAX jit, TF2 tf.function,
                                         ONNX Runtime, TensorRT
 
-══════════════════════════════════     ══════════════════════════════════
+     
 ```
 
 **For transformers:** Most production LLM training uses `torch.compile` (PyTorch 2.0+) which bridges the two: eager-mode graph construction with TorchDynamo tracing and inductor backend compilation, recovering ~30-50% throughput from kernel fusion.
@@ -520,7 +520,7 @@ Cache for backward: $\{\mathbf{z}^{[l]}, \mathbf{a}^{[l-1]}\}_{l=1}^{L}$.
 
 ### 4.3 Output Layer Gradient
 
-For cross-entropy loss with softmax output, the output gradient has the celebrated clean form (derived in §5.3):
+For cross-entropy loss with softmax output, the output gradient has the celebrated clean form (derived in 5.3):
 
 $$\boldsymbol{\delta}^{[L]} := \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{[L]}} = \hat{\mathbf{y}} - \mathbf{y}$$
 
@@ -530,9 +530,9 @@ For MSE loss ($\mathcal{L} = \tfrac{1}{2}\|\hat{\mathbf{y}} - \mathbf{y}\|^2$) w
 
 $$\boldsymbol{\delta}^{[L]} = \hat{\mathbf{y}} - \mathbf{y}$$
 
-(Same form, different derivation — a useful coincidence that makes implementation uniform.)
+(Same form, different derivation - a useful coincidence that makes implementation uniform.)
 
-### 4.4 Backpropagation Recurrence — Proof
+### 4.4 Backpropagation Recurrence - Proof
 
 **Define the error signal:**
 $$\boldsymbol{\delta}^{[l]} \;:=\; \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{[l]}} \in \mathbb{R}^{n_l}$$
@@ -556,7 +556,7 @@ Step 3: Multiply by $(\boldsymbol{\delta}^{[l+1]})^\top$ and transpose to get co
 
 $$\boldsymbol{\delta}^{[l]} = J^\top \boldsymbol{\delta}^{[l+1]} = \operatorname{diag}(\sigma'(\mathbf{z}^{[l]})) \left(W^{[l+1]}\right)^\top \boldsymbol{\delta}^{[l+1]} = \left(W^{[l+1]}\right)^\top \boldsymbol{\delta}^{[l+1]} \odot \sigma'(\mathbf{z}^{[l]}) \qquad \square$$
 
-The $\odot$ (elementwise) product arises because $\sigma$ is applied elementwise — its Jacobian is diagonal.
+The $\odot$ (elementwise) product arises because $\sigma$ is applied elementwise - its Jacobian is diagonal.
 
 ### 4.5 Weight and Bias Gradients
 
@@ -572,7 +572,7 @@ $$\frac{\partial \mathcal{L}}{\partial W^{[l]}_{ij}} = \frac{\partial \mathcal{L
 
 Collecting over all $i,j$: $\nabla_{W^{[l]}} \mathcal{L} = \boldsymbol{\delta}^{[l]} (\mathbf{a}^{[l-1]})^\top$.
 
-This is an **outer product** — the gradient is rank-1 for a single sample.  For a batch of $B$ samples it averages to higher rank.
+This is an **outer product** - the gradient is rank-1 for a single sample.  For a batch of $B$ samples it averages to higher rank.
 
 ### 4.6 Batched Backpropagation
 
@@ -611,7 +611,7 @@ $$\frac{\partial \mathcal{L}}{\partial \mathbf{b}} = \bar{\mathbf{z}} \in \mathb
 
 **Derivation of $\partial \mathcal{L}/\partial \mathbf{x}$:** Each $z_i = \sum_k W_{ik} x_k + b_i$, so $\partial z_i / \partial x_j = W_{ij}$.  By VJP: $\partial \mathcal{L}/\partial x_j = \sum_i \bar{z}_i W_{ij} = (W^\top \bar{\mathbf{z}})_j$.
 
-**For AI:** In a transformer with hidden dim $d$ and MLP expansion $4d$: the two linear layers in FFN pass gradients back with $W^\top$ operations — same cost as the forward GEMM.  Gradient computation for $W$ is also a GEMM.
+**For AI:** In a transformer with hidden dim $d$ and MLP expansion $4d$: the two linear layers in FFN pass gradients back with $W^\top$ operations - same cost as the forward GEMM.  Gradient computation for $W$ is also a GEMM.
 
 ### 5.2 Activation Functions
 
@@ -663,9 +663,9 @@ For the input gradient, define $\bar{\mathbf{x}}_\text{norm} = \bar{\mathbf{y}} 
 
 $$\frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \frac{1}{\sqrt{\sigma^2+\epsilon}} \left( \bar{\mathbf{x}}_\text{norm} - \frac{1}{d}\mathbf{1}^\top \bar{\mathbf{x}}_\text{norm} \cdot \mathbf{1} - \frac{1}{d}\hat{\mathbf{x}} \odot (\hat{\mathbf{x}}^\top \bar{\mathbf{x}}_\text{norm}) \cdot \mathbf{1} \right)$$
 
-This expression subtracts mean and mean-of-hadamard terms, reflecting that LayerNorm's Jacobian projects out two degrees of freedom (§02 exercises).
+This expression subtracts mean and mean-of-hadamard terms, reflecting that LayerNorm's Jacobian projects out two degrees of freedom (02 exercises).
 
-**For AI:** LayerNorm appears in every transformer layer (pre-norm placement in modern architectures like GPT-NeoX, LLaMA).  The gradient through LayerNorm is never zero — it always passes signal, unlike BatchNorm which can become degenerate at small batch sizes.
+**For AI:** LayerNorm appears in every transformer layer (pre-norm placement in modern architectures like GPT-NeoX, LLaMA).  The gradient through LayerNorm is never zero - it always passes signal, unlike BatchNorm which can become degenerate at small batch sizes.
 
 ### 5.5 Dot-Product Attention Gradient
 
@@ -684,7 +684,7 @@ $$\bar{Q} = \bar{S} K, \quad \bar{K} = \bar{S}^\top Q$$
 
 Then $\nabla_{W_Q} = X^\top \bar{Q}$, and similarly for $W_K$, $W_V$.
 
-**Critical memory issue:** Storing $P \in \mathbb{R}^{T \times T}$ for the backward costs $O(T^2)$ — this is what FlashAttention avoids by recomputing $P$ from $Q, K$ during the backward pass (see §7.3).
+**Critical memory issue:** Storing $P \in \mathbb{R}^{T \times T}$ for the backward costs $O(T^2)$ - this is what FlashAttention avoids by recomputing $P$ from $Q, K$ during the backward pass (see 7.3).
 
 ### 5.6 Embedding Layer Gradient
 
@@ -694,14 +694,14 @@ Then $\nabla_{W_Q} = X^\top \bar{Q}$, and similarly for $W_K$, $W_V$.
 
 $$\frac{\partial \mathcal{L}}{\partial E[i]} = \sum_{t : \text{token}_t = i} \bar{\mathbf{h}}_t$$
 
-This is a **sparse gradient** — only rows corresponding to tokens in the sequence receive nonzero updates.  For vocabulary size $V = 128{,}000$ (LLaMA-3), the embedding matrix is $128{,}000 \times 4{,}096$, but only a tiny fraction of rows are updated per batch.  Distributed training with embedding sharding exploits this sparsity.
+This is a **sparse gradient** - only rows corresponding to tokens in the sequence receive nonzero updates.  For vocabulary size $V = 128{,}000$ (LLaMA-3), the embedding matrix is $128{,}000 \times 4{,}096$, but only a tiny fraction of rows are updated per batch.  Distributed training with embedding sharding exploits this sparsity.
 
 
 ---
 
 ## 6. Vanishing and Exploding Gradients
 
-### 6.1 Magnitude Analysis — The Core Problem
+### 6.1 Magnitude Analysis - The Core Problem
 
 Consider an $L$-layer network with no activation functions (to isolate the linear case).  The gradient of the loss with respect to layer $l$ parameters involves the product:
 
@@ -719,23 +719,23 @@ $$\text{gradient norm} \geq \rho^{L-l} \cdot \|\boldsymbol{\delta}^{[L]}\|_2 \xr
 
 ```
 GRADIENT MAGNITUDE ACROSS LAYERS
-═════════════════════════════════════════════════════════════════════
+
 
   gradient norm
-  │
-  │ ↑ exploding (ρ > 1)
-  │  ╲
-  │   ╲
-  │────╲──────────────────────────────── ideal (ρ = 1)
-  │     ╲─────────────────────
-  │      ╲─────────────────── vanishing (ρ < 1)
-  └──────────────────────────────────────────── layer l
+  
+    exploding (rho > 1)
+    
+     
+   ideal (rho = 1)
+       
+         vanishing (rho < 1)
+   layer l
   L                                             0
 
-  With activations, the product includes σ'(z) terms (< 1 for sigmoid)
+  With activations, the product includes sigma'(z) terms (< 1 for sigmoid)
   compounding the vanishing problem.
 
-═════════════════════════════════════════════════════════════════════
+
 ```
 
 This was identified by Hochreiter (1991) as the fundamental obstacle to training deep networks with gradient descent.
@@ -746,17 +746,17 @@ For sigmoid $\sigma$: $\sigma'(z) = \sigma(z)(1-\sigma(z)) \leq 0.25$ for all $z
 
 For tanh: $\tanh'(z) = 1 - \tanh^2(z) \leq 1$, saturating similarly.
 
-In a network with $L$ sigmoid layers and all activations near saturation, the gradient at layer 1 is suppressed by approximately $0.25^L$.  For $L = 20$: $0.25^{20} \approx 10^{-12}$ — numerically zero.
+In a network with $L$ sigmoid layers and all activations near saturation, the gradient at layer 1 is suppressed by approximately $0.25^L$.  For $L = 20$: $0.25^{20} \approx 10^{-12}$ - numerically zero.
 
-**ReLU** resolves saturation: $\text{relu}'(z) = \mathbf{1}[z > 0]$, which is either 0 or 1.  For active neurons, it passes gradients unchanged.  However, "dying ReLU" (neurons with $z < 0$ always) creates a different problem — those neurons receive zero gradient and never recover.
+**ReLU** resolves saturation: $\text{relu}'(z) = \mathbf{1}[z > 0]$, which is either 0 or 1.  For active neurons, it passes gradients unchanged.  However, "dying ReLU" (neurons with $z < 0$ always) creates a different problem - those neurons receive zero gradient and never recover.
 
 **GELU** and **SiLU** (used in LLaMA) are smooth approximations that avoid hard zeros, maintaining nonzero gradients everywhere.
 
 ### 6.3 Xavier and He Initialisation
 
-**Goal:** Choose initial weights so that gradient (and activation) variance is preserved across layers — avoiding exponential growth or decay from the start of training.
+**Goal:** Choose initial weights so that gradient (and activation) variance is preserved across layers - avoiding exponential growth or decay from the start of training.
 
-**Xavier Initialisation** (Glorot & Bengio, 2010) — for symmetric activations (tanh, linear):
+**Xavier Initialisation** (Glorot & Bengio, 2010) - for symmetric activations (tanh, linear):
 
 **Assumption:** Weights $W_{ij} \sim \mathcal{N}(0, \sigma^2)$ i.i.d., inputs $x_j$ with variance $\text{Var}(x_j) = v$.
 
@@ -768,7 +768,7 @@ Compromise:
 
 $$\sigma^2 = \frac{2}{n_\text{in} + n_\text{out}}, \qquad \text{or uniform } W_{ij} \sim U\!\left[-\sqrt{\frac{6}{n_\text{in}+n_\text{out}}},\; \sqrt{\frac{6}{n_\text{in}+n_\text{out}}}\right]$$
 
-**He Initialisation** (He et al., 2015) — for ReLU activations:
+**He Initialisation** (He et al., 2015) - for ReLU activations:
 
 ReLU zeroes half the distribution, so effective variance is halved: $\text{Var}(\text{relu}(z)) = \tfrac{1}{2}\text{Var}(z)$.  To compensate:
 
@@ -808,7 +808,7 @@ where $\mathbf{g}$ is the concatenated parameter gradient vector and $\tau$ is t
 
 **BatchNorm** (Ioffe & Szegedy, 2015) normalises each feature across the batch, stabilising the distribution of pre-activations.  Its gradient has a complex form involving batch statistics, but crucially it prevents activations from saturating on average.
 
-**LayerNorm** (Ba et al., 2016) normalises each sample across features — preferred in transformers because:
+**LayerNorm** (Ba et al., 2016) normalises each sample across features - preferred in transformers because:
 1. Behaviour is independent of batch size (critical for small-batch inference)
 2. Gradient analysis shows it damps large pre-activation magnitudes
 3. Pre-norm placement ensures the residual stream grows in a controlled manner
@@ -831,7 +831,7 @@ Standard backpropagation caches all intermediate activations for use in the back
 | MLP intermediate | $L \times B \times T \times 4d$ | $8LBTd$ bytes |
 | LayerNorm stats | $2 \times 2L \times B \times T$ | negligible |
 
-For GPT-3 ($L=96$, $B=512$, $T=2048$, $d=12288$, $H=96$): the attention scores alone require $96 \times 512 \times 96 \times 2048^2 \times 2 \approx 2.4 \text{ TB}$ — clearly infeasible without optimisation.
+For GPT-3 ($L=96$, $B=512$, $T=2048$, $d=12288$, $H=96$): the attention scores alone require $96 \times 512 \times 96 \times 2048^2 \times 2 \approx 2.4 \text{ TB}$ - clearly infeasible without optimisation.
 
 ### 7.2 Gradient Checkpointing
 
@@ -841,7 +841,7 @@ For GPT-3 ($L=96$, $B=512$, $T=2048$, $d=12288$, $H=96$): the attention scores a
 
 ```
 GRADIENT CHECKPOINTING
-═══════════════════════════════════════════════════════════════════
+
 
   Forward pass:
     Compute all layers normally
@@ -855,17 +855,17 @@ GRADIENT CHECKPOINTING
       Compute gradients for layers lk+1 to (l+1)k-1
       Discard intermediates (no longer needed)
 
-═══════════════════════════════════════════════════════════════════
+
 ```
 
-**Memory–compute tradeoff:**
+**Memory-compute tradeoff:**
 
 - Memory: $O(\sqrt{L})$ checkpoints (optimal with $k = \sqrt{L}$) instead of $O(L)$
-- Compute: Each layer's forward pass is run twice (once in original forward, once in recomputation) → approximately $+33\%$ compute overhead
+- Compute: Each layer's forward pass is run twice (once in original forward, once in recomputation) -> approximately $+33\%$ compute overhead
 
 **For AI:** `torch.utils.checkpoint.checkpoint()` implements this in PyTorch with a single function call.  LLaMA, Mistral, and most OSS LLM trainers enable activation checkpointing by default for sequences longer than ~2048 tokens.
 
-**Selective recomputation:** Flash Attention (see §7.3) takes a more targeted approach — instead of checkpointing by layer, it recomputes only the attention scores (the $T^2$ term) during the backward pass, since those are the dominant memory consumer.
+**Selective recomputation:** Flash Attention (see 7.3) takes a more targeted approach - instead of checkpointing by layer, it recomputes only the attention scores (the $T^2$ term) during the backward pass, since those are the dominant memory consumer.
 
 ### 7.3 FlashAttention: Fused Backward Pass
 
@@ -875,14 +875,14 @@ GRADIENT CHECKPOINTING
 
 **Backward pass in FlashAttention:** The backward pass needs $P$ but doesn't store it.  Instead:
 
-1. Store only the softmax normalisation statistics $m_i, \ell_i$ (scalars per row) — $O(T)$ memory
+1. Store only the softmax normalisation statistics $m_i, \ell_i$ (scalars per row) - $O(T)$ memory
 2. During the backward pass, recompute $P$ tile by tile from $Q, K$ and the stored statistics
 3. Accumulate gradients $\bar{Q}, \bar{K}, \bar{V}$ tile by tile without ever forming full $P$
 
 **Complexity:**
 - Memory: $O(T)$ instead of $O(T^2)$
 - FLOPs: $4 \times$ the forward FLOPs (small constant factor)
-- Wall-clock speedup: 2-4× over standard PyTorch attention on A100
+- Wall-clock speedup: 2-4x over standard PyTorch attention on A100
 
 **For AI:** FlashAttention is the default attention implementation in modern LLM training (vLLM, HuggingFace Transformers, NanoGPT). FlashAttention-3 (2024) further optimises for H100 tensor core and async operations.
 
@@ -902,7 +902,7 @@ GRADIENT CHECKPOINTING
 
 **Loss scaling:** Multiply the loss by a large scale factor $S$ (typically $2^{12}$ to $2^{16}$) before backward, then divide gradients by $S$ before the weight update.  This shifts gradient values into the representable FP16 range.  The scale factor is increased or decreased based on whether overflow (inf/nan) occurred.
 
-**BF16** (Brain Float 16, used in TPUs and H100): same 16-bit width but with 8 exponent bits (same as FP32) and only 7 mantissa bits.  Eliminates overflow issues while retaining dynamic range — now the preferred format for LLM training.
+**BF16** (Brain Float 16, used in TPUs and H100): same 16-bit width but with 8 exponent bits (same as FP32) and only 7 mantissa bits.  Eliminates overflow issues while retaining dynamic range - now the preferred format for LLM training.
 
 
 ---
@@ -914,17 +914,17 @@ GRADIENT CHECKPOINTING
 A recurrent neural network (RNN) with hidden state $\mathbf{h}_t = \sigma(W_h \mathbf{h}_{t-1} + W_x \mathbf{x}_t + \mathbf{b})$ can be viewed as a feedforward network *unrolled* through time:
 
 ```
-UNROLLED RNN — BPTT VIEW
-═══════════════════════════════════════════════════════════════════
+UNROLLED RNN - BPTT VIEW
 
-  x₁ → [cell] → h₁ → [cell] → h₂ → [cell] → h₃ → ... → hₜ → loss
-          ↑               ↑               ↑
-          Wₕ             Wₕ             Wₕ         (shared weights)
+
+  x_1 -> [cell] -> h_1 -> [cell] -> h_2 -> [cell] -> h_3 -> ... -> h -> loss
+                                        
+          W             W             W         (shared weights)
 
   BPTT = backprop through the unrolled graph.
-  Gradient of loss w.r.t. Wₕ = sum of gradients from all time steps.
+  Gradient of loss w.r.t. W = sum of gradients from all time steps.
 
-═══════════════════════════════════════════════════════════════════
+
 ```
 
 The gradient with respect to $W_h$ at time step $t$ involves the product:
@@ -935,7 +935,7 @@ Each factor $\partial \mathbf{h}_{t+1}/\partial \mathbf{h}_t = W_h \cdot \text{d
 
 **Truncated BPTT:** In practice, gradients are truncated to a window of $k$ steps to reduce memory and compute costs, at the cost of ignoring long-range dependencies beyond step $k$.
 
-**LSTM/GRU solution:** Long Short-Term Memory networks (Hochreiter & Schmidhuber, 1997) use gating mechanisms to maintain a cell state $\mathbf{c}_t$ with additive updates — replacing multiplicative products of weight matrices with additive accumulation, similar to residual connections.
+**LSTM/GRU solution:** Long Short-Term Memory networks (Hochreiter & Schmidhuber, 1997) use gating mechanisms to maintain a cell state $\mathbf{c}_t$ with additive updates - replacing multiplicative products of weight matrices with additive accumulation, similar to residual connections.
 
 ### 8.2 Implicit Differentiation Preview
 
@@ -947,13 +947,13 @@ By the implicit function theorem:
 
 $$\frac{d\mathbf{y}^*}{d\theta} = -\left[\nabla^2_{\mathbf{y}\mathbf{y}} \mathcal{L}\right]^{-1} \nabla^2_{\mathbf{y}\theta} \mathcal{L}$$
 
-This allows differentiating through optimisation steps without unrolling them — the basis of **MAML** (Model-Agnostic Meta-Learning, Finn et al., 2017) and **DEQs** (Deep Equilibrium Models, Bai et al., 2019).
+This allows differentiating through optimisation steps without unrolling them - the basis of **MAML** (Model-Agnostic Meta-Learning, Finn et al., 2017) and **DEQs** (Deep Equilibrium Models, Bai et al., 2019).
 
-> **Full treatment:** Implicit differentiation and differentiable optimisation are covered in depth in [§05/05-Automatic-Differentiation](../05-Automatic-Differentiation/notes.md).
+> **Full treatment:** Implicit differentiation and differentiable optimisation are covered in depth in [05/05-Automatic-Differentiation](../05-Automatic-Differentiation/notes.md).
 
 ### 8.3 Straight-Through Estimator and REINFORCE
 
-**The discrete problem:** When a node in the computation graph applies a discrete operation (argmax, sampling, rounding), the gradient is zero almost everywhere.  The chain rule breaks — the graph is not differentiable at these nodes.
+**The discrete problem:** When a node in the computation graph applies a discrete operation (argmax, sampling, rounding), the gradient is zero almost everywhere.  The chain rule breaks - the graph is not differentiable at these nodes.
 
 **Straight-Through Estimator (STE)** (Hinton, 2012; Bengio et al., 2013):
 
@@ -973,7 +973,7 @@ This produces an unbiased gradient estimate but with high variance (addressed by
 ### 8.4 Higher-Order Gradients
 
 **Second-order gradients** arise in:
-1. Newton's method: requires Hessian $H = \nabla^2 \mathcal{L}$ (see §02-Jacobians-and-Hessians)
+1. Newton's method: requires Hessian $H = \nabla^2 \mathcal{L}$ (see 02-Jacobians-and-Hessians)
 2. Meta-learning (MAML): gradient of gradient w.r.t. outer parameters
 3. Gradient penalty in GAN training: $\|\nabla_x D(x)\|^2$
 
@@ -988,7 +988,7 @@ g2 = torch.autograd.grad(g.sum(), x)[0]  # second derivative
 
 `create_graph=True` tells autograd to build a graph for the gradient computation itself, enabling differentiation through it.
 
-**Hessian-vector products (HVPs):** As shown in §02, the HVP $Hv$ can be computed in $O(n)$ time without forming $H$:
+**Hessian-vector products (HVPs):** As shown in 02, the HVP $Hv$ can be computed in $O(n)$ time without forming $H$:
 $$Hv = \nabla_\mathbf{x}[(\nabla_\mathbf{x} \mathcal{L})^\top v]$$
 
 This is the primitive operation behind conjugate gradient and Lanczos methods for curvature estimation.
@@ -1008,27 +1008,27 @@ $$\mathbf{x}'' = \mathbf{x}' + \text{MLP}(\text{LN}_2(\mathbf{x}'))$$
 **Backward through one transformer layer** (given $\bar{\mathbf{x}}''\,$):
 
 ```
-GRADIENT FLOW — ONE TRANSFORMER LAYER
-═══════════════════════════════════════════════════════════════════
+GRADIENT FLOW - ONE TRANSFORMER LAYER
+
 
   FORWARD                              BACKWARD
 
-  x ──────────────────────────────┐    ↑ x̄'' flows in
-        ↓                         │    │
-      LN₁(x)                      │    ↓ x̄' = x̄'' + MLP_backward
-        ↓                         │                 (x̄'')
-      Attn(·)                     │    ↓ x̄ = x̄' + Attn_backward
-        ↓                         │                 (x̄')
-  x' = x + Attn(LN₁(x)) ─────────┤
-                                   │    The two residual additions
-        ↓                         │    split the gradient stream
-      LN₂(x')                     │    into parallel paths —
-        ↓                         │    the identity skip carries
-      MLP(·)                      │    the full upstream signal
-        ↓                         │    unchanged.
-  x'' = x' + MLP(LN₂(x')) ───────┘
+  x      x'' flows in
+                                     
+      LN_1(x)                           x' = x'' + MLP_backward
+                                                  (x'')
+      Attn(*)                          x = x' + Attn_backward
+                                                  (x')
+  x' = x + Attn(LN_1(x)) 
+                                       The two residual additions
+                                     split the gradient stream
+      LN_2(x')                         into parallel paths -
+                                     the identity skip carries
+      MLP(*)                          the full upstream signal
+                                     unchanged.
+  x'' = x' + MLP(LN_2(x')) 
 
-═══════════════════════════════════════════════════════════════════
+
 ```
 
 The critical observation: both residual additions in the transformer layer act as gradient splitters.  The skip path carries a copy of $\bar{\mathbf{x}}''$ directly back to $\bar{\mathbf{x}}'$ without passing through the MLP Jacobian.  This gives transformers well-behaved gradients even at $L = 96$ layers (GPT-3) or $L = 126$ layers (Grok-1).
@@ -1047,9 +1047,9 @@ $$\bar{A} = B^\top \bar{\mathbf{y}} \mathbf{x}^\top \in \mathbb{R}^{r \times n}$
 $$\bar{B} = \bar{\mathbf{y}} \mathbf{x}^\top A^\top \in \mathbb{R}^{m \times r}$$
 $$\bar{\mathbf{x}}_\text{from LoRA} = A^\top B^\top \bar{\mathbf{y}} = (BA)^\top \bar{\mathbf{y}}$$
 
-Note: $W_0$ is frozen, so $\bar{W}_0 = 0$ — no gradient is computed or stored for $W_0$.  The backward pass only updates $A$ and $B$.
+Note: $W_0$ is frozen, so $\bar{W}_0 = 0$ - no gradient is computed or stored for $W_0$.  The backward pass only updates $A$ and $B$.
 
-**Memory savings:** For $W_0 \in \mathbb{R}^{4096 \times 4096}$ with $r = 16$: gradient storage reduces from $4096^2 = 16.7\text{M}$ to $r(m + n) = 16 \times 8192 = 131\text{K}$ parameters — a $128\times$ reduction in gradient memory for that layer.
+**Memory savings:** For $W_0 \in \mathbb{R}^{4096 \times 4096}$ with $r = 16$: gradient storage reduces from $4096^2 = 16.7\text{M}$ to $r(m + n) = 16 \times 8192 = 131\text{K}$ parameters - a $128\times$ reduction in gradient memory for that layer.
 
 **DoRA** (Liu et al., 2024) further decomposes LoRA into magnitude + direction components, improving fine-tuning quality while preserving the low-rank backward structure.
 
@@ -1057,7 +1057,7 @@ Note: $W_0$ is frozen, so $\bar{W}_0 = 0$ — no gradient is computed or stored 
 
 **Problem:** Large effective batch sizes ($B = 4\text{M}$ tokens, as in GPT-4 training) don't fit in GPU memory for a single forward-backward pass.
 
-**Solution — gradient accumulation:**
+**Solution - gradient accumulation:**
 
 ```
 For each micro-batch b = 1, ..., G:
@@ -1080,11 +1080,11 @@ In **data parallelism**, each GPU processes a different micro-batch but shares t
 **All-Reduce:** Sum gradients across all $N$ GPUs and divide by $N$.  Implemented via ring-all-reduce (NCCL) for $O(N \cdot |\theta|)$ communication that is bandwidth-optimal.
 
 **Gradient sharding (ZeRO):** DeepSpeed's ZeRO (Zero Redundancy Optimizer) partitions gradient storage across GPUs:
-- ZeRO Stage 1: Shard optimiser states → $4\times$ memory reduction
-- ZeRO Stage 2: Shard gradients additionally → $8\times$ reduction
-- ZeRO Stage 3: Shard parameters too → $N\times$ reduction (linear in GPU count)
+- ZeRO Stage 1: Shard optimiser states -> $4\times$ memory reduction
+- ZeRO Stage 2: Shard gradients additionally -> $8\times$ reduction
+- ZeRO Stage 3: Shard parameters too -> $N\times$ reduction (linear in GPU count)
 
-**For LLaMA-3 70B training:** ZeRO Stage 3 across 1024 H100 GPUs allows storing only $\sim 70\text{B}/1024 \approx 68\text{M}$ parameters per GPU — fitting the model in memory.
+**For LLaMA-3 70B training:** ZeRO Stage 3 across 1024 H100 GPUs allows storing only $\sim 70\text{B}/1024 \approx 68\text{M}$ parameters per GPU - fitting the model in memory.
 
 
 ---
@@ -1096,22 +1096,22 @@ In **data parallelism**, each GPU processes a different micro-batch but shares t
 | 1 | Applying scalar chain rule $\frac{dy}{dx} = \frac{dy}{du}\frac{du}{dx}$ for vector functions | Scalar chain rule multiplies; multivariate chain rule composes Jacobians. Order matters: $J_{f\circ g} = J_f \cdot J_g$, not $J_g \cdot J_f$ | Write Jacobians explicitly and multiply left-to-right in the order of composition |
 | 2 | Forgetting to sum gradients at fan-out (shared weight) nodes | Each use of a weight contributes a gradient; missing uses means undercounting | Accumulate gradients with `+=` in the backward loop over all uses |
 | 3 | Treating $\nabla_W \mathcal{L} = \boldsymbol{\delta} \mathbf{x}^\top$ as shape-correct without checking | The outer product $\boldsymbol{\delta} \mathbf{x}^\top$ has shape $(n_\text{out}, n_\text{in})$ matching $W$; but transposing either vector gives wrong shape | Always verify gradient shapes match parameter shapes before implementation |
-| 4 | Using sigmoid/tanh in deep networks expecting no vanishing gradients | Their derivatives are bounded by $0.25$ / $1.0$ — products over many layers vanish exponentially | Use ReLU, GELU, or SiLU with proper initialisation; add residual connections |
+| 4 | Using sigmoid/tanh in deep networks expecting no vanishing gradients | Their derivatives are bounded by $0.25$ / $1.0$ - products over many layers vanish exponentially | Use ReLU, GELU, or SiLU with proper initialisation; add residual connections |
 | 5 | Initialising all weights to zero (or same value) | Symmetry breaking fails: every neuron in a layer computes the same gradient, so they all update identically and remain identical forever | Use Xavier or He initialisation with random values |
 | 6 | Skipping the fused softmax + cross-entropy optimisation and computing them separately | Intermediate probabilities $p_i = e^{z_i}/\sum e^{z_j}$ overflow/underflow for large logits | Always use the log-sum-exp trick or a library's CrossEntropyLoss (which applies it internally) |
-| 7 | Confusing JVP and VJP — using JVP for all gradient computations | JVP costs $O(n)$ passes for scalar output; VJP costs $O(1)$ per output dimension. For scalar loss, always use VJP (backprop) | Use VJP (backward) for scalar losses; reserve JVP for computing Jacobian rows or directional derivatives |
+| 7 | Confusing JVP and VJP - using JVP for all gradient computations | JVP costs $O(n)$ passes for scalar output; VJP costs $O(1)$ per output dimension. For scalar loss, always use VJP (backprop) | Use VJP (backward) for scalar losses; reserve JVP for computing Jacobian rows or directional derivatives |
 | 8 | Clipping per-layer gradients independently instead of global norm | Destroys the relative scale of gradients across layers; disrupts Adam's per-parameter adaptive scaling | Clip the global gradient norm: compute $\|\mathbf{g}\|$ across all parameters, scale down if above threshold |
-| 9 | Using STE incorrectly in quantisation-aware training — applying STE to continuous weights | STE should only be applied at the discrete rounding step, not to subsequent continuous operations | Apply STE only at the `round()` or `sign()` node; propagate real gradients elsewhere |
-| 10 | Misunderstanding gradient accumulation — forgetting to scale the loss | Accumulating $G$ micro-batch gradients without dividing by $G$ produces $G\times$ too large an effective gradient | Divide loss by $G$ before backward, or divide accumulated gradients by $G$ before the optimiser step |
+| 9 | Using STE incorrectly in quantisation-aware training - applying STE to continuous weights | STE should only be applied at the discrete rounding step, not to subsequent continuous operations | Apply STE only at the `round()` or `sign()` node; propagate real gradients elsewhere |
+| 10 | Misunderstanding gradient accumulation - forgetting to scale the loss | Accumulating $G$ micro-batch gradients without dividing by $G$ produces $G\times$ too large an effective gradient | Divide loss by $G$ before backward, or divide accumulated gradients by $G$ before the optimiser step |
 | 11 | Not using `create_graph=True` when computing higher-order gradients in PyTorch | Without `create_graph=True`, the gradient computation is not tracked, so differentiating through it returns `None` or wrong values | Use `create_graph=True` in the first `torch.autograd.grad()` call when second derivatives are needed |
-| 12 | Confusing BPTT truncation with sequence truncation | Truncated BPTT still runs the full forward sequence; it only truncates the *backward* window. Sequence truncation shortens both | These are different operations — read the framework docs to confirm which is applied |
+| 12 | Confusing BPTT truncation with sequence truncation | Truncated BPTT still runs the full forward sequence; it only truncates the *backward* window. Sequence truncation shortens both | These are different operations - read the framework docs to confirm which is applied |
 
 
 ---
 
 ## 11. Exercises
 
-### Exercise 1 ★ — Scalar Chain Rule Verification
+### Exercise 1  - Scalar Chain Rule Verification
 
 Let $f(t) = \sin(t^2)$ and $g(t) = e^{3t}$.
 
@@ -1121,11 +1121,11 @@ Let $f(t) = \sin(t^2)$ and $g(t) = e^{3t}$.
 
 **(c)** Verify numerically using centred finite differences.
 
-**(d)** Compute $\frac{d}{dt}[g(f(t))]$ — explain why the order of composition matters.
+**(d)** Compute $\frac{d}{dt}[g(f(t))]$ - explain why the order of composition matters.
 
 ---
 
-### Exercise 2 ★ — Jacobian Composition
+### Exercise 2  - Jacobian Composition
 
 Let $f: \mathbb{R}^3 \to \mathbb{R}^2$ and $g: \mathbb{R}^2 \to \mathbb{R}^3$ be defined by:
 $$f(\mathbf{u}) = (u_1 u_2,\ u_2 + u_3^2), \quad g(\mathbf{x}) = (x_1^2,\ x_1 x_2,\ e^{x_2})$$
@@ -1140,7 +1140,7 @@ $$f(\mathbf{u}) = (u_1 u_2,\ u_2 + u_3^2), \quad g(\mathbf{x}) = (x_1^2,\ x_1 x_
 
 ---
 
-### Exercise 3 ★ — Backprop Through a 2-Layer Network
+### Exercise 3  - Backprop Through a 2-Layer Network
 
 Two-layer network: $\mathbf{z}^{[1]} = W^{[1]}\mathbf{x} + \mathbf{b}^{[1]}$, $\mathbf{a}^{[1]} = \text{relu}(\mathbf{z}^{[1]})$, $\hat{y} = \mathbf{w}^{[2]} \cdot \mathbf{a}^{[1]} + b^{[2]}$, $\mathcal{L} = \tfrac{1}{2}(\hat{y} - y)^2$.
 
@@ -1156,7 +1156,7 @@ With $W^{[1]} \in \mathbb{R}^{3 \times 2}$, $\mathbf{x} \in \mathbb{R}^2$, $\mat
 
 ---
 
-### Exercise 4 ★★ — Vanishing Gradients Analysis
+### Exercise 4  - Vanishing Gradients Analysis
 
 **(a)** Construct a 20-layer sigmoid network with all weights $= 0.3$.  Compute the gradient at layer 1 symbolically and numerically.
 
@@ -1170,7 +1170,7 @@ With $W^{[1]} \in \mathbb{R}^{3 \times 2}$, $\mathbf{x} \in \mathbb{R}^2$, $\mat
 
 ---
 
-### Exercise 5 ★★ — Gradient Checkpointing
+### Exercise 5  - Gradient Checkpointing
 
 **(a)** Implement a 10-layer feedforward network with explicit intermediate caching.  Measure peak memory usage.
 
@@ -1180,11 +1180,11 @@ With $W^{[1]} \in \mathbb{R}^{3 \times 2}$, $\mathbf{x} \in \mathbb{R}^2$, $\mat
 
 **(d)** Measure the compute overhead of recomputation.  How does it compare to the theoretical $+33\%$?
 
-**(e)** Find the optimal checkpoint interval $k$ that minimises total memory × compute cost.
+**(e)** Find the optimal checkpoint interval $k$ that minimises total memory x compute cost.
 
 ---
 
-### Exercise 6 ★★ — Attention Gradient
+### Exercise 6  - Attention Gradient
 
 Single-head attention: $O = \text{softmax}(QK^\top/\sqrt{d})V$ with $Q, K, V \in \mathbb{R}^{T \times d}$ for $T = 4$, $d = 3$.
 
@@ -1198,7 +1198,7 @@ Single-head attention: $O = \text{softmax}(QK^\top/\sqrt{d})V$ with $Q, K, V \in
 
 ---
 
-### Exercise 7 ★★★ — LoRA Gradient Analysis
+### Exercise 7  - LoRA Gradient Analysis
 
 **(a)** Implement a linear layer $\mathbf{y} = (W_0 + BA)\mathbf{x}$ with LoRA adaptation.  Set $m=8, n=6, r=2$.
 
@@ -1212,7 +1212,7 @@ Single-head attention: $O = \text{softmax}(QK^\top/\sqrt{d})V$ with $Q, K, V \in
 
 ---
 
-### Exercise 8 ★★★ — REINFORCE and STE
+### Exercise 8  - REINFORCE and STE
 
 **(a)** Implement a stochastic computational graph: $z \sim \text{Bernoulli}(\sigma(\theta))$, $\mathcal{L} = z^2$.
 
@@ -1231,11 +1231,11 @@ Single-head attention: $O = \text{softmax}(QK^\top/\sqrt{d})V$ with $Q, K, V \in
 
 | Concept | Concrete AI Impact |
 |---------|-------------------|
-| **Multivariate chain rule** | The mathematical foundation of every gradient-based learning algorithm — without it, backprop cannot be defined |
+| **Multivariate chain rule** | The mathematical foundation of every gradient-based learning algorithm - without it, backprop cannot be defined |
 | **VJP as backprop primitive** | Modern autodiff systems (JAX, PyTorch) are built around VJP primitives; the $O(1)$ cost of reverse mode is what makes training billion-parameter models tractable |
 | **Computation graphs** | `torch.compile` (PyTorch 2.0), XLA (JAX/TensorFlow), TensorRT all operate by analysing the computation graph to fuse kernels and optimise memory layout |
 | **Fused softmax + CE gradient** | The clean gradient $\mathbf{p} - \mathbf{e}_y$ makes language model training numerically stable; Flash Attention's backward uses the same softmax log-sum-exp statistics |
-| **Xavier/He initialisation** | Ensures $O(1)$ gradient scale at depth 1 or depth 96 — a critical practical enabler for deep network training |
+| **Xavier/He initialisation** | Ensures $O(1)$ gradient scale at depth 1 or depth 96 - a critical practical enabler for deep network training |
 | **Residual connections** | The "gradient highway" identity term in ResNets/transformers is why 100-layer networks train at all; this was the key insight enabling GPT-3's 96 layers |
 | **Gradient checkpointing** | Enables training LLMs with 128K context lengths; without it, the $O(T^2)$ activation memory would be prohibitive |
 | **FlashAttention backward** | IO-aware backward pass reduces memory from $O(T^2)$ to $O(T)$ while maintaining numerical equivalence; standard in all production LLM training as of 2024 |
@@ -1250,60 +1250,60 @@ Single-head attention: $O = \text{softmax}(QK^\top/\sqrt{d})V$ with $Q, K, V \in
 
 ## Conceptual Bridge
 
-**Where we came from:** §01 (Partial Derivatives) gave us tools to differentiate multivariate functions component by component.  §02 (Jacobians and Hessians) assembled those into matrix objects capturing full first- and second-order sensitivity.  We now know what a derivative *is* for a function $f: \mathbb{R}^n \to \mathbb{R}^m$.
+**Where we came from:** 01 (Partial Derivatives) gave us tools to differentiate multivariate functions component by component.  02 (Jacobians and Hessians) assembled those into matrix objects capturing full first- and second-order sensitivity.  We now know what a derivative *is* for a function $f: \mathbb{R}^n \to \mathbb{R}^m$.
 
-**What this section added:** The chain rule tells us how derivatives *compose* — allowing us to differentiate functions built from primitives.  Backpropagation is the algorithmic instantiation of this composition for computation graphs, and the VJP (reverse mode) makes the cost of differentiating a scalar loss with respect to millions of parameters equal to the cost of a single forward pass.  This is not an approximation — it is exact and provably optimal.
+**What this section added:** The chain rule tells us how derivatives *compose* - allowing us to differentiate functions built from primitives.  Backpropagation is the algorithmic instantiation of this composition for computation graphs, and the VJP (reverse mode) makes the cost of differentiating a scalar loss with respect to millions of parameters equal to the cost of a single forward pass.  This is not an approximation - it is exact and provably optimal.
 
-**What this enables:** Every gradient-based learning algorithm — SGD, Adam, RMSprop, LARS, Shampoo — requires only the gradient $\nabla_\theta \mathcal{L}$, which backprop provides.  The advanced sections of this chapter (§04 Optimisation, §05 Automatic Differentiation) build directly on the VJP abstraction established here.
+**What this enables:** Every gradient-based learning algorithm - SGD, Adam, RMSprop, LARS, Shampoo - requires only the gradient $\nabla_\theta \mathcal{L}$, which backprop provides.  The advanced sections of this chapter (04 Optimisation, 05 Automatic Differentiation) build directly on the VJP abstraction established here.
 
-**Connection to transformer training:** Modern LLM training is essentially an exercise in efficient backpropagation at scale.  Every engineering decision — Flash Attention's tiled backward, ZeRO's gradient sharding, gradient checkpointing, LoRA's low-rank backward, mixed precision loss scaling — is a response to the memory and compute constraints of the backward pass.  Understanding backpropagation is therefore prerequisite to understanding why LLM training systems are designed the way they are.
+**Connection to transformer training:** Modern LLM training is essentially an exercise in efficient backpropagation at scale.  Every engineering decision - Flash Attention's tiled backward, ZeRO's gradient sharding, gradient checkpointing, LoRA's low-rank backward, mixed precision loss scaling - is a response to the memory and compute constraints of the backward pass.  Understanding backpropagation is therefore prerequisite to understanding why LLM training systems are designed the way they are.
 
 ```
 POSITION IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+
 
   PREREQUISITES (must know):
-    §01 Partial Derivatives — ∂f/∂xᵢ, gradient, directional derivative
-    §02 Jacobians & Hessians — J_f, Fréchet derivative, VJP/JVP
+    01 Partial Derivatives - partialf/partialx, gradient, directional derivative
+    02 Jacobians & Hessians - J_f, Frchet derivative, VJP/JVP
 
-  THIS SECTION (§03):
-  ┌─────────────────────────────────────────────────────────────────┐
-  │  Chain Rule & Backpropagation                                   │
-  │  • Multivariate chain rule (J_{f∘g} = J_f · J_g)               │
-  │  • Computation graphs (DAG, topological order)                  │
-  │  • Backprop recurrence (δ = Wᵀδ⁺ ⊙ σ'(z))                     │
-  │  • Gradient derivations (linear, softmax+CE, LN, attention)     │
-  │  • Vanishing/exploding gradients + solutions                    │
-  │  • Memory-efficient backprop (checkpointing, Flash Attention)   │
-  │  • Advanced: BPTT, STE, REINFORCE, higher-order gradients       │
-  └─────────────────────────────────────────────────────────────────┘
+  THIS SECTION (03):
+  
+    Chain Rule & Backpropagation                                   
+    - Multivariate chain rule (J_{fog} = J_f * J_g)               
+    - Computation graphs (DAG, topological order)                  
+    - Backprop recurrence (delta = Wdelta  sigma'(z))                     
+    - Gradient derivations (linear, softmax+CE, LN, attention)     
+    - Vanishing/exploding gradients + solutions                    
+    - Memory-efficient backprop (checkpointing, Flash Attention)   
+    - Advanced: BPTT, STE, REINFORCE, higher-order gradients       
+  
 
   WHAT THIS ENABLES:
-    §04 Optimisation — gradient descent, Adam, second-order methods
-    §05 Automatic Differentiation — AD systems, tape, jit compilation
-    §07 Neural Networks — full training loop built on backprop
-    §08 Transformer Architecture — FlashAttention, LoRA, gradient flow
+    04 Optimisation - gradient descent, Adam, second-order methods
+    05 Automatic Differentiation - AD systems, tape, jit compilation
+    07 Neural Networks - full training loop built on backprop
+    08 Transformer Architecture - FlashAttention, LoRA, gradient flow
 
   CROSS-CHAPTER CONNECTIONS:
-    §03-Advanced-LA/02-SVD — gradient low-rank structure
-    §04-Calculus/02-Derivatives — scalar chain rule (special case)
-    §06-Probability/03-MLE — loss functions that backprop optimises
+    03-Advanced-LA/02-SVD - gradient low-rank structure
+    04-Calculus/02-Derivatives - scalar chain rule (special case)
+    06-Probability/03-MLE - loss functions that backprop optimises
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ---
 
-_For automatic differentiation systems that implement these ideas at scale, see [§05 Automatic Differentiation](../05-Automatic-Differentiation/notes.md)._
+_For automatic differentiation systems that implement these ideas at scale, see [05 Automatic Differentiation](../05-Automatic-Differentiation/notes.md)._
 
-_For the optimisation algorithms that consume backprop's output, see [§04 Multivariate Optimisation](../04-Multivariate-Optimisation/notes.md)._
+_For the optimisation algorithms that consume backprop's output, see [04 Multivariate Optimisation](../04-Multivariate-Optimisation/notes.md)._
 
 
 ---
 
 ## Appendix A: Worked Backpropagation Example
 
-### A.1 Complete Worked Example — 3-Layer Network
+### A.1 Complete Worked Example - 3-Layer Network
 
 To make the backpropagation formulas concrete, we trace through a minimal example end-to-end.
 
@@ -1345,26 +1345,26 @@ $$\frac{\partial \mathcal{L}}{\partial W^{[1]}} = \boldsymbol{\delta}^{[1]} \mat
 *Verification (finite difference for $W^{[1]}_{11}$):* Perturb $W^{[1]}_{11}$ by $h = 10^{-5}$:
 $$\mathcal{L}(W^{[1]}_{11} + h) - \mathcal{L}(W^{[1]}_{11} - h) \approx 2h \cdot (-0.096)$$
 
-Numerically: $\mathcal{L}(0.50001) \approx 0.02880960, \mathcal{L}(0.49999) \approx 0.02881152$. Difference $/2h = -0.096$. ✓
+Numerically: $\mathcal{L}(0.50001) \approx 0.02880960, \mathcal{L}(0.49999) \approx 0.02881152$. Difference $/2h = -0.096$. 
 
 ### A.2 Computational Cost Comparison
 
-**Forward pass:** $O(n_0 n_1 + n_1 n_2 + \cdots + n_{L-1} n_L)$ — one GEMM per layer.
+**Forward pass:** $O(n_0 n_1 + n_1 n_2 + \cdots + n_{L-1} n_L)$ - one GEMM per layer.
 
-**Backward pass:** Also $O(\sum_l n_{l-1} n_l)$ — same asymptotic cost, with constant factor $\approx 2-3$.
+**Backward pass:** Also $O(\sum_l n_{l-1} n_l)$ - same asymptotic cost, with constant factor $\approx 2-3$.
 
-**Memory:** Cache all $\mathbf{z}^{[l]}$ and $\mathbf{a}^{[l]}$: $O(\sum_l n_l)$ scalars — linear in total neuron count.
+**Memory:** Cache all $\mathbf{z}^{[l]}$ and $\mathbf{a}^{[l]}$: $O(\sum_l n_l)$ scalars - linear in total neuron count.
 
 **The fundamental theorem of backpropagation:** Computing $\nabla_\theta \mathcal{L}$ for *all* $|\theta|$ parameters costs only a constant factor more than computing $\mathcal{L}$ itself.  This is the miracle that makes gradient-based learning tractable.
 
 **Formal statement:** Let $T_f$ be the time to evaluate $\mathcal{L}$ in the forward pass.  Then the time to compute all partial derivatives $\partial \mathcal{L}/\partial \theta_i$ via backprop is at most $c \cdot T_f$ where $c \leq 5$ in practice.
 
-This contrasts with finite differences: computing $\partial \mathcal{L}/\partial \theta_i$ for each of $|\theta|$ parameters via finite differences costs $2|\theta|$ forward passes — for GPT-3 with $|\theta| = 175\text{B}$, this would be $350$ billion forward passes, or approximately the heat death of the universe in compute time.
+This contrasts with finite differences: computing $\partial \mathcal{L}/\partial \theta_i$ for each of $|\theta|$ parameters via finite differences costs $2|\theta|$ forward passes - for GPT-3 with $|\theta| = 175\text{B}$, this would be $350$ billion forward passes, or approximately the heat death of the universe in compute time.
 
 
 ---
 
-## Appendix B: JVP vs VJP — Mode Selection and Complexity
+## Appendix B: JVP vs VJP - Mode Selection and Complexity
 
 ### B.1 Forward Mode vs Reverse Mode
 
@@ -1377,43 +1377,43 @@ Given $f: \mathbb{R}^n \to \mathbb{R}^m$, both modes compute the same gradient i
 
 ```
 COST MATRIX: WHICH MODE WINS?
-═══════════════════════════════════════════════════════════════════
 
-  Goal: compute ∂ℒ/∂θ for ℒ: ℝⁿ → ℝ (scalar loss)
 
-  n = |θ| = 175,000,000,000  (GPT-3 parameter count)
+  Goal: compute partial/partialtheta for : R -> R (scalar loss)
+
+  n = |theta| = 175,000,000,000  (GPT-3 parameter count)
   m = 1                       (scalar loss)
 
-  Forward mode: m × Tf = 1 × Tf  ← ONE PASS
-  Reverse mode: n × Tf = 175B × Tf  ← 175 BILLION PASSES
+  Forward mode: m x Tf = 1 x Tf  <- ONE PASS
+  Reverse mode: n x Tf = 175B x Tf  <- 175 BILLION PASSES
 
-  Wait — that's backwards! Reverse mode (backprop) costs 1 pass
+  Wait - that's backwards! Reverse mode (backprop) costs 1 pass
   because m=1 means ONE ROW of J_f = the gradient row vector.
   Forward mode would need n=175B passes to fill all columns.
 
-  ┌─────────────────────────────────────────────────────────────┐
-  │  RULE: Use reverse mode (backprop) when m ≪ n               │
-  │  RULE: Use forward mode (JVP) when n ≪ m                    │
-  └─────────────────────────────────────────────────────────────┘
+  
+    RULE: Use reverse mode (backprop) when m  n               
+    RULE: Use forward mode (JVP) when n  m                    
+  
 
-  Most ML: n ≫ m = 1 → backprop is optimal
+  Most ML: n  m = 1 -> backprop is optimal
 
-═══════════════════════════════════════════════════════════════════
+
 ```
 
-**When forward mode wins:** Computing the sensitivity of all $m$ outputs to one input parameter — e.g., computing how the entire model output changes as a single hyperparameter varies.  Also: Jacobian-vector products in conjugate gradient (no need for the full Jacobian).
+**When forward mode wins:** Computing the sensitivity of all $m$ outputs to one input parameter - e.g., computing how the entire model output changes as a single hyperparameter varies.  Also: Jacobian-vector products in conjugate gradient (no need for the full Jacobian).
 
-**Mixed strategies:** For functions $f: \mathbb{R}^n \to \mathbb{R}^m$ with $n \approx m$, the optimal choice is to split the Jacobian into row/column blocks and use each mode for the appropriate blocks — the basis of **adjoint methods** in numerical PDE solvers.
+**Mixed strategies:** For functions $f: \mathbb{R}^n \to \mathbb{R}^m$ with $n \approx m$, the optimal choice is to split the Jacobian into row/column blocks and use each mode for the appropriate blocks - the basis of **adjoint methods** in numerical PDE solvers.
 
 ### B.2 Tangent Mode for Hessian-Vector Products
 
-As shown in §02, the Hessian-vector product $H\mathbf{v}$ can be computed by composing forward and reverse modes:
+As shown in 02, the Hessian-vector product $H\mathbf{v}$ can be computed by composing forward and reverse modes:
 
 $$H\mathbf{v} = J_\mathbf{g}^\top \mathbf{v} \quad \text{where} \quad \mathbf{g} = \nabla_\theta \mathcal{L}$$
 
 **Algorithm (Pearlmutter's R{} trick, 1994):**
 1. Forward pass (JVP with direction $\mathbf{v}$): compute $\mathbf{g} = \nabla \mathcal{L}$ and $\dot{\mathbf{g}} = J_\mathbf{g} \mathbf{v}$ simultaneously
-2. Cost: same as backprop ($O(T_f)$) — one pass suffices
+2. Cost: same as backprop ($O(T_f)$) - one pass suffices
 
 **Implementation in PyTorch:**
 ```python
@@ -1425,7 +1425,7 @@ hvp = torch.autograd.grad(flat_g @ v, params)
 Cost: 2 backprop passes, no $n \times n$ matrix formed.  This is the primitive for:
 - **Conjugate gradient** for Newton steps (K-FAC-style)
 - **Lanczos iteration** for $\lambda_\text{max}$ of Hessian
-- **Eigenvalue monitoring** during training (Cohen et al., 2022 — edge of stability)
+- **Eigenvalue monitoring** during training (Cohen et al., 2022 - edge of stability)
 
 ---
 
@@ -1433,25 +1433,25 @@ Cost: 2 backprop passes, no $n \times n$ matrix formed.  This is the primitive f
 
 ### C.1 The AD Abstraction
 
-**Automatic differentiation** (AD) is a mechanical procedure for transforming any program that computes $f(\mathbf{x})$ into a program that also computes $\nabla f(\mathbf{x})$ (or JVPs/VJPs).  This section previews the idea; the full treatment is in §05.
+**Automatic differentiation** (AD) is a mechanical procedure for transforming any program that computes $f(\mathbf{x})$ into a program that also computes $\nabla f(\mathbf{x})$ (or JVPs/VJPs).  This section previews the idea; the full treatment is in 05.
 
-AD is neither symbolic differentiation (too slow, exponentially large expressions) nor numerical differentiation (finite differences — too imprecise, costs $O(n)$ evaluations).  AD exploits the fact that every program is a composition of primitives, and the chain rule tells us exactly how to compose their derivatives.
+AD is neither symbolic differentiation (too slow, exponentially large expressions) nor numerical differentiation (finite differences - too imprecise, costs $O(n)$ evaluations).  AD exploits the fact that every program is a composition of primitives, and the chain rule tells us exactly how to compose their derivatives.
 
 **Two flavours:**
 
 ```
 SYMBOLIC DIFF           NUMERICAL DIFF          AUTO DIFF
-═══════════════════════════════════════════════════════════════
 
-  f(x) = x² + sin(x)    Compute f(x+h)          Track ops in
+
+  f(x) = x^2 + sin(x)    Compute f(x+h)          Track ops in
                           and f(x-h)              computation tape
 
-  → d/dx = 2x+cos(x)    → (f(x+h)-f(x-h))/2h    → Exact as FP allows
+  -> d/dx = 2x+cos(x)    -> (f(x+h)-f(x-h))/2h    -> Exact as FP allows
 
   Exact but expression   Approximate; costs       Exact, costs O(1)
   size can explode       O(n) evaluations          evaluations
 
-═══════════════════════════════════════════════════════════════
+
 ```
 
 ### C.2 The Tape (Wengert List)
@@ -1459,30 +1459,30 @@ SYMBOLIC DIFF           NUMERICAL DIFF          AUTO DIFF
 The **Wengert list** (1964) records, during the forward pass, every primitive operation applied and its operands.  The backward pass replays this tape in reverse, accumulating adjoints.
 
 ```
-FORWARD TAPE EXAMPLE: f(x) = exp(x) · (x + 1)
-═════════════════════════════════════════════════════════════
+FORWARD TAPE EXAMPLE: f(x) = exp(x) * (x + 1)
+
 
   Tape (built during forward):
-    v₁ = x            (input)
-    v₂ = exp(v₁)      (op: exp,  operand: v₁)
-    v₃ = v₁ + 1.0     (op: add,  operands: v₁, 1.0)
-    v₄ = v₂ × v₃      (op: mul,  operands: v₂, v₃)
+    v_1 = x            (input)
+    v_2 = exp(v_1)      (op: exp,  operand: v_1)
+    v_3 = v_1 + 1.0     (op: add,  operands: v_1, 1.0)
+    v_4 = v_2 x v_3      (op: mul,  operands: v_2, v_3)
 
   Backward (replay in reverse):
-    v̄₄ = 1.0                          (seed)
-    v̄₂ += v̄₄ × v₃  = 1.0 × (x+1)    (mul backward)
-    v̄₃ += v̄₄ × v₂  = 1.0 × exp(x)   (mul backward)
-    v̄₁ += v̄₃ × 1.0 = exp(x)          (add backward)
-    v̄₁ += v̄₂ × exp(v₁) = (x+1)exp(x) (exp backward)
+    v_4 = 1.0                          (seed)
+    v_2 += v_4 x v_3  = 1.0 x (x+1)    (mul backward)
+    v_3 += v_4 x v_2  = 1.0 x exp(x)   (mul backward)
+    v_1 += v_3 x 1.0 = exp(x)          (add backward)
+    v_1 += v_2 x exp(v_1) = (x+1)exp(x) (exp backward)
 
-  Total: v̄₁ = exp(x) + (x+1)exp(x) = (x+2)exp(x) ✓ (by product rule)
+  Total: v_1 = exp(x) + (x+1)exp(x) = (x+2)exp(x)  (by product rule)
 
-═════════════════════════════════════════════════════════════
+
 ```
 
-PyTorch's `Tensor` stores a `grad_fn` attribute at each node — this is the tape in disguise.  Calling `.backward()` replays the tape in reverse.
+PyTorch's `Tensor` stores a `grad_fn` attribute at each node - this is the tape in disguise.  Calling `.backward()` replays the tape in reverse.
 
-**For more:** See [§05 Automatic Differentiation](../05-Automatic-Differentiation/notes.md) for the complete treatment of forward/reverse mode AD, source transformation, operator overloading, and the design of JAX vs PyTorch autograd.
+**For more:** See [05 Automatic Differentiation](../05-Automatic-Differentiation/notes.md) for the complete treatment of forward/reverse mode AD, source transformation, operator overloading, and the design of JAX vs PyTorch autograd.
 
 
 ---
@@ -1531,7 +1531,7 @@ x = torch.randn(5, requires_grad=True, dtype=torch.float64)
 gradcheck(f, (x,), eps=1e-6, atol=1e-4, rtol=1e-4)
 ```
 
-`gradcheck` automates centred finite differences for all inputs with `requires_grad=True`.  Always use `dtype=torch.float64` for gradient checking — float32 precision is insufficient for reliable checks.
+`gradcheck` automates centred finite differences for all inputs with `requires_grad=True`.  Always use `dtype=torch.float64` for gradient checking - float32 precision is insufficient for reliable checks.
 
 ---
 
@@ -1550,11 +1550,11 @@ gradcheck(f, (x,), eps=1e-6, atol=1e-4, rtol=1e-4)
 
 | Layer | Forward | Backward ($\bar{\mathbf{z}}$ given) |
 |-------|---------|-------------------------------------|
-| Linear $\mathbf{z} = W\mathbf{x} + \mathbf{b}$ | — | $\bar{\mathbf{x}} = W^\top \bar{\mathbf{z}}$, $\bar{W} = \bar{\mathbf{z}}\mathbf{x}^\top$, $\bar{\mathbf{b}} = \bar{\mathbf{z}}$ |
-| Elementwise $\mathbf{a} = \sigma(\mathbf{z})$ | — | $\bar{\mathbf{z}} = \bar{\mathbf{a}} \odot \sigma'(\mathbf{z})$ |
+| Linear $\mathbf{z} = W\mathbf{x} + \mathbf{b}$ | - | $\bar{\mathbf{x}} = W^\top \bar{\mathbf{z}}$, $\bar{W} = \bar{\mathbf{z}}\mathbf{x}^\top$, $\bar{\mathbf{b}} = \bar{\mathbf{z}}$ |
+| Elementwise $\mathbf{a} = \sigma(\mathbf{z})$ | - | $\bar{\mathbf{z}} = \bar{\mathbf{a}} \odot \sigma'(\mathbf{z})$ |
 | Softmax+CE | $p_i = e^{z_i}/\sum e^{z_j}$ | $\partial \mathcal{L}/\partial \mathbf{z} = \mathbf{p} - \mathbf{e}_y$ |
-| Residual $\mathbf{y} = \mathbf{x} + F(\mathbf{x})$ | — | $\bar{\mathbf{x}} = \bar{\mathbf{y}} + J_F^\top \bar{\mathbf{y}}$ |
-| LayerNorm | $\hat{x}_i = (x_i-\mu)/\sigma$ | Complex (see §5.4); passes signal |
+| Residual $\mathbf{y} = \mathbf{x} + F(\mathbf{x})$ | - | $\bar{\mathbf{x}} = \bar{\mathbf{y}} + J_F^\top \bar{\mathbf{y}}$ |
+| LayerNorm | $\hat{x}_i = (x_i-\mu)/\sigma$ | Complex (see 5.4); passes signal |
 
 ### E.3 Activation Derivatives
 
@@ -1575,16 +1575,16 @@ gradcheck(f, (x,), eps=1e-6, atol=1e-4, rtol=1e-4)
 | Xavier normal | $\mathcal{N}(0,\sigma^2)$ | $2/(n_\text{in}+n_\text{out})$ | Sigmoid, tanh |
 | He uniform | $U[-a,a]$ | $2/n_\text{in}$ | ReLU |
 | He normal | $\mathcal{N}(0,\sigma^2)$ | $2/n_\text{in}$ | ReLU |
-| GPT-2 residual | $\mathcal{N}(0,(0.02/\sqrt{2L})^2)$ | — | Transformer residuals |
+| GPT-2 residual | $\mathcal{N}(0,(0.02/\sqrt{2L})^2)$ | - | Transformer residuals |
 
 
 ---
 
-## Appendix F: Deep Dive — Vanishing Gradients in Transformers
+## Appendix F: Deep Dive - Vanishing Gradients in Transformers
 
 ### F.1 Why Transformers Don't Vanish
 
-A naive reading of the vanishing gradient analysis (§6.1) suggests that 96-layer transformers should suffer catastrophic vanishing.  They don't.  Here is why.
+A naive reading of the vanishing gradient analysis (6.1) suggests that 96-layer transformers should suffer catastrophic vanishing.  They don't.  Here is why.
 
 **The residual stream analysis:** In a pre-norm transformer, the residual stream after layer $l$ is:
 
@@ -1599,7 +1599,7 @@ $$\frac{\partial \mathcal{L}}{\partial \mathbf{x}^{[0]}} = \frac{\partial \mathc
 At initialisation, the transformer weights are small, so $J_{F^{[l]}} \approx 0$ and the product $\prod(I + J_{F^{[l]}}) \approx I$.  The gradient flows back unchanged through all $L$ layers.  This is categorically different from a plain deep network where the product of small Jacobians vanishes.
 
 **Gradient norm growth:** As training progresses and weights grow, $J_{F^{[l]}}$ becomes nontrivial.  The gradient norm may grow with depth, but this is controlled by:
-1. LayerNorm dampening (see §6.6)
+1. LayerNorm dampening (see 6.6)
 2. GPT-2's $1/\sqrt{2L}$ scaling of residual projections
 3. Gradient clipping ($\tau = 1.0$)
 
@@ -1611,39 +1611,39 @@ Modern LLM training monitors gradient norm at every step.  Typical patterns:
 
 ```
 GRADIENT NORM DURING LLM TRAINING
-═══════════════════════════════════════════════════════════════
 
-  ‖∇θ‖₂
-    │
-    │  spike (loss spike)
-    │    │
-  1 ─ ─ │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ clip threshold
-    │ ╭──┤╮
-    │╭╯  └╰────────────────────────── normal training
-    │╯
-    └────────────────────────────────────────────────── steps
+
+  nablatheta_2
+    
+      spike (loss spike)
+        
+  1                clip threshold
+     
+       normal training
+    
+     steps
 
   Patterns:
-  • Steady ‖∇θ‖ < 1: healthy training, clipping inactive
-  • Sudden spike → loss spike → recovery: numerical event
+  - Steady nablatheta < 1: healthy training, clipping inactive
+  - Sudden spike -> loss spike -> recovery: numerical event
     (often a "bad" batch; LLM training has ~1-3 such events
      per trillion tokens at scale)
-  • Slow upward drift: learning rate may be too high
+  - Slow upward drift: learning rate may be too high
 
-═══════════════════════════════════════════════════════════════
+
 ```
 
 **Loss spike mitigation:** When the gradient norm exceeds the clip threshold, the entire gradient update is scaled down.  If the spike is from a corrupted batch, this prevents permanent damage to the model weights.
 
-**Gradient accumulation and norm:** When using $G$ accumulation steps, each micro-batch contributes $1/G$ of the gradient.  The global norm is computed across the *accumulated* gradient (after summation, before the optimiser step) — not across individual micro-batches.
+**Gradient accumulation and norm:** When using $G$ accumulation steps, each micro-batch contributes $1/G$ of the gradient.  The global norm is computed across the *accumulated* gradient (after summation, before the optimiser step) - not across individual micro-batches.
 
 ### F.3 Per-Layer Gradient Norm Analysis
 
 For diagnostic purposes, logging the gradient norm per layer reveals:
-- **Embedding gradients:** Often the largest, due to sparse updates (§5.6)
+- **Embedding gradients:** Often the largest, due to sparse updates (5.6)
 - **Early layers:** Smallest (furthest from loss); potential vanishing
 - **Late layers:** Largest; potential exploding
-- **LayerNorm parameters:** Very small — $\boldsymbol{\gamma}$ and $\boldsymbol{\beta}$ converge quickly
+- **LayerNorm parameters:** Very small - $\boldsymbol{\gamma}$ and $\boldsymbol{\beta}$ converge quickly
 
 This per-layer analysis guided the design of:
 - **LARS/LAMB** optimisers (You et al., 2017): layer-wise adaptive learning rates based on weight-to-gradient ratio
@@ -1668,7 +1668,7 @@ The development of backpropagation spans three centuries and multiple independen
 | 1970 | Linnainmaa's thesis: general backpropagation | Full theoretical framework |
 | 1974 | Werbos PhD thesis: backprop for neural networks | Connection to ML |
 | 1982 | Hopfield networks (energy-based models with gradient) | Alternative to backprop |
-| 1986 | Rumelhart, Hinton & Williams — "Learning representations by back-propagating errors" | Popularised backprop for NNs |
+| 1986 | Rumelhart, Hinton & Williams - "Learning representations by back-propagating errors" | Popularised backprop for NNs |
 | 1991 | Hochreiter: vanishing gradient problem analysed | Identified depth barrier |
 | 1997 | LSTM: gating to address vanishing gradient in RNNs | First scalable deep sequence model |
 | 2012 | AlexNet: backprop on GPU at scale | Practical deep learning |
@@ -1685,7 +1685,7 @@ The development of backpropagation spans three centuries and multiple independen
 
 Backpropagation was independently discovered at least four times before becoming widely known:
 
-1. **Linnainmaa (1970):** In his master's thesis, presented the general algorithm for computing exact partial derivatives of any function composed of elementary operations — precisely what we today call reverse-mode AD.
+1. **Linnainmaa (1970):** In his master's thesis, presented the general algorithm for computing exact partial derivatives of any function composed of elementary operations - precisely what we today call reverse-mode AD.
 
 2. **Werbos (1974):** Applied the same idea to multi-layer neural networks in his PhD thesis, but the work was largely ignored for over a decade.
 
@@ -1693,15 +1693,15 @@ Backpropagation was independently discovered at least four times before becoming
 
 4. **Rumelhart, Hinton & Williams (1986):** Published the algorithm in *Nature* and produced the critical experimental demonstrations that convinced the community it could work.  Their paper is the one most often cited today.
 
-This pattern of independent rediscovery is common in mathematics — the ideas are "in the air" once the prerequisites are established.  The chain rule (1676) + computation graphs (1960s) + gradient descent (1847) = backpropagation (inevitable).
+This pattern of independent rediscovery is common in mathematics - the ideas are "in the air" once the prerequisites are established.  The chain rule (1676) + computation graphs (1960s) + gradient descent (1847) = backpropagation (inevitable).
 
 ### G.3 The Hardware-Algorithm Co-evolution
 
 The practical impact of backpropagation depends critically on hardware:
 
-- **CPU era (1986–2011):** Backprop is theoretically valid but computationally slow.  Networks with more than 3-4 layers were impractical.
-- **GPU era (2012–present):** NVIDIA's CUDA (2007) enables massively parallel GEMM operations.  The bottleneck shifts from FLOPS to memory bandwidth.
-- **Tensor core era (2017–present):** NVIDIA Volta/Ampere/Hopper GPUs have dedicated matrix multiply accelerators.  FP16/BF16 tensor cores achieve 10× the throughput of FP32.
+- **CPU era (1986-2011):** Backprop is theoretically valid but computationally slow.  Networks with more than 3-4 layers were impractical.
+- **GPU era (2012-present):** NVIDIA's CUDA (2007) enables massively parallel GEMM operations.  The bottleneck shifts from FLOPS to memory bandwidth.
+- **Tensor core era (2017-present):** NVIDIA Volta/Ampere/Hopper GPUs have dedicated matrix multiply accelerators.  FP16/BF16 tensor cores achieve 10x the throughput of FP32.
 - **Memory wall:** As models scale, the backward pass's memory requirements dominate.  FlashAttention, ZeRO, gradient checkpointing all address the memory wall.
 
 The 2024 FLOP/memory ratio in H100 GPUs ($\sim 2000$ TFLOPS vs $\sim 3.35$ TB/s bandwidth) means that memory access, not computation, is the primary bottleneck for backprop at scale.  This fundamental constraint is why FlashAttention's IO-aware design is so impactful.
@@ -1744,23 +1744,23 @@ This is an unbiased estimator: $\mathbb{E}[\hat{g}_B] = \nabla_\theta \mathbb{E}
 
 For first-order optimisers (SGD, Adam, AdaGrad, RMSprop), the gradient is the only information extracted from the forward-backward pass.  Second-order information (Hessian curvature) is either ignored or approximated.
 
-**Why not use the full Hessian?** For $|\theta| = 70\text{B}$ parameters, the Hessian is a $70\text{B} \times 70\text{B}$ matrix — $\sim 10^{22}$ entries.  Storing it is impossible ($10^{22}$ FP32 values ≈ $4 \times 10^{22}$ bytes ≈ $40 \times 10^{21}$ GB).  Inverting it is even more impossible.
+**Why not use the full Hessian?** For $|\theta| = 70\text{B}$ parameters, the Hessian is a $70\text{B} \times 70\text{B}$ matrix - $\sim 10^{22}$ entries.  Storing it is impossible ($10^{22}$ FP32 values ~= $4 \times 10^{22}$ bytes ~= $40 \times 10^{21}$ GB).  Inverting it is even more impossible.
 
 **Practical second-order methods** use approximations:
 - **Diagonal:** AdaGrad/Adam maintain diagonal Hessian approximations ($O(|\theta|)$ memory)
-- **Kronecker factored:** K-FAC (see §02) uses $A \otimes G$ per layer ($O(n^2)$ per layer)
+- **Kronecker factored:** K-FAC (see 02) uses $A \otimes G$ per layer ($O(n^2)$ per layer)
 - **Low-rank:** PSGD, Shampoo maintain low-rank or block-diagonal approximations
 - **Newton-Schulz:** Muon (2024) approximates the matrix square root $H^{-1/2}$ efficiently
 
 ### H.4 Generalisation and the Implicit Gradient Bias
 
-Gradient descent with small learning rate and large mini-batches does not merely find *any* minimum — it has an **implicit bias** toward flat minima (large regions with low loss) over sharp minima (narrow valleys).
+Gradient descent with small learning rate and large mini-batches does not merely find *any* minimum - it has an **implicit bias** toward flat minima (large regions with low loss) over sharp minima (narrow valleys).
 
-**Conjecture (Keskar et al., 2017):** Flat minima generalise better because small perturbations to the parameters don't change the loss much — robust to noise in the data.
+**Conjecture (Keskar et al., 2017):** Flat minima generalise better because small perturbations to the parameters don't change the loss much - robust to noise in the data.
 
-**Mathematical foundation:** The SGD noise $\hat{g}_B - g$ effectively adds a regularisation term proportional to $\eta B^{-1} \text{tr}(H)$ — the trace of the Hessian — biasing toward flat (low-trace-Hessian) minima.
+**Mathematical foundation:** The SGD noise $\hat{g}_B - g$ effectively adds a regularisation term proportional to $\eta B^{-1} \text{tr}(H)$ - the trace of the Hessian - biasing toward flat (low-trace-Hessian) minima.
 
-This connects gradient computation (the topic of this section) to generalisation theory (a major open question in deep learning theory) — a reminder that understanding backpropagation fully requires understanding not just the mechanics, but the geometry of the loss landscape it navigates.
+This connects gradient computation (the topic of this section) to generalisation theory (a major open question in deep learning theory) - a reminder that understanding backpropagation fully requires understanding not just the mechanics, but the geometry of the loss landscape it navigates.
 
 
 ---
@@ -1819,9 +1819,9 @@ class Value:
         for v in reversed(topo): v._backward()
 ```
 
-This is essentially the complete autograd engine from Karpathy's `micrograd` (2020) — approximately 100 lines implement a working backprop engine.
+This is essentially the complete autograd engine from Karpathy's `micrograd` (2020) - approximately 100 lines implement a working backprop engine.
 
-**3. Building blocks:** Extend `Value` with `__add__`, `__pow__`, `exp`, `log`, `relu`, `softmax` — each with its VJP closure.
+**3. Building blocks:** Extend `Value` with `__add__`, `__pow__`, `exp`, `log`, `relu`, `softmax` - each with its VJP closure.
 
 ### I.2 Common Implementation Bugs
 
@@ -1842,7 +1842,7 @@ loss.backward()
 optimizer.step()
 
 # Correct:
-optimizer.zero_grad()   # ← must come before backward
+optimizer.zero_grad()   # <- must come before backward
 loss = model(x)
 loss.backward()
 optimizer.step()
@@ -1851,7 +1851,7 @@ optimizer.step()
 **Bug 3: Not detaching from the graph for inference**
 ```python
 # Wrong: builds graph unnecessarily during inference
-with torch.no_grad():  # ← this is the correct fix
+with torch.no_grad():  # <- this is the correct fix
     prediction = model(x)
 ```
 
@@ -1887,7 +1887,7 @@ Before deploying any backprop implementation:
 
 ### J.1 Fisher Information and the Natural Gradient
 
-The ordinary gradient $\nabla_\theta \mathcal{L}$ measures the steepest direction in parameter space with respect to the Euclidean metric.  But parameter space has a natural metric induced by the probability distribution $p_\theta$ — the **Fisher information metric**.
+The ordinary gradient $\nabla_\theta \mathcal{L}$ measures the steepest direction in parameter space with respect to the Euclidean metric.  But parameter space has a natural metric induced by the probability distribution $p_\theta$ - the **Fisher information metric**.
 
 **Fisher information matrix:**
 $$F(\theta) = \mathbb{E}_{x \sim p_\theta}\left[\nabla_\theta \log p_\theta(x) \, (\nabla_\theta \log p_\theta(x))^\top\right]$$
@@ -1895,11 +1895,11 @@ $$F(\theta) = \mathbb{E}_{x \sim p_\theta}\left[\nabla_\theta \log p_\theta(x) \
 **Natural gradient** (Amari, 1998):
 $$\tilde{\nabla}_\theta \mathcal{L} = F(\theta)^{-1} \nabla_\theta \mathcal{L}$$
 
-The natural gradient is the steepest direction in the **distributional geometry** of the model — invariant to reparametrisation.  Computing it exactly requires inverting $F$, which costs $O(|\theta|^3)$.
+The natural gradient is the steepest direction in the **distributional geometry** of the model - invariant to reparametrisation.  Computing it exactly requires inverting $F$, which costs $O(|\theta|^3)$.
 
-**K-FAC** (§02) approximates $F^{-1}$ as a Kronecker product, making the natural gradient step tractable.  It remains the most principled second-order optimiser for neural networks.
+**K-FAC** (02) approximates $F^{-1}$ as a Kronecker product, making the natural gradient step tractable.  It remains the most principled second-order optimiser for neural networks.
 
-**For LLMs:** The approximation used in practice is Adam's diagonal $F^{-1}$ (second moment of gradient as proxy for diagonal Fisher).  This is crude but sufficient — Adam is a diagonal natural gradient step.
+**For LLMs:** The approximation used in practice is Adam's diagonal $F^{-1}$ (second moment of gradient as proxy for diagonal Fisher).  This is crude but sufficient - Adam is a diagonal natural gradient step.
 
 ### J.2 Gradient as Score Function
 
@@ -1911,7 +1911,7 @@ The score function is the quantity computed by backpropagation during maximum li
 - $\mathbb{E}_{x \sim p_\theta}[s(\mathbf{x};\theta)] = 0$ (score has zero mean)
 - $\text{Var}_{x \sim p_\theta}[s(\mathbf{x};\theta)] = F(\theta)$ (Fisher information = variance of score)
 
-**For language models:** The negative log-likelihood $\mathcal{L} = -\log p_\theta(\mathbf{y}|\mathbf{x})$ has gradient $-s(\mathbf{y}|\mathbf{x};\theta) = -(p_y - e_y)^\top = e_y - p_y$ — the same $\mathbf{p} - \mathbf{e}_y$ formula from §5.3, now understood as the negative score.
+**For language models:** The negative log-likelihood $\mathcal{L} = -\log p_\theta(\mathbf{y}|\mathbf{x})$ has gradient $-s(\mathbf{y}|\mathbf{x};\theta) = -(p_y - e_y)^\top = e_y - p_y$ - the same $\mathbf{p} - \mathbf{e}_y$ formula from 5.3, now understood as the negative score.
 
 ### J.3 KL Divergence and the Gradient of ELBO
 
@@ -1921,41 +1921,41 @@ $$\text{KL}(p \| q) = \sum_x p(x) \log \frac{p(x)}{q(x)}$$
 
 $$\nabla_\phi \text{KL}(p_\theta \| q_\phi) = -\mathbb{E}_{x \sim p_\theta}\left[\nabla_\phi \log q_\phi(x)\right]$$
 
-This is computed via backprop through the log-probability of the policy under KL regularisation — the precise form used in RLHF's PPO loss, which includes a KL penalty between the fine-tuned policy $\pi_\phi$ and the reference model $\pi_\text{ref}$.
+This is computed via backprop through the log-probability of the policy under KL regularisation - the precise form used in RLHF's PPO loss, which includes a KL penalty between the fine-tuned policy $\pi_\phi$ and the reference model $\pi_\text{ref}$.
 
 ---
 
 ## References
 
-1. **Rumelhart, Hinton & Williams (1986)** — "Learning representations by back-propagating errors." *Nature*, 323, 533–536. The canonical backpropagation paper.
+1. **Rumelhart, Hinton & Williams (1986)** - "Learning representations by back-propagating errors." *Nature*, 323, 533-536. The canonical backpropagation paper.
 
-2. **Linnainmaa, S. (1970)** — "The representation of the cumulative rounding error of an algorithm as a Taylor expansion of the local rounding errors." Master's thesis, University of Helsinki. First general reverse-mode AD.
+2. **Linnainmaa, S. (1970)** - "The representation of the cumulative rounding error of an algorithm as a Taylor expansion of the local rounding errors." Master's thesis, University of Helsinki. First general reverse-mode AD.
 
-3. **Hochreiter, S. (1991)** — "Untersuchungen zu dynamischen neuronalen Netzen." Diploma thesis, TU Munich. First analysis of vanishing gradients.
+3. **Hochreiter, S. (1991)** - "Untersuchungen zu dynamischen neuronalen Netzen." Diploma thesis, TU Munich. First analysis of vanishing gradients.
 
-4. **Glorot, X. & Bengio, Y. (2010)** — "Understanding the difficulty of training deep feedforward neural networks." *AISTATS*. Xavier initialisation.
+4. **Glorot, X. & Bengio, Y. (2010)** - "Understanding the difficulty of training deep feedforward neural networks." *AISTATS*. Xavier initialisation.
 
-5. **He, K. et al. (2015)** — "Delving Deep into Rectifiers." *ICCV*. He initialisation for ReLU networks.
+5. **He, K. et al. (2015)** - "Delving Deep into Rectifiers." *ICCV*. He initialisation for ReLU networks.
 
-6. **He, K. et al. (2016)** — "Deep Residual Learning for Image Recognition." *CVPR*. ResNets and gradient highways.
+6. **He, K. et al. (2016)** - "Deep Residual Learning for Image Recognition." *CVPR*. ResNets and gradient highways.
 
-7. **Ba, J. et al. (2016)** — "Layer Normalization." *arXiv:1607.06450*. LayerNorm for transformers.
+7. **Ba, J. et al. (2016)** - "Layer Normalization." *arXiv:1607.06450*. LayerNorm for transformers.
 
-8. **Vaswani, A. et al. (2017)** — "Attention Is All You Need." *NeurIPS*. Transformer architecture with attention backward pass.
+8. **Vaswani, A. et al. (2017)** - "Attention Is All You Need." *NeurIPS*. Transformer architecture with attention backward pass.
 
-9. **Amari, S. (1998)** — "Natural Gradient Works Efficiently in Learning." *Neural Computation*. Natural gradient and Fisher information.
+9. **Amari, S. (1998)** - "Natural Gradient Works Efficiently in Learning." *Neural Computation*. Natural gradient and Fisher information.
 
-10. **Martens, J. & Grosse, R. (2015)** — "Optimizing Neural Networks with Kronecker-factored Approximate Curvature." *ICML*. K-FAC.
+10. **Martens, J. & Grosse, R. (2015)** - "Optimizing Neural Networks with Kronecker-factored Approximate Curvature." *ICML*. K-FAC.
 
-11. **Hu, E. et al. (2022)** — "LoRA: Low-Rank Adaptation of Large Language Models." *ICLR*. LoRA backward pass.
+11. **Hu, E. et al. (2022)** - "LoRA: Low-Rank Adaptation of Large Language Models." *ICLR*. LoRA backward pass.
 
-12. **Dao, T. et al. (2022)** — "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness." *NeurIPS*. IO-aware backward for attention.
+12. **Dao, T. et al. (2022)** - "FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness." *NeurIPS*. IO-aware backward for attention.
 
-13. **Cohen, J. et al. (2022)** — "Gradient Descent on Neural Networks Typically Occurs at the Edge of Stability." *ICLR*. Edge of stability phenomenon.
+13. **Cohen, J. et al. (2022)** - "Gradient Descent on Neural Networks Typically Occurs at the Edge of Stability." *ICLR*. Edge of stability phenomenon.
 
-14. **Dao, T. (2023)** — "FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning." *ICLR 2024*. FlashAttention-2.
+14. **Dao, T. (2023)** - "FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning." *ICLR 2024*. FlashAttention-2.
 
-15. **Liu, S. et al. (2024)** — "DoRA: Weight-Decomposed Low-Rank Adaptation." DoRA backward analysis.
+15. **Liu, S. et al. (2024)** - "DoRA: Weight-Decomposed Low-Rank Adaptation." DoRA backward analysis.
 
 
 ---
@@ -1966,36 +1966,36 @@ This is computed via backprop through the log-probability of the policy under KL
 
 ```
 COMPLETE BACKPROPAGATION ALGORITHM
-════════════════════════════════════════════════════════════════════════
 
-  INPUT: network weights θ, training pair (x, y)
 
-  PHASE 1 — FORWARD PASS
-  ───────────────────────
-  a⁰ = x
+  INPUT: network weights theta, training pair (x, y)
+
+  PHASE 1 - FORWARD PASS
+  
+  a^0 = x
   For l = 1, 2, ..., L:
     z^l = W^l a^{l-1} + b^l       (cache z^l and a^{l-1})
-    a^l = σ^l(z^l)                 (cache a^l)
-  ŷ = a^L
-  ℒ = loss(ŷ, y)
+    a^l = sigma^l(z^l)                 (cache a^l)
+   = a^L
+   = loss(, y)
 
-  PHASE 2 — BACKWARD PASS
-  ───────────────────────
-  δ^L = ∂ℒ/∂z^L                  (output layer gradient, layer-specific)
+  PHASE 2 - BACKWARD PASS
+  
+  delta^L = partial/partialz^L                  (output layer gradient, layer-specific)
   For l = L-1, L-2, ..., 1:
-    δ^l = (W^{l+1})ᵀ δ^{l+1} ⊙ σ'^l(z^l)
+    delta^l = (W^{l+1}) delta^{l+1}  sigma'^l(z^l)
 
-  PHASE 3 — GRADIENT ASSEMBLY
-  ────────────────────────────
+  PHASE 3 - GRADIENT ASSEMBLY
+  
   For l = 1, 2, ..., L:
-    ∇_{W^l} ℒ = δ^l (a^{l-1})ᵀ
-    ∇_{b^l} ℒ = δ^l
+    nabla_{W^l}  = delta^l (a^{l-1})
+    nabla_{b^l}  = delta^l
 
-  PHASE 4 — PARAMETER UPDATE
-  ───────────────────────────
-  θ ← θ - η · ∇_θ ℒ             (or Adam/RMSprop update)
+  PHASE 4 - PARAMETER UPDATE
+  
+  theta <- theta - eta * nabla_theta              (or Adam/RMSprop update)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### K.2 Complexity Summary

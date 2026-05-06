@@ -1,1033 +1,2280 @@
-[Home](../../README.md) | [Embedding Space Math →](../02-Embedding-Space-Math/notes.md)
+[Back to Math for LLMs](../README.md) | [Next: Embedding Space Math](../02-Embedding-Space-Math/notes.md)
 
 ---
 
 # Tokenization Math
 
-> _"A language model never sees text — it sees integer sequences produced by a tokenizer. The math behind that mapping determines what the model can and cannot learn."_
+> _"Before an LLM predicts text, a tokenizer decides what the text is allowed to be made of."_
 
 ## Overview
 
-Tokenization is the mathematical bridge between raw text and the integer sequences that LLMs process. This section covers the three dominant tokenization algorithms (BPE, Unigram, WordPiece), the information-theoretic foundations behind them, and the practical implications for model performance, cost, and multilingual fairness. Every formula is grounded in how it affects real LLM training and inference.
+Tokenization is the first mathematical map in an LLM pipeline. It converts raw text into integer ids, and those ids determine embedding lookups, attention positions, loss targets, context-window usage, retrieval chunks, special-token boundaries, and serving cost.
+
+The key tradeoff is simple but deep: larger vocabularies usually shorten sequences, while smaller vocabularies share pieces more aggressively. BPE, unigram tokenization, WordPiece, byte fallback, and special-token design are different answers to that tradeoff.
+
+This section uses LaTeX Markdown with `$...$` and `$$...$$`. The companion notebooks implement small tokenizers from scratch so the math is visible without external packages.
 
 ## Prerequisites
 
-- Basic probability (conditional probability, Bayes' rule)
-- Information theory fundamentals (entropy, bits)
-- Dynamic programming basics
-- Familiarity with Python and NumPy
+- [Entropy](../../09-Information-Theory/01-Entropy/notes.md)
+- [Cross-Entropy](../../09-Information-Theory/04-Cross-Entropy/notes.md)
+- [Embedding Space Math](../02-Embedding-Space-Math/notes.md)
+- [Attention Mechanism Math](../03-Attention-Mechanism-Math/notes.md)
+- [Language Model Probability](../05-Language-Model-Probability/notes.md)
 
 ## Companion Notebooks
 
-| Notebook                           | Description                                                                      |
-| ---------------------------------- | -------------------------------------------------------------------------------- |
-| [theory.ipynb](theory.ipynb)       | Full implementations of BPE, Unigram EM, WordPiece, entropy analysis, Viterbi DP |
-| [exercises.ipynb](exercises.ipynb) | Practice problems: manual BPE, compression, fertility, Viterbi                   |
+| Notebook | Description |
+| --- | --- |
+| [theory.ipynb](theory.ipynb) | Executable BPE, unigram, Viterbi, entropy, fertility, special-token, and context-cost demonstrations. |
+| [exercises.ipynb](exercises.ipynb) | Ten checked exercises for tokenizer mechanics and LLM cost reasoning. |
 
 ## Learning Objectives
 
-After completing this section, you will:
+After completing this section, you will be able to:
 
-- Implement BPE (character-level and word-level) from scratch and understand its greedy merge criterion
-- Derive the Unigram Language Model's EM training (forward-backward, E-step, M-step, convergence guarantees)
-- Explain WordPiece's PMI-based merge criterion and how it differs from BPE
-- Calculate compression ratio, context window efficiency, and vocabulary parameter costs
-- Apply the Viterbi algorithm for optimal tokenization and enumerate segmentation complexity
-- Analyze tokenizer quality using Shannon entropy, Rényi entropy, and Zipf's law
-- Quantify the multilingual "tokenization tax" and its impact on fairness and cost
+- Define alphabets, vocabularies, token ids, encoders, and decoders.
+- Explain why tokenization is a mathematical compression map, not only text cleanup.
+- Train a tiny BPE tokenizer and apply learned merges to new strings.
+- Use dynamic programming to find a best unigram segmentation.
+- Compare BPE, unigram, and WordPiece segmentation criteria.
+- Compute compression ratio, token entropy, context cost, and vocabulary parameter cost.
+- Diagnose multilingual fertility and tokenization tax.
+- Explain how special tokens affect chat templates, padding masks, tools, and safety boundaries.
+- Design round-trip and boundary tests for a tokenizer.
+- Explain why tokenizer changes usually require retraining embeddings or careful migration.
+
+---
 
 ## Table of Contents
 
-- [Tokenization Math](#tokenization-math)
-  - [Overview](#overview)
-  - [Prerequisites](#prerequisites)
-  - [Companion Notebooks](#companion-notebooks)
-  - [Learning Objectives](#learning-objectives)
-  - [Table of Contents](#table-of-contents)
-  - [1. Intuition](#1-intuition)
-    - [What Is Tokenization?](#what-is-tokenization)
-    - [Why Math Matters Here](#why-math-matters-here)
-  - [2. Formal Definitions](#2-formal-definitions)
-    - [2.1 Alphabet and Strings](#21-alphabet-and-strings)
-    - [2.2 Vocabulary](#22-vocabulary)
-    - [2.3 Tokenization Function](#23-tokenization-function)
-    - [2.4 Token-to-Integer Mapping](#24-token-to-integer-mapping)
-  - [3. Mathematical Formulation](#3-mathematical-formulation)
-    - [3.1 Byte Pair Encoding (BPE)](#31-byte-pair-encoding-bpe)
-      - [Algorithm](#algorithm)
-      - [Frequency-Based Merge Selection](#frequency-based-merge-selection)
-      - [Compression Analysis](#compression-analysis)
-      - [Complexity](#complexity)
-      - [Worked Example](#worked-example)
-    - [3.2 Unigram Language Model (SentencePiece)](#32-unigram-language-model-sentencepiece)
-      - [Probabilistic Framework](#probabilistic-framework)
-      - [Optimal Segmentation](#optimal-segmentation)
-      - [EM Training](#em-training)
-      - [Loss of Removing a Token](#loss-of-removing-a-token)
-    - [3.3 WordPiece (BERT)](#33-wordpiece-bert)
-      - [Algorithm](#algorithm-1)
-      - [PMI-Based Merge Selection](#pmi-based-merge-selection)
-      - [Encoding with WordPiece](#encoding-with-wordpiece)
-    - [3.4 Comparison](#34-comparison)
-  - [4. AI/ML Applications](#4-aiml-applications)
-    - [4.1 Context Window Efficiency](#41-context-window-efficiency)
-    - [4.2 Vocabulary Size and Model Dimensions](#42-vocabulary-size-and-model-dimensions)
-    - [4.3 Tokenization and Arithmetic](#43-tokenization-and-arithmetic)
-      - [Why This Breaks Arithmetic](#why-this-breaks-arithmetic)
-      - [The Inconsistency Problem](#the-inconsistency-problem)
-    - [4.4 Tokenization Fertility](#44-tokenization-fertility)
-    - [4.5 Special Tokens](#45-special-tokens)
-      - [How Special Tokens Affect the Pipeline](#how-special-tokens-affect-the-pipeline)
-  - [5. Information-Theoretic View](#5-information-theoretic-view)
-    - [5.1 Tokenization as Compression](#51-tokenization-as-compression)
-      - [Bits Per Character Analysis](#bits-per-character-analysis)
-    - [5.2 Entropy of the Token Distribution](#52-entropy-of-the-token-distribution)
-      - [Worked Example](#worked-example-1)
-      - [Zipf's Law in Token Distributions](#zipfs-law-in-token-distributions)
-    - [5.3 Rényi Entropy and Vocabulary Balance](#53-rényi-entropy-and-vocabulary-balance)
-      - [Special Cases](#special-cases)
-      - [Ordering and the Gap](#ordering-and-the-gap)
-      - [Example](#example)
-  - [6. Dynamic Programming: Optimal Segmentation](#6-dynamic-programming-optimal-segmentation)
-    - [6.1 The Segmentation Problem](#61-the-segmentation-problem)
-    - [6.2 Viterbi Algorithm for Tokenization](#62-viterbi-algorithm-for-tokenization)
-      - [Worked Example](#worked-example-2)
-    - [6.3 Number of Possible Segmentations](#63-number-of-possible-segmentations)
-      - [Derivation (L = 2 case)](#derivation-l--2-case)
-      - [General Case (max token length L)](#general-case-max-token-length-l)
-      - [Growth Table](#growth-table)
-  - [7. Common Mistakes](#7-common-mistakes)
-  - [8. Exercises](#8-exercises)
-    - [Exercise 1: Manual BPE (Pen and Paper)](#exercise-1-manual-bpe-pen-and-paper)
-    - [Exercise 2: Compression Ratio](#exercise-2-compression-ratio)
-    - [Exercise 3: Vocabulary Size Tradeoff](#exercise-3-vocabulary-size-tradeoff)
-    - [Exercise 4: Fertility Analysis](#exercise-4-fertility-analysis)
-    - [Exercise 5: Viterbi Segmentation](#exercise-5-viterbi-segmentation)
-  - [9. Why This Matters for AI](#9-why-this-matters-for-ai)
-    - [The Tokenization Tax](#the-tokenization-tax)
-      - [Concrete Cost Calculation](#concrete-cost-calculation)
-      - [Training Efficiency Impact](#training-efficiency-impact)
-  - [10. Further Reading](#10-further-reading)
-    - [Papers](#papers)
-    - [Implementations](#implementations)
-    - [Conceptual Bridge](#conceptual-bridge)
+- [1. Intuition](#1-intuition)
+  - [1.1 Text is not the model input](#11-text-is-not-the-model-input)
+  - [1.2 The tokenizer as a learned compression map](#12-the-tokenizer-as-a-learned-compression-map)
+  - [1.3 Open vocabulary pressure](#13-open-vocabulary-pressure)
+  - [1.4 Tokenization tax](#14-tokenization-tax)
+  - [1.5 Where tokenization affects LLM behavior](#15-where-tokenization-affects-llm-behavior)
+- [2. Formal Definitions](#2-formal-definitions)
+  - [2.1 Alphabet strings and byte sequences](#21-alphabet-strings-and-byte-sequences)
+  - [2.2 Vocabulary and token ids](#22-vocabulary-and-token-ids)
+  - [2.3 Tokenizer and detokenizer functions](#23-tokenizer-and-detokenizer-functions)
+  - [2.4 Lossless versus lossy normalization](#24-lossless-versus-lossy-normalization)
+  - [2.5 Pre-tokenization boundaries](#25-pretokenization-boundaries)
+- [3. Byte Pair Encoding](#3-byte-pair-encoding)
+  - [3.1 BPE merge objective](#31-bpe-merge-objective)
+  - [3.2 Greedy training loop](#32-greedy-training-loop)
+  - [3.3 Encoding with learned merges](#33-encoding-with-learned-merges)
+  - [3.4 Byte-level BPE](#34-bytelevel-bpe)
+  - [3.5 BPE limitations](#35-bpe-limitations)
+- [4. Unigram and SentencePiece](#4-unigram-and-sentencepiece)
+  - [4.1 Unigram token probability model](#41-unigram-token-probability-model)
+  - [4.2 Viterbi segmentation](#42-viterbi-segmentation)
+  - [4.3 Forward probabilities](#43-forward-probabilities)
+  - [4.4 EM intuition](#44-em-intuition)
+  - [4.5 Subword regularization](#45-subword-regularization)
+- [5. WordPiece](#5-wordpiece)
+  - [5.1 WordPiece merge score](#51-wordpiece-merge-score)
+  - [5.2 Continuation markers](#52-continuation-markers)
+  - [5.3 Greedy longest-match encoding](#53-greedy-longestmatch-encoding)
+  - [5.4 WordPiece versus BPE](#54-wordpiece-versus-bpe)
+  - [5.5 Unknown-token risk](#55-unknowntoken-risk)
+- [6. Information and Cost](#6-information-and-cost)
+  - [6.1 Compression ratio](#61-compression-ratio)
+  - [6.2 Token entropy](#62-token-entropy)
+  - [6.3 Vocabulary parameter cost](#63-vocabulary-parameter-cost)
+  - [6.4 Context window efficiency](#64-context-window-efficiency)
+  - [6.5 Multilingual fertility](#65-multilingual-fertility)
+- [7. LLM System Effects](#7-llm-system-effects)
+  - [7.1 Special tokens](#71-special-tokens)
+  - [7.2 Attention cost](#72-attention-cost)
+  - [7.3 Numeracy and spelling](#73-numeracy-and-spelling)
+  - [7.4 Retrieval chunking](#74-retrieval-chunking)
+  - [7.5 Safety and prompt boundaries](#75-safety-and-prompt-boundaries)
+- [8. Evaluation and Diagnostics](#8-evaluation-and-diagnostics)
+  - [8.1 Round-trip tests](#81-roundtrip-tests)
+  - [8.2 Coverage tests](#82-coverage-tests)
+  - [8.3 Fertility dashboards](#83-fertility-dashboards)
+  - [8.4 Boundary tests](#84-boundary-tests)
+  - [8.5 Tokenizer migration tests](#85-tokenizer-migration-tests)
+- [9. Common Mistakes](#9-common-mistakes)
+- [10. Exercises](#10-exercises)
+- [11. Why This Matters for AI](#11-why-this-matters-for-ai)
+- [12. Conceptual Bridge](#12-conceptual-bridge)
+- [References](#references)
 
 ---
 
 ## 1. Intuition
 
-### What Is Tokenization?
+Intuition develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
 
-Tokenization converts raw text into a sequence of integers that a neural network can process. It is the **first and last mathematical transformation** in every LLM pipeline:
+### 1.1 Text is not the model input
 
-```
-"The cat sat" → tokenizer → [464, 3797, 3332] → model → [next_token_id] → detokenizer → "on"
-```
+**Purpose.** Text is not the model input focuses on why neural networks consume integer ids. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
 
-Every character you read, every word GPT generates, passes through this mapping. The quality of this mapping directly affects:
+$$E(x)=(t_1,\ldots,t_n),\qquad t_i\in\{0,\ldots,|\mathcal{V}|-1\}.$$
 
-- **Vocabulary efficiency**: How many tokens to represent a concept
-- **Compression ratio**: How much text fits in a fixed context window
-- **Cross-lingual ability**: Whether the model can handle multiple languages
-- **Arithmetic ability**: Whether "123" is one token or three
-- **Cost**: Tokens are what you pay for in API calls
+**Operational definition.**
 
-### Why Math Matters Here
+A transformer receives integer token ids, not raw strings. The tokenizer decides the discrete sequence over which embeddings, attention, and next-token probabilities are defined.
 
-Tokenization seems like an engineering detail, but it is deeply mathematical:
+**Worked reading.**
 
-| Mathematical Concept    | Tokenization Application           |
-| ----------------------- | ---------------------------------- |
-| Information theory      | Optimal compression bounds         |
-| Probability / frequency | BPE merge decisions                |
-| Graph theory            | Vocabulary as a directed graph     |
-| Optimization            | Unigram model's EM algorithm       |
-| Combinatorics           | Possible segmentations of a string |
-| Linear algebra          | Token embeddings live in ℝᵈ        |
+If the text `lowering` becomes `[low, er, ing]`, the model predicts over those pieces. If it becomes `[lower, ing]`, the prediction problem changes.
 
----
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. token embeddings.
+2. next-token loss.
+3. attention over token positions.
+
+Non-examples:
+
+1. raw Unicode text inside a matrix multiply.
+2. a word-level assumption for every language.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 1.2 The tokenizer as a learned compression map
+
+**Purpose.** The tokenizer as a learned compression map focuses on why segmentation changes sequence length. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$D(E(x))=x\quad\text{for a lossless tokenizer on its supported domain}.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 1.3 Open vocabulary pressure
+
+**Purpose.** Open vocabulary pressure focuses on why word-level vocabularies fail. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{score}_{\mathrm{BPE}}(a,b)=\operatorname{count}(ab).$$
+
+**Operational definition.**
+
+The vocabulary is a finite set of pieces with stable integer ids. Neural embeddings make those ids trainable vectors.
+
+**Worked reading.**
+
+With vocabulary size $|\mathcal{V}|$ and model width $d_{\mathrm{model}}$, the input embedding table has $|\mathcal{V}|d_{\mathrm{model}}$ parameters.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. embedding lookup.
+2. output softmax.
+3. reserved special ids.
+
+Non-examples:
+
+1. renumbering tokens after training.
+2. adding pieces without resizing embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 1.4 Tokenization tax
+
+**Purpose.** Tokenization tax focuses on why some languages and strings cost more tokens. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$x^*=\arg\max_{v_1,\ldots,v_k:\,v_1\cdots v_k=x}\sum_{i=1}^k\log p(v_i).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 1.5 Where tokenization affects LLM behavior
+
+**Purpose.** Where tokenization affects LLM behavior focuses on context, cost, arithmetic, safety, retrieval. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$H(T)=-\sum_{v\in\mathcal{V}}p(v)\log_2 p(v).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
 
 ## 2. Formal Definitions
 
-### 2.1 Alphabet and Strings
+Formal Definitions develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
 
-**Alphabet** Σ: A finite set of atomic symbols (typically UTF-8 bytes or Unicode codepoints).
+### 2.1 Alphabet strings and byte sequences
 
-$$\Sigma = \{a, b, c, \ldots\} \quad |\Sigma| = 256 \text{ (for byte-level)}$$
+**Purpose.** Alphabet strings and byte sequences focuses on the raw domain $\Sigma^*$. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
 
-**String**: A finite sequence of symbols from Σ.
+$$D(E(x))=x\quad\text{for a lossless tokenizer on its supported domain}.$$
 
-$$s = \sigma_1 \sigma_2 \cdots \sigma_n, \quad \sigma_i \in \Sigma$$
+**Operational definition.**
 
-**Σ\***: The set of all finite strings over Σ (the Kleene closure).
+The raw alphabet determines whether the tokenizer starts from bytes, Unicode code points, characters, or pre-tokenized pieces.
 
-### 2.2 Vocabulary
+**Worked reading.**
 
-A **vocabulary** V is a finite set of strings (subwords) drawn from Σ\*:
+Byte-level systems can represent arbitrary input without an unknown character because every string can be encoded as bytes.
 
-$$V \subset \Sigma^*, \quad |V| = N \quad \text{(typically 32k–128k)}$$
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
 
-Requirements:
+Examples:
 
-- **Coverage**: Σ ⊆ V (every individual byte/char is in V, guaranteeing any string can be tokenized)
-- **Finiteness**: |V| = N is fixed at training time
-- **Prefix-freeness** (approximate): Ideally, no token is a prefix of another (not strictly enforced, but BPE merge order provides deterministic disambiguation)
+1. UTF-8 byte sequences.
+2. ASCII text.
+3. mixed code and natural language.
 
-Typical vocabulary sizes across real models:
+Non-examples:
 
-| Model     | V       | Algorithm | Notes                            |
-| --------- | ------- | --------- | -------------------------------- |
-| GPT-2     | 50,257  | BPE       | Byte-level, no `<UNK>` needed    |
-| BERT      | 30,522  | WordPiece | Character-level with `##` prefix |
-| LLaMA-1/2 | 32,000  | BPE       | SentencePiece with byte fallback |
-| LLaMA-3   | 128,000 | BPE       | 4× larger for multilingual       |
-| GPT-4     | 100,277 | BPE       | cl100k_base encoding             |
-| T5        | 32,100  | Unigram   | SentencePiece unigram mode       |
+1. assuming one character equals one byte.
+2. dropping unsupported symbols silently.
 
-The **coverage guarantee** (Σ ⊆ V) is critical: because every byte is in V, any valid UTF-8 sequence can always be encoded — worst case, one byte per token. Byte-level BPE (GPT-2 onward) eliminated the need for `<UNK>` tokens entirely.
+**Derivation habit.**
 
-### 2.3 Tokenization Function
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
 
-A **tokenizer** is a function that maps a string to a sequence of vocabulary tokens:
+**Implementation lens.**
 
-$$T: \Sigma^* \to V^*$$
-$$T(s) = (t_1, t_2, \ldots, t_k) \quad \text{where } t_i \in V, \quad t_1 \circ t_2 \circ \cdots \circ t_k = s$$
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
 
-where ∘ denotes string concatenation. The key constraint: **concatenating the tokens reconstructs the original string** (lossless).
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
 
-### 2.4 Token-to-Integer Mapping
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
 
-Each token in V is assigned a unique integer ID:
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
 
-$$\text{encode}: V \to \{0, 1, \ldots, N-1\}$$
-$$\text{decode}: \{0, 1, \ldots, N-1\} \to V$$
+### 2.2 Vocabulary and token ids
 
-These are bijections. The full pipeline is:
+**Purpose.** Vocabulary and token ids focuses on the finite set $\mathcal{V}$ and integer map. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
 
-$$\text{text} \xrightarrow{T} \text{tokens} \xrightarrow{\text{encode}} \text{integer IDs} \xrightarrow{\text{embedding}} \mathbb{R}^d$$
+$$\operatorname{score}_{\mathrm{BPE}}(a,b)=\operatorname{count}(ab).$$
 
----
+**Operational definition.**
 
-## 3. Mathematical Formulation
+The vocabulary is a finite set of pieces with stable integer ids. Neural embeddings make those ids trainable vectors.
 
-### 3.1 Byte Pair Encoding (BPE)
+**Worked reading.**
 
-BPE is the dominant tokenization algorithm (used by GPT, LLaMA, Mistral). It is a **greedy compression algorithm** rooted in information theory.
+With vocabulary size $|\mathcal{V}|$ and model width $d_{\mathrm{model}}$, the input embedding table has $|\mathcal{V}|d_{\mathrm{model}}$ parameters.
 
-#### Algorithm
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
 
+Examples:
+
+1. embedding lookup.
+2. output softmax.
+3. reserved special ids.
+
+Non-examples:
+
+1. renumbering tokens after training.
+2. adding pieces without resizing embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 2.3 Tokenizer and detokenizer functions
+
+**Purpose.** Tokenizer and detokenizer functions focuses on the pair $E:\Sigma^*\to [|\mathcal{V}|]^*$ and $D$. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$x^*=\arg\max_{v_1,\ldots,v_k:\,v_1\cdots v_k=x}\sum_{i=1}^k\log p(v_i).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 2.4 Lossless versus lossy normalization
+
+**Purpose.** Lossless versus lossy normalization focuses on why reversible byte tokenization matters. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$H(T)=-\sum_{v\in\mathcal{V}}p(v)\log_2 p(v).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 2.5 Pre-tokenization boundaries
+
+**Purpose.** Pre-tokenization boundaries focuses on how whitespace and regex choices constrain merges. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{fertility}(x)=\frac{\#\operatorname{tokens}(x)}{\#\operatorname{words}(x)}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 3. Byte Pair Encoding
+
+Byte Pair Encoding develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
+
+### 3.1 BPE merge objective
+
+**Purpose.** BPE merge objective focuses on frequency-based pair replacement. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{score}_{\mathrm{BPE}}(a,b)=\operatorname{count}(ab).$$
+
+**Operational definition.**
+
+BPE starts from small symbols and repeatedly merges the most frequent adjacent pair. The learned merge order becomes a compression table.
+
+**Worked reading.**
+
+If `l o` is the most frequent pair, BPE creates `lo`; later it may create `low` if `lo w` becomes frequent.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. GPT-style byte-level tokenizers.
+2. subword NMT.
+3. domain-specific vocabulary learning.
+
+Non-examples:
+
+1. probabilistically summing all segmentations.
+2. longest-match WordPiece with continuation markers.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 3.2 Greedy training loop
+
+**Purpose.** Greedy training loop focuses on why merges are sequential decisions. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$x^*=\arg\max_{v_1,\ldots,v_k:\,v_1\cdots v_k=x}\sum_{i=1}^k\log p(v_i).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 3.3 Encoding with learned merges
+
+**Purpose.** Encoding with learned merges focuses on applying ranks to new text. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$H(T)=-\sum_{v\in\mathcal{V}}p(v)\log_2 p(v).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 3.4 Byte-level BPE
+
+**Purpose.** Byte-level BPE focuses on avoiding unknown characters. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{fertility}(x)=\frac{\#\operatorname{tokens}(x)}{\#\operatorname{words}(x)}.$$
+
+**Operational definition.**
+
+The raw alphabet determines whether the tokenizer starts from bytes, Unicode code points, characters, or pre-tokenized pieces.
+
+**Worked reading.**
+
+Byte-level systems can represent arbitrary input without an unknown character because every string can be encoded as bytes.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. UTF-8 byte sequences.
+2. ASCII text.
+3. mixed code and natural language.
+
+Non-examples:
+
+1. assuming one character equals one byte.
+2. dropping unsupported symbols silently.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 3.5 BPE limitations
+
+**Purpose.** BPE limitations focuses on greedy segmentation and brittle numeric splits. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{params}_{\mathrm{embed}}=|\mathcal{V}|\,d_{\mathrm{model}}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 4. Unigram and SentencePiece
+
+Unigram and SentencePiece develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
+
+### 4.1 Unigram token probability model
+
+**Purpose.** Unigram token probability model focuses on probabilistic segmentation with $p(v)$. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$x^*=\arg\max_{v_1,\ldots,v_k:\,v_1\cdots v_k=x}\sum_{i=1}^k\log p(v_i).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 4.2 Viterbi segmentation
+
+**Purpose.** Viterbi segmentation focuses on dynamic programming for best token path. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$H(T)=-\sum_{v\in\mathcal{V}}p(v)\log_2 p(v).$$
+
+**Operational definition.**
+
+Given token probabilities, Viterbi dynamic programming finds the highest-probability segmentation of a string.
+
+**Worked reading.**
+
+For `abab`, a unigram model compares `[ab, ab]`, `[a, b, ab]`, `[aba, b]`, and other valid paths by summing log probabilities.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. SentencePiece unigram decoding.
+2. best-path segmentation.
+3. subword sampling baseline.
+
+Non-examples:
+
+1. frequency-only pair merging.
+2. a regex split with no scoring.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 4.3 Forward probabilities
+
+**Purpose.** Forward probabilities focuses on summing over all segmentations. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{fertility}(x)=\frac{\#\operatorname{tokens}(x)}{\#\operatorname{words}(x)}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 4.4 EM intuition
+
+**Purpose.** EM intuition focuses on soft counts for token pieces. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{params}_{\mathrm{embed}}=|\mathcal{V}|\,d_{\mathrm{model}}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 4.5 Subword regularization
+
+**Purpose.** Subword regularization focuses on sampling multiple valid segmentations. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{attention\ cost}\propto n_{\mathrm{tokens}}^2.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 5. WordPiece
+
+WordPiece develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
+
+### 5.1 WordPiece merge score
+
+**Purpose.** WordPiece merge score focuses on association-style pair scoring. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$H(T)=-\sum_{v\in\mathcal{V}}p(v)\log_2 p(v).$$
+
+**Operational definition.**
+
+WordPiece builds subwords using an association-style score and commonly distinguishes word starts from continuation pieces.
+
+**Worked reading.**
+
+A longest-match encoder chooses the longest valid vocabulary piece at each position, using continuation markers inside words.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BERT tokenization.
+2. continuation pieces.
+3. greedy longest match.
+
+Non-examples:
+
+1. byte fallback.
+2. unigram path sampling.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 5.2 Continuation markers
+
+**Purpose.** Continuation markers focuses on why prefixes and inside-word pieces differ. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{fertility}(x)=\frac{\#\operatorname{tokens}(x)}{\#\operatorname{words}(x)}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 5.3 Greedy longest-match encoding
+
+**Purpose.** Greedy longest-match encoding focuses on BERT-style deterministic segmentation. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{params}_{\mathrm{embed}}=|\mathcal{V}|\,d_{\mathrm{model}}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 5.4 WordPiece versus BPE
+
+**Purpose.** WordPiece versus BPE focuses on score criterion and encoding behavior. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{attention\ cost}\propto n_{\mathrm{tokens}}^2.$$
+
+**Operational definition.**
+
+WordPiece builds subwords using an association-style score and commonly distinguishes word starts from continuation pieces.
+
+**Worked reading.**
+
+A longest-match encoder chooses the longest valid vocabulary piece at each position, using continuation markers inside words.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BERT tokenization.
+2. continuation pieces.
+3. greedy longest match.
+
+Non-examples:
+
+1. byte fallback.
+2. unigram path sampling.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 5.5 Unknown-token risk
+
+**Purpose.** Unknown-token risk focuses on why byte fallback changes robustness. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$E(x)=(t_1,\ldots,t_n),\qquad t_i\in\{0,\ldots,|\mathcal{V}|-1\}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 6. Information and Cost
+
+Information and Cost develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
+
+### 6.1 Compression ratio
+
+**Purpose.** Compression ratio focuses on characters per token and bytes per token. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{fertility}(x)=\frac{\#\operatorname{tokens}(x)}{\#\operatorname{words}(x)}.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 6.2 Token entropy
+
+**Purpose.** Token entropy focuses on distributional balance of token ids. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{params}_{\mathrm{embed}}=|\mathcal{V}|\,d_{\mathrm{model}}.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 6.3 Vocabulary parameter cost
+
+**Purpose.** Vocabulary parameter cost focuses on embedding and output matrix scaling. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{attention\ cost}\propto n_{\mathrm{tokens}}^2.$$
+
+**Operational definition.**
+
+The vocabulary is a finite set of pieces with stable integer ids. Neural embeddings make those ids trainable vectors.
+
+**Worked reading.**
+
+With vocabulary size $|\mathcal{V}|$ and model width $d_{\mathrm{model}}$, the input embedding table has $|\mathcal{V}|d_{\mathrm{model}}$ parameters.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. embedding lookup.
+2. output softmax.
+3. reserved special ids.
+
+Non-examples:
+
+1. renumbering tokens after training.
+2. adding pieces without resizing embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 6.4 Context window efficiency
+
+**Purpose.** Context window efficiency focuses on how token count changes usable context. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$E(x)=(t_1,\ldots,t_n),\qquad t_i\in\{0,\ldots,|\mathcal{V}|-1\}.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 6.5 Multilingual fertility
+
+**Purpose.** Multilingual fertility focuses on tokens per word across languages or scripts. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$D(E(x))=x\quad\text{for a lossless tokenizer on its supported domain}.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 7. LLM System Effects
+
+LLM System Effects develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
+
+### 7.1 Special tokens
+
+**Purpose.** Special tokens focuses on BOS EOS padding masks roles and tool delimiters. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{params}_{\mathrm{embed}}=|\mathcal{V}|\,d_{\mathrm{model}}.$$
+
+**Operational definition.**
+
+Special tokens are vocabulary entries with control meaning rather than ordinary lexical meaning. They must be protected from accidental splitting.
+
+**Worked reading.**
+
+A chat template may reserve tokens for system, user, assistant, tool call, end-of-message, padding, or beginning-of-sequence boundaries.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BOS/EOS.
+2. padding and masks.
+3. role delimiters in chat models.
+
+Non-examples:
+
+1. ordinary word pieces.
+2. strings that can be merged through by BPE.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 7.2 Attention cost
+
+**Purpose.** Attention cost focuses on why token length changes quadratic compute. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{attention\ cost}\propto n_{\mathrm{tokens}}^2.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 7.3 Numeracy and spelling
+
+**Purpose.** Numeracy and spelling focuses on why digit and character segmentation matters. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$E(x)=(t_1,\ldots,t_n),\qquad t_i\in\{0,\ldots,|\mathcal{V}|-1\}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 7.4 Retrieval chunking
+
+**Purpose.** Retrieval chunking focuses on why chunk size should be token-aware. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$D(E(x))=x\quad\text{for a lossless tokenizer on its supported domain}.$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 7.5 Safety and prompt boundaries
+
+**Purpose.** Safety and prompt boundaries focuses on why control tokens need exact handling. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{score}_{\mathrm{BPE}}(a,b)=\operatorname{count}(ab).$$
+
+**Operational definition.**
+
+This concept controls how raw text becomes the sequence of discrete units optimized by an LLM.
+
+**Worked reading.**
+
+The practical question is always how the choice changes ids, sequence length, reversibility, or downstream loss.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. BPE pieces.
+2. unigram pieces.
+3. special tokens.
+
+Non-examples:
+
+1. raw text passed directly to attention.
+2. word counts used as token counts.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 8. Evaluation and Diagnostics
+
+Evaluation and Diagnostics develops the tokenizer concepts needed before embeddings, attention, language-model probability, and serving tradeoffs can be understood correctly.
+
+### 8.1 Round-trip tests
+
+**Purpose.** Round-trip tests focuses on checking decode encode identity where promised. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{attention\ cost}\propto n_{\mathrm{tokens}}^2.$$
+
+**Operational definition.**
+
+Tokenizer diagnostics catch failures before training: non-reversible text, unexpected unknowns, costly scripts, and broken control boundaries.
+
+**Worked reading.**
+
+A tokenizer migration changes ids, embeddings, logits, cached data, and often every downstream checkpoint assumption.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. decode(encode(x)) tests.
+2. offset mapping checks.
+3. special-token boundary tests.
+
+Non-examples:
+
+1. only checking English prose.
+2. changing tokenizers without retraining embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 8.2 Coverage tests
+
+**Purpose.** Coverage tests focuses on finding unknowns or byte fallback explosions. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$E(x)=(t_1,\ldots,t_n),\qquad t_i\in\{0,\ldots,|\mathcal{V}|-1\}.$$
+
+**Operational definition.**
+
+Tokenizer diagnostics catch failures before training: non-reversible text, unexpected unknowns, costly scripts, and broken control boundaries.
+
+**Worked reading.**
+
+A tokenizer migration changes ids, embeddings, logits, cached data, and often every downstream checkpoint assumption.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. decode(encode(x)) tests.
+2. offset mapping checks.
+3. special-token boundary tests.
+
+Non-examples:
+
+1. only checking English prose.
+2. changing tokenizers without retraining embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 8.3 Fertility dashboards
+
+**Purpose.** Fertility dashboards focuses on comparing groups domains and scripts. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$D(E(x))=x\quad\text{for a lossless tokenizer on its supported domain}.$$
+
+**Operational definition.**
+
+Tokenization is compression under constraints: it trades vocabulary size against sequence length and distribution balance.
+
+**Worked reading.**
+
+A lower token count improves context efficiency, but a huge vocabulary increases embedding and output-layer cost.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. characters per token.
+2. tokens per word.
+3. entropy of token frequencies.
+
+Non-examples:
+
+1. judging cost by words alone.
+2. ignoring sequence-length effects in attention.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 8.4 Boundary tests
+
+**Purpose.** Boundary tests focuses on URLs code numbers whitespace and emoji-like symbols. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$\operatorname{score}_{\mathrm{BPE}}(a,b)=\operatorname{count}(ab).$$
+
+**Operational definition.**
+
+Tokenizer diagnostics catch failures before training: non-reversible text, unexpected unknowns, costly scripts, and broken control boundaries.
+
+**Worked reading.**
+
+A tokenizer migration changes ids, embeddings, logits, cached data, and often every downstream checkpoint assumption.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. decode(encode(x)) tests.
+2. offset mapping checks.
+3. special-token boundary tests.
+
+Non-examples:
+
+1. only checking English prose.
+2. changing tokenizers without retraining embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+### 8.5 Tokenizer migration tests
+
+**Purpose.** Tokenizer migration tests focuses on why changing tokenizers invalidates checkpoints. In LLM systems this choice affects integer ids, sequence length, embedding rows, loss targets, and serving cost.
+
+$$x^*=\arg\max_{v_1,\ldots,v_k:\,v_1\cdots v_k=x}\sum_{i=1}^k\log p(v_i).$$
+
+**Operational definition.**
+
+Tokenizer diagnostics catch failures before training: non-reversible text, unexpected unknowns, costly scripts, and broken control boundaries.
+
+**Worked reading.**
+
+A tokenizer migration changes ids, embeddings, logits, cached data, and often every downstream checkpoint assumption.
+
+| Tokenizer object | Mathematical role | LLM consequence |
+| --- | --- | --- |
+| alphabet $\Sigma$ | atomic input symbols | bytes, characters, or normalized symbols |
+| vocabulary $\mathcal{V}$ | finite token set | embedding and output-logit dimensions |
+| encoder $E$ | maps text to ids | prompt length, training examples, costs |
+| decoder $D$ | maps ids back to text | detokenization and round-trip safety |
+| merge/probability table | segmentation rule | subword boundaries and rare-string handling |
+
+Examples:
+
+1. decode(encode(x)) tests.
+2. offset mapping checks.
+3. special-token boundary tests.
+
+Non-examples:
+
+1. only checking English prose.
+2. changing tokenizers without retraining embeddings.
+
+**Derivation habit.**
+
+1. State the raw alphabet and any normalization step.
+2. State whether the model uses BPE, unigram, WordPiece, byte fallback, or a hybrid.
+3. Compute token count before making cost, context, or memory claims.
+4. Check reversibility with `decode(encode(x))` when the pipeline promises losslessness.
+5. Treat special tokens as protected control symbols, not ordinary text pieces.
+
+**Implementation lens.**
+
+A tokenizer is not a preprocessing detail that can be swapped freely. The embedding matrix, output projection, cached datasets, labels, special-token masks, and generation stop conditions all depend on the exact integer ids.
+
+The most useful debugging habit is to print the text, tokens, ids, decoded text, and offsets for edge cases: leading spaces, repeated newlines, numbers, URLs, code, mixed scripts, and delimiter strings used by chat templates.
+
+For model training, the tokenizer changes the effective curriculum. A tokenizer that splits common words into many pieces makes the model spend more positions modeling spelling-level structure. A tokenizer that memorizes very long pieces may save context but increase vocabulary cost and reduce compositional sharing.
+
+For inference, the tokenizer changes both latency and price because attention cost grows with token length. A prompt that is short in words can still be expensive if it tokenizes poorly.
+
+## 9. Common Mistakes
+
+| # | Mistake | Why it is wrong | Fix |
+| --- | --- | --- | --- |
+| 1 | Assuming words are tokens | Modern LLMs usually use subword or byte-level tokens. | Inspect actual token ids before estimating cost or behavior. |
+| 2 | Ignoring reversibility | Normalization can make decode-encode behavior lossy. | State whether the tokenizer is byte-level reversible or normalized. |
+| 3 | Changing tokenizers after training | Embeddings and output heads are tied to token ids. | Treat tokenizer choice as part of the checkpoint. |
+| 4 | Comparing context windows by characters | Models attend over tokens, not characters. | Measure tokens per sample and fertility. |
+| 5 | Forgetting special tokens | Control tokens change sequence boundaries and masks. | Reserve and test special ids explicitly. |
+| 6 | Assuming all languages pay the same token cost | Scripts and training data frequency affect fertility. | Audit multilingual fertility and bytes-per-token. |
+| 7 | Using unknown tokens silently | UNK loses information and can hide coverage failures. | Prefer byte fallback or explicit coverage reports. |
+| 8 | Treating BPE merges as globally optimal | BPE is greedy and merge-order dependent. | Use diagnostics and compare with unigram/WordPiece behavior. |
+| 9 | Chunking retrieval by characters only | The model budget is token-limited. | Chunk by token count with overlap in token space. |
+| 10 | Ignoring whitespace | Whitespace handling changes ids, offsets, and detokenization. | Test leading spaces, newlines, tabs, and code blocks. |
+
+## 10. Exercises
+
+1. (*) Run two BPE merges by hand on a tiny corpus.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+2. (*) Compute characters-per-token before and after a merge.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+3. (*) Compute embedding parameter cost for two vocabulary sizes.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+4. (**) Find the best unigram segmentation with dynamic programming.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+5. (**) Compute token entropy from token counts.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+6. (**) Compare fertility for two short multilingual examples.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+7. (**) Design a round-trip test for whitespace and code.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+8. (***) Compute attention-cost growth when token count doubles.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+9. (***) Identify which strings must be protected as special tokens.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+10. (***) Explain why tokenizer migration changes a trained checkpoint.
+   - (a) State the tokenizer object involved.
+   - (b) Compute the small numeric or string example.
+   - (c) Explain the LLM training or serving consequence.
+
+## 11. Why This Matters for AI
+
+| Concept | AI impact |
+| --- | --- |
+| Token ids | Define the rows of embedding matrices and the columns of output logits. |
+| Vocabulary size | Controls embedding parameters, softmax cost, and rare-piece coverage. |
+| Sequence length | Controls attention compute, memory, context-window utilization, and API cost. |
+| Subword segmentation | Determines how words, names, code, numbers, and rare strings are decomposed. |
+| Byte fallback | Improves robustness to arbitrary text and reduces unknown-token failures. |
+| Special tokens | Encode conversation roles, tools, padding, sequence boundaries, and safety delimiters. |
+| Fertility | Reveals fairness and cost differences across languages, domains, and scripts. |
+| Round-trip behavior | Protects data pipelines from silent corruption before training or inference. |
+
+## 12. Conceptual Bridge
+
+The backward bridge is information theory: tokenization is compression with a finite codebook, but unlike pure compression it must also support neural prediction, stable ids, and clean detokenization.
+
+The forward bridge is embedding space. Once a tokenizer emits ids, each id selects a row of an embedding matrix. Attention, next-token probability, scaling laws, RAG chunking, and serving cost all inherit the tokenizer's sequence length and boundary choices.
+
+```text
++-----------+      +--------------+      +--------------+      +------------+
+| raw text  | ---> | token ids    | ---> | embeddings   | ---> | attention  |
+| bytes     |      | finite vocab |      | vector rows  |      | positions  |
++-----------+      +--------------+      +--------------+      +------------+
 ```
-Input:  corpus C, desired vocabulary size N
-Output: vocabulary V, merge rules M
 
-1. Initialize V = set of all individual bytes in C
-2. While |V| < N:
-   a. Count frequency of every adjacent pair (tᵢ, tᵢ₊₁) in tokenized corpus
-   b. Find most frequent pair: (a, b) = argmax_{(x,y)} count(x, y)
-   c. Create new token: t_new = concat(a, b)
-   d. Add t_new to V
-   e. Replace all occurrences of (a, b) with t_new in corpus
-   f. Record merge rule: (a, b) → t_new
-3. Return V, M
-```
+The practical habit is to inspect tokens before trusting intuition. If the model behaves strangely on numbers, names, code, or multilingual text, the tokenizer is one of the first places to look.
 
-#### Frequency-Based Merge Selection
+## References
 
-At each step, the pair with maximum frequency is merged:
-
-$$(a^*, b^*) = \arg\max_{(a,b) \in V \times V} \sum_{i=1}^{|C|-1} \mathbb{1}[c_i = a \land c_{i+1} = b]$$
-
-where C = c₁c₂...c\_|C| is the current tokenization of the corpus.
-
-#### Compression Analysis
-
-Each merge reduces the total token count. If pair (a, b) has frequency f:
-
-$$|C_{\text{after}}| = |C_{\text{before}}| - f$$
-
-The **compression ratio** after all merges:
-
-$$\rho = \frac{\text{length in bytes}}{\text{length in tokens}}$$
-
-Typical values: ρ ≈ 3.5–4.0 for English (each token represents ~4 characters on average).
-
-#### Complexity
-
-- Each merge step: O(|C|) to scan for pairs
-- Total: O(N · |C|) for N merge operations
-- In practice, optimized to O(|C| log |C|) with priority queues
-
-#### Worked Example
-
-Corpus: `"aabaab"`, initial vocabulary V = {a, b}.
-
-**Initial state**: `[a, a, b, a, a, b]` — 6 tokens, |V| = 2
-
-**Step 1** — Count all adjacent pairs:
-
-| Pair   | Positions       | Count |
-| ------ | --------------- | ----- |
-| (a, a) | (0,1) and (3,4) | 2     |
-| (a, b) | (1,2) and (4,5) | 2     |
-| (b, a) | (2,3)           | 1     |
-
-Tie between (a,a) and (a,b) at frequency 2. BPE breaks ties by implementation convention; here we choose (a,a). Create new token `"aa"` and replace all occurrences.
-
-After merge: `[aa, b, aa, b]` — 4 tokens, V = {a, b, aa}
-
-Token count reduced by f = 2 (the pair frequency), confirming |C_after| = |C_before| − f = 6 − 2 = 4.
-
-**Step 2** — Count pairs in `[aa, b, aa, b]`:
-
-| Pair    | Count |
-| ------- | ----- |
-| (aa, b) | 2     |
-| (b, aa) | 1     |
-
-Most frequent: (aa, b) at frequency 2. Merge into `"aab"`.
-
-After merge: `[aab, aab]` — 2 tokens, V = {a, b, aa, aab}
-
-**Result**:
-
-- Final vocabulary: {a, b, aa, aab} with |V| = 4
-- Compression ratio: ρ = 6 / 2 = **3.0×**
-- Merge rules learned (in order): (a,a) → aa, then (aa,b) → aab
-- To encode new text, apply merge rules in the exact order they were learned
-- The original string is **losslessly recoverable**: concat("aab", "aab") = "aabaab" ✓
-
-### 3.2 Unigram Language Model (SentencePiece)
-
-The unigram model takes the **opposite approach** to BPE: start large, prune down.
-
-#### Probabilistic Framework
-
-Assign a probability to each token in vocabulary V:
-
-$$P(t) \text{ for each } t \in V, \quad \sum_{t \in V} P(t) = 1$$
-
-For a segmentation S = (t₁, t₂, ..., tₖ) of string s, the probability is:
-
-$$P(S) = \prod_{i=1}^{k} P(t_i)$$
-
-(assuming unigram independence — each token probability is independent).
-
-#### Optimal Segmentation
-
-The best tokenization **maximizes the product** (equivalently, minimizes negative log-likelihood):
-
-$$S^* = \arg\max_{S \in \mathcal{S}(s)} \prod_{i=1}^{k} P(t_i) = \arg\min_{S \in \mathcal{S}(s)} \sum_{i=1}^{k} -\log P(t_i)$$
-
-where $\mathcal{S}(s)$ is the set of all valid segmentations of s.
-
-This is solved exactly via the **Viterbi algorithm** (dynamic programming) in O(n · max_token_length) time.
-
-#### EM Training
-
-Token probabilities are learned via Expectation-Maximization on the training corpus D.
-
-**Objective**: Maximize the marginal log-likelihood over all training sentences:
-
-$$\mathcal{L}(V) = \sum_{s \in D} \log P(s) = \sum_{s \in D} \log \left( \sum_{S \in \mathcal{S}(s)} \prod_{t \in S} P(t) \right)$$
-
-Since the sum inside the log makes direct optimization intractable, EM iterates between two steps:
-
-**E-step**: For each training sentence s, compute the **expected frequency** of each token t across all valid segmentations, weighted by segmentation probability:
-
-$$E[\text{count}(t)] = \sum_{s \in D} \sum_{S \in \mathcal{S}(s)} P(S | s) \cdot \text{count}(t, S)$$
-
-where $P(S | s) = \prod_{t_i \in S} P(t_i) \; / \; \sum_{S'} \prod_{t_j \in S'} P(t_j)$.
-
-This is computed efficiently using the **forward-backward algorithm** on the segmentation lattice — a directed acyclic graph (DAG) where each edge corresponds to a valid token. The forward variable $\alpha[j]$ stores the total log-probability of all segmentations of s[0:j]:
-
-$$\alpha[0] = 0, \quad \alpha[j] = \text{logaddexp}_{i: s[i:j] \in V}\left(\alpha[i] + \log P(s[i:j])\right)$$
-
-The backward variable $\beta[i]$ stores the total log-probability of all segmentations of s[i:n]. The expected count of token s[i:j] is then:
-
-$$E[\text{count}(s[i:j])] = \exp\left(\alpha[i] + \log P(s[i:j]) + \beta[j] - \alpha[n]\right)$$
-
-Alternatively, **Viterbi EM** approximates by using only the single best segmentation per sentence in the E-step (replacing the sum with an argmax). This is faster but less accurate.
-
-**M-step**: Update token probabilities using the expected counts:
-
-$$P(t) \leftarrow \frac{E[\text{count}(t)]}{\sum_{t' \in V} E[\text{count}(t')]}$$
-
-**Convergence**: EM guarantees $\mathcal{L}$ is non-decreasing at each iteration and converges to a local maximum. Typical convergence: 10–20 iterations.
-
-**Pruning**: After EM converges, compute the marginal loss for each token — the change in corpus log-likelihood if that token were removed:
-
-$$\Delta \mathcal{L}(t) = \mathcal{L}(V \setminus \{t\}) - \mathcal{L}(V) \geq 0$$
-
-Remove the 10–20% of tokens with smallest ΔL (least impact on likelihood), then re-run EM. Repeat pruning cycles until |V| reaches the target size. This top-down approach (start large, prune down) contrasts directly with BPE's bottom-up approach.
-
-#### Loss of Removing a Token
-
-When considering pruning token t from V:
-
-$$\Delta \mathcal{L}(t) = \mathcal{L}(V \setminus \{t\}) - \mathcal{L}(V)$$
-
-Remove tokens with smallest ΔL (least impact on overall corpus likelihood).
-
-### 3.3 WordPiece (BERT)
-
-WordPiece is similar to BPE but uses a **likelihood-based criterion** for merges.
-
-#### Algorithm
-
-```
-Input:  corpus C, desired vocabulary size N
-Output: vocabulary V
-
-1. Initialize V = set of all individual characters in C
-2. While |V| < N:
-   a. For every adjacent pair (a, b) in the tokenized corpus, compute:
-      score(a, b) = count(ab) / (count(a) × count(b))
-   b. Merge pair with highest score
-   c. Add merged token to V
-3. Return V
-```
-
-#### PMI-Based Merge Selection
-
-The merge score is the **pointwise mutual information (PMI)**:
-
-$$\text{score}(a, b) = \frac{P(ab)}{P(a) \cdot P(b)} = \frac{\text{count}(ab) / N}{\text{count}(a)/N \cdot \text{count}(b)/N}$$
-
-Taking the logarithm:
-
-$$\text{PMI}(a, b) = \log \frac{P(a, b)}{P(a)P(b)}$$
-
-**Why PMI instead of frequency?** Consider two pairs:
-
-- Pair ("t", "h") appears 1000 times, but "t" appears 5000 and "h" appears 4000 → PMI is low (they co-occur roughly as often as chance predicts)
-- Pair ("q", "u") appears 200 times, but "q" appears 210 and "u" appears 3000 → PMI is high ("q" almost always precedes "u" — this is surprising)
-
-BPE would merge ("t","h") first (higher frequency); WordPiece merges ("q","u") first (higher PMI). WordPiece captures **linguistic structure** better because it identifies pairs that are truly associated, not just common.
-
-#### Encoding with WordPiece
-
-WordPiece uses **greedy left-to-right longest match** (not Viterbi):
-
-```
-Input: "unbelievable"
-1. Try "unbelievable" → not in V
-2. Try "unbelievabl" → not in V
-   ...
-3. Try "un" → in V! Take it.
-4. Try "believable" → not in V
-5. Try "believabl" → not in V
-   ...
-6. Try "believe" → not in V
-7. Try "believ" → not in V
-   ...
-8. Try "be" → in V! Take it (with ## prefix: "##be")
-   ...
-Result: ["un", "##believ", "##able"]
-```
-
-The `##` prefix marks continuation subwords (not word-initial). This is why BERT tokenization looks different from GPT tokenization.
-
-> **Key difference from BPE**: BPE's greedy encoding applies merge rules in learned order. WordPiece's greedy encoding does longest-match at each position. Neither is globally optimal — only Unigram's Viterbi finds the true optimum.
-
-### 3.4 Comparison
-
-| Property                | BPE                    | Unigram                 | WordPiece              |
-| ----------------------- | ---------------------- | ----------------------- | ---------------------- |
-| Direction               | Bottom-up (grow V)     | Top-down (shrink V)     | Bottom-up              |
-| Merge criterion         | Frequency              | Likelihood (EM)         | PMI / likelihood ratio |
-| Segmentation            | Deterministic (greedy) | Probabilistic (Viterbi) | Greedy left-to-right   |
-| Used by                 | GPT, LLaMA, Mistral    | T5, ALBERT, mBART       | BERT, DistilBERT       |
-| Multiple segmentations? | No (1 canonical)       | Yes (can sample)        | No                     |
-
----
-
-## 4. AI/ML Applications
-
-### 4.1 Context Window Efficiency
-
-The context window is measured in **tokens**, not characters. Compression ratio directly determines how much text fits:
-
-$$\text{effective chars} = \text{context window (tokens)} \times \rho$$
-
-| Compression Ratio      | 2K window | 4K window  | 8K window  | 32K window  | 128K window |
-| ---------------------- | --------- | ---------- | ---------- | ----------- | ----------- |
-| ρ = 2.0 (poor, CJK)    | ~4K chars | ~8K chars  | ~16K chars | ~64K chars  | ~256K chars |
-| ρ = 3.0 (multilingual) | ~6K chars | ~12K chars | ~24K chars | ~96K chars  | ~384K chars |
-| ρ = 3.7 (good EN)      | ~7K chars | ~15K chars | ~30K chars | ~118K chars | ~474K chars |
-| ρ = 4.2 (optimized EN) | ~8K chars | ~17K chars | ~34K chars | ~134K chars | ~538K chars |
-
-**Practical implication**: A 128K context window with ρ=4.0 holds roughly one average novel (~500K chars). With ρ=2.0 (for CJK), only half a novel fits — the user pays the same API cost for half the content.
-
-**Multilingual penalty**: Languages like Chinese, Japanese, Korean have lower ρ because their characters are less frequent in English-dominated training data, resulting in more tokens per concept. This creates a compounding disadvantage:
-
-1. **Context**: Less text fits in the window → model sees less relevant context
-2. **Cost**: More tokens per query → higher API charges
-3. **Latency**: More tokens → more autoregressive decode steps → slower generation
-4. **Quality**: Shorter effective context → harder for the model to track long-range dependencies
-
-Improving ρ from 2.0 to 4.0 is mathematically equivalent to **doubling the context window** at zero hardware cost.
-
-### 4.2 Vocabulary Size and Model Dimensions
-
-The vocabulary determines the size of two critical model components:
-
-**Embedding matrix**: $E \in \mathbb{R}^{N \times d}$
-
-$$\text{Embedding params} = N \times d$$
-
-**Output projection (LM head)**: $W \in \mathbb{R}^{d \times N}$
-
-$$\text{LM head params} = d \times N$$
-
-**Weight tying**: Modern LLMs share the embedding and LM head matrices ($W = E^T$), cutting the vocabulary parameter cost in half:
-
-$$\text{Vocab params (untied)} = 2Nd, \quad \text{Vocab params (tied)} = Nd$$
-
-Vocabulary parameter costs across real models:
-
-| Model        | d     | V       | Vocab Params (tied) | % of Total (tied) | % of Total (untied) |
-| ------------ | ----- | ------- | ------------------- | ----------------- | ------------------- |
-| GPT-2 Small  | 768   | 50,257  | 38.6M               | 31.1%             | 62.3%               |
-| GPT-2 Large  | 1,280 | 50,257  | 64.3M               | 8.3%              | 16.6%               |
-| LLaMA-7B     | 4,096 | 32,000  | 131.1M              | 1.9%              | 3.7%                |
-| LLaMA-3 8B   | 4,096 | 128,000 | 524.3M              | 6.6%              | 13.1%               |
-| GPT-4 (est.) | 8,192 | 100,277 | 821.5M              | 0.4%              | 0.8%                |
-
-**Memory footprint** of the embedding table alone (FP16 = 2 bytes per param):
-
-$$\text{Memory} = N \times d \times \text{bytes\_per\_param}$$
-
-| V       | d=768 (FP16) | d=4096 (FP16) | d=8192 (FP16) |
-| ------- | ------------ | ------------- | ------------- |
-| 32,000  | 47 MB        | 250 MB        | 500 MB        |
-| 50,257  | 74 MB        | 393 MB        | 786 MB        |
-| 128,000 | 188 MB       | 1.0 GB        | 2.0 GB        |
-| 256,000 | 375 MB       | 2.0 GB        | 4.0 GB        |
-
-For edge deployment (phones, embedded devices), a 4 GB embedding table may exceed available memory. This motivates vocabulary pruning and quantized embeddings.
-
-**The tradeoff**: Larger V → better compression (higher ρ) → fewer tokens per sequence → faster inference. But larger V → more parameters → more memory → rare tokens get fewer training examples. The sweet spot is typically 32K–128K tokens.
-
-### 4.3 Tokenization and Arithmetic
-
-Tokenizers create non-obvious number representations that directly undermine arithmetic reasoning:
-
-```
-GPT-4 tokenizer (cl100k_base):
-  "1"      → ["1"]              (1 token)
-  "12"     → ["12"]             (1 token)
-  "123"    → ["123"]            (1 token)
-  "1234"   → ["123", "4"]       (2 tokens — split!)
-  "12345"  → ["123", "45"]      (2 tokens)
-  "123456" → ["123", "456"]     (2 tokens)
-```
-
-#### Why This Breaks Arithmetic
-
-For a human, the digit "4" in "1234" occupies the **ones place** (positional notation: $1 \times 10^3 + 2 \times 10^2 + 3 \times 10^1 + 4 \times 10^0$). But when the tokenizer splits "1234" into ["123", "4"], the model must somehow learn:
-
-1. "4" after "123" means $4 \times 10^0$ (ones place)
-2. "4" as a standalone in "42" means $4 \times 10^1$ (tens place)
-3. "4" in "456" token means $4 \times 10^2$ (hundreds place, relative to the token)
-
-The same token "4" carries **different positional value** depending on context — a mapping the model must learn implicitly from training data, without any architectural support.
-
-#### The Inconsistency Problem
-
-Consider addition: 1234 + 5678 = 6912
-
-```
-"1234" → ["123", "4"]        carries: (123 × 10) + 4
-"5678" → ["567", "8"]        carries: (567 × 10) + 8
-"6912" → ["691", "2"]        carries: (691 × 10) + 2
-```
-
-The "carry" boundaries don't align with token boundaries. The model must learn to carry across token splits that occur at different digit positions for different numbers.
-
-**Mitigation**: Some models force single-digit tokenization (each digit = 1 token), ensuring consistent positional encoding at the cost of longer sequences for numbers.
-
-### 4.4 Tokenization Fertility
-
-**Fertility** measures how many tokens a word produces:
-
-$$\text{fertility}(w) = |T(w)|$$
-
-High fertility = computational cost + harder to learn. Rare/non-English words often have high fertility:
-
-| Word           | GPT-4 Tokens         | Fertility |
-| -------------- | -------------------- | --------- |
-| "the"          | ["the"]              | 1         |
-| "Bayesian"     | ["Bay", "esian"]     | 2         |
-| "tokenization" | ["token", "ization"] | 2         |
-| "münchen"      | ["m", "ün", "chen"]  | 3         |
-
-### 4.5 Special Tokens
-
-Special tokens carry structural information outside the text. They are **manually added** to the vocabulary (not learned by BPE/Unigram) and serve as control signals for the model:
-
-| Token       | ID  | Purpose                  | When Used                                 |
-| ----------- | --- | ------------------------ | ----------------------------------------- |
-| `<\|bos\|>` | 1   | Beginning of sequence    | Prepended to every input; signals "start" |
-| `<\|eos\|>` | 2   | End of sequence          | Model generates to signal completion      |
-| `<\|pad\|>` | 0   | Padding for batching     | Fills shorter sequences to uniform length |
-| `<\|unk\|>` | 3   | Unknown (not in V)       | Fallback; rare in byte-level BPE          |
-| `<\|sep\|>` | —   | Segment separator (BERT) | Separates sentence A from sentence B      |
-
-#### How Special Tokens Affect the Pipeline
-
-**Sequence construction** (autoregressive LLM):
-
-```
-Raw text:  "Hello, how are you?"
-Tokenized: ["Hello", ",", " how", " are", " you", "?"]
-With special: [<bos>, "Hello", ",", " how", " are", " you", "?", <eos>]
-IDs:       [1, 15496, 11, 703, 527, 499, 30, 2]
-```
-
-**Batching with padding** (training):
-
-```
-Seq 1: [<bos>, "Hello", <eos>, <pad>, <pad>]   attention_mask = [1, 1, 1, 0, 0]
-Seq 2: [<bos>, "How", "are", "you", <eos>]     attention_mask = [1, 1, 1, 1, 1]
-```
-
-The attention mask ensures `<pad>` tokens are **ignored** in self-attention — the model never attends to them.
-
-**Chat/instruction models** add additional special tokens:
-
-```
-<|system|>You are a helpful assistant.<|end|>
-<|user|>What is 2+2?<|end|>
-<|assistant|>4<|end|>
-```
-
-These special tokens partition the input into roles, enabling the model to distinguish instructions from user queries from its own responses.
-
----
-
-## 5. Information-Theoretic View
-
-### 5.1 Tokenization as Compression
-
-BPE is closely related to the **Lempel-Ziv family** of compression algorithms. The optimal tokenizer would approach the **entropy rate** of the language:
-
-$$H = -\sum_{s \in \Sigma^*} P(s) \log_2 P(s) \quad \text{(bits per character)}$$
-
-English has an entropy of approximately **1.0–1.5 bits/character** (Shannon's experiments, 1951).
-
-#### Bits Per Character Analysis
-
-A tokenizer encodes text at a certain number of bits per character. If we use a uniform code for all tokens:
-
-$$\text{bits/char (uniform)} = \frac{\log_2 |V|}{\rho}$$
-
-If we use the actual token distribution (entropy-optimal coding like Huffman):
-
-$$\text{bits/char (optimal)} = \frac{H_{\text{token}}}{\rho}$$
-
-Comparison across tokenizer configurations:
-
-| Tokenizer              | ρ   | Coding  | bits/token | bits/char | vs Shannon (1.3) |
-| ---------------------- | --- | ------- | ---------- | --------- | ---------------- |
-| ASCII (character)      | 1.0 | Uniform | 8.0        | 8.0       | 6.2×             |
-| 26 letters + space     | 1.0 | Uniform | 4.75       | 4.75      | 3.7×             |
-| BPE 32K (uniform code) | 3.7 | Uniform | 15.0       | 4.05      | 3.1×             |
-| BPE 32K (Huffman)      | 3.7 | Entropy | ~10.0      | 2.70      | 2.1×             |
-| BPE 100K (uniform)     | 4.0 | Uniform | 16.6       | 4.15      | 3.2×             |
-| BPE 100K (Huffman)     | 4.0 | Entropy | ~11.0      | 2.75      | 2.1×             |
-
-**Key insight**: The language model itself implicitly acts as an entropy coder. When GPT-4 achieves cross-entropy loss of ~1.5–2.0 bits/char on English text, it is approaching Shannon's bound — the tokenizer provides the vocabulary, and the Transformer learns the probability distribution to compress nearly optimally.
-
-Practical tokenizers balance compression with vocabulary size constraints — a V=1M tokenizer would compress better but waste parameters on rare tokens.
-
-### 5.2 Entropy of the Token Distribution
-
-For a corpus tokenized by T, the token-level Shannon entropy is:
-
-$$H_{\text{token}} = -\sum_{t \in V} P(t) \log_2 P(t)$$
-
-where $P(t) = \text{count}(t) / \sum_{t'} \text{count}(t')$.
-
-**Maximum entropy**: $H_{\max} = \log_2 N$ occurs when all N tokens are equally likely (uniform distribution).
-
-**Efficiency**: The ratio $\eta = H_{\text{token}} / H_{\max}$ measures vocabulary **utilization**.
-
-**Perplexity**: $\text{PPL} = 2^{H_{\text{token}}}$ gives the effective vocabulary size — the number of tokens in a hypothetical uniform distribution with the same entropy.
-
-#### Worked Example
-
-Suppose a BPE tokenizer with V = 50,000 produces the following token distribution on a corpus:
-
-- 5,000 tokens appear frequently (P(t) ≈ 0.015 each) → contribute 75% of total mass
-- 15,000 tokens appear occasionally (P(t) ≈ 0.0015 each) → contribute 22.5%
-- 30,000 tokens appear rarely (P(t) ≈ 0.00008 each) → contribute 2.5%
-
-Then:
-
-$$H_{\text{token}} \approx 12.5 \text{ bits} \quad \text{vs} \quad H_{\max} = \log_2 50000 \approx 15.6 \text{ bits}$$
-
-$$\eta = 12.5 / 15.6 = 80\% \quad \quad \text{PPL} = 2^{12.5} \approx 5792$$
-
-Interpretation: Although V = 50,000, the **effective** vocabulary is only ~5,792 tokens. The remaining ~44,000 tokens are so rare they contribute almost nothing. This wasted capacity motivates vocabulary pruning — removing tokens that don't pay for their embedding parameters.
-
-#### Zipf's Law in Token Distributions
-
-Token frequencies follow a power law (Zipf's law):
-
-$$f(r) \propto r^{-\alpha}, \quad \alpha \approx 1$$
-
-where r is the rank (1 = most frequent, 2 = second most frequent, etc.). This means:
-
-- The top 5% of tokens account for ~50% of all occurrences
-- The bottom 50% of tokens together account for <5%
-- A few vocabulary entries dominate; most are rare
-
-On a log-log plot of frequency vs rank, Zipfian distributions appear linear with slope −α. This universal pattern holds across languages and tokenizer types.
-
-### 5.3 Rényi Entropy and Vocabulary Balance
-
-The Rényi entropy of order α generalizes Shannon entropy:
-
-$$H_\alpha = \frac{1}{1-\alpha} \log_2 \left(\sum_{t \in V} P(t)^\alpha\right)$$
-
-#### Special Cases
-
-**Shannon entropy** (α → 1, by L'Hôpital's rule):
-
-$$H_1 = -\sum_{t \in V} P(t) \log_2 P(t)$$
-
-Measures the **average surprise** per token — the expected number of bits to encode a randomly drawn token.
-
-**Collision entropy** (α = 2):
-
-$$H_2 = -\log_2 \left(\sum_{t \in V} P(t)^2\right)$$
-
-Measures the probability that two independently drawn tokens match. Lower $H_2$ means fewer tokens dominate the distribution. $\sum P(t)^2$ is also the **Herfindahl-Hirschman Index** (HHI) from economics — a measure of market concentration.
-
-**Min-entropy** (α → ∞):
-
-$$H_\infty = -\log_2 \left(\max_{t \in V} P(t)\right)$$
-
-Dominated entirely by the most frequent token. Gives the **worst-case** surprise — the minimum number of bits needed per token.
-
-#### Ordering and the Gap
-
-For all distributions, Rényi entropies are non-increasing in α:
-
-$$H_\infty \leq H_2 \leq H_1 \leq H_{0.5} \leq H_{\max} = \log_2 |V|$$
-
-The **H₁ − H₂ gap** is particularly diagnostic:
-
-- **Gap ≈ 0**: Distribution is nearly uniform — all tokens are well-utilized
-- **Small gap (<0.5 bits)**: Mild skew — reasonable vocabulary
-- **Large gap (>2 bits)**: Heavy tail of rarely-used tokens — vocabulary is wasteful
-
-#### Example
-
-For a BPE tokenizer with V = 50,000 on an English corpus:
-
-| Metric            | Value     | Interpretation                                        |
-| ----------------- | --------- | ----------------------------------------------------- |
-| H_max             | 15.6 bits | Upper bound (uniform over V)                          |
-| H₁ (Shannon)      | 12.5 bits | Average information per token                         |
-| H₂ (Collision)    | 10.1 bits | Effective vocab for collision events ≈ 2^10.1 ≈ 1,097 |
-| H_∞ (Min-entropy) | 6.0 bits  | Most frequent token has P ≈ 2^−6 = 1.6%               |
-| H₁ − H₂ gap       | 2.4 bits  | Heavy tail — many tokens almost never appear          |
-
-The 2.4-bit gap confirms that while the vocabulary has 50,000 entries, most text is covered by a much smaller "core" vocabulary. The long tail exists to handle rare words and multilingual content.
-
----
-
-## 6. Dynamic Programming: Optimal Segmentation
-
-### 6.1 The Segmentation Problem
-
-Given string s of length n and vocabulary V with token scores (e.g., -log P(t)):
-
-$$\text{cost}(S) = \sum_{i=1}^{k} w(t_i)$$
-
-Find segmentation S\* minimizing total cost.
-
-### 6.2 Viterbi Algorithm for Tokenization
-
-Define dp[j] = minimum cost to tokenize s[1..j]:
-
-```
-dp[0] = 0  (empty prefix)
-dp[j] = min over all i < j such that s[i+1..j] ∈ V:
-        dp[i] + weight(s[i+1..j])
-```
-
-$$\text{dp}[j] = \min_{i: s[i+1..j] \in V} \left(\text{dp}[i] + w(s[i+1..j])\right)$$
-
-**Complexity**: O(n · L) where L = max token length in V (typically 16–64 chars).
-
-#### Worked Example
-
-Vocabulary with costs: V = {"a": 1.0, "ab": 0.5, "b": 1.5, "ba": 0.8}
-
-String to segment: s = "abab" (n = 4)
-
-**Fill the DP table** (dp[j] = min cost to tokenize s[0:j]):
-
-| j   | Candidates (s[i:j] ∈ V) | dp[i] + w(s[i:j])     | dp[j] | Back |
-| --- | ----------------------- | --------------------- | ----- | ---- |
-| 0   | (base case)             | —                     | 0.0   | —    |
-| 1   | s[0:1]="a" (cost 1.0)   | dp[0] + 1.0 = **1.0** | 1.0   | 0    |
-| 2   | s[0:2]="ab" (cost 0.5)  | dp[0] + 0.5 = **0.5** | 0.5   | 0    |
-|     | s[1:2]="b" (cost 1.5)   | dp[1] + 1.5 = 2.5     |       |      |
-| 3   | s[1:3]="ba" (cost 0.8)  | dp[1] + 0.8 = 1.8     | 1.5   | 2    |
-|     | s[2:3]="a" (cost 1.0)   | dp[2] + 1.0 = **1.5** |       |      |
-| 4   | s[2:4]="ab" (cost 0.5)  | dp[2] + 0.5 = **1.0** | 1.0   | 2    |
-|     | s[3:4]="b" (cost 1.5)   | dp[3] + 1.5 = 3.0     |       |      |
-
-**Backtrack**: dp[4] came from i=2 (token "ab") → dp[2] came from i=0 (token "ab")
-
-**Optimal segmentation**: ["ab", "ab"] with total cost **1.0**
-
-All 5 valid segmentations ranked by cost:
-
-| Segmentation | Cost                        |
-| ------------ | --------------------------- |
-| [ab, ab]     | 0.5 + 0.5 = **1.0** ✓       |
-| [ab, a, b]   | 0.5 + 1.0 + 1.5 = 3.0       |
-| [a, b, ab]   | 1.0 + 1.5 + 0.5 = 3.0       |
-| [a, ba, b]   | 1.0 + 0.8 + 1.5 = 3.3       |
-| [a, b, a, b] | 1.0 + 1.5 + 1.0 + 1.5 = 5.0 |
-
-The Viterbi algorithm found the global optimum in O(4 × 2) = 8 operations, versus 5 segmentations to check exhaustively. For real strings (n=1000, L=64), exhaustive search is astronomically intractable while Viterbi runs in O(64,000) — linear in practice.
-
-### 6.3 Number of Possible Segmentations
-
-For a string of length n with a vocabulary containing all substrings up to length L, how many valid segmentations exist?
-
-#### Derivation (L = 2 case)
-
-Let $C(n)$ = number of ways to segment a string of length n, where each segment has length 1 or 2.
-
-At position 0, we can either:
-
-- Take a **1-character** token, leaving $C(n-1)$ ways to segment the rest
-- Take a **2-character** token, leaving $C(n-2)$ ways to segment the rest
-
-This gives the recurrence:
-
-$$C(n) = C(n-1) + C(n-2), \quad C(0) = 1, \quad C(1) = 1$$
-
-This is exactly the **Fibonacci sequence**: $C(n) = F_{n+1}$.
-
-#### General Case (max token length L)
-
-With tokens up to length L:
-
-$$C(n) = \sum_{k=1}^{\min(n, L)} C(n-k), \quad C(0) = 1$$
-
-This is a generalized Fibonacci (tribonacci for L=3, etc.) with growth rate approaching $2^n$ as $L \to n$.
-
-#### Growth Table
-
-| String length n | L=2 (Fibonacci) | L=4        | L=16       | L=n (all substrings) |
-| --------------- | --------------- | ---------- | ---------- | -------------------- |
-| 5               | 8               | 16         | 16         | 16                   |
-| 10              | 89              | 504        | 512        | 512                  |
-| 20              | 10,946          | 283,953    | 524,288    | 524,288              |
-| 50              | 2.0 × 10¹⁰      | 4.4 × 10¹⁴ | 5.6 × 10¹⁴ | 5.6 × 10¹⁴           |
-| 100             | 5.7 × 10²⁰      | —          | 6.3 × 10²⁹ | 6.3 × 10²⁹           |
-
-Even for a modest 50-character string, there are **billions** of possible segmentations. This is why:
-
-- **BPE** uses greedy merging (never reconsiders past merges)
-- **Unigram** uses Viterbi DP to find the single best segmentation in O(nL)
-- **Exhaustive search** is computationally intractable for any real text
-
----
-
-## 7. Common Mistakes
-
-| Mistake                                     | Why It's Wrong                                                                                                    | Fix                                                                          |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| "Tokenization doesn't affect model quality" | Token boundaries determine what patterns the model can learn; bad tokenization = bad arithmetic, bad multilingual | Choose tokenizer carefully; evaluate fertility across languages              |
-| "Larger vocabulary is always better"        | Larger V = larger embedding matrix = more parameters to train, and rare tokens get undertrained                   | Balance: 32k–128k is typical sweet spot                                      |
-| "BPE is optimal compression"                | BPE is greedy — it doesn't find the globally optimal vocabulary                                                   | Unigram model with EM is closer to optimal; BPE is a practical approximation |
-| "All tokenizers produce the same output"    | Different algorithms produce very different segmentations for the same text                                       | Always note which tokenizer was used when comparing models                   |
-| "Tokens ≈ words"                            | Common tokens include subwords, spaces, punctuation; "I'm" might be 1 or 2 tokens                                 | Never assume word-level alignment                                            |
-| "Re-tokenizing is cheap"                    | Changing the tokenizer invalidates ALL pretrained weights (embedding + LM head)                                   | Tokenizer is fixed for the lifetime of a model                               |
-
----
-
-## 8. Exercises
-
-See [exercises.ipynb](exercises.ipynb) for full implementations with scaffolds and solutions.
-
-### Exercise 1: Manual BPE (Pen and Paper)
-
-Starting with corpus "aabaabaab", initial vocabulary {a, b}:
-
-1. Count all adjacent pairs
-2. Perform 2 merge steps
-3. What is the final vocabulary?
-4. What is the compression ratio?
-
-### Exercise 2: Compression Ratio
-
-A tokenizer with V=32,000 tokenizes 1 million characters of English into 280,000 tokens.
-
-1. What is the compression ratio ρ?
-2. How many bits per character does this represent?
-3. Compare to English entropy (~1.3 bits/char). Is the tokenizer near-optimal?
-
-### Exercise 3: Vocabulary Size Tradeoff
-
-For a model with d=4096:
-
-1. Calculate embedding + LM head parameters for V = 32K, 64K, 128K, 256K
-2. If total model params = 7B, what fraction is vocabulary for each?
-3. At what point does vocabulary overhead become a concern?
-
-### Exercise 4: Fertility Analysis
-
-Using any tokenizer (tiktoken, sentencepiece):
-
-1. Compute average fertility for English, Spanish, Chinese, Arabic text
-2. Plot fertility distribution per language
-3. What does this reveal about training data composition?
-
-### Exercise 5: Viterbi Segmentation
-
-Given vocabulary V = {"a": 1.0, "ab": 0.5, "b": 1.5, "ba": 0.8} with costs:
-
-1. Draw the segmentation graph for "abab"
-2. Find the optimal segmentation using DP
-3. How many total segmentations exist?
-
-### Exercise 6: Unigram Language Model & EM Training
-
-1. Initialize vocabulary with character + bigram tokens
-2. Implement E-step (Viterbi segmentation) and M-step (probability re-estimation)
-3. Run EM for 10 iterations, track log-likelihood convergence
-4. Compute ΔL for each token and prune the bottom 20%
-
-### Exercise 7: WordPiece PMI Score Comparison
-
-1. Compute PMI for all adjacent pairs in a corpus
-2. Rank by frequency (BPE) vs PMI (WordPiece) — find disagreements
-3. Implement the ## prefix encoding used by BERT's WordPiece
-
-### Exercise 8: Context Window & Multilingual Penalty
-
-1. Build effective context table for multiple window sizes and fertilities
-2. Calculate the multilingual penalty (Thai vs English)
-3. Cross-model, cross-language context capacity comparison
-
-### Exercise 9: Digit Tokenization & Arithmetic
-
-1. Train BPE on number-heavy corpus, observe inconsistent digit splits
-2. Demonstrate the carry problem across token boundaries
-3. Implement and compare a digit-aware tokenizer
-
-### Exercise 10: Information-Theoretic Deep Dive
-
-1. Compute bits-per-char under uniform vs entropy-optimal coding
-2. Build the full Rényi spectrum: H_α for α ∈ {0.5, 1, 2, 5, 10, ∞}
-3. Analyze H₁ − H₂ gap across uniform, Zipfian, and BPE distributions
-4. Compute perplexity and vocabulary efficiency ratio η
-
-### Exercise 11: Segmentation Counting & Fibonacci
-
-1. Count segmentations using the generalized Fibonacci recurrence
-2. Verify C(n) = F\_{n+1} for L=2
-3. Build growth table and estimate growth rates for L = 2, 3, 4
-
-### Exercise 12: Tokenization Cost Calculator
-
-1. Build per-conversation cost calculator by language
-2. Produce a fairness report card across languages and pricing tiers
-3. Calculate annual savings from a perfect multilingual tokenizer
-
----
-
-## 9. Why This Matters for AI
-
-| Aspect                    | Impact                                                                                   |
-| ------------------------- | ---------------------------------------------------------------------------------------- |
-| **Cost**                  | API pricing is per-token; efficient tokenization saves money                             |
-| **Context length**        | Better compression = more text in fixed context window                                   |
-| **Multilingual fairness** | Poor tokenization of non-English = worse performance + higher cost                       |
-| **Model capabilities**    | Number tokenization directly affects arithmetic ability                                  |
-| **Training efficiency**   | Fewer tokens = fewer forward passes = faster training                                    |
-| **Deployment**            | Vocabulary size determines embedding table memory (often the bottleneck on edge devices) |
-| **Reproducibility**       | Tokenizer mismatch between training and inference = garbage output                       |
-
-### The Tokenization Tax
-
-Non-English languages pay a "tokenization tax" — the same semantic content requires more tokens:
-
-```
-English:  "Hello, how are you?"       → 5-6 tokens
-Spanish:  "Hola, ¿cómo estás?"        → 7-9 tokens
-Japanese: "こんにちは、お元気ですか？"    → 10-15 tokens
-Thai:     "สวัสดี คุณเป็นอย่างไร?"      → 15-20 tokens
-Amharic:  "ሰላም, እንዴት ነህ?"            → 20-30 tokens
-```
-
-#### Concrete Cost Calculation
-
-Consider a customer-service chatbot processing 1M conversations/month, each averaging 500 characters of user input + 1000 characters of model output:
-
-| Language | Fertility ρ | Input tokens | Output tokens | Total tokens/conv | Monthly tokens | Monthly cost (@$0.01/1K) |
-| -------- | ----------- | ------------ | ------------- | ----------------- | -------------- | ------------------------ |
-| English  | 4.0         | 125          | 250           | 375               | 375M           | **$3,750**               |
-| Spanish  | 3.2         | 156          | 312           | 468               | 468M           | $4,680                   |
-| Japanese | 1.6         | 312          | 625           | 937               | 937M           | $9,370                   |
-| Thai     | 1.1         | 454          | 909           | 1,363             | 1,363M         | $13,630                  |
-
-A Thai-language deployment costs **3.6× more** than English for identical semantic content.
-
-#### Training Efficiency Impact
-
-With fertility ρ, training on N characters requires N/ρ forward passes. If training a 7B model costs $2M on English text:
-
-- Same content in Japanese: ~$5M (2.5× more forward passes)
-- Same content in Thai: ~$7.3M (3.6× more forward passes)
-
-This means non-English users:
-
-- Get less context per dollar (pay more for the same conversation)
-- Train slower (more tokens per sentence = more compute)
-- See lower quality (each token carries less semantic content, so the model must compose more tokens to represent one concept)
-- Hit context limits sooner (a 4K-token window holds ~16K English chars but only ~4.4K Thai chars)
-
-This is an active area of research in fair and equitable AI. Approaches include training multilingual-balanced tokenizers, language-specific vocabulary allocation, and adaptor-based vocabulary extension.
-
----
-
-## 10. Further Reading
-
-### Papers
-
-1. Sennrich et al. (2016) — "Neural Machine Translation of Rare Words with Subword Units" (original BPE for NLP)
-2. Kudo (2018) — "Subword Regularization: Improving Neural Network Translation Models with Multiple Subword Candidates" (Unigram model)
-3. Kudo & Richardson (2018) — "SentencePiece: A simple and language independent subword tokenizer and detokenizer for Neural Text Processing"
-4. Radford et al. (2019) — GPT-2 paper (byte-level BPE)
-5. Petrov et al. (2024) — "Language Model is All You Need: An Inequality on the Tokenization Tax"
-
-### Implementations
-
-- [tiktoken](https://github.com/openai/tiktoken) — OpenAI's fast BPE tokenizer (Rust + Python)
-- [SentencePiece](https://github.com/google/sentencepiece) — Google's BPE + Unigram tokenizer (C++)
-- [HuggingFace Tokenizers](https://github.com/huggingface/tokenizers) — Rust library supporting all algorithms
-- [minbpe](https://github.com/karpathy/minbpe) — Karpathy's minimal BPE in pure Python (excellent for learning)
-
-### Conceptual Bridge
-
-Tokenization is the **input interface** between human language and the model's mathematical space. The next section, [Embedding Space Math](../02-Embedding-Space-Math/notes.md), covers what happens after tokenization: mapping token IDs into continuous vector representations in ℝᵈ where the model actually reasons.
-
-```
-Text → [Tokenization] → Token IDs → [Embedding] → Vectors in ℝᵈ → [Attention] → ...
-       ^^^^^^^^^^^^^^                 ^^^^^^^^^^^
-       THIS section                   NEXT section
-```
-
----
-
-[Home](../../README.md) | [Embedding Space Math →](../02-Embedding-Space-Math/notes.md)
+- Sennrich, Haddow, Birch. Neural Machine Translation of Rare Words with Subword Units. https://aclanthology.org/P16-1162/
+- Kudo and Richardson. SentencePiece: A Simple and Language Independent Subword Tokenizer and Detokenizer. https://arxiv.org/abs/1808.06226
+- Google. SentencePiece repository. https://github.com/google/sentencepiece
+- Hugging Face. Tokenization algorithms. https://huggingface.co/docs/transformers/tokenizer_summary
+- OpenAI. tiktoken tokenizer library. https://github.com/openai/tiktoken

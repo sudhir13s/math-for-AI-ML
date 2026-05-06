@@ -1,34 +1,34 @@
 # Hypothesis Testing
 
-[← Back to Chapter 7: Statistics](../README.md) | [Next: Bayesian Inference →](../04-Bayesian-Inference/notes.md)
+[<- Back to Chapter 7: Statistics](../README.md) | [Next: Bayesian Inference ->](../04-Bayesian-Inference/notes.md)
 
 ---
 
 > _"To call in the statistician after the experiment is done may be no more than asking him to perform a post-mortem examination: he may be able to say what the experiment died of."_
-> — Sir Ronald A. Fisher, *Presidential Address to the First Indian Statistical Congress* (1938)
+> - Sir Ronald A. Fisher, *Presidential Address to the First Indian Statistical Congress* (1938)
 
 ## Overview
 
-Hypothesis testing is the art of making principled decisions from data under uncertainty. Where estimation theory (§02) asks "what is the value of this parameter?", hypothesis testing asks a sharper question: "is this parameter consistent with a specific claim?" This inversion — from continuous estimation to binary decision — is the formal machinery behind every A/B experiment that ships a product feature, every clinical trial that approves a drug, and every benchmark comparison that claims one model outperforms another.
+Hypothesis testing is the art of making principled decisions from data under uncertainty. Where estimation theory (Section02) asks "what is the value of this parameter?", hypothesis testing asks a sharper question: "is this parameter consistent with a specific claim?" This inversion - from continuous estimation to binary decision - is the formal machinery behind every A/B experiment that ships a product feature, every clinical trial that approves a drug, and every benchmark comparison that claims one model outperforms another.
 
-The discipline has two intertwined origins. Ronald Fisher developed the **p-value framework** in the 1920s: compute how surprising the data would be if the null hypothesis were true, and report that probability as evidence. Jerzy Neyman and Egon Pearson developed the **decision-theoretic framework** in 1933: pre-commit to a decision rule with controlled error rates before seeing the data. Modern practice blends both — using p-values as a continuous measure of evidence while respecting the Neyman-Pearson discipline of pre-specified significance levels, power analysis, and sample size planning.
+The discipline has two intertwined origins. Ronald Fisher developed the **p-value framework** in the 1920s: compute how surprising the data would be if the null hypothesis were true, and report that probability as evidence. Jerzy Neyman and Egon Pearson developed the **decision-theoretic framework** in 1933: pre-commit to a decision rule with controlled error rates before seeing the data. Modern practice blends both - using p-values as a continuous measure of evidence while respecting the Neyman-Pearson discipline of pre-specified significance levels, power analysis, and sample size planning.
 
-For AI and ML, hypothesis testing has never been more important. Every benchmark leaderboard is an implicit multiple-comparison experiment susceptible to false-discovery inflation. Every online A/B test deployed at scale faces the sequential testing problem. Every data pipeline needs distributional drift detection. This section builds the complete framework: from the formal definition of a test statistic through the Neyman-Pearson lemma, classical t/χ²/F tests, likelihood ratio tests, multiple testing correction, nonparametric methods, and the sequential A/B testing infrastructure that powers modern ML deployment.
+For AI and ML, hypothesis testing has never been more important. Every benchmark leaderboard is an implicit multiple-comparison experiment susceptible to false-discovery inflation. Every online A/B test deployed at scale faces the sequential testing problem. Every data pipeline needs distributional drift detection. This section builds the complete framework: from the formal definition of a test statistic through the Neyman-Pearson lemma, classical t/\\chi^2/F tests, likelihood ratio tests, multiple testing correction, nonparametric methods, and the sequential A/B testing infrastructure that powers modern ML deployment.
 
 ## Prerequisites
 
-- **Confidence intervals and asymptotic normality of MLE** — [§02 Estimation Theory](../02-Estimation-Theory/notes.md)
-- **Sampling distributions** (t, χ², F distributions) — [Ch6 §02 Common Distributions](../../06-Probability-Theory/02-Common-Distributions/notes.md)
-- **Law of large numbers and CLT** — [Ch6 §05 Limit Theorems](../../06-Probability-Theory/05-Limit-Theorems/notes.md)
-- **Expectation and variance** — [Ch6 §04 Expectation and Moments](../../06-Probability-Theory/04-Expectation-and-Moments/notes.md)
-- **Likelihood functions** (log-likelihood, score function) — [§02 §4–§5](../02-Estimation-Theory/notes.md)
+- **Confidence intervals and asymptotic normality of MLE** - [Section02 Estimation Theory](../02-Estimation-Theory/notes.md)
+- **Sampling distributions** (t, \\chi^2, F distributions) - [Ch6 Section02 Common Distributions](../../06-Probability-Theory/02-Common-Distributions/notes.md)
+- **Law of large numbers and CLT** - [Ch6 Section05 Limit Theorems](../../06-Probability-Theory/05-Limit-Theorems/notes.md)
+- **Expectation and variance** - [Ch6 Section04 Expectation and Moments](../../06-Probability-Theory/04-Expectation-and-Moments/notes.md)
+- **Likelihood functions** (log-likelihood, score function) - [Section02 Section4-Section5](../02-Estimation-Theory/notes.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations: t-tests, chi-squared tests, power curves, NP lemma, GLRT, Bonferroni/BH correction, permutation tests, KS drift detection, sequential SPRT |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from one-sample t-tests through sequential A/B testing and KS-based LLM drift detection |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from one-sample t-tests through sequential A/B testing and KS-based LLM drift detection |
 
 ## Learning Objectives
 
@@ -36,8 +36,8 @@ After completing this section, you will:
 
 - State the formal definition of a statistical hypothesis and distinguish simple from composite hypotheses
 - Define a test statistic, rejection region, and p-value and explain what each does and does not mean
-- Quantify Type I error (α), Type II error (β), and power (1−β), and explain why they cannot all be minimised simultaneously
-- Derive sample size requirements from desired α, β, and effect size (Cohen's d)
+- Quantify Type I error (\\alpha), Type II error (\\beta), and power (1-\\beta), and explain why they cannot all be minimised simultaneously
+- Derive sample size requirements from desired \\alpha, \\beta, and effect size (Cohen's d)
 - Derive and apply one-sample t-test, two-sample Welch t-test, chi-squared goodness-of-fit, and one-way ANOVA
 - State and prove the Neyman-Pearson lemma and identify when a UMP test exists
 - Apply Wilks' theorem to construct generalized likelihood ratio tests for composite hypotheses
@@ -109,37 +109,37 @@ After completing this section, you will:
 
 Imagine you flip a coin 100 times and observe 63 heads. Is the coin biased, or is 63 just a chance fluctuation from a fair coin? You cannot answer this by staring at the number 63. You need a framework that asks: **how often would a fair coin produce 63 or more heads in 100 flips?** If the answer is "1 in 1,000 times", you have strong evidence for bias. If the answer is "1 in 5 times", the result is easily explained by chance.
 
-This is the essence of hypothesis testing: quantify how surprising the data would be if the "nothing interesting happened" explanation were true. The "nothing interesting happened" explanation is the **null hypothesis** $H_0$. The alternative — something systematic is going on — is the **alternative hypothesis** $H_1$.
+This is the essence of hypothesis testing: quantify how surprising the data would be if the "nothing interesting happened" explanation were true. The "nothing interesting happened" explanation is the **null hypothesis** $H_0$. The alternative - something systematic is going on - is the **alternative hypothesis** $H_1$.
 
-**The court-room analogy** is exact and instructive. In criminal law, the null hypothesis is innocence ($H_0$: defendant is innocent). The prosecution must present evidence so overwhelming that innocence becomes implausible. The defendant is never "proven innocent" — the court simply fails to accumulate enough evidence to reject $H_0$. Similarly, in statistics, we never "prove" the null hypothesis true; we can only fail to reject it. The asymmetry is deliberate: falsely convicting an innocent person (Type I error) is considered worse than failing to convict a guilty one (Type II error), so we set the bar for conviction (rejection) very high.
+**The court-room analogy** is exact and instructive. In criminal law, the null hypothesis is innocence ($H_0$: defendant is innocent). The prosecution must present evidence so overwhelming that innocence becomes implausible. The defendant is never "proven innocent" - the court simply fails to accumulate enough evidence to reject $H_0$. Similarly, in statistics, we never "prove" the null hypothesis true; we can only fail to reject it. The asymmetry is deliberate: falsely convicting an innocent person (Type I error) is considered worse than failing to convict a guilty one (Type II error), so we set the bar for conviction (rejection) very high.
 
-**For AI:** Every time you report "model A achieves 87.3% accuracy vs. model B's 86.1% — a statistically significant improvement at p < 0.05", you are running a hypothesis test. The null hypothesis is $H_0: \mu_A = \mu_B$ (no real difference). The question is whether the 1.2% gap is real signal or sampling noise from a finite test set.
+**For AI:** Every time you report "model A achieves 87.3% accuracy vs. model B's 86.1% - a statistically significant improvement at p < 0.05", you are running a hypothesis test. The null hypothesis is $H_0: \mu_A = \mu_B$ (no real difference). The question is whether the 1.2% gap is real signal or sampling noise from a finite test set.
 
 ### 1.2 Two Schools of Thought
 
 Modern statistical testing is a marriage of two incompatible philosophies that practitioners blend without always realising it.
 
-**Fisher's approach (1925):** Compute the **p-value** — the probability of observing data at least as extreme as what was obtained, under $H_0$. Report it as a continuous measure of evidence against $H_0$. Never pre-specify $H_1$. Never pre-specify a decision threshold. The p-value is just one piece of evidence to weigh alongside domain knowledge and replication. Fisher rejected the idea of a fixed significance threshold as "absurdly academic".
+**Fisher's approach (1925):** Compute the **p-value** - the probability of observing data at least as extreme as what was obtained, under $H_0$. Report it as a continuous measure of evidence against $H_0$. Never pre-specify $H_1$. Never pre-specify a decision threshold. The p-value is just one piece of evidence to weigh alongside domain knowledge and replication. Fisher rejected the idea of a fixed significance threshold as "absurdly academic".
 
-**Neyman-Pearson approach (1933):** Pre-specify both $H_0$ and $H_1$, a significance level $\alpha$ (Type I error rate), and a desired power $1 - \beta$ (sensitivity to $H_1$). Compute the **most powerful test** for those hypotheses. Make a binary decision: reject or do not reject. The p-value is irrelevant — what matters is whether $T > c_\alpha$. This framework optimises long-run decision quality across many repeated experiments.
+**Neyman-Pearson approach (1933):** Pre-specify both $H_0$ and $H_1$, a significance level $\alpha$ (Type I error rate), and a desired power $1 - \beta$ (sensitivity to $H_1$). Compute the **most powerful test** for those hypotheses. Make a binary decision: reject or do not reject. The p-value is irrelevant - what matters is whether $T > c_\alpha$. This framework optimises long-run decision quality across many repeated experiments.
 
-**What practitioners actually do:** Use the Neyman-Pearson machinery (pre-specify $\alpha$, compute a test statistic, check whether $p < \alpha$) while interpreting the p-value in Fisher's spirit (as a continuous measure of evidence). This hybrid is coherent enough for most purposes but creates confusions — particularly the widespread misinterpretation of p-values as "the probability that $H_0$ is true" (which is Bayesian thinking, belonging to neither school).
+**What practitioners actually do:** Use the Neyman-Pearson machinery (pre-specify $\alpha$, compute a test statistic, check whether $p < \alpha$) while interpreting the p-value in Fisher's spirit (as a continuous measure of evidence). This hybrid is coherent enough for most purposes but creates confusions - particularly the widespread misinterpretation of p-values as "the probability that $H_0$ is true" (which is Bayesian thinking, belonging to neither school).
 
 ```
 FISHER vs. NEYMAN-PEARSON COMPARISON
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Property           │ Fisher                  │ Neyman-Pearson
-  ───────────────────┼─────────────────────────┼──────────────────────
-  Goal               │ Measure evidence        │ Make optimal decision
-  Pre-specify H₁?    │ No                      │ Yes
-  Pre-specify α?     │ No                      │ Yes (before seeing data)
-  Output             │ p-value (continuous)    │ Reject / Do not reject
-  Power              │ Not part of framework   │ Central to design
-  Philosophical base │ Inductive reasoning     │ Long-run frequency
-  Use case           │ Exploratory science     │ Industrial quality control
+  Property           | Fisher                  | Neyman-Pearson
+  -------------------+-------------------------+----------------------
+  Goal               | Measure evidence        | Make optimal decision
+  Pre-specify H_1?    | No                      | Yes
+  Pre-specify \\alpha?     | No                      | Yes (before seeing data)
+  Output             | p-value (continuous)    | Reject / Do not reject
+  Power              | Not part of framework   | Central to design
+  Philosophical base | Inductive reasoning     | Long-run frequency
+  Use case           | Exploratory science     | Industrial quality control
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.3 Historical Timeline
@@ -150,20 +150,20 @@ FISHER vs. NEYMAN-PEARSON COMPARISON
 | 1900 | Karl Pearson | Chi-squared goodness-of-fit test |
 | 1908 | William Gosset ("Student") | t-distribution for small samples |
 | 1922 | Ronald Fisher | Formalises likelihood, degrees of freedom |
-| 1925 | Ronald Fisher | *Statistical Methods for Research Workers* — p-values, F-test, ANOVA |
+| 1925 | Ronald Fisher | *Statistical Methods for Research Workers* - p-values, F-test, ANOVA |
 | 1933 | Neyman & Pearson | Power, UMP tests, Neyman-Pearson lemma |
 | 1943 | Abraham Wald | Sequential probability ratio test (SPRT) |
 | 1951 | Wald | Statistical decision theory |
 | 1979 | Bonferroni correction | Widely adopted for multiple testing |
-| 1995 | Benjamini & Hochberg | False discovery rate (FDR) — transformative for genomics and ML |
-| 2005 | Ioannidis | "Why Most Published Research Findings Are False" — catalyses replication crisis |
+| 1995 | Benjamini & Hochberg | False discovery rate (FDR) - transformative for genomics and ML |
+| 2005 | Ioannidis | "Why Most Published Research Findings Are False" - catalyses replication crisis |
 | 2016 | ASA statement | Formal warning against p-value misuse |
 | 2019 | *Nature* editorial | 800+ scientists call for retiring "statistical significance" |
-| 2022+ | Always-valid p-values | Ramdaset al. — sequential testing for online A/B experiments |
+| 2022+ | Always-valid p-values | Ramdaset al. - sequential testing for online A/B experiments |
 
 ### 1.4 Why Hypothesis Testing Matters for AI
 
-**Model evaluation:** Reporting a test accuracy without a confidence interval or significance test is meaningless for model comparison. Is 87.3% vs. 86.1% real? On 1000 test examples at 0.5 base rate, a 1.2% difference corresponds to a two-proportion z-test with $p \approx 0.15$ — not significant. On 10,000 examples, the same gap gives $p \approx 0.002$. Sample size is everything.
+**Model evaluation:** Reporting a test accuracy without a confidence interval or significance test is meaningless for model comparison. Is 87.3% vs. 86.1% real? On 1000 test examples at 0.5 base rate, a 1.2% difference corresponds to a two-proportion z-test with $p \approx 0.15$ - not significant. On 10,000 examples, the same gap gives $p \approx 0.002$. Sample size is everything.
 
 **A/B testing at scale:** Tech companies run thousands of simultaneous A/B experiments. Each one is a two-sample hypothesis test. The infrastructure problem is: how do you test without pre-committing to a fixed sample size (you want to stop early if the effect is clear), while controlling false discovery rate across simultaneous tests?
 
@@ -192,9 +192,9 @@ $$H_0: \theta \in \Theta_0 \quad \text{vs.} \quad H_1: \theta \in \Theta_1 = \Om
 - **One-sided** (directional): $H_1: \theta > \theta_0$ or $H_1: \theta < \theta_0$. Use when the direction of the effect is theoretically specified in advance.
 - **Two-sided** (non-directional): $H_1: \theta \neq \theta_0$. Use when any deviation from $\theta_0$ is of interest, or when the direction is unknown.
 
-**The asymmetry between $H_0$ and $H_1$:** The null hypothesis is the "default" — the claim we assume true unless data provide sufficient evidence against it. This asymmetry has important consequences:
+**The asymmetry between $H_0$ and $H_1$:** The null hypothesis is the "default" - the claim we assume true unless data provide sufficient evidence against it. This asymmetry has important consequences:
 - We control the probability of falsely rejecting $H_0$ (Type I error).
-- We do **not** automatically control the probability of falsely accepting $H_0$ (Type II error) — that requires separate power analysis.
+- We do **not** automatically control the probability of falsely accepting $H_0$ (Type II error) - that requires separate power analysis.
 - "Fail to reject $H_0$" is NOT the same as "accept $H_0$". Absence of evidence is not evidence of absence.
 
 **Standard examples:**
@@ -222,7 +222,7 @@ $$Z = \frac{\bar{X} - \mu_0}{\sigma / \sqrt{n}} \sim \mathcal{N}(0, 1)$$
 
 $$T = \frac{\bar{X} - \mu_0}{S / \sqrt{n}} \sim t_{n-1}$$
 
-The shift from $\mathcal{N}(0,1)$ to $t_{n-1}$ is not a minor detail — for small $n$, the t-distribution has much heavier tails, making it much harder to reject $H_0$ unless the evidence is very strong.
+The shift from $\mathcal{N}(0,1)$ to $t_{n-1}$ is not a minor detail - for small $n$, the t-distribution has much heavier tails, making it much harder to reject $H_0$ unless the evidence is very strong.
 
 **Standardisation principle:** Most test statistics are of the form:
 
@@ -244,7 +244,7 @@ where $z_{\alpha/2}$ is the $(1 - \alpha/2)$ quantile of $\mathcal{N}(0, 1)$. At
 
 **Critical value:** The boundary $c_\alpha$ such that $P_{H_0}(T > c_\alpha) = \alpha$ (one-sided) or $P_{H_0}(\lvert T \rvert > c_\alpha) = \alpha$ (two-sided). The test rejects $H_0$ iff $T > c_\alpha$ (or $\lvert T \rvert > c_\alpha$).
 
-**Exact vs. approximate rejection regions:** 
+**Exact vs. approximate rejection regions:**
 - For normal populations with known $\sigma$: exact (z-test).
 - For normal populations with unknown $\sigma$: exact (t-test, using t distribution).
 - For non-normal populations, large $n$: approximate (CLT makes $Z$ approximately standard normal).
@@ -265,7 +265,7 @@ for a two-sided test. Equivalently, $p$ is the smallest significance level $\alp
 **Key properties of p-values:**
 
 1. **Under $H_0$, $p \sim \mathcal{U}(0,1)$.** This is a fundamental result: if $H_0$ is true and the test is exact, the p-value is uniformly distributed. This enables calibration checks.
-2. **Under $H_1$, $p$ is stochastically smaller** — it tends toward 0 as sample size grows or effect size increases.
+2. **Under $H_1$, $p$ is stochastically smaller** - it tends toward 0 as sample size grows or effect size increases.
 3. **$p$ is a random variable.** Running the same experiment twice will give different p-values. The p-value quantifies how surprising the specific data are, not how true or false $H_0$ is.
 
 **The six most important p-value misinterpretations:**
@@ -275,13 +275,13 @@ for a two-sided test. Equivalently, $p$ is the smallest significance level $\alp
 | "$p$ = probability $H_0$ is true" | Frequentist $p$ makes no probability claim about $H_0$ | $p$ = prob of data this extreme under $H_0$ |
 | "$1-p$ = probability $H_1$ is true" | Same error | Not a probability about hypotheses |
 | "$p < 0.05$ means effect is large" | $p$ conflates effect size with sample size | Report effect size separately |
-| "$p > 0.05$ means no effect" | Absence of evidence ≠ evidence of absence | Report power and CI |
+| "$p > 0.05$ means no effect" | Absence of evidence \\neq evidence of absence | Report power and CI |
 | "$p < 0.05$ means the finding replicates" | Single-study p is unreliable | Need replication studies |
 | "We found $p = 0.049$, thus significant" | Arbitrary threshold; $p = 0.051$ is equally evidential | Report exact $p$; don't dichotomize |
 
 ### 2.5 Duality: Tests and Confidence Intervals
 
-There is an exact correspondence between hypothesis tests and confidence intervals — a fact that is both theoretically beautiful and practically useful.
+There is an exact correspondence between hypothesis tests and confidence intervals - a fact that is both theoretically beautiful and practically useful.
 
 **The Inversion Principle:** Given a size-$\alpha$ test for $H_0: \theta = \theta_0$, the $(1-\alpha)$ confidence interval for $\theta$ is:
 
@@ -293,9 +293,9 @@ Conversely, the size-$\alpha$ test rejects $H_0: \theta = \theta_0$ if and only 
 
 $$\text{CI}_{0.95} = \left[\bar{X} - 1.96 \frac{\sigma}{\sqrt{n}},\; \bar{X} + 1.96 \frac{\sigma}{\sqrt{n}}\right]$$
 
-The corresponding z-test rejects $H_0: \mu = \mu_0$ at $\alpha = 0.05$ iff $\mu_0$ falls outside this interval — exactly the inversion principle.
+The corresponding z-test rejects $H_0: \mu = \mu_0$ at $\alpha = 0.05$ iff $\mu_0$ falls outside this interval - exactly the inversion principle.
 
-> **Recall:** Confidence intervals were derived in [§02 Estimation Theory](../02-Estimation-Theory/notes.md#7-confidence-intervals). The CI for $\mu$ was constructed by pivoting on the standard normal. Here, we see that same CI is the set of null values we would fail to reject.
+> **Recall:** Confidence intervals were derived in [Section02 Estimation Theory](../02-Estimation-Theory/notes.md#7-confidence-intervals). The CI for $\mu$ was constructed by pivoting on the standard normal. Here, we see that same CI is the set of null values we would fail to reject.
 
 **Practical implication:** Reporting a CI is strictly more informative than reporting a p-value. The CI tells you the effect size and uncertainty; the p-value alone only tells you whether a point null is rejected. Always prefer CIs over p-values where possible.
 
@@ -314,17 +314,17 @@ Any binary decision procedure applied to random data will sometimes make mistake
 
 ```
 ERROR TYPE TABLE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-                      │  H₀ True             │  H₁ True
-  ────────────────────┼──────────────────────┼──────────────────────
-  Reject H₀           │  Type I Error (α)    │  CORRECT (Power 1-β)
-  Do not reject H₀    │  CORRECT (1-α)       │  Type II Error (β)
+                      |  H_0 True             |  H_1 True
+  --------------------+----------------------+----------------------
+  Reject H_0           |  Type I Error (\\alpha)    |  CORRECT (Power 1-\\beta)
+  Do not reject H_0    |  CORRECT (1-\\alpha)       |  Type II Error (\\beta)
 
-  Analogy:            │  Convict innocent    │  Free the guilty
-  Medical test:       │  False positive      │  False negative
+  Analogy:            |  Convict innocent    |  Free the guilty
+  Medical test:       |  False positive      |  False negative
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **The fundamental trade-off:** For a fixed sample size $n$, decreasing $\alpha$ (requiring stronger evidence to reject) increases $\beta$ (making it harder to detect real effects). To decrease both simultaneously, you must increase $n$.
@@ -353,9 +353,9 @@ Key properties of a well-designed power function:
 $$\pi(\mu_1) = P_{\mu_1}\left(Z > z_\alpha\right) = P\left(\mathcal{N}(0,1) > z_\alpha - \frac{(\mu_1 - \mu_0)\sqrt{n}}{\sigma}\right) = 1 - \Phi\left(z_\alpha - \frac{(\mu_1 - \mu_0)\sqrt{n}}{\sigma}\right)$$
 
 This formula reveals exactly how power depends on:
-- **Effect size** $\delta = (\mu_1 - \mu_0)/\sigma$: larger effect → higher power.
-- **Sample size** $n$: larger $n$ → higher power (as $\sqrt{n}$).
-- **Significance level** $\alpha$: larger $\alpha$ → higher power (but more Type I errors).
+- **Effect size** $\delta = (\mu_1 - \mu_0)/\sigma$: larger effect -> higher power.
+- **Sample size** $n$: larger $n$ -> higher power (as $\sqrt{n}$).
+- **Significance level** $\alpha$: larger $\alpha$ -> higher power (but more Type I errors).
 
 **Minimum detectable effect (MDE):** The smallest $\delta$ such that $\pi(\mu_0 + \delta\sigma) \geq 1 - \beta_{\text{target}}$. Solving for $\delta$:
 
@@ -377,7 +377,7 @@ $$h = 2\arcsin\!\sqrt{p_1} - 2\arcsin\!\sqrt{p_2}$$
 
 The arcsin transform stabilises variance. Benchmarks: $h = 0.2$ small, $h = 0.5$ medium, $h = 0.8$ large.
 
-**Cramér's V** (for contingency tables with $\chi^2$):
+**Cramer's V** (for contingency tables with $\chi^2$):
 $$V = \sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$$
 
 where $r, c$ are the numbers of rows and columns. $V \in [0, 1]$ with 0 = no association.
@@ -526,30 +526,30 @@ Reject $H_0: \mu_1 = \cdots = \mu_k$ when $F > F_{k-1, N-k, \alpha}$.
 
 ```
 TEST SELECTION FLOWCHART
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   How many groups?
-  ├── One group
-  │   ├── Normal / large n → One-sample t-test or z-test
-  │   └── Non-normal, small n → Wilcoxon signed-rank
-  ├── Two groups
-  │   ├── Paired observations?
-  │   │   ├── Yes: Normal → Paired t-test
-  │   │   └── Yes: Non-normal → Wilcoxon signed-rank
-  │   └── Independent observations?
-  │       ├── Normal: Welch two-sample t-test
-  │       └── Non-normal: Mann-Whitney U test
-  └── Three or more groups
-      ├── Normal, equal variances → One-way ANOVA
-      ├── Normal, unequal variances → Welch's ANOVA
-      └── Non-normal → Kruskal-Wallis test
+  +-- One group
+  |   +-- Normal / large n -> One-sample t-test or z-test
+  |   +-- Non-normal, small n -> Wilcoxon signed-rank
+  +-- Two groups
+  |   +-- Paired observations?
+  |   |   +-- Yes: Normal -> Paired t-test
+  |   |   +-- Yes: Non-normal -> Wilcoxon signed-rank
+  |   +-- Independent observations?
+  |       +-- Normal: Welch two-sample t-test
+  |       +-- Non-normal: Mann-Whitney U test
+  +-- Three or more groups
+      +-- Normal, equal variances -> One-way ANOVA
+      +-- Normal, unequal variances -> Welch's ANOVA
+      +-- Non-normal -> Kruskal-Wallis test
 
   Categorical / count data?
-  ├── One sample, counts vs. expected → Chi-squared GoF
-  ├── Two categorical variables → Chi-squared independence
-  └── Small expected counts (< 5) → Fisher's exact test
+  +-- One sample, counts vs. expected -> Chi-squared GoF
+  +-- Two categorical variables -> Chi-squared independence
+  +-- Small expected counts (< 5) -> Fisher's exact test
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 
@@ -577,7 +577,7 @@ since $\mathbb{E}_{\theta_0}[\phi^*] = \alpha \geq \mathbb{E}_{\theta_0}[\phi]$.
 
 **Intuition:** The likelihood ratio $\Lambda(\mathbf{x})$ ranks data points by how much more likely they are under $H_1$ than $H_0$. Including the most $H_1$-likely data points in the rejection region maximises power. No other region of the same size can do better.
 
-**Example — Gaussian mean:** Testing $H_0: \mu = 0$ vs. $H_1: \mu = 1$ with known $\sigma = 1$, $n$ observations.
+**Example - Gaussian mean:** Testing $H_0: \mu = 0$ vs. $H_1: \mu = 1$ with known $\sigma = 1$, $n$ observations.
 
 $$\Lambda(\mathbf{x}) = \frac{\prod \mathcal{N}(x_i; 1, 1)}{\prod \mathcal{N}(x_i; 0, 1)} = \exp\!\left(\sum x_i - \frac{n}{2}\right)$$
 
@@ -608,7 +608,7 @@ $$\Lambda(\mathbf{x}) = \frac{\sup_{\theta \in \Theta_0} \mathcal{L}(\theta)}{\s
 
 where $\hat{\theta}_0$ is the restricted MLE (constrained to $\Theta_0$) and $\hat{\theta}_{\text{MLE}}$ is the unrestricted MLE.
 
-Note $0 \leq \Lambda \leq 1$. Small $\Lambda$ means the constrained model fits much worse than the unconstrained model — evidence against $H_0$.
+Note $0 \leq \Lambda \leq 1$. Small $\Lambda$ means the constrained model fits much worse than the unconstrained model - evidence against $H_0$.
 
 **Wilks' Theorem.** Under $H_0$ and regularity conditions, as $n \to \infty$:
 
@@ -616,15 +616,15 @@ $$-2\log\Lambda(\mathbf{x}) \overset{d}{\to} \chi^2_k$$
 
 where $k = \dim(\Omega) - \dim(\Theta_0)$ is the number of constraints imposed by $H_0$.
 
-**Proof idea:** Taylor-expand $\log \mathcal{L}(\hat{\theta}_0)$ around $\hat{\theta}_{\text{MLE}}$. The second-order term yields a quadratic form in $(\hat{\theta}_0 - \hat{\theta}_{\text{MLE}})$ scaled by the Fisher information. By asymptotic normality of MLE (§02), this quadratic form is $\chi^2_k$. $\square$
+**Proof idea:** Taylor-expand $\log \mathcal{L}(\hat{\theta}_0)$ around $\hat{\theta}_{\text{MLE}}$. The second-order term yields a quadratic form in $(\hat{\theta}_0 - \hat{\theta}_{\text{MLE}})$ scaled by the Fisher information. By asymptotic normality of MLE (Section02), this quadratic form is $\chi^2_k$. $\square$
 
-**Example:** Testing $H_0: \mu = 0, \sigma^2 = 1$ in a Gaussian model — 2 constraints, so $-2\log\Lambda \sim \chi^2_2$.
+**Example:** Testing $H_0: \mu = 0, \sigma^2 = 1$ in a Gaussian model - 2 constraints, so $-2\log\Lambda \sim \chi^2_2$.
 
 **For AI:** Wilks' theorem underlies model comparison via likelihood. Any time you compare a restricted neural architecture (fewer parameters) to a full model using their log-likelihoods, you are implicitly using a GLRT. The $\chi^2$ approximation provides a principled p-value.
 
 ### 5.4 Score and Wald Tests
 
-The GLRT requires fitting both the restricted and unrestricted models. Two alternatives — the score test and the Wald test — each require fitting only one model. Together with the GLRT, they form the **trinity of asymptotic tests**, all asymptotically equivalent under $H_0$ and local alternatives.
+The GLRT requires fitting both the restricted and unrestricted models. Two alternatives - the score test and the Wald test - each require fitting only one model. Together with the GLRT, they form the **trinity of asymptotic tests**, all asymptotically equivalent under $H_0$ and local alternatives.
 
 **Wald Test:** Fit the unrestricted MLE $\hat{\theta}$ and check if it is far from $\Theta_0$.
 
@@ -640,17 +640,17 @@ where $\mathbf{s}(\theta) = \nabla_\theta \log \mathcal{L}(\theta)$ is the score
 
 ```
 TRINITY OF ASYMPTOTIC TESTS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Test       │ Fits model under │ Statistic              │ Geometric intuition
-  ───────────┼──────────────────┼────────────────────────┼────────────────────
-  Wald       │ H₁ (unrestr.)    │ Distance from θ̂ to Θ₀  │ How far is MLE from H₀?
-  Score      │ H₀ (restr.)      │ Gradient at θ̂₀         │ Is restricted fit stable?
-  LRT (GLRT) │ Both             │ Ratio of likelihoods    │ How much does H₀ cost?
+  Test       | Fits model under | Statistic              | Geometric intuition
+  -----------+------------------+------------------------+--------------------
+  Wald       | H_1 (unrestr.)    | Distance from \\thetahat to \\Theta_0  | How far is MLE from H_0?
+  Score      | H_0 (restr.)      | Gradient at \\thetahat_0         | Is restricted fit stable?
+  LRT (GLRT) | Both             | Ratio of likelihoods    | How much does H_0 cost?
 
-  All three → χ²_k under H₀, with same asymptotic power under H₁
+  All three -> \\chi^2_k under H_0, with same asymptotic power under H_1
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **When they differ:** For small $n$, the three tests can give different p-values. The LRT is generally most accurate; the Wald test can be anti-conservative (over-rejects) for parameters near boundaries. The score test is preferred when fitting the unconstrained model is computationally expensive.
@@ -668,7 +668,7 @@ Conduct $m$ independent hypothesis tests, each at level $\alpha$. If all $m$ nul
 
 $$P(\text{at least one false positive}) = 1 - (1-\alpha)^m$$
 
-For $m = 20$ tests at $\alpha = 0.05$: $1 - 0.95^{20} \approx 0.64$. You expect about one false discovery just by chance, even if nothing is real. This is the **multiple testing problem** — the fundamental challenge underlying the replication crisis in science and the benchmark arms race in ML.
+For $m = 20$ tests at $\alpha = 0.05$: $1 - 0.95^{20} \approx 0.64$. You expect about one false discovery just by chance, even if nothing is real. This is the **multiple testing problem** - the fundamental challenge underlying the replication crisis in science and the benchmark arms race in ML.
 
 **The error metrics:**
 
@@ -679,7 +679,7 @@ For $m = 20$ tests at $\alpha = 0.05$: $1 - 0.95^{20} \approx 0.64$. You expect 
 | False discovery rate (FDR) | $\mathbb{E}[\text{FP} / \max(\text{total rejections}, 1)]$ | Balanced; allows some false positives |
 | False discovery proportion (FDP) | Actual FP/total rejections | Random variable |
 
-**m₀ and m₁:** Of $m$ tests, let $m_0$ be the number of true nulls and $m_1 = m - m_0$ be the number of true alternatives. Define $V$ = false positives, $S$ = true positives, $R = V + S$ = total rejections. Then FWER $= P(V \geq 1)$ and FDR $= \mathbb{E}[V/R]$ (with $V/R = 0$ if $R = 0$).
+**m_0 and m_1:** Of $m$ tests, let $m_0$ be the number of true nulls and $m_1 = m - m_0$ be the number of true alternatives. Define $V$ = false positives, $S$ = true positives, $R = V + S$ = total rejections. Then FWER $= P(V \geq 1)$ and FDR $= \mathbb{E}[V/R]$ (with $V/R = 0$ if $R = 0$).
 
 ### 6.2 Bonferroni and Holm Corrections
 
@@ -697,11 +697,11 @@ This guarantees FWER $\leq \alpha$ regardless of the dependency structure betwee
 2. Find the smallest $j$ such that $p_{(j)} > \alpha / (m - j + 1)$.
 3. Reject $H_{0,(1)}, \ldots, H_{0,(j-1)}$.
 
-**Claim:** Holm controls FWER at level $\alpha$ and is uniformly more powerful than Bonferroni — it never rejects fewer hypotheses.
+**Claim:** Holm controls FWER at level $\alpha$ and is uniformly more powerful than Bonferroni - it never rejects fewer hypotheses.
 
 **Proof sketch:** The key step: if $H_{0,(1)}, \ldots, H_{0,(k)}$ are all true nulls (worst case for false positives), Holm's threshold for the $i$-th ordered p-value is $\alpha/(m-i+1) \geq \alpha/m$, which controls each step-wise rejection probability by the Bonferroni argument. $\square$
 
-**Šidák correction:** For independent tests, the exact threshold is $1 - (1-\alpha)^{1/m}$ (slightly larger than $\alpha/m$, hence slightly more powerful).
+**Sidak correction:** For independent tests, the exact threshold is $1 - (1-\alpha)^{1/m}$ (slightly larger than $\alpha/m$, hence slightly more powerful).
 
 ### 6.3 False Discovery Rate
 
@@ -730,7 +730,7 @@ If no such $k$ exists, reject nothing.
 
 **q-values:** For each rejected hypothesis, the q-value $q_i$ is the minimum FDR level at which $H_i$ would be rejected. Analogous to p-value for FDR control. Introduced by Storey (2002).
 
-**For AI:** In genomics (the original motivation for BH), researchers test 20,000 gene expression differences — Bonferroni would require $p < 0.0000025$. In ML, testing 100 models across 50 benchmarks creates 5,000 comparisons — FDR control via BH is the appropriate framework.
+**For AI:** In genomics (the original motivation for BH), researchers test 20,000 gene expression differences - Bonferroni would require $p < 0.0000025$. In ML, testing 100 models across 50 benchmarks creates 5,000 comparisons - FDR control via BH is the appropriate framework.
 
 ### 6.4 NLP Benchmark Comparisons
 
@@ -738,7 +738,7 @@ If no such $k$ exists, reject nothing.
 
 1. **Model selection bias:** Model developers report best results across many runs, architectures, and prompting strategies. This is implicit p-hacking at the model level.
 2. **Benchmark contamination:** Test sets get into training data over time. Reported improvements may reflect memorisation rather than generalisation.
-3. **Multiple comparisons across benchmarks:** A model scoring highest on 3 of 10 benchmarks is not necessarily best — with 100 models and 10 benchmarks, 50 false "wins" are expected by chance at $\alpha = 0.05$.
+3. **Multiple comparisons across benchmarks:** A model scoring highest on 3 of 10 benchmarks is not necessarily best - with 100 models and 10 benchmarks, 50 false "wins" are expected by chance at $\alpha = 0.05$.
 4. **Non-stationary test sets:** Rolling evaluation windows mean the effective sample size is unclear.
 
 **Rigorous evaluation practices:**
@@ -760,7 +760,7 @@ Classical multiple testing corrections (Bonferroni, BH) are explicitly frequenti
 > $$B_{01} = \frac{P(\mathbf{x} \mid H_0)}{P(\mathbf{x} \mid H_1)} = \frac{\int p(\mathbf{x}|\theta)p(\theta|H_0)d\theta}{\int p(\mathbf{x}|\theta)p(\theta|H_1)d\theta}$$
 > The Bayes factor naturally accounts for model complexity (Occam's razor) and provides a direct measure of evidence. In the multiple testing setting, Bayesian methods control the posterior expected FDR by placing a prior on the proportion of true nulls $\pi_0$.
 >
-> → _Full treatment: [§04 Bayesian Inference](../04-Bayesian-Inference/notes.md)_
+> -> _Full treatment: [Section04 Bayesian Inference](../04-Bayesian-Inference/notes.md)_
 
 
 ---
@@ -806,7 +806,7 @@ $$U = W - \frac{n_1(n_1+1)}{2}, \quad Z = \frac{U - n_1n_2/2}{\sqrt{n_1n_2(n_1+n
 
 $$\hat{U} = \frac{1}{n_1 n_2}\sum_{i=1}^{n_1}\sum_{j=1}^{n_2} \mathbf{1}[X_i > Y_j]$$
 
-This is exactly the **empirical AUC** — the probability that a random draw from group 1 exceeds a random draw from group 2. A Mann-Whitney test is equivalent to testing whether AUC $= 0.5$. This unifies hypothesis testing with classifier evaluation.
+This is exactly the **empirical AUC** - the probability that a random draw from group 1 exceeds a random draw from group 2. A Mann-Whitney test is equivalent to testing whether AUC $= 0.5$. This unifies hypothesis testing with classifier evaluation.
 
 **Wilcoxon signed-rank test:** Paired two-sample test. Compute differences $D_i = X_i - Y_i$. Rank the $\lvert D_i \rvert$. $W^+ = $ sum of ranks of positive differences. Under $H_0: \mathbb{E}[W^+] = n(n+1)/4$.
 
@@ -827,16 +827,16 @@ $$D_{n,m} = \sup_x \lvert F_n(x) - G_m(x) \rvert$$
 Under $H_0$: $\sqrt{\frac{nm}{n+m}} D_{n,m} \overset{d}{\to} K$ where $K$ is the Kolmogorov distribution. Reject for large $D_{n,m}$.
 
 **Properties:**
-- Sensitive to differences in **location, scale, and shape** — not just means.
+- Sensitive to differences in **location, scale, and shape** - not just means.
 - **Consistent** against all continuous alternative distributions.
 - Less powerful than t-test against pure location shifts (it wastes power on shape/scale).
 - CDF-based, so naturally handles multivariate data via joint ECDFs (though the asymptotic distribution changes).
 
-**For AI — Data drift detection:** The two-sample KS test is the most widely used drift detector in production ML:
+**For AI - Data drift detection:** The two-sample KS test is the most widely used drift detector in production ML:
 
 ```
 DRIFT DETECTION PIPELINE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Training data distribution: F_train(x)
   Production batch (daily):   F_prod(x)
@@ -846,17 +846,17 @@ DRIFT DETECTION PIPELINE
     Compute p_j = KS test p-value
     Apply BH correction across all features
 
-  Alert if: ∃ j with q_j < 0.05 (BH-adjusted)
+  Alert if: \\exists j with q_j < 0.05 (BH-adjusted)
   Report: Which features drifted and by how much
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Limitations:** KS tests features marginally (one at a time). For multivariate drift, use Maximum Mean Discrepancy (MMD) or domain classifier-based tests.
 
 ### 7.5 Bootstrap Hypothesis Tests
 
-The bootstrap (Efron 1979) provides a general method for constructing null distributions without parametric assumptions. Reviewed in §02 for CIs; here we use it for testing.
+The bootstrap (Efron 1979) provides a general method for constructing null distributions without parametric assumptions. Reviewed in Section02 for CIs; here we use it for testing.
 
 **Bootstrap test for two-sample means ($H_0: \mu_1 = \mu_2$):**
 1. Compute $T_{\text{obs}} = \bar{X}_1 - \bar{X}_2$.
@@ -864,7 +864,7 @@ The bootstrap (Efron 1979) provides a general method for constructing null distr
 3. Draw bootstrap samples from $\tilde{X}$ and $\tilde{Y}$, compute $T^{(b)} = \bar{X}^{(b)} - \bar{Y}^{(b)}$.
 4. $p = P(T^{(b)} \geq T_{\text{obs}})$.
 
-**Bootstrap for complex statistics:** The t-test requires normality for exact validity. Bootstrap tests work for any statistic: median differences, correlation coefficients, AUC, BLEU scores, F1 scores — anything you can compute on resampled data.
+**Bootstrap for complex statistics:** The t-test requires normality for exact validity. Bootstrap tests work for any statistic: median differences, correlation coefficients, AUC, BLEU scores, F1 scores - anything you can compute on resampled data.
 
 **For AI:** Bootstrap CI and tests are standard for NLP evaluation. When comparing BLEU or ROUGE scores, a paired bootstrap test (sampling test-set instances) is the gold standard, as used by Koehn (2004) and standard in MT evaluation.
 
@@ -907,7 +907,7 @@ $$\ell_n = \log \frac{\prod_{i=1}^n p(x_i \mid H_1)}{\prod_{i=1}^n p(x_i \mid H_
 
 **Wald's bounds:** These thresholds guarantee $P(\text{false positive}) \leq \alpha$ and $P(\text{false negative}) \leq \beta$, with minimal expected sample size compared to fixed-$n$ tests.
 
-**Mixture Sequential Ratio Test (mSPRT):** An extension by Johari et al. (2022) that uses a mixture distribution over $H_1$, producing "always-valid p-values" — p-values that can be checked at any time without inflating error rates. This is the theoretical foundation for modern continuous A/B testing platforms (Spotify, Netflix, Booking.com).
+**Mixture Sequential Ratio Test (mSPRT):** An extension by Johari et al. (2022) that uses a mixture distribution over $H_1$, producing "always-valid p-values" - p-values that can be checked at any time without inflating error rates. This is the theoretical foundation for modern continuous A/B testing platforms (Spotify, Netflix, Booking.com).
 
 **For AI:** The standard "wait N days, then look at p-value" A/B protocol is inefficient. Sequential testing with mSPRT or anytime-valid confidence sequences allows early stopping when effects are clear, reducing the cost of failed experiments by 30-50%.
 
@@ -922,7 +922,7 @@ $$\ell_n = \log \frac{\prod_{i=1}^n p(x_i \mid H_1)}{\prod_{i=1}^n p(x_i \mid H_
 | A correct | $n_{11}$ | $n_{10}$ |
 | A incorrect | $n_{01}$ | $n_{00}$ |
 
-The test statistic $\chi^2 = (n_{10} - n_{01})^2 / (n_{10} + n_{01}) \sim \chi^2_1$ under $H_0$ (models have equal accuracy). Only discordant pairs ($n_{10}$, $n_{01}$) contribute — concordant pairs carry no information about which model is better.
+The test statistic $\chi^2 = (n_{10} - n_{01})^2 / (n_{10} + n_{01}) \sim \chi^2_1$ under $H_0$ (models have equal accuracy). Only discordant pairs ($n_{10}$, $n_{01}$) contribute - concordant pairs carry no information about which model is better.
 
 **Diebold-Mariano test:** For comparing two forecasters. Test $H_0: \mathbb{E}[d_t] = 0$ where $d_t = L(e_{1t}) - L(e_{2t})$ is the loss differential at time $t$. Uses a HAC-robust variance estimator to handle serial correlation in $d_t$.
 
@@ -946,13 +946,13 @@ The test statistic $\chi^2 = (n_{10} - n_{01})^2 / (n_{10} + n_{01}) \sim \chi^2
 
 $$\text{PSI} = \sum_{b=1}^B (p_{\text{prod},b} - p_{\text{train},b}) \log\frac{p_{\text{prod},b}}{p_{\text{train},b}}$$
 
-where $b$ indexes histogram bins. PSI < 0.1: no drift; 0.1–0.25: moderate drift; > 0.25: significant drift requiring retraining. Structurally equivalent to a symmetrised KL divergence.
+where $b$ indexes histogram bins. PSI < 0.1: no drift; 0.1-0.25: moderate drift; > 0.25: significant drift requiring retraining. Structurally equivalent to a symmetrised KL divergence.
 
 ### 8.5 LLM Evaluation and Leaderboards
 
 **Current best practices (2025-2026) for rigorous LLM evaluation:**
 
-1. **Bootstrap confidence intervals on aggregate scores:** Sample test instances with replacement $B = 1{,}000$ times, compute benchmark score each time. Report median ± 95% CI.
+1. **Bootstrap confidence intervals on aggregate scores:** Sample test instances with replacement $B = 1{,}000$ times, compute benchmark score each time. Report median +/- 95% CI.
 
 2. **McNemar's test for pairwise comparisons:** For two LLMs on the same benchmark, use McNemar's test (paired binary outcomes) rather than an unpaired proportion test.
 
@@ -971,8 +971,8 @@ where $b$ indexes histogram bins. PSI < 0.1: no drift; 0.1–0.25: moderate drif
 
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|----------------|-----|
-| 1 | Interpreting p-value as $P(H_0 \text{ is true})$ | p-value is a frequency, not a posterior probability | p = P(data this extreme \| H₀ true); use Bayes factor for posterior |
-| 2 | Claiming "no effect" from $p > 0.05$ | Absence of evidence ≠ evidence of absence; may be underpowered | Report power and 95% CI; use equivalence testing |
+| 1 | Interpreting p-value as $P(H_0 \text{ is true})$ | p-value is a frequency, not a posterior probability | p = P(data this extreme \| H_0 true); use Bayes factor for posterior |
+| 2 | Claiming "no effect" from $p > 0.05$ | Absence of evidence \\neq evidence of absence; may be underpowered | Report power and 95% CI; use equivalence testing |
 | 3 | Running many tests without correction | FWER inflates to near 1; produces spurious discoveries | Apply Bonferroni (few tests) or BH (many tests) |
 | 4 | Peeking at data repeatedly and stopping at $p < 0.05$ | Actual Type I error rate far exceeds $\alpha$ | Use sequential tests (SPRT, mSPRT) or pre-register fixed $n$ |
 | 5 | Confusing statistical and practical significance | Large $n$ can make trivial effects significant | Always report effect size (Cohen's d/h) alongside p-value |
@@ -988,9 +988,9 @@ where $b$ indexes histogram bins. PSI < 0.1: no drift; 0.1–0.25: moderate drif
 
 ## 10. Exercises
 
-**Exercise 1 ★ — One-Sample t-Test from Scratch**
+**Exercise 1 * - One-Sample t-Test from Scratch**
 
-A language model's token latency (ms) is measured on 20 requests: mean = 47.3 ms, sample std = 8.1 ms. The SLA requires mean latency ≤ 45 ms.
+A language model's token latency (ms) is measured on 20 requests: mean = 47.3 ms, sample std = 8.1 ms. The SLA requires mean latency \\leq 45 ms.
 
 (a) State $H_0$ and $H_1$ precisely. Is this one-sided or two-sided?
 (b) Compute the t-statistic and degrees of freedom.
@@ -998,7 +998,7 @@ A language model's token latency (ms) is measured on 20 requests: mean = 47.3 ms
 (d) Compute the exact p-value.
 (e) State your conclusion in plain English.
 
-**Exercise 2 ★ — Chi-Squared Goodness-of-Fit**
+**Exercise 2 * - Chi-Squared Goodness-of-Fit**
 
 A text classifier should distribute predictions uniformly across 5 categories. On 500 test examples, observed counts are [87, 113, 95, 102, 103].
 
@@ -1006,9 +1006,9 @@ A text classifier should distribute predictions uniformly across 5 categories. O
 (b) Compute the $\chi^2$ statistic.
 (c) Find the p-value (df = 4, $\chi^2_{4, 0.05} = 9.49$).
 (d) Is the distribution significantly non-uniform at $\alpha = 0.05$?
-(e) Compute Cramér's V and interpret the effect size.
+(e) Compute Cramer's V and interpret the effect size.
 
-**Exercise 3 ★ — Power and Sample Size**
+**Exercise 3 * - Power and Sample Size**
 
 You want to detect that model A has a higher accuracy than model B ($p_A = 0.88$, $p_B = 0.85$) with 80% power at $\alpha = 0.05$.
 
@@ -1018,7 +1018,7 @@ You want to detect that model A has a higher accuracy than model B ($p_A = 0.88$
 (d) Plot the power curve as a function of $n$ (from 500 to 5000).
 (e) What sample size gives 95% power?
 
-**Exercise 4 ★★ — Neyman-Pearson Lemma for Exponential Distribution**
+**Exercise 4 ** - Neyman-Pearson Lemma for Exponential Distribution**
 
 Let $X_1, \ldots, X_n \overset{iid}{\sim} \text{Exp}(\lambda)$. Test $H_0: \lambda = \lambda_0$ vs. $H_1: \lambda = \lambda_1 > \lambda_0$.
 
@@ -1028,7 +1028,7 @@ Let $X_1, \ldots, X_n \overset{iid}{\sim} \text{Exp}(\lambda)$. Test $H_0: \lamb
 (d) Verify that this test has the correct size $\alpha = 0.05$ for $\lambda_0 = 1$, $n = 10$.
 (e) Is this test UMP for all $\lambda_1 > \lambda_0$? Justify using the MLR property.
 
-**Exercise 5 ★★ — Multiple Testing Correction**
+**Exercise 5 ** - Multiple Testing Correction**
 
 In an NLP evaluation, 50 hypothesis tests are conducted (comparing a new model to baseline on 50 benchmarks). The raw p-values are generated synthetically.
 
@@ -1038,7 +1038,7 @@ In an NLP evaluation, 50 hypothesis tests are conducted (comparing a new model t
 (d) Apply BH correction and count discoveries.
 (e) Across 1000 simulation replications, estimate the empirical FWER and FDR for each method. Plot the results.
 
-**Exercise 6 ★★ — Permutation Test for Two-Sample Means**
+**Exercise 6 ** - Permutation Test for Two-Sample Means**
 
 Two LLMs (A and B) are evaluated on 30 shared test prompts. Model A scores: drawn from $\mathcal{N}(0.72, 0.1^2)$. Model B scores: drawn from $\mathcal{N}(0.68, 0.1^2)$.
 
@@ -1048,7 +1048,7 @@ Two LLMs (A and B) are evaluated on 30 shared test prompts. Model A scores: draw
 (d) Compare to a Welch t-test p-value on the same data.
 (e) Repeat 500 times and compare the empirical Type I error rates of both tests under $H_0$.
 
-**Exercise 7 ★★★ — Sequential A/B Test with SPRT**
+**Exercise 7 *** - Sequential A/B Test with SPRT**
 
 Two model variants A and B are tested on streaming requests. $H_0: p_A = p_B = 0.80$ vs. $H_1: p_A = 0.85, p_B = 0.80$. Set $\alpha = 0.05$, $\beta = 0.20$.
 
@@ -1058,7 +1058,7 @@ Two model variants A and B are tested on streaming requests. $H_0: p_A = p_B = 0
 (d) Compare the expected stopping time under $H_0$ and $H_1$.
 (e) Estimate the empirical Type I error rate over 1000 simulated experiments where $H_0$ is true. Verify it is $\leq \alpha = 0.05$.
 
-**Exercise 8 ★★★ — KS-Based Data Drift Detector for LLM Features**
+**Exercise 8 *** - KS-Based Data Drift Detector for LLM Features**
 
 Build a drift detection system for an LLM serving system. Reference distribution: sentence embedding norms $\sim \mathcal{N}(10, 1^2)$. Production batches vary.
 
@@ -1076,8 +1076,8 @@ Build a drift detection system for an LLM serving system. Reference distribution
 |---|---|---|
 | p-values and significance | Model comparison on benchmark leaderboards | Prevents claiming spurious improvements; requires $n \geq 5{,}000$ per comparison |
 | Power analysis | Benchmark design; A/B experiment sizing | Determines minimum test set size to detect meaningful improvements |
-| Type I / II error trade-off | Deployment gates (safety vs. capability) | Conservative α (0.01) for safety tests; liberal α (0.1) for early exploration |
-| Multiple testing correction | Simultaneous evaluation across benchmarks | BH correction required when testing ≥ 10 benchmarks |
+| Type I / II error trade-off | Deployment gates (safety vs. capability) | Conservative \\alpha (0.01) for safety tests; liberal \\alpha (0.1) for early exploration |
+| Multiple testing correction | Simultaneous evaluation across benchmarks | BH correction required when testing \\geq 10 benchmarks |
 | Welch t-test | Comparing model variants on different test sets | Default for unpaired, unequal-variance model comparisons |
 | McNemar's test | Paired model comparison on shared test examples | Most powerful paired comparison for binary accuracy |
 | GLRT / Wilks' theorem | Comparing nested model architectures by NLL | $\chi^2_k$ test on difference in log-likelihoods; model selection |
@@ -1094,19 +1094,19 @@ Build a drift detection system for an LLM serving system. Reference distribution
 
 ## 12. Conceptual Bridge
 
-### Looking Back: Estimation Theory (§02)
+### Looking Back: Estimation Theory (Section02)
 
-Hypothesis testing builds directly on estimation theory (§02). The estimators derived there — sample mean $\bar{X}$, MLE $\hat{\theta}$, sample variance $S^2$ — reappear as the building blocks of every test statistic. The confidence interval duality (Section 2.5) makes this connection explicit: a confidence interval *is* the set of parameter values we would fail to reject, and the test *is* an inversion of the CI procedure.
+Hypothesis testing builds directly on estimation theory (Section02). The estimators derived there - sample mean $\bar{X}$, MLE $\hat{\theta}$, sample variance $S^2$ - reappear as the building blocks of every test statistic. The confidence interval duality (Section 2.5) makes this connection explicit: a confidence interval *is* the set of parameter values we would fail to reject, and the test *is* an inversion of the CI procedure.
 
-The asymptotic normality of MLE (§02 §8) is the theoretical engine behind the Wald test and the asymptotic validity of the z-test for large samples. Fisher information (§02 §4) enters hypothesis testing through the score test and through the Cramér-Rao bound's role in characterising optimal tests.
+The asymptotic normality of MLE (Section02 Section8) is the theoretical engine behind the Wald test and the asymptotic validity of the z-test for large samples. Fisher information (Section02 Section4) enters hypothesis testing through the score test and through the Cramer-Rao bound's role in characterising optimal tests.
 
-Confidence intervals (§02 §7) and hypothesis tests are dual constructions: every confidence interval corresponds to a test, and every test corresponds to a confidence interval. Reporting CIs is strictly more informative, because CIs communicate effect size and precision, not just a binary reject/don't-reject decision.
+Confidence intervals (Section02 Section7) and hypothesis tests are dual constructions: every confidence interval corresponds to a test, and every test corresponds to a confidence interval. Reporting CIs is strictly more informative, because CIs communicate effect size and precision, not just a binary reject/don't-reject decision.
 
-### Looking Forward: Bayesian Inference (§04)
+### Looking Forward: Bayesian Inference (Section04)
 
-Section §04 provides the Bayesian counterpart to every major concept in this section:
+Section Section04 provides the Bayesian counterpart to every major concept in this section:
 
-| Frequentist (§03) | Bayesian (§04) |
+| Frequentist (Section03) | Bayesian (Section04) |
 |---|---|
 | p-value | Posterior probability $P(H_0 \mid \mathbf{x})$ |
 | Significance test | Bayes factor $B_{01}$ |
@@ -1114,40 +1114,40 @@ Section §04 provides the Bayesian counterpart to every major concept in this se
 | FWER / FDR control | Prior on proportion of true nulls $\pi_0$ |
 | Point null $H_0: \theta = \theta_0$ | Spike-and-slab prior centred at $\theta_0$ |
 
-The philosophical divide is deep: frequentists refuse to assign probabilities to hypotheses (hypotheses are fixed; data are random). Bayesians treat parameters and hypotheses as random variables with prior distributions. The Bayesian framework provides a natural solution to multiple testing (the prior on $\pi_0$ automatically corrects for multiplicity), but requires specification of that prior — a potential source of subjectivity.
+The philosophical divide is deep: frequentists refuse to assign probabilities to hypotheses (hypotheses are fixed; data are random). Bayesians treat parameters and hypotheses as random variables with prior distributions. The Bayesian framework provides a natural solution to multiple testing (the prior on $\pi_0$ automatically corrects for multiplicity), but requires specification of that prior - a potential source of subjectivity.
 
 For AI practitioners, the practical choice is often dictated by computational constraints and domain norms. Frequentist tests are fast and require no prior specification; Bayesian methods provide richer inference at the cost of prior elicitation and posterior computation.
 
-### Looking Further Forward: Regression (§06)
+### Looking Further Forward: Regression (Section06)
 
-The F-test derived in Section 4.4 reappears in §06 as the overall F-test for regression significance. The t-test for individual regression coefficients ($H_0: \beta_j = 0$) is a direct application of the Wald test from Section 5.4. The multiple testing problem reappears when testing many coefficients simultaneously in high-dimensional regression — LASSO regularisation can be seen as an implicit multiple testing correction that shrinks small coefficients to zero.
+The F-test derived in Section 4.4 reappears in Section06 as the overall F-test for regression significance. The t-test for individual regression coefficients ($H_0: \beta_j = 0$) is a direct application of the Wald test from Section 5.4. The multiple testing problem reappears when testing many coefficients simultaneously in high-dimensional regression - LASSO regularisation can be seen as an implicit multiple testing correction that shrinks small coefficients to zero.
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §02 ESTIMATION THEORY
+  Section02 ESTIMATION THEORY
     MLE, Fisher info, CIs, asymptotic normality
-           │
-           ▼ (test statistics are functions of estimators)
-  §03 HYPOTHESIS TESTING  ◄── YOU ARE HERE
-    p-values, power, t/χ²/F tests, LRT, multiple testing,
+           |
+           v (test statistics are functions of estimators)
+  Section03 HYPOTHESIS TESTING  <-- YOU ARE HERE
+    p-values, power, t/\\chi^2/F tests, LRT, multiple testing,
     nonparametric tests, A/B testing, sequential tests
-           │                         │
-           ▼                         ▼
-  §04 BAYESIAN INFERENCE    §06 REGRESSION ANALYSIS
+           |                         |
+           v                         v
+  Section04 BAYESIAN INFERENCE    Section06 REGRESSION ANALYSIS
   (Bayes factors, posterior    (F-test, t-tests on
    probability of hypotheses)   regression coefficients)
-           │
-           ▼
+           |
+           v
   Ch8 OPTIMISATION
   (RLHF experiment design,
    model selection, early stopping)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-Hypothesis testing is the formal language of scientific comparison. Every claim that "model A is better than model B", every statement that "this feature is significant", every assertion that "the distribution shifted" — all of these are hypothesis tests, whether or not they are recognised as such. Making these tests explicit, pre-specified, and properly corrected is the difference between rigorous science and post-hoc storytelling.
+Hypothesis testing is the formal language of scientific comparison. Every claim that "model A is better than model B", every statement that "this feature is significant", every assertion that "the distribution shifted" - all of these are hypothesis tests, whether or not they are recognised as such. Making these tests explicit, pre-specified, and properly corrected is the difference between rigorous science and post-hoc storytelling.
 
 ---
 
@@ -1242,7 +1242,7 @@ $$P\!\left(\bigcup_{i=1}^m A_i\right) = \sum P(A_i) - \sum_{i<j} P(A_i \cap A_j)
 
 $$\text{FWER} = P\!\left(\bigcup_{i=1}^{m_0} A_i\right) \leq \sum_{i=1}^{m_0} P(A_i) \leq m_0 \cdot \frac{\alpha}{m} \leq m \cdot \frac{\alpha}{m} = \alpha$$
 
-The Bonferroni correction is conservative because the inequality is tight only when the $A_i$ are mutually exclusive — which is the worst case for the union bound.
+The Bonferroni correction is conservative because the inequality is tight only when the $A_i$ are mutually exclusive - which is the worst case for the union bound.
 
 **Simes' inequality (1986):** For independent tests, the probability that any $p_{(i)} \leq i\alpha/m$ (BH threshold) is exactly $\alpha$ under the complete null. This is sharper than Bonferroni and is the basis of the BH procedure's validity proof.
 
@@ -1266,7 +1266,7 @@ $$T = \frac{(\bar{X}-\mu)/(\sigma/\sqrt{n})}{\sqrt{(n-1)S^2/(\sigma^2(n-1))}} = 
 
 ---
 
-## Appendix G: Power Analysis — Detailed Derivations
+## Appendix G: Power Analysis - Detailed Derivations
 
 **One-sample z-test power derivation:**
 
@@ -1305,21 +1305,21 @@ $$z_{\alpha/2} - \delta\sqrt{n} = -z_\beta \implies n = \left(\frac{z_{\alpha/2}
 | 2.0% | 85% | ~1,800 |
 | 5.0% | 85% | ~310 |
 
-These numbers explain why ML benchmark evaluations are so often underpowered: a 5% absolute improvement requires only 310 examples per model, but a 1% improvement requires 7,200 — yet many benchmarks have 1,000-3,000 examples total.
+These numbers explain why ML benchmark evaluations are so often underpowered: a 5% absolute improvement requires only 310 examples per model, but a 1% improvement requires 7,200 - yet many benchmarks have 1,000-3,000 examples total.
 
 ---
 
 ## Appendix H: Exact Permutation Distribution
 
-For a two-sample test with $n_1 = n_2 = n/2$ observations, there are $\binom{n}{n/2}$ possible label assignments under $H_0$. For $n = 20$: $\binom{20}{10} = 184{,}756$ permutations — feasible to enumerate exactly. For $n = 100$: $\binom{100}{50} \approx 10^{29}$ — use Monte Carlo with $B = 10{,}000$ permutations.
+For a two-sample test with $n_1 = n_2 = n/2$ observations, there are $\binom{n}{n/2}$ possible label assignments under $H_0$. For $n = 20$: $\binom{20}{10} = 184{,}756$ permutations - feasible to enumerate exactly. For $n = 100$: $\binom{100}{50} \approx 10^{29}$ - use Monte Carlo with $B = 10{,}000$ permutations.
 
 **Exactness:** The permutation p-value $\hat{p} = |\{b : T^{(b)} \geq T_{\text{obs}}\}| / B$ is an unbiased estimate of the true permutation p-value. Adding 1 to numerator and denominator (standard practice) ensures $\hat{p} > 0$ and conservatism.
 
-**Validity without normality:** The permutation test is exactly valid for any test statistic, any sample size, and any continuous distribution. The only assumption is exchangeability under $H_0$ — which is guaranteed by randomisation in designed experiments.
+**Validity without normality:** The permutation test is exactly valid for any test statistic, any sample size, and any continuous distribution. The only assumption is exchangeability under $H_0$ - which is guaranteed by randomisation in designed experiments.
 
 ---
 
-## Appendix I: Benjamini-Hochberg Procedure — Step-by-Step
+## Appendix I: Benjamini-Hochberg Procedure - Step-by-Step
 
 **Input:** p-values $p_1, \ldots, p_m$ (unordered); target FDR level $q$.
 
@@ -1340,9 +1340,9 @@ BH thresholds ($iq/m$): 0.005, 0.010, 0.015, 0.020, 0.025, 0.030, 0.035, 0.040, 
 | 3 | 0.039 | 0.015 | **No** |
 | 4 | 0.041 | 0.020 | No |
 
-Working from bottom: $p_{(4)} = 0.041 > 0.020$, $p_{(3)} = 0.039 > 0.015$, $p_{(2)} = 0.008 \leq 0.010$ → $k = 2$. Reject hypotheses 1 and 2.
+Working from bottom: $p_{(4)} = 0.041 > 0.020$, $p_{(3)} = 0.039 > 0.015$, $p_{(2)} = 0.008 \leq 0.010$ -> $k = 2$. Reject hypotheses 1 and 2.
 
-Bonferroni would require $p \leq 0.005$ — only hypothesis 1 would be rejected. BH is more powerful.
+Bonferroni would require $p \leq 0.005$ - only hypothesis 1 would be rejected. BH is more powerful.
 
 ---
 
@@ -1361,7 +1361,7 @@ This is the key inequality behind always-valid p-values: if you stop when $\Lamb
 
 ---
 
-## Appendix K: Worked Examples — Common Tests
+## Appendix K: Worked Examples - Common Tests
 
 ### K.1 One-Sample t-Test
 
@@ -1404,7 +1404,7 @@ This is the key inequality behind always-valid p-values: if you stop when $\Lamb
 - $E_{11} = 1200 \times 500/1550 = 387.1$; compute all 8 expected values.
 - $\chi^2 = \sum (O-E)^2/E \approx 23.4$, df $= (2-1)(4-1) = 3$.
 - $p = P(\chi^2_3 > 23.4) < 0.0001$: strong evidence of language dependence.
-- Cramér's V $= \sqrt{23.4/(1550 \cdot 1)} = 0.123$ (small to medium effect).
+- Cramer's V $= \sqrt{23.4/(1550 \cdot 1)} = 0.123$ (small to medium effect).
 - **Conclusion:** Quality differs significantly across languages; Spanish and German have notably higher error rates.
 
 ---
@@ -1413,27 +1413,27 @@ This is the key inequality behind always-valid p-values: if you stop when $\Lamb
 
 ### Core Textbooks
 
-1. **Lehmann & Romano — *Testing Statistical Hypotheses* (3rd ed., 2005):** The definitive theoretical reference. Covers NP lemma, UMP tests, unbiasedness, invariance, and asymptotic theory with full proofs. Essential for anyone wanting the complete frequentist theory.
+1. **Lehmann & Romano - *Testing Statistical Hypotheses* (3rd ed., 2005):** The definitive theoretical reference. Covers NP lemma, UMP tests, unbiasedness, invariance, and asymptotic theory with full proofs. Essential for anyone wanting the complete frequentist theory.
 
-2. **Casella & Berger — *Statistical Inference* (2nd ed., 2001):** Chapters 8-9 cover hypothesis testing at the graduate textbook level. Excellent balance of theory and computation.
+2. **Casella & Berger - *Statistical Inference* (2nd ed., 2001):** Chapters 8-9 cover hypothesis testing at the graduate textbook level. Excellent balance of theory and computation.
 
-3. **Wasserman — *All of Statistics* (2004):** Compressed, modern treatment with connections to ML. Chapters 10-14 cover testing, p-values, and multiple testing.
+3. **Wasserman - *All of Statistics* (2004):** Compressed, modern treatment with connections to ML. Chapters 10-14 cover testing, p-values, and multiple testing.
 
-4. **Efron & Hastie — *Computer Age Statistical Inference* (2016):** Covers bootstrap, FDR, empirical Bayes, and algorithmic inference. Free PDF from Stanford.
+4. **Efron & Hastie - *Computer Age Statistical Inference* (2016):** Covers bootstrap, FDR, empirical Bayes, and algorithmic inference. Free PDF from Stanford.
 
 ### ML-Specific References
 
-5. **Dror et al. — "Deep Dominance: How to Properly Compare Deep Neural Models" (ACL 2019):** Comprehensive study of hypothesis tests for NLP model comparison. Advocates for bootstrap and permutation tests over t-tests.
+5. **Dror et al. - "Deep Dominance: How to Properly Compare Deep Neural Models" (ACL 2019):** Comprehensive study of hypothesis tests for NLP model comparison. Advocates for bootstrap and permutation tests over t-tests.
 
-6. **Demšar — "Statistical Comparisons of Classifiers over Multiple Datasets" (JMLR, 2006):** Recommends Friedman test + Nemenyi post-hoc for comparing multiple classifiers across multiple datasets.
+6. **Demsar - "Statistical Comparisons of Classifiers over Multiple Datasets" (JMLR, 2006):** Recommends Friedman test + Nemenyi post-hoc for comparing multiple classifiers across multiple datasets.
 
-7. **Johari et al. — "Peeking at A/B Tests" (KDD 2017):** The original paper on always-valid p-values and mSPRT for online A/B testing.
+7. **Johari et al. - "Peeking at A/B Tests" (KDD 2017):** The original paper on always-valid p-values and mSPRT for online A/B testing.
 
-8. **Ramdas et al. — "Testing Exchangeability: Fork-Convex Hulls, Supermartingales and e-Processes" (2022):** Modern framework for e-values and anytime-valid inference.
+8. **Ramdas et al. - "Testing Exchangeability: Fork-Convex Hulls, Supermartingales and e-Processes" (2022):** Modern framework for e-values and anytime-valid inference.
 
-9. **Liao et al. — "Are Emergent Abilities of Large Language Models a Mirage?" (NeurIPS 2023):** Demonstrates that many claimed LLM phase transitions are statistical artifacts of discontinuous metrics + multiple comparisons.
+9. **Liao et al. - "Are Emergent Abilities of Large Language Models a Mirage?" (NeurIPS 2023):** Demonstrates that many claimed LLM phase transitions are statistical artifacts of discontinuous metrics + multiple comparisons.
 
-10. **Koehn — "Statistical Significance Tests for Machine Translation Evaluation" (EMNLP 2004):** The canonical reference for bootstrap resampling in MT evaluation. Introduced paired bootstrap testing to NLP.
+10. **Koehn - "Statistical Significance Tests for Machine Translation Evaluation" (EMNLP 2004):** The canonical reference for bootstrap resampling in MT evaluation. Introduced paired bootstrap testing to NLP.
 
 
 ---
@@ -1442,11 +1442,11 @@ This is the key inequality behind always-valid p-values: if you stop when $\Lamb
 
 ### M.1 Composite Hypotheses and Nuisance Parameters
 
-Many practical testing problems involve **nuisance parameters** — parameters that appear in the model but are not the focus of the test. For example, in the two-sample t-test, the common variance $\sigma^2$ (or the two separate variances in Welch's test) are nuisance parameters when the hypothesis concerns the difference in means.
+Many practical testing problems involve **nuisance parameters** - parameters that appear in the model but are not the focus of the test. For example, in the two-sample t-test, the common variance $\sigma^2$ (or the two separate variances in Welch's test) are nuisance parameters when the hypothesis concerns the difference in means.
 
 **Problem:** If $H_0: \mu_1 = \mu_2$ with unknown $\sigma_1, \sigma_2$ (Behrens-Fisher problem), there is no exact test. The Welch t-test provides an approximate solution via the Satterthwaite degrees of freedom approximation.
 
-**Conditional tests:** One approach is to condition on sufficient statistics for the nuisance parameters. Fisher's exact test conditions on the row and column marginals of a contingency table — the marginals are ancillary for the association parameter of interest.
+**Conditional tests:** One approach is to condition on sufficient statistics for the nuisance parameters. Fisher's exact test conditions on the row and column marginals of a contingency table - the marginals are ancillary for the association parameter of interest.
 
 **Profile likelihood:** Replace nuisance parameters by their profile MLEs. The profile likelihood ratio test then has the same $\chi^2$ asymptotic distribution as the full GLRT.
 
@@ -1489,13 +1489,13 @@ Standard hypothesis testing establishes **association** ($P(Y|X) \neq P(Y)$) but
 
 ---
 
-## Appendix N: Pitfalls in Benchmark Evaluation — Extended Analysis
+## Appendix N: Pitfalls in Benchmark Evaluation - Extended Analysis
 
 ### N.1 The Evaluation Overfitting Problem
 
 **Adaptive data analysis:** Every time a benchmark is used to select a model or tune hyperparameters, the benchmark becomes part of the training signal. The final evaluation on the same benchmark is biased upward.
 
-**Holdout sets:** The standard remedy is a held-out test set that is never used for model selection. In practice, LLM benchmark contamination makes this extremely difficult — web-scraped training data often contains benchmark questions and answers.
+**Holdout sets:** The standard remedy is a held-out test set that is never used for model selection. In practice, LLM benchmark contamination makes this extremely difficult - web-scraped training data often contains benchmark questions and answers.
 
 **Differential privacy approach:** Dwork et al. (2015) proved that if researchers are allowed at most $k$ adaptive queries to a holdout set of size $n$, they can answer up to $O(n^{2/3}k^{1/3})$ queries with valid statistical guarantees. This puts a hard limit on the number of models that can be compared on a single benchmark before results become meaningless.
 
@@ -1549,14 +1549,14 @@ For $n$ independent observations, the optimal Type II error rate (at fixed Type 
 **Special case:** For one-sided tests with simple $H_0$ and $H_1$, the Stein's lemma states:
 $$\beta_n^* \approx e^{-n D_{\mathrm{KL}}(P \| Q)}$$
 
-where $D_{\mathrm{KL}}(P \| Q)$ is the KL divergence from $Q$ to $P$. More KL divergence → test errors vanish faster. This is why KL divergence is the natural measure of "distance" between distributions in testing.
+where $D_{\mathrm{KL}}(P \| Q)$ is the KL divergence from $Q$ to $P$. More KL divergence -> test errors vanish faster. This is why KL divergence is the natural measure of "distance" between distributions in testing.
 
 ### P.2 Sufficient Statistics and Data Processing
 
 The **Data Processing Inequality** states that processing data (applying a function $f$) cannot increase information:
 $$I(X; Y) \geq I(f(X); Y)$$
 
-In hypothesis testing: a test statistic $T(\mathbf{x})$ is a deterministic function of $\mathbf{x}$. By the DPI, $T$ cannot be more informative about $\theta$ than $\mathbf{x}$ itself. Equality holds when $T$ is a **sufficient statistic** — when $T$ captures all the information in the data about $\theta$.
+In hypothesis testing: a test statistic $T(\mathbf{x})$ is a deterministic function of $\mathbf{x}$. By the DPI, $T$ cannot be more informative about $\theta$ than $\mathbf{x}$ itself. Equality holds when $T$ is a **sufficient statistic** - when $T$ captures all the information in the data about $\theta$.
 
 This gives an information-theoretic characterisation of sufficient statistics: $T$ is sufficient for $\theta$ iff $I(T; \theta) = I(\mathbf{x}; \theta)$, i.e., no information about $\theta$ is lost by replacing $\mathbf{x}$ with $T(\mathbf{x})$. A test based on a sufficient statistic is just as powerful as one based on the full data.
 
@@ -1566,14 +1566,14 @@ This gives an information-theoretic characterisation of sufficient statistics: $
 - The null model $H_0$ has description length $L(H_0) + L(\mathbf{x}|H_0)$.
 - The alternative $H_1$ has description length $L(H_1) + L(\mathbf{x}|H_1)$.
 
-Reject $H_0$ if the alternative provides a shorter total description. This is equivalent to GLRT when $H_0$ and $H_1$ are parametric models of different complexity — the MDL penalty for the more complex model plays the role of the chi-squared df in Wilks' theorem.
+Reject $H_0$ if the alternative provides a shorter total description. This is equivalent to GLRT when $H_0$ and $H_1$ are parametric models of different complexity - the MDL penalty for the more complex model plays the role of the chi-squared df in Wilks' theorem.
 
 **Connection to Bayes factors:** If priors on $H_0$ and $H_1$ are encoded as prefix codes, the Bayes factor equals $2^{L(H_0) - L(H_1)}$ where $L$ includes both model complexity and data description length. MDL, Bayes factors, and GLRT are three facets of the same information-theoretic principle: model complexity must be penalised when comparing models of different complexity.
 
 
 ---
 
-## Appendix Q: Numerical Examples — Power Curves
+## Appendix Q: Numerical Examples - Power Curves
 
 ### Q.1 Power Curve for One-Sample t-Test
 
@@ -1607,7 +1607,7 @@ For a two-sample t-test detecting $d = 0.5$ (medium effect), $\alpha = 0.05$:
 | 200 | 0.978 |
 | 300 | 0.997 |
 
-The "required $n$" of 64 achieves 70% power (not 80% — this is a common mistake in power calculation formulas; exact values depend on using the t-distribution vs. normal approximation).
+The "required $n$" of 64 achieves 70% power (not 80% - this is a common mistake in power calculation formulas; exact values depend on using the t-distribution vs. normal approximation).
 
 ### Q.3 Multiple Testing Power Comparison
 
@@ -1640,7 +1640,7 @@ Minimising Bayes risk gives the likelihood ratio test (NP lemma generalised to B
 The **minimax test** minimises the maximum risk over all priors:
 $$\phi^* = \arg\min_\phi \max_\pi r(\phi, \pi)$$
 
-For 0-1 loss, the minimax test is the one that equalises the power function at $\theta_0$ and $\theta_1$ — equivalently, the Bayes test under the least favourable prior.
+For 0-1 loss, the minimax test is the one that equalises the power function at $\theta_0$ and $\theta_1$ - equivalently, the Bayes test under the least favourable prior.
 
 ### R.2 Asymptotic Relative Efficiency
 
@@ -1659,7 +1659,7 @@ where $e_T = [(\partial/\partial\theta)\mathbb{E}_{H_1}[T]]^2 / \operatorname{Va
 **Key results:**
 - Wilcoxon vs. t-test for Gaussian data: $\text{ARE} = 3/\pi \approx 0.955$. Wilcoxon loses only 4.5% efficiency.
 - Wilcoxon vs. t-test for heavy-tailed data: $\text{ARE} > 1$. Wilcoxon can be substantially more efficient.
-- Minimum ARE of Wilcoxon vs. t-test (over all symmetric distributions): $0.864$ — Wilcoxon never needs more than 16% more data.
+- Minimum ARE of Wilcoxon vs. t-test (over all symmetric distributions): $0.864$ - Wilcoxon never needs more than 16% more data.
 
 This remarkable result (Hodges-Lehmann, 1956) justifies using Wilcoxon as a default nonparametric test: you sacrifice at most 16% efficiency relative to t-test in the best case for t, while potentially gaining large efficiency for non-normal distributions.
 
@@ -1671,7 +1671,7 @@ In observational studies, test validity depends on unverifiable assumptions. **S
 
 Report sensitivity: "Our finding remains significant at the $\Gamma = 2$ level, meaning an unmeasured confounder would need to double the odds of treatment to explain away the effect."
 
-For AI experiments, sensitivity analysis is essential when comparing models across different data pipelines, hardware, or evaluation setups — all of which are potential confounders.
+For AI experiments, sensitivity analysis is essential when comparing models across different data pipelines, hardware, or evaluation setups - all of which are potential confounders.
 
 
 ---
@@ -1694,8 +1694,8 @@ Before reporting any hypothesis test in a paper or technical document, verify th
   - Normality (for t-test): checked via Shapiro-Wilk or Q-Q plot for $n < 50$.
   - Homoscedasticity (for pooled t-test/ANOVA): checked via Levene's test; use Welch if violated.
   - Independence: observations are not clustered, repeated, or time-dependent.
-- [ ] **Correct test applied:** Paired data → paired test. Small expected counts → Fisher's exact. Non-normal small $n$ → nonparametric.
-- [ ] **Effect size computed:** Cohen's d/h/f or Cramér's V reported alongside p-value.
+- [ ] **Correct test applied:** Paired data -> paired test. Small expected counts -> Fisher's exact. Non-normal small $n$ -> nonparametric.
+- [ ] **Effect size computed:** Cohen's d/h/f or Cramer's V reported alongside p-value.
 - [ ] **Confidence interval reported:** 95% CI for the effect size (not just the p-value).
 
 ### S.3 Reporting Checklist
@@ -1715,7 +1715,7 @@ Before reporting any hypothesis test in a paper or technical document, verify th
 
 ---
 
-## Appendix T: Quick Reference — Test Statistics and Null Distributions
+## Appendix T: Quick Reference - Test Statistics and Null Distributions
 
 ### One-Sample Tests
 
@@ -1731,9 +1731,9 @@ Before reporting any hypothesis test in a paper or technical document, verify th
 
 | Test | Statistic | Null Distribution | When to Use |
 |---|---|---|---|
-| Welch t | See §4.2 | $t_\nu$ (Satterthwaite) | Normal, unequal var |
+| Welch t | See Section4.2 | $t_\nu$ (Satterthwaite) | Normal, unequal var |
 | Pooled t | $T = (\bar{X}_1-\bar{X}_2)/(S_p\sqrt{1/n_1+1/n_2})$ | $t_{n_1+n_2-2}$ | Normal, equal var |
-| Z-test (proportions) | See §4.1 | $\mathcal{N}(0,1)$ | Large $n$, proportions |
+| Z-test (proportions) | See Section4.1 | $\mathcal{N}(0,1)$ | Large $n$, proportions |
 | Mann-Whitney | $U$ statistic | Wilcoxon/Normal approx | Non-normal |
 | KS test | $D_{n,m}$ | Kolmogorov dist | Any continuous |
 | Permutation | Any statistic | Empirical (permuted) | Any statistic, any dist |
@@ -1760,7 +1760,7 @@ Before reporting any hypothesis test in a paper or technical document, verify th
 
 ---
 
-## Appendix U: Extended Worked Examples — Machine Learning Scenarios
+## Appendix U: Extended Worked Examples - Machine Learning Scenarios
 
 ### U.1 McNemar's Test for LLM Comparison
 
@@ -1792,7 +1792,7 @@ $p = 0.20$: not significant! The z-test ignores the correlation between paired r
 1. For $b = 1, \ldots, 10{,}000$:
    - Sample 500 sentence pairs with replacement (same indices for both systems).
    - Compute BLEU(A$^{(b)}$) - BLEU(B$^{(b)}$) on the resampled set.
-2. Estimate $p = P(\text{BLEU}(A^{(b)}) - \text{BLEU}(B^{(b)}) \leq 0)$ — the fraction of bootstrap replicates where B is better.
+2. Estimate $p = P(\text{BLEU}(A^{(b)}) - \text{BLEU}(B^{(b)}) \leq 0)$ - the fraction of bootstrap replicates where B is better.
 
 This is the Koehn (2004) paired bootstrap test, the standard for MT evaluation.
 
@@ -1812,7 +1812,7 @@ For a thumbs-up ($x = 1$): $\delta_1 = \log(p_1/p_0) = \log(0.75/0.72) = 0.040$.
 For a thumbs-down ($x = 0$): $\delta_0 = \log((1-p_1)/(1-p_0)) = \log(0.25/0.28) = -0.113$.
 
 **Expected stopping times:**
-- Under $H_1$ ($p = 0.75$): $\mathbb{E}[\tau] \approx (B \cdot \pi_1 + A \cdot \pi_0) / \mathbb{E}_1[\delta]$ ≈ $(-2.254 \cdot 0.10 + 2.890 \cdot 0.90) / (0.75\delta_1 + 0.25\delta_0) \approx 2.396/0.002 \approx 1{,}200$ observations.
+- Under $H_1$ ($p = 0.75$): $\mathbb{E}[\tau] \approx (B \cdot \pi_1 + A \cdot \pi_0) / \mathbb{E}_1[\delta]$ \\approx $(-2.254 \cdot 0.10 + 2.890 \cdot 0.90) / (0.75\delta_1 + 0.25\delta_0) \approx 2.396/0.002 \approx 1{,}200$ observations.
 - Fixed-$n$ test for same $\alpha, \beta$: approximately $2{,}100$ observations.
 
 SPRT requires ~43% fewer observations in this scenario by stopping early when evidence accumulates quickly.
@@ -1838,7 +1838,7 @@ Fisher's canonical example (1935): A lady claims she can tell whether tea or mil
 
 Under $H_0$ (random guessing): $P(\text{all 4 correct}) = 1/\binom{8}{4} = 1/70 = 0.014$.
 
-This tiny experiment — 8 cups, 1 run — is sufficient to achieve $p = 0.014$ if the lady guesses perfectly. Fisher's point: careful experimental design can yield strong statistical conclusions from minimal data.
+This tiny experiment - 8 cups, 1 run - is sufficient to achieve $p = 0.014$ if the lady guesses perfectly. Fisher's point: careful experimental design can yield strong statistical conclusions from minimal data.
 
 **For AI:** The same logic applies to benchmark construction. A cleverly designed benchmark where random performance is exactly 25% (4-choice multiple choice) and human performance is 90% has high discriminating power. MMLU was designed with this principle.
 
@@ -1846,18 +1846,18 @@ This tiny experiment — 8 cups, 1 run — is sufficient to achieve $p = 0.014$ 
 
 William Sealy Gosset derived the t-distribution in 1908 while working as a statistician for Guinness Brewery. Guinness had small-batch experiments (barley yields, hop compositions) where $n$ was typically 3-10. The existing large-sample theory (requiring normality and known $\sigma$) was useless. Gosset published under the pseudonym "Student" because Guinness forbade employees from publishing (for fear of revealing industrial methods).
 
-The t-test is thus directly connected to the practical problem of drawing conclusions from small samples — exactly the problem faced by ML researchers evaluating expensive models on small benchmark sets.
+The t-test is thus directly connected to the practical problem of drawing conclusions from small samples - exactly the problem faced by ML researchers evaluating expensive models on small benchmark sets.
 
 ### V.3 Neyman-Pearson and the Cigarette Industry
 
 Jerzy Neyman and Egon Pearson developed their framework in the 1930s, partly motivated by quality control in manufacturing (testing whether a batch of products meets specifications). The framework is explicitly about **decisions**, not inference: you must ship or reject a batch based on a sample inspection. This decision-theoretic framing became the dominant paradigm in industrial statistics.
 
-The cigarette industry later (1950s-70s) exploited the p-value/significance framework to manufacture doubt about cancer studies — repeatedly pointing out that individual studies did not achieve $p < 0.05$ while ignoring the overwhelming weight of evidence across hundreds of studies. This historical episode motivates modern emphasis on effect sizes, meta-analysis, and replication over single-study p-values.
+The cigarette industry later (1950s-70s) exploited the p-value/significance framework to manufacture doubt about cancer studies - repeatedly pointing out that individual studies did not achieve $p < 0.05$ while ignoring the overwhelming weight of evidence across hundreds of studies. This historical episode motivates modern emphasis on effect sizes, meta-analysis, and replication over single-study p-values.
 
 
 ---
 
-## Appendix W: Common Distributions — Moments and Quantiles
+## Appendix W: Common Distributions - Moments and Quantiles
 
 ### W.1 Standard Normal
 
@@ -1915,7 +1915,7 @@ Used in ANOVA and comparing nested model likelihoods. $F_{1, \nu} = t_\nu^2$.
 ---
 
 *This section is part of the [Math for LLMs curriculum](../../README.md).
-Previous: [§02 Estimation Theory](../02-Estimation-Theory/notes.md) | Next: [§04 Bayesian Inference](../04-Bayesian-Inference/notes.md)*
+Previous: [Section02 Estimation Theory](../02-Estimation-Theory/notes.md) | Next: [Section04 Bayesian Inference](../04-Bayesian-Inference/notes.md)*
 
 
 ---
@@ -1928,7 +1928,7 @@ Previous: [§02 Estimation Theory](../02-Estimation-Theory/notes.md) | Next: [§
 from scipy import stats
 import numpy as np
 
-# ── One-sample tests ──────────────────────────────────────────────────
+# -- One-sample tests --------------------------------------------------
 # Z-test (manually, since scipy has no z-test function)
 z = (xbar - mu0) / (sigma / np.sqrt(n))
 p_two = 2 * (1 - stats.norm.cdf(abs(z)))
@@ -1939,7 +1939,7 @@ t, p = stats.ttest_1samp(x, popmean=mu0)
 # Wilcoxon signed-rank test
 w, p = stats.wilcoxon(x - mu0)
 
-# ── Two-sample tests ──────────────────────────────────────────────────
+# -- Two-sample tests --------------------------------------------------
 # Welch's t-test (ALWAYS use equal_var=False unless you have strong reason)
 t, p = stats.ttest_ind(x, y, equal_var=False)
 
@@ -1958,14 +1958,14 @@ result = stats.permutation_test((x, y),
     n_resamples=10_000, alternative='two-sided')
 p = result.pvalue
 
-# ── Multi-sample tests ────────────────────────────────────────────────
+# -- Multi-sample tests ------------------------------------------------
 # One-way ANOVA
 f, p = stats.f_oneway(group1, group2, group3)
 
 # Kruskal-Wallis
 h, p = stats.kruskal(group1, group2, group3)
 
-# ── Categorical tests ─────────────────────────────────────────────────
+# -- Categorical tests -------------------------------------------------
 # Chi-squared goodness-of-fit
 chi2, p = stats.chisquare(observed, f_exp=expected)
 
@@ -2019,6 +2019,6 @@ n = zt_ind_solve_power(effect_size=h, alpha=0.05, power=0.80)
 - Always set `np.random.seed(42)` before generating synthetic data for reproducibility.
 - For exact p-values from t-distribution: `p = 2 * stats.t.sf(abs(t_stat), df=df)` (two-sided).
 - For chi-squared p-value: `p = stats.chi2.sf(chi2_stat, df=k-1)`.
-- KS test is sensitive to sample size — even tiny real differences are "significant" at large $n$. Always report KS statistic $D$ alongside p-value.
+- KS test is sensitive to sample size - even tiny real differences are "significant" at large $n$. Always report KS statistic $D$ alongside p-value.
 - For bootstrap tests, use at least $B = 9{,}999$ permutations (so that $p = 1/10000$ is achievable).
 

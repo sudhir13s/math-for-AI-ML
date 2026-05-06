@@ -1,12 +1,12 @@
 # Functions and Mappings
 
-[← Sets and Logic](../02-Sets-and-Logic/notes.md) | [Next: Summation and Product Notation →](../04-Summation-and-Product-Notation/notes.md)
+[<- Sets and Logic](../02-Sets-and-Logic/notes.md) | [Next: Summation and Product Notation ->](../04-Summation-and-Product-Notation/notes.md)
 
-> _"A neural network is a composition of functions. Understanding functions — what they preserve, what they destroy, how they compose, where they break — is understanding neural networks at the deepest possible level."_
+> _"A neural network is a composition of functions. Understanding functions - what they preserve, what they destroy, how they compose, where they break - is understanding neural networks at the deepest possible level."_
 
 ## Overview
 
-A function is the most fundamental concept in mathematics after sets. It is a rule that assigns to each input exactly one output. Every mathematical operation you have ever performed — adding, multiplying, differentiating, integrating — is a function. Every layer in a neural network is a function. The entire model from tokens in to probabilities out is a single (very complex) function. Training is optimisation over a space of functions. Inference is function evaluation.
+A function is the most fundamental concept in mathematics after sets. It is a rule that assigns to each input exactly one output. Every mathematical operation you have ever performed - adding, multiplying, differentiating, integrating - is a function. Every layer in a neural network is a function. The entire model from tokens in to probabilities out is a single (very complex) function. Training is optimisation over a space of functions. Inference is function evaluation.
 
 This chapter develops function theory from first principles through to the frontier concepts needed to understand modern LLMs and AI systems at a mathematical level. We cover the formal definition, types (injective, surjective, bijective), composition, inverses, special classes (linear, affine, activation functions, convex, Lipschitz), higher-order functions and functionals, continuity, differentiability, measure-theoretic foundations, the systematic role of functions in machine learning, and the category-theoretic perspective that unifies it all.
 
@@ -31,7 +31,7 @@ Every concept is connected to how it appears in real neural network computation,
 After completing this section, you will:
 
 - Understand functions formally as subsets of Cartesian products satisfying totality and uniqueness
-- Distinguish domain, codomain, range, image, and preimage — and know why each matters for AI
+- Distinguish domain, codomain, range, image, and preimage - and know why each matters for AI
 - Classify functions as injective, surjective, bijective, monotone, or periodic
 - Compose functions and understand associativity, non-commutativity, and the identity function
 - Construct inverses (left, right, two-sided, pseudo-inverse) and connect invertibility to information preservation
@@ -149,20 +149,20 @@ The word "function" comes from the Latin _functio_, meaning "performance" or "ex
 **The machine metaphor.** Think of a function as a machine with an input slot and an output slot. You drop an object into the input slot; the machine does something to it; exactly one object comes out of the output slot. The same input always produces the same output. The machine never refuses an input (within its declared domain), and it never produces two outputs for a single input.
 
 ```
-              ┌──────────────┐
-  input  ───▶│   f(x) = 2x  │───▶  output
-  x = 3      │              │      f(3) = 6
-              └──────────────┘
+              +--------------+
+  input  --->|   f(x) = 2x  |--->  output
+  x = 3      |              |      f(3) = 6
+              +--------------+
 
-  Same input, same output — always:
+  Same input, same output - always:
   f(3) = 6, f(3) = 6, f(3) = 6, ...
 ```
 
-**Formal view.** A function $f: A \to B$ is a subset of the Cartesian product $A \times B$ such that every element of $A$ appears as the first element of exactly one ordered pair. If $(a, b_1) \in f$ and $(a, b_2) \in f$, then $b_1 = b_2$. This definition reduces the concept of a function to the concept of a set — and since set theory is the foundation of all mathematics, this means functions are built on the most basic level of the mathematical hierarchy.
+**Formal view.** A function $f: A \to B$ is a subset of the Cartesian product $A \times B$ such that every element of $A$ appears as the first element of exactly one ordered pair. If $(a, b_1) \in f$ and $(a, b_2) \in f$, then $b_1 = b_2$. This definition reduces the concept of a function to the concept of a set - and since set theory is the foundation of all mathematics, this means functions are built on the most basic level of the mathematical hierarchy.
 
 **The word "mapping".** The word "mapping" is a synonym for "function" that emphasises the geometric or structural idea. When we say "$f$ maps $A$ to $B$", we are emphasising that $f$ takes each point in one space and places it in another space. In linear algebra, we often say "linear map" rather than "linear function". In topology, we say "continuous map". The word "map" carries the same formal definition as "function".
 
-**For AI and LLMs.** Every layer of a neural network is a function. Every activation function is a function. Every loss function is a function. The entire model — from raw text input to probability distribution over vocabulary — is a single (complicated) function. Training is optimisation: finding the best function within a parameterised family. Inference is function evaluation: computing the output for a given input. Understanding functions deeply is not a prerequisite for AI — it _is_ understanding AI.
+**For AI and LLMs.** Every layer of a neural network is a function. Every activation function is a function. Every loss function is a function. The entire model - from raw text input to probability distribution over vocabulary - is a single (complicated) function. Training is optimisation: finding the best function within a parameterised family. Inference is function evaluation: computing the output for a given input. Understanding functions deeply is not a prerequisite for AI - it _is_ understanding AI.
 
 ### 1.2 Why Functions Are Central to AI
 
@@ -170,7 +170,7 @@ Every component of a modern AI system is a function. Here is a systematic mappin
 
 | AI Component | Mathematical Function | Type Signature |
 |---|---|---|
-| Neural network layer | $f_l$: vector space → vector space | $f_l: \mathbb{R}^{d} \to \mathbb{R}^{d'}$ |
+| Neural network layer | $f_l$: vector space -> vector space | $f_l: \mathbb{R}^{d} \to \mathbb{R}^{d'}$ |
 | Embedding layer | Maps discrete tokens to continuous vectors | $E: V \to \mathbb{R}^d$ |
 | Attention mechanism | Maps query, key, value triples to output | $\text{Attn}: \mathbb{R}^{n \times d_k} \times \mathbb{R}^{n \times d_k} \times \mathbb{R}^{n \times d_v} \to \mathbb{R}^{n \times d_v}$ |
 | Loss function | Maps parameters to scalar loss | $L: \Theta \to \mathbb{R}$ |
@@ -181,11 +181,11 @@ Every component of a modern AI system is a function. Here is a systematic mappin
 | Learning rate scheduler | Maps step count to learning rate | $\eta: \mathbb{N} \to \mathbb{R}^+$ |
 | Positional encoding | Maps position index to vector | $\text{PE}: \mathbb{N} \to \mathbb{R}^d$ |
 
-Everything that happens inside an LLM — from the moment text enters as bytes to the moment a probability distribution over the next token is produced — is a composition of functions. Understanding the mathematical properties of these functions (continuity, differentiability, Lipschitz constants, injectivity, equivariance) directly determines what the model can learn, how stable training is, and what the model can represent.
+Everything that happens inside an LLM - from the moment text enters as bytes to the moment a probability distribution over the next token is produced - is a composition of functions. Understanding the mathematical properties of these functions (continuity, differentiability, Lipschitz constants, injectivity, equivariance) directly determines what the model can learn, how stable training is, and what the model can represent.
 
 ### 1.3 Functions as Transformations
 
-The geometric viewpoint reveals what functions _do_ to space. A function $f: \mathbb{R}^n \to \mathbb{R}^m$ takes every point in $n$-dimensional space and moves it to a point in $m$-dimensional space. Collections of points — lines, surfaces, regions — are transformed into new collections.
+The geometric viewpoint reveals what functions _do_ to space. A function $f: \mathbb{R}^n \to \mathbb{R}^m$ takes every point in $n$-dimensional space and moves it to a point in $m$-dimensional space. Collections of points - lines, surfaces, regions - are transformed into new collections.
 
 **Linear functions** preserve structure. Under a linear function, straight lines map to straight lines (or to points). The origin maps to the origin. Parallelism is preserved. Grid lines remain evenly spaced. Linear functions can rotate, reflect, stretch, compress, and project, but they cannot bend or fold.
 
@@ -193,21 +193,21 @@ The geometric viewpoint reveals what functions _do_ to space. A function $f: \ma
 Linear transformation of a grid:
 
   Before (identity):          After (rotation + stretch):
-  ┌───┬───┬───┐               ╱   ╱   ╱   ╱
-  │   │   │   │              ╱   ╱   ╱   ╱
-  ├───┼───┼───┤             ╱   ╱   ╱   ╱
-  │   │   │   │            ╱   ╱   ╱   ╱
-  ├───┼───┼───┤           ╱   ╱   ╱   ╱
-  │   │   │   │
-  └───┴───┴───┘
+  +---+---+---+               /   /   /   /
+  |   |   |   |              /   /   /   /
+  +---+---+---+             /   /   /   /
+  |   |   |   |            /   /   /   /
+  +---+---+---+           /   /   /   /
+  |   |   |   |
+  +---+---+---+
   Grid lines remain straight; origin stays fixed.
 ```
 
-**Nonlinear functions** bend, fold, and warp space. Under a nonlinear function, straight lines can become curves, parallel lines can converge or diverge, and the structure of space is fundamentally altered. This is exactly what enables neural networks to learn complex decision boundaries — if all functions were linear, a neural network would be no more powerful than a single matrix multiplication.
+**Nonlinear functions** bend, fold, and warp space. Under a nonlinear function, straight lines can become curves, parallel lines can converge or diverge, and the structure of space is fundamentally altered. This is exactly what enables neural networks to learn complex decision boundaries - if all functions were linear, a neural network would be no more powerful than a single matrix multiplication.
 
 **Invertible functions (bijections)** transform space without destroying any information. Every point in the output space came from exactly one point in the input space, so you can always "undo" the transformation and recover the original. This is the principle behind normalising flows: a chain of bijective transformations that transforms a simple distribution (like Gaussian) into a complex one (like the data distribution), with the guarantee that the transformation can be reversed.
 
-**Non-invertible functions (many-to-one)** destroy information. Multiple input points map to the same output point. Once the function is applied, you cannot tell which input was used. ReLU is a simple example: both $x = -3$ and $x = -5$ map to $\text{ReLU}(x) = 0$, so if you only see the output $0$, you cannot recover the input. This information destruction is actually useful — it's a form of compression, throwing away irrelevant details and keeping what matters.
+**Non-invertible functions (many-to-one)** destroy information. Multiple input points map to the same output point. Once the function is applied, you cannot tell which input was used. ReLU is a simple example: both $x = -3$ and $x = -5$ map to $\text{ReLU}(x) = 0$, so if you only see the output $0$, you cannot recover the input. This information destruction is actually useful - it's a form of compression, throwing away irrelevant details and keeping what matters.
 
 **Deep networks** compose many simple functions. Each individual function may be simple (an affine map followed by an elementwise nonlinearity), but the composition of many such functions creates a global transformation that is highly nonlinear and enormously expressive. This is the fundamental insight of deep learning: complexity emerges from the composition of simplicity.
 
@@ -226,7 +226,7 @@ Functions appear everywhere in mathematics, but under different names depending 
 | **Kernel** | Function of two arguments used in integral operators or ML | RBF kernel $K(x, y) = \exp(-\|x-y\|^2/2\sigma^2)$ |
 | **Distribution** | Generalised function (Schwartz); or probability function | Dirac delta $\delta(x)$; Gaussian PDF |
 
-The key insight is that **all of these are instances of the same concept**. A linear map is a function that happens to satisfy linearity. An operator is a function whose domain is a function space. A functional is an operator that happens to return scalars. Understanding that these are all functions — with the same formal definition, the same composition rules, the same invertibility questions — unifies vast swaths of mathematics under a single framework.
+The key insight is that **all of these are instances of the same concept**. A linear map is a function that happens to satisfy linearity. An operator is a function whose domain is a function space. A functional is an operator that happens to return scalars. Understanding that these are all functions - with the same formal definition, the same composition rules, the same invertibility questions - unifies vast swaths of mathematics under a single framework.
 
 ### 1.5 Historical Timeline
 
@@ -245,13 +245,13 @@ The concept of a function evolved over centuries, from implicit geometric constr
 | 1920s | Banach | Normed function spaces (Banach spaces); fixed-point theorem; foundation of functional analysis |
 | 1936 | Church | Lambda calculus: functions as fundamental computational objects; every computation is function evaluation |
 | 1945 | Eilenberg & Mac Lane | Category theory: morphisms (functions) as primary objects; composition as fundamental operation |
-| 1960s–1980s | Various | Functional programming languages (ML, Haskell, Lisp); functions as first-class values in computation |
+| 1960s-1980s | Various | Functional programming languages (ML, Haskell, Lisp); functions as first-class values in computation |
 | 1986 | Rumelhart, Hinton, Williams | Backpropagation popularised: neural network as differentiable function composition; chain rule as algorithm |
 | 1989 | Cybenko, Hornik | Universal Approximation Theorem: neural networks can approximate any continuous function |
 | 2017 | Vaswani et al. | Transformer architecture: attention as specific function class; self-attention as permutation-equivariant function |
-| 2020–2026 | Scaling era | Functions at unprecedented scale: GPT-4, LLaMA, Gemini — trillions of parameters defining single functions from text to text |
+| 2020-2026 | Scaling era | Functions at unprecedented scale: GPT-4, LLaMA, Gemini - trillions of parameters defining single functions from text to text |
 
-The trend is clear: the concept of a function has become increasingly abstract and increasingly central. From Euler's "formula in $x$" to Dirichlet's "arbitrary rule" to Church's "computational object" to modern AI's "parameterised differentiable map" — each step expanded what counts as a function and what we can do with functions.
+The trend is clear: the concept of a function has become increasingly abstract and increasingly central. From Euler's "formula in $x$" to Dirichlet's "arbitrary rule" to Church's "computational object" to modern AI's "parameterised differentiable map" - each step expanded what counts as a function and what we can do with functions.
 
 ### 1.6 Pipeline Position in AI
 
@@ -259,41 +259,41 @@ Every stage of the LLM pipeline is a function. Here is the complete chain:
 
 ```
 Input Data (text, tokens, images)
-    ↓ [Tokeniser function T: Σ* → V*]
+    down [Tokeniser function T: \Sigma* -> V*]
 Token Sequences (discrete integer IDs)
-    ↓ [Embedding function E: Vⁿ → ℝⁿˣᵈ]
+    down [Embedding function E: V^n -> \mathbb{R}^n^x^d]
 Embedding Matrices (continuous vectors per token)
-    ↓ [Positional encoding PE: ℝⁿˣᵈ → ℝⁿˣᵈ]
+    down [Positional encoding PE: \mathbb{R}^n^x^d -> \mathbb{R}^n^x^d]
 Position-Aware Embeddings
-    ↓ [Transformer layer 1: f₁: ℝⁿˣᵈ → ℝⁿˣᵈ]
-    ↓ [Transformer layer 2: f₂: ℝⁿˣᵈ → ℝⁿˣᵈ]
-    ↓ [...]
-    ↓ [Transformer layer L: fₗ: ℝⁿˣᵈ → ℝⁿˣᵈ]
+    down [Transformer layer 1: f_1: \mathbb{R}^n^x^d -> \mathbb{R}^n^x^d]
+    down [Transformer layer 2: f_2: \mathbb{R}^n^x^d -> \mathbb{R}^n^x^d]
+    down [...]
+    down [Transformer layer L: fl: \mathbb{R}^n^x^d -> \mathbb{R}^n^x^d]
 Contextual Representations (hidden states)
-    ↓ [Layer Norm: LN: ℝⁿˣᵈ → ℝⁿˣᵈ]
+    down [Layer Norm: LN: \mathbb{R}^n^x^d -> \mathbb{R}^n^x^d]
 Normalised Representations
-    ↓ [LM head (linear projection): W: ℝᵈ → ℝ|V|]
+    down [LM head (linear projection): W: \mathbb{R}^d -> \mathbb{R}|V|]
 Logits (unnormalised scores per vocabulary token)
-    ↓ [Softmax σ: ℝ|V| → Δ|V|⁻¹]
+    down [Softmax \sigma: \mathbb{R}|V| -> \Delta|V|^-^1]
 Probability Distribution (simplex)
-    ↓ [Sampling function: sample: Δ|V|⁻¹ → V]
+    down [Sampling function: sample: \Delta|V|^-^1 -> V]
 Output Token (single discrete token)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Functions everywhere. The entire pipeline is one
-   composed function: sample ∘ σ ∘ W ∘ LN ∘ fₗ ∘ ... ∘ f₁ ∘ PE ∘ E ∘ T
+   composed function: sample \circ \sigma \circ W \circ LN \circ fl \circ ... \circ f_1 \circ PE \circ E \circ T
 ```
 
 Each arrow in this pipeline is a function with specific mathematical properties:
 - **T** (tokeniser): discrete, non-differentiable, deterministic
 - **E** (embedding): linear (lookup is matrix multiply with one-hot), differentiable
 - **PE** (positional encoding): additive, fixed or learned, differentiable
-- **f₁ through fₗ** (transformer layers): nonlinear, differentiable, permutation-equivariant, residual
+- **f_1 through fl** (transformer layers): nonlinear, differentiable, permutation-equivariant, residual
 - **LN** (layer norm): nonlinear, differentiable, scale-invariant
 - **W** (LM head): linear, differentiable
-- **σ** (softmax): nonlinear, differentiable, maps to probability simplex
+- **\sigma** (softmax): nonlinear, differentiable, maps to probability simplex
 - **sample**: stochastic (not a deterministic function in the classical sense; involves randomness)
 
-Training optimises the parameters of the differentiable functions (E, f₁–fₗ, W) to minimise a loss function L over the training data. The loss function itself is a function $L: \Theta \to \mathbb{R}$ mapping the entire parameter vector to a single scalar.
+Training optimises the parameters of the differentiable functions (E, f_1-fl, W) to minimise a loss function L over the training data. The loss function itself is a function $L: \Theta \to \mathbb{R}$ mapping the entire parameter vector to a single scalar.
 
 ---
 
@@ -311,19 +311,19 @@ Totality says the function is defined everywhere on its domain. Uniqueness says 
 
 **Example.** Consider $A = \{1, 2, 3\}$ and $B = \{a, b, c, d\}$. Then:
 
-- $f = \{(1, a), (2, c), (3, c)\}$ is a valid function (total, single-valued). Note: two inputs map to the same output ($c$) — this is allowed.
+- $f = \{(1, a), (2, c), (3, c)\}$ is a valid function (total, single-valued). Note: two inputs map to the same output ($c$) - this is allowed.
 - $g = \{(1, a), (3, b)\}$ is NOT a function (not total: input 2 has no output).
 - $h = \{(1, a), (1, b), (2, c), (3, d)\}$ is NOT a function (not single-valued: input 1 maps to both $a$ and $b$).
 
 **Relation vs function.** A **relation** from $A$ to $B$ is any subset of $A \times B$, without the totality or uniqueness requirements. Every function is a relation, but not every relation is a function. A relation that satisfies uniqueness but not totality is called a **partial function**.
 
 ```
-   Relations ⊇ Partial Functions ⊇ Functions ⊇ Bijections
+   Relations \supseteq Partial Functions \supseteq Functions \supseteq Bijections
      (any subset     (unique but       (unique and    (unique, total,
-      of A × B)      not total)         total)        one-to-one, onto)
+      of A \times B)      not total)         total)        one-to-one, onto)
 ```
 
-**For AI.** When we write a neural network layer $f_l(x) = \sigma(Wx + b)$, we are defining a function from $\mathbb{R}^{d_{\text{in}}}$ to $\mathbb{R}^{d_{\text{out}}}$. Totality is guaranteed: for any input vector $x$, the matrix multiplication $Wx + b$ is defined, and $\sigma$ is defined on all of $\mathbb{R}$. Uniqueness is guaranteed: matrix multiplication is deterministic. During training with dropout, the computation is stochastic — but we model this as sampling a different function at each step, not as a single multi-valued function.
+**For AI.** When we write a neural network layer $f_l(x) = \sigma(Wx + b)$, we are defining a function from $\mathbb{R}^{d_{\text{in}}}$ to $\mathbb{R}^{d_{\text{out}}}$. Totality is guaranteed: for any input vector $x$, the matrix multiplication $Wx + b$ is defined, and $\sigma$ is defined on all of $\mathbb{R}$. Uniqueness is guaranteed: matrix multiplication is deterministic. During training with dropout, the computation is stochastic - but we model this as sampling a different function at each step, not as a single multi-valued function.
 
 ### 2.2 Domain, Codomain, and Range
 
@@ -337,8 +337,8 @@ Three fundamental sets are associated with every function $f: A \to B$:
 
 The distinction between codomain and range is subtle but crucial:
 
-- The **codomain** is part of the function's definition — it is the set where outputs are declared to live.
-- The **range** is a property of the function — it is the set of outputs that are actually achieved.
+- The **codomain** is part of the function's definition - it is the set where outputs are declared to live.
+- The **range** is a property of the function - it is the set of outputs that are actually achieved.
 - Always: $\text{range}(f) \subseteq \text{cod}(f)$.
 - A function is **surjective** (onto) if and only if $\text{range}(f) = \text{cod}(f)$.
 
@@ -346,24 +346,24 @@ The distinction between codomain and range is subtle but crucial:
 
 - Domain: $\mathbb{R}^d$ (any hidden representation is a valid input).
 - Codomain: $\mathbb{R}^{|V|}$ (the output space has dimension equal to vocabulary size).
-- Range: typically a strict subset of $\mathbb{R}^{|V|}$ — not every logit vector will actually be produced.
+- Range: typically a strict subset of $\mathbb{R}^{|V|}$ - not every logit vector will actually be produced.
 
 When we apply softmax, the codomain becomes the probability simplex $\Delta^{|V|-1} = \{p \in \mathbb{R}^{|V|} : p_i \geq 0, \sum p_i = 1\}$. The range is a strict subset: softmax can never output exactly 0 or exactly 1 for any component, because $e^z > 0$ for all finite $z$.
 
 ```
-Domain (ℝᵈ)                    Codomain (ℝ|V|)
-┌─────────────┐               ┌─────────────────┐
-│             │               │                 │
-│  All hidden │───f(x)───────▶│  All possible   │
-│  states     │               │  logit vectors  │
-│             │               │                 │
-│             │               │ ┌─────────────┐ │
-│             │               │ │ Range:      │ │
-│             │               │ │ Actually    │ │
-│             │               │ │ produced    │ │
-│             │               │ │ logits      │ │
-│             │               │ └─────────────┘ │
-└─────────────┘               └─────────────────┘
+Domain (\mathbb{R}^d)                    Codomain (\mathbb{R}|V|)
++-------------+               +-----------------+
+|             |               |                 |
+|  All hidden |---f(x)------->|  All possible   |
+|  states     |               |  logit vectors  |
+|             |               |                 |
+|             |               | +-------------+ |
+|             |               | | Range:      | |
+|             |               | | Actually    | |
+|             |               | | produced    | |
+|             |               | | logits      | |
+|             |               | +-------------+ |
++-------------+               +-----------------+
 ```
 
 ### 2.3 Image and Preimage
@@ -382,9 +382,9 @@ $$f^{-1}(T) = \{a \in A : f(a) \in T\}$$
 
 | Property | Image | Preimage |
 |---|---|---|
-| Union | $f(A_1 \cup A_2) = f(A_1) \cup f(A_2)$ ✓ | $f^{-1}(B_1 \cup B_2) = f^{-1}(B_1) \cup f^{-1}(B_2)$ ✓ |
-| Intersection | $f(A_1 \cap A_2) \subseteq f(A_1) \cap f(A_2)$ (⊆ only!) | $f^{-1}(B_1 \cap B_2) = f^{-1}(B_1) \cap f^{-1}(B_2)$ ✓ |
-| Complement | No simple rule | $f^{-1}(B \setminus T) = A \setminus f^{-1}(T)$ ✓ |
+| Union | $f(A_1 \cup A_2) = f(A_1) \cup f(A_2)$ OK | $f^{-1}(B_1 \cup B_2) = f^{-1}(B_1) \cup f^{-1}(B_2)$ OK |
+| Intersection | $f(A_1 \cap A_2) \subseteq f(A_1) \cap f(A_2)$ (\subseteq only!) | $f^{-1}(B_1 \cap B_2) = f^{-1}(B_1) \cap f^{-1}(B_2)$ OK |
+| Complement | No simple rule | $f^{-1}(B \setminus T) = A \setminus f^{-1}(T)$ OK |
 | Subset | $S_1 \subseteq S_2 \implies f(S_1) \subseteq f(S_2)$ | $T_1 \subseteq T_2 \implies f^{-1}(T_1) \subseteq f^{-1}(T_2)$ |
 
 **The key asymmetry.** Preimage preserves ALL set operations (unions, intersections, complements). Image only preserves unions. Image preserves intersections **if and only if** $f$ is injective.
@@ -394,9 +394,9 @@ $$f^{-1}(T) = \{a \in A : f(a) \in T\}$$
 Let $f(x) = x^2$, $A_1 = \{-1, 2\}$, $A_2 = \{1, 3\}$.
 - $A_1 \cap A_2 = \emptyset$, so $f(A_1 \cap A_2) = \emptyset$.
 - $f(A_1) = \{1, 4\}$, $f(A_2) = \{1, 9\}$, so $f(A_1) \cap f(A_2) = \{1\}$.
-- $\emptyset \neq \{1\}$, so $f(A_1 \cap A_2) \subsetneq f(A_1) \cap f(A_2)$. ∎
+- $\emptyset \neq \{1\}$, so $f(A_1 \cap A_2) \subsetneq f(A_1) \cap f(A_2)$. QED
 
-**For AI.** Preimages appear naturally in classification. The preimage $f^{-1}(\{\text{class } k\})$ is the **decision region** for class $k$ — the set of all inputs that the classifier assigns to class $k$. Understanding the geometry of these preimages (connected? convex? simply connected?) is central to understanding what the classifier has learned.
+**For AI.** Preimages appear naturally in classification. The preimage $f^{-1}(\{\text{class } k\})$ is the **decision region** for class $k$ - the set of all inputs that the classifier assigns to class $k$. Understanding the geometry of these preimages (connected? convex? simply connected?) is central to understanding what the classifier has learned.
 
 ### 2.4 Equality of Functions
 
@@ -406,7 +406,7 @@ Let $f(x) = x^2$, $A_1 = \{-1, 2\}$, $A_2 = \{1, 3\}$.
 2. They have the same codomain: $\text{cod}(f) = \text{cod}(g)$
 3. They agree on all inputs: $f(a) = g(a)$ for all $a \in A$
 
-This is the **principle of extensionality**: two functions are equal if and only if they produce the same output for every input. How they compute their output is irrelevant — only the input-output mapping matters.
+This is the **principle of extensionality**: two functions are equal if and only if they produce the same output for every input. How they compute their output is irrelevant - only the input-output mapping matters.
 
 **Example.** The functions:
 - $f(x) = (x+1)^2 - 2x - 1$
@@ -414,7 +414,7 @@ This is the **principle of extensionality**: two functions are equal if and only
 
 are **equal** as functions $\mathbb{R} \to \mathbb{R}$, because $(x+1)^2 - 2x - 1 = x^2 + 2x + 1 - 2x - 1 = x^2$ for all $x$.
 
-**For AI.** Two neural networks with completely different weights can compute the same function (e.g., by permuting neurons — see Section 11.4). Conversely, two architectures that "look" the same but have different weights compute different functions. Function equality is about the input-output mapping, not the implementation.
+**For AI.** Two neural networks with completely different weights can compute the same function (e.g., by permuting neurons - see Section 11.4). Conversely, two architectures that "look" the same but have different weights compute different functions. Function equality is about the input-output mapping, not the implementation.
 
 ### 2.5 Partial Functions
 
@@ -423,12 +423,12 @@ A **partial function** $f: A \rightharpoonup B$ satisfies uniqueness but not nec
 **The domain of definition:** $\text{dom}(f) = \{a \in A : f(a) \text{ is defined}\} \subseteq A$.
 
 **Examples in mathematics:**
-- **Division**: $f(x) = 1/x$ is partial on $\mathbb{R}$ — undefined at $x = 0$
-- **Logarithm**: $\log(x)$ is partial on $\mathbb{R}$ — undefined for $x \leq 0$
-- **Square root**: $\sqrt{x}$ is partial on $\mathbb{R}$ — undefined for $x < 0$
+- **Division**: $f(x) = 1/x$ is partial on $\mathbb{R}$ - undefined at $x = 0$
+- **Logarithm**: $\log(x)$ is partial on $\mathbb{R}$ - undefined for $x \leq 0$
+- **Square root**: $\sqrt{x}$ is partial on $\mathbb{R}$ - undefined for $x < 0$
 
 **Examples in AI:**
-- **Masked attention**: In causal (autoregressive) attention, token $i$ cannot attend to token $j > i$. The attention weight function is "undefined" for future positions — set to $-\infty$ before softmax, giving weight 0.
+- **Masked attention**: In causal (autoregressive) attention, token $i$ cannot attend to token $j > i$. The attention weight function is "undefined" for future positions - set to $-\infty$ before softmax, giving weight 0.
 - **Sparse attention**: Only a subset of positions are attended to; the attention function is partial.
 - **Variable-length sequences**: A function defined on sequences up to length $n$ is partial on the space of all sequences.
 
@@ -456,9 +456,9 @@ Equivalently (contrapositive): $a_1 \neq a_2 \implies f(a_1) \neq f(a_2)$.
 ```
 Injective:                    NOT injective:
   A        B                    A        B
-  1 ────▶ a                    1 ────▶ a
-  2 ────▶ b                    2 ────┐
-  3 ────▶ c                    3 ────┘▶ b
+  1 ----> a                    1 ----> a
+  2 ----> b                    2 ----+
+  3 ----> c                    3 ----+> b
            d (not hit)                  c (not hit)
   
 Each output comes from         Two inputs map to
@@ -469,15 +469,15 @@ at most one input              the same output (b)
 
 **Example 1.** Prove that $f(x) = 2x + 3$ is injective.
 
-*Proof.* Suppose $f(a_1) = f(a_2)$. Then $2a_1 + 3 = 2a_2 + 3$, so $2a_1 = 2a_2$, so $a_1 = a_2$. ∎
+*Proof.* Suppose $f(a_1) = f(a_2)$. Then $2a_1 + 3 = 2a_2 + 3$, so $2a_1 = 2a_2$, so $a_1 = a_2$. QED
 
 **Example 2.** Prove that $f(x) = e^x$ is injective.
 
-*Proof.* Suppose $e^{a_1} = e^{a_2}$. Taking $\ln$ of both sides: $a_1 = a_2$. ∎
+*Proof.* Suppose $e^{a_1} = e^{a_2}$. Taking $\ln$ of both sides: $a_1 = a_2$. QED
 
 **Example 3.** Prove that $f(x) = x^2$ is NOT injective on $\mathbb{R}$.
 
-*Proof.* Counterexample: $f(1) = 1 = f(-1)$ but $1 \neq -1$. ∎
+*Proof.* Counterexample: $f(1) = 1 = f(-1)$ but $1 \neq -1$. QED
 
 **Proof technique to disprove injectivity**: find two distinct inputs with the same output (a single counterexample suffices).
 
@@ -504,10 +504,10 @@ Equivalently: $\text{range}(f) = B$. Every element of $B$ is "hit" by at least o
 ```
 Surjective:                   NOT surjective:
   A        B                    A        B
-  1 ────▶ a                    1 ────▶ a
-  2 ───┐                       2 ────▶ b
-  3 ───┘▶ b                    3 ────▶ c
-  4 ────▶ c                             d ← never reached
+  1 ----> a                    1 ----> a
+  2 ---+                       2 ----> b
+  3 ---+> b                    3 ----> c
+  4 ----> c                             d <- never reached
   
 Every output is hit            Element d in codomain
 by at least one input          is never produced
@@ -517,19 +517,19 @@ by at least one input          is never produced
 
 **Example 1.** Prove that $f: \mathbb{R} \to \mathbb{R}$, $f(x) = 2x + 3$ is surjective.
 
-*Proof.* Let $b \in \mathbb{R}$. We need $a$ with $f(a) = b$: solve $2a + 3 = b$ to get $a = (b-3)/2$. Since $b \in \mathbb{R}$, we have $a \in \mathbb{R}$, and $f(a) = 2 \cdot \frac{b-3}{2} + 3 = b$. ∎
+*Proof.* Let $b \in \mathbb{R}$. We need $a$ with $f(a) = b$: solve $2a + 3 = b$ to get $a = (b-3)/2$. Since $b \in \mathbb{R}$, we have $a \in \mathbb{R}$, and $f(a) = 2 \cdot \frac{b-3}{2} + 3 = b$. QED
 
 **Example 2.** Prove that $f(x) = x^2$ is NOT surjective as $f: \mathbb{R} \to \mathbb{R}$.
 
-*Proof.* Take $b = -1$. For any $a \in \mathbb{R}$, $f(a) = a^2 \geq 0 > -1$, so no $a$ maps to $-1$. ∎
+*Proof.* Take $b = -1$. For any $a \in \mathbb{R}$, $f(a) = a^2 \geq 0 > -1$, so no $a$ maps to $-1$. QED
 
 **Note on codomain choice.** The same formula $f(x) = x^2$ gives:
-- $f: \mathbb{R} \to \mathbb{R}$ — NOT surjective (negative numbers not in range)
-- $f: \mathbb{R} \to [0, \infty)$ — surjective (every non-negative number is a perfect square of something)
+- $f: \mathbb{R} \to \mathbb{R}$ - NOT surjective (negative numbers not in range)
+- $f: \mathbb{R} \to [0, \infty)$ - surjective (every non-negative number is a perfect square of something)
 
 Changing the codomain changes whether the function is surjective.
 
-**For AI — surjectivity means the output space is fully utilised:**
+**For AI - surjectivity means the output space is fully utilised:**
 
 | Component | Surjective? | Why |
 |---|---|---|
@@ -546,9 +546,9 @@ Changing the codomain changes whether the function is surjective.
 ```
 Bijective (perfect pairing):
   A        B
-  1 ────▶ a
-  2 ────▶ b
-  3 ────▶ c
+  1 ----> a
+  2 ----> b
+  3 ----> c
   
   Every element of A maps to a unique element of B.
   Every element of B is hit exactly once.
@@ -557,9 +557,9 @@ Bijective (perfect pairing):
 
 **Key property.** A function has a two-sided inverse $f^{-1}: B \to A$ if and only if it is bijective.
 
-**Bijections and cardinality.** A bijection $f: A \to B$ proves that $|A| = |B|$ (same cardinality). This is the formal definition of "same size" for sets, including infinite sets. For example, $f(n) = 2n$ is a bijection $\mathbb{N} \to \{0, 2, 4, 6, \ldots\}$, proving that the natural numbers and the even numbers have the same cardinality — a result that seems paradoxical until you see the bijection.
+**Bijections and cardinality.** A bijection $f: A \to B$ proves that $|A| = |B|$ (same cardinality). This is the formal definition of "same size" for sets, including infinite sets. For example, $f(n) = 2n$ is a bijection $\mathbb{N} \to \{0, 2, 4, 6, \ldots\}$, proving that the natural numbers and the even numbers have the same cardinality - a result that seems paradoxical until you see the bijection.
 
-**For AI — where bijections are critical:**
+**For AI - where bijections are critical:**
 
 | Application | How Bijection Is Used |
 |---|---|
@@ -573,10 +573,10 @@ Bijective (perfect pairing):
 
 | Property | Condition | Injective? | Surjective? | Invertible? | Example |
 |---|---|---|---|---|---|
-| **Injective only** | $f(a_1) = f(a_2) \Rightarrow a_1 = a_2$ | ✓ | ✗ | Left inverse | $f(x) = e^x$, $\mathbb{R} \to \mathbb{R}$ |
-| **Surjective only** | $\text{range}(f) = B$ | ✗ | ✓ | Right inverse | $f(x) = x^2$, $\mathbb{R} \to [0,\infty)$ |
-| **Bijective** | Both | ✓ | ✓ | Two-sided | $f(x) = 2x + 1$, $\mathbb{R} \to \mathbb{R}$ |
-| **Neither** | Neither | ✗ | ✗ | None | $f(x) = \sin(x)$, $\mathbb{R} \to [-2, 2]$ |
+| **Injective only** | $f(a_1) = f(a_2) \Rightarrow a_1 = a_2$ | OK | NO | Left inverse | $f(x) = e^x$, $\mathbb{R} \to \mathbb{R}$ |
+| **Surjective only** | $\text{range}(f) = B$ | NO | OK | Right inverse | $f(x) = x^2$, $\mathbb{R} \to [0,\infty)$ |
+| **Bijective** | Both | OK | OK | Two-sided | $f(x) = 2x + 1$, $\mathbb{R} \to \mathbb{R}$ |
+| **Neither** | Neither | NO | NO | None | $f(x) = \sin(x)$, $\mathbb{R} \to [-2, 2]$ |
 
 ### 3.5 Monotone Functions
 
@@ -591,7 +591,7 @@ A function is **monotone** if it is either non-decreasing or non-increasing.
 
 **Key theorem.** Every strictly monotone function is injective.
 
-*Proof.* Suppose $f$ is strictly increasing and $f(a_1) = f(a_2)$. If $a_1 < a_2$, then $f(a_1) < f(a_2)$ — contradiction. If $a_1 > a_2$, then $f(a_1) > f(a_2)$ — contradiction. So $a_1 = a_2$. ∎
+*Proof.* Suppose $f$ is strictly increasing and $f(a_1) = f(a_2)$. If $a_1 < a_2$, then $f(a_1) < f(a_2)$ - contradiction. If $a_1 > a_2$, then $f(a_1) > f(a_2)$ - contradiction. So $a_1 = a_2$. QED
 
 **Monotonicity in AI:**
 
@@ -603,9 +603,9 @@ A function is **monotone** if it is either non-decreasing or non-increasing.
 | GELU | NOT monotone | Dip near $x \approx -0.17$ | Not order-preserving |
 | Leaky ReLU ($\alpha > 0$) | Strictly increasing | On all $\mathbb{R}$ | Injective; all info preserved |
 | SiLU/Swish $x\sigma(x)$ | NOT monotone | Dip near $x \approx -1.28$ | Similar to GELU |
-| Cross-entropy $L(p)$ | Strictly decreasing in $p$ | Correct class prob | Higher confidence → lower loss |
+| Cross-entropy $L(p)$ | Strictly decreasing in $p$ | Correct class prob | Higher confidence -> lower loss |
 
-**Why monotonicity matters for optimisation.** If the loss function is monotone in some parameter direction, that direction has no local minima — the loss either always decreases or always increases. Non-monotone loss landscapes create local minima and saddle points that can trap gradient descent.
+**Why monotonicity matters for optimisation.** If the loss function is monotone in some parameter direction, that direction has no local minima - the loss either always decreases or always increases. Non-monotone loss landscapes create local minima and saddle points that can trap gradient descent.
 
 ### 3.6 Periodic Functions
 
@@ -634,7 +634,7 @@ Each dimension is a periodic function of position with a different frequency. Lo
 
 $$\begin{pmatrix} \sin(\omega(\text{pos}+k)) \\ \cos(\omega(\text{pos}+k)) \end{pmatrix} = \begin{pmatrix} \cos(\omega k) & \sin(\omega k) \\ -\sin(\omega k) & \cos(\omega k) \end{pmatrix} \begin{pmatrix} \sin(\omega \cdot \text{pos}) \\ \cos(\omega \cdot \text{pos}) \end{pmatrix}$$
 
-This means relative position information is accessible via a linear transformation — the model can learn to attend to "3 positions back" using a simple linear projection.
+This means relative position information is accessible via a linear transformation - the model can learn to attend to "3 positions back" using a simple linear projection.
 
 **2. Rotary Position Embedding (RoPE, Su et al. 2021):**
 
@@ -642,7 +642,7 @@ RoPE rotates the query and key vectors by position-dependent angles:
 
 $$f_{\text{RoPE}}(x_m, m) = R_{\Theta, m} \cdot x_m$$
 
-where $R_{\Theta, m}$ is a block-diagonal rotation matrix with angles $\theta_i \cdot m$. Each block rotates by angle $\theta_i \cdot m$ — a periodic function of position with period $2\pi/\theta_i$.
+where $R_{\Theta, m}$ is a block-diagonal rotation matrix with angles $\theta_i \cdot m$. Each block rotates by angle $\theta_i \cdot m$ - a periodic function of position with period $2\pi/\theta_i$.
 
 **Key property of RoPE:** The dot product $\langle f_{\text{RoPE}}(q, m), f_{\text{RoPE}}(k, n) \rangle$ depends only on $q$, $k$, and the relative position $m - n$ (not the absolute positions). This gives the model a natural notion of relative distance.
 
@@ -669,12 +669,12 @@ Read: "g composed with f" or "g after f". The function $f$ is applied first, the
 
 ```
      f            g
-A ──────▶ B ──────▶ C
+A ------> B ------> C
 
-     g ∘ f
-A ────────────────▶ C
+     g \circ f
+A ----------------> C
 
-(g ∘ f)(x) = g(f(x))
+(g \circ f)(x) = g(f(x))
 ```
 
 **For AI.** This requirement means the output dimension of layer $l$ must match the input dimension of layer $l+1$. Dimension mismatches between layers are among the most common neural network implementation bugs.
@@ -691,9 +691,9 @@ $$((h \circ g) \circ f)(x) = (h \circ g)(f(x)) = h(g(f(x)))$$
 
 $$(h \circ (g \circ f))(x) = h((g \circ f)(x)) = h(g(f(x)))$$
 
-Both sides equal $h(g(f(x)))$. Since this holds for all $x \in A$, the functions are equal by extensionality. ∎
+Both sides equal $h(g(f(x)))$. Since this holds for all $x \in A$, the functions are equal by extensionality. QED
 
-**Consequence.** We can write $h \circ g \circ f$ without ambiguity — no parentheses needed.
+**Consequence.** We can write $h \circ g \circ f$ without ambiguity - no parentheses needed.
 
 **For AI.** Associativity means we can group layers however we want. A 96-layer transformer can be viewed as:
 - 96 individual layers
@@ -712,9 +712,9 @@ $$\text{id}_A: A \to A, \quad \text{id}_A(x) = x$$
 - $f \circ \text{id}_A = f$ for any $f: A \to B$ (right identity)
 - $\text{id}_B \circ f = f$ for any $f: A \to B$ (left identity)
 
-*Proof of right identity.* For any $x \in A$: $(f \circ \text{id}_A)(x) = f(\text{id}_A(x)) = f(x)$. ∎
+*Proof of right identity.* For any $x \in A$: $(f \circ \text{id}_A)(x) = f(\text{id}_A(x)) = f(x)$. QED
 
-**For AI — Residual Connections.** The identity function appears in **residual connections** (He et al. 2016):
+**For AI - Residual Connections.** The identity function appears in **residual connections** (He et al. 2016):
 
 $$\text{ResBlock}(x) = x + F(x) = \text{id}(x) + F(x)$$
 
@@ -724,7 +724,7 @@ The output is the input plus a learned residual. If $F(x) \approx 0$, the block 
 
 $$\frac{\partial}{\partial x}\big(x + F(x)\big) = I + \frac{\partial F}{\partial x}$$
 
-The identity term $I$ ensures gradients always flow through, even if $\frac{\partial F}{\partial x}$ is small. Without residual connections, gradients must pass through every layer multiplicatively — if any layer's Jacobian has small singular values, gradients vanish. With residual connections, there is always a "skip path" carrying the identity gradient.
+The identity term $I$ ensures gradients always flow through, even if $\frac{\partial F}{\partial x}$ is small. Without residual connections, gradients must pass through every layer multiplicatively - if any layer's Jacobian has small singular values, gradients vanish. With residual connections, there is always a "skip path" carrying the identity gradient.
 
 **Pre-LN Transformer block (GPT-2, LLaMA, etc.):**
 
@@ -742,15 +742,15 @@ Two residual connections per block: one around attention, one around FFN. Each i
 | Surjective | Surjective | **Surjective** | For $c \in C$: $g$ surj $\Rightarrow \exists b$ s.t. $g(b)=c$; $f$ surj $\Rightarrow \exists a$ s.t. $f(a)=b$ |
 | Bijective | Bijective | **Bijective** | Combine both rows above |
 
-*Full proof of injectivity preservation.* Suppose $f$ and $g$ are both injective. Let $(g \circ f)(a_1) = (g \circ f)(a_2)$, i.e., $g(f(a_1)) = g(f(a_2))$. Since $g$ is injective, $f(a_1) = f(a_2)$. Since $f$ is injective, $a_1 = a_2$. ∎
+*Full proof of injectivity preservation.* Suppose $f$ and $g$ are both injective. Let $(g \circ f)(a_1) = (g \circ f)(a_2)$, i.e., $g(f(a_1)) = g(f(a_2))$. Since $g$ is injective, $f(a_1) = f(a_2)$. Since $f$ is injective, $a_1 = a_2$. QED
 
 **Converse results (partial converses):**
 - If $g \circ f$ is injective, then $f$ must be injective (but $g$ need not be).
 - If $g \circ f$ is surjective, then $g$ must be surjective (but $f$ need not be).
 
-*Proof that $g \circ f$ injective implies $f$ injective.* Suppose $f(a_1) = f(a_2)$. Then $g(f(a_1)) = g(f(a_2))$, i.e., $(g \circ f)(a_1) = (g \circ f)(a_2)$. Since $g \circ f$ is injective, $a_1 = a_2$. ∎
+*Proof that $g \circ f$ injective implies $f$ injective.* Suppose $f(a_1) = f(a_2)$. Then $g(f(a_1)) = g(f(a_2))$, i.e., $(g \circ f)(a_1) = (g \circ f)(a_2)$. Since $g \circ f$ is injective, $a_1 = a_2$. QED
 
-**For AI.** If every layer is injective, the entire network is injective (no information loss). If any single layer is non-injective, the composition is non-injective. Since ReLU is non-injective (maps all negatives to 0), standard ReLU networks are non-injective — they destroy information about the sign of pre-activations.
+**For AI.** If every layer is injective, the entire network is injective (no information loss). If any single layer is non-injective, the composition is non-injective. Since ReLU is non-injective (maps all negatives to 0), standard ReLU networks are non-injective - they destroy information about the sign of pre-activations.
 
 ### 4.5 Neural Networks as Function Composition
 
@@ -808,7 +808,7 @@ These are different: $(f \circ g)(2) = 9$ but $(g \circ f)(2) = 5$.
 | Dropout before softmax | Drops attention logits; called "attention dropout" |
 | Dropout after softmax | Drops attention weights; different regularisation effect |
 
-The shift from Post-LN to Pre-LN significantly improved training stability for deep transformers — same components, different composition order. This is a direct consequence of non-commutativity.
+The shift from Post-LN to Pre-LN significantly improved training stability for deep transformers - same components, different composition order. This is a direct consequence of non-commutativity.
 
 ### 4.7 Iterated Composition and Fixed Points
 
@@ -829,7 +829,7 @@ Then:
 2. For any starting point $x_0 \in X$, the sequence $x_{n+1} = f(x_n)$ converges to $x^*$
 3. Rate of convergence: $d(x_n, x^*) \leq \frac{L^n}{1-L} \cdot d(x_0, x_1)$
 
-*Proof sketch.* The sequence $x_0, f(x_0), f(f(x_0)), \ldots$ is Cauchy because $d(x_{n+1}, x_n) \leq L \cdot d(x_n, x_{n-1}) \leq L^n \cdot d(x_1, x_0) \to 0$. Since $X$ is complete, it converges to some $x^*$. By continuity of $f$: $f(x^*) = f(\lim x_n) = \lim f(x_n) = \lim x_{n+1} = x^*$. Uniqueness: if $f(x^*) = x^*$ and $f(y^*) = y^*$, then $d(x^*, y^*) = d(f(x^*), f(y^*)) \leq L \cdot d(x^*, y^*)$, so $(1-L) \cdot d(x^*, y^*) \leq 0$, giving $d(x^*, y^*) = 0$. ∎
+*Proof sketch.* The sequence $x_0, f(x_0), f(f(x_0)), \ldots$ is Cauchy because $d(x_{n+1}, x_n) \leq L \cdot d(x_n, x_{n-1}) \leq L^n \cdot d(x_1, x_0) \to 0$. Since $X$ is complete, it converges to some $x^*$. By continuity of $f$: $f(x^*) = f(\lim x_n) = \lim f(x_n) = \lim x_{n+1} = x^*$. Uniqueness: if $f(x^*) = x^*$ and $f(y^*) = y^*$, then $d(x^*, y^*) = d(f(x^*), f(y^*)) \leq L \cdot d(x^*, y^*)$, so $(1-L) \cdot d(x^*, y^*) \leq 0$, giving $d(x^*, y^*) = 0$. QED
 
 **For AI: Deep Equilibrium Models (DEQ, Bai et al. 2019).** Instead of stacking $L$ copies of a layer (using $O(L)$ memory for activations), DEQ finds the fixed point of a single layer:
 
@@ -839,12 +839,12 @@ This is equivalent to an infinitely deep weight-tied network that has converged.
 
 | Property | Standard Deep Network | DEQ |
 |---|---|---|
-| Memory | $O(L)$ — store all activations | $O(1)$ — store only $z^*$ |
+| Memory | $O(L)$ - store all activations | $O(1)$ - store only $z^*$ |
 | Computation | $L$ forward passes | Iterate until convergence |
 | Backprop | Through all $L$ layers | Implicit differentiation at fixed point |
 | Convergence guarantee | N/A | Guaranteed if $f_\theta$ is a contraction |
 
-The Banach theorem guarantees convergence if the layer is a contraction — which can be enforced via spectral normalisation (constraining $\|W\|_{\text{op}} < 1$).
+The Banach theorem guarantees convergence if the layer is a contraction - which can be enforced via spectral normalisation (constraining $\|W\|_{\text{op}} < 1$).
 
 **Example: iterating cosine.**
 $f(x) = \cos(x)$ on $[0, 1]$ is a contraction (since $|f'(x)| = |\sin(x)| \leq \sin(1) \approx 0.84 < 1$).
@@ -883,13 +883,13 @@ Not every function has a full (two-sided) inverse. The general picture involves 
 
 $$g(b) = \begin{cases} a & \text{if } b = f(a) \text{ for some (unique by injectivity) } a \in A \\ a_0 & \text{if } b \notin f(A) \end{cases}$$
 
-Then for any $a \in A$: $g(f(a)) = a$ (by the first case), so $g \circ f = \text{id}_A$. ∎
+Then for any $a \in A$: $g(f(a)) = a$ (by the first case), so $g \circ f = \text{id}_A$. QED
 
 **Proof that left and right inverse, if both exist, are equal.** Suppose $g$ is a left inverse ($g \circ f = \text{id}_A$) and $h$ is a right inverse ($f \circ h = \text{id}_B$). Then:
 
 $$g = g \circ \text{id}_B = g \circ (f \circ h) = (g \circ f) \circ h = \text{id}_A \circ h = h$$
 
-So $g = h$. ∎
+So $g = h$. QED
 
 **For AI.** The distinction between left and right inverses appears in:
 - **Encoder-decoder architectures**: The encoder $f$ maps high-dimensional input to a low-dimensional bottleneck. The decoder $g$ maps back. We want $g \circ f \approx \text{id}$ (reconstruct the original), making $g$ an approximate left inverse. But $f \circ g \neq \text{id}$ (not every bottleneck vector corresponds to a real input).
@@ -933,7 +933,7 @@ The inverse of a composition **reverses the order**.
 
 $$(f^{-1} \circ g^{-1}) \circ (g \circ f) = f^{-1} \circ (g^{-1} \circ g) \circ f = f^{-1} \circ \text{id}_B \circ f = f^{-1} \circ f = \text{id}_A$$
 
-Similarly: $(g \circ f) \circ (f^{-1} \circ g^{-1}) = g \circ (f \circ f^{-1}) \circ g^{-1} = g \circ \text{id}_B \circ g^{-1} = g \circ g^{-1} = \text{id}_C$. ∎
+Similarly: $(g \circ f) \circ (f^{-1} \circ g^{-1}) = g \circ (f \circ f^{-1}) \circ g^{-1} = g \circ \text{id}_B \circ g^{-1} = g \circ g^{-1} = \text{id}_C$. QED
 
 **Name origin.** You put on socks first, then shoes. To undo: you remove shoes first, then socks. The inverse reverses the order.
 
@@ -985,8 +985,8 @@ where $\Sigma^+$ is obtained by taking the reciprocal of each non-zero singular 
 | Matrix Type | Pseudo-Inverse |
 |---|---|
 | Square invertible ($m = n$, full rank) | $A^+ = A^{-1}$ |
-| Tall full-rank ($m > n$, $\text{rank} = n$) — overdetermined | $A^+ = (A^T A)^{-1} A^T$ (left inverse) |
-| Wide full-rank ($m < n$, $\text{rank} = m$) — underdetermined | $A^+ = A^T (A A^T)^{-1}$ (right inverse) |
+| Tall full-rank ($m > n$, $\text{rank} = n$) - overdetermined | $A^+ = (A^T A)^{-1} A^T$ (left inverse) |
+| Wide full-rank ($m < n$, $\text{rank} = m$) - underdetermined | $A^+ = A^T (A A^T)^{-1}$ (right inverse) |
 | Rank-deficient | Use SVD formula |
 
 **For AI.** The pseudo-inverse appears in:
@@ -998,7 +998,7 @@ where $\Sigma^+$ is obtained by taking the reciprocal of each non-zero singular 
 
 ### 5.5 Invertibility and Information Preservation
 
-**Theorem.** A function is bijective (invertible) if and only if it preserves all information — i.e., the input can be recovered from the output.
+**Theorem.** A function is bijective (invertible) if and only if it preserves all information - i.e., the input can be recovered from the output.
 
 **Linear case.** For a linear map $f(x) = Ax$ with $A \in \mathbb{R}^{m \times n}$:
 
@@ -1020,17 +1020,17 @@ where $\Sigma^+$ is obtained by taking the reciprocal of each non-zero singular 
                     Information Flow in a Network
                     
      d=768         d=768         d=768         d=768
-  ┌────────┐    ┌────────┐    ┌────────┐    ┌────────┐
-  │ Layer 1│───▶│ Layer 2│───▶│ Layer 3│───▶│ Layer 4│
-  └────────┘    └────────┘    └────────┘    └────────┘
-  Same dimension throughout → bijection is POSSIBLE
+  +--------+    +--------+    +--------+    +--------+
+  | Layer 1|--->| Layer 2|--->| Layer 3|--->| Layer 4|
+  +--------+    +--------+    +--------+    +--------+
+  Same dimension throughout -> bijection is POSSIBLE
   (Transformer: d_model stays constant through all layers)
   
      d=784        d=256          d=64          d=10
-  ┌────────┐    ┌────────┐    ┌────────┐    ┌────────┐
-  │Compress│───▶│Compress│───▶│Compress│───▶│ Output │
-  └────────┘    └────────┘    └────────┘    └────────┘
-  Decreasing dimension → NOT injective → information lost
+  +--------+    +--------+    +--------+    +--------+
+  |Compress|--->|Compress|--->|Compress|--->| Output |
+  +--------+    +--------+    +--------+    +--------+
+  Decreasing dimension -> NOT injective -> information lost
   (Classifier: must compress to number of classes)
 ```
 
@@ -1057,7 +1057,7 @@ These two conditions can be combined into one: $f(\alpha u + \beta v) = \alpha f
 - $f$ is completely determined by its action on a basis: if $\{e_1, \ldots, e_n\}$ is a basis for $V$, then $f(v) = f(\sum \alpha_i e_i) = \sum \alpha_i f(e_i)$
 - Every linear function $f: \mathbb{R}^n \to \mathbb{R}^m$ can be represented as matrix multiplication: $f(x) = Ax$ where $A \in \mathbb{R}^{m \times n}$
 
-**The kernel (null space).** $\ker(f) = \{v \in V : f(v) = 0\}$ — the set of vectors that $f$ maps to zero.
+**The kernel (null space).** $\ker(f) = \{v \in V : f(v) = 0\}$ - the set of vectors that $f$ maps to zero.
 
 **Rank-Nullity Theorem.** For $f: V \to W$ with $V$ finite-dimensional:
 
@@ -1068,10 +1068,10 @@ This is a conservation law: dimension is neither created nor destroyed, just red
 **For AI.** Linear layers $f(x) = Wx$ (without bias) are the backbone of neural networks:
 - The attention Q, K, V projections are linear maps
 - The FFN up/down projections are linear maps
-- The LM head (hidden state → logits) is a linear map
+- The LM head (hidden state -> logits) is a linear map
 - LoRA approximates weight updates with low-rank linear maps: $\Delta W = BA$ where $\text{rank}(BA) = r \ll d$
 
-Without nonlinear activation functions, composing any number of linear layers gives a single linear layer: $W_L \cdots W_2 W_1 = W_{\text{total}}$. This is why activations are essential — they break the linearity.
+Without nonlinear activation functions, composing any number of linear layers gives a single linear layer: $W_L \cdots W_2 W_1 = W_{\text{total}}$. This is why activations are essential - they break the linearity.
 
 ### 6.2 Affine Functions
 
@@ -1093,7 +1093,7 @@ $$f_2(f_1(x)) = A_2(A_1 x + b_1) + b_2 = (A_2 A_1)x + (A_2 b_1 + b_2)$$
 
 Result is affine with matrix $A_2 A_1$ and bias $A_2 b_1 + b_2$.
 
-**Critical consequence.** Composing any number of affine functions (without nonlinear activations) gives a single affine function. A 100-layer network with only affine layers is equivalent to a single affine layer. This is why nonlinear activation functions are essential — they prevent the entire network from collapsing into a single affine transformation.
+**Critical consequence.** Composing any number of affine functions (without nonlinear activations) gives a single affine function. A 100-layer network with only affine layers is equivalent to a single affine layer. This is why nonlinear activation functions are essential - they prevent the entire network from collapsing into a single affine transformation.
 
 **For AI.** Nearly every "linear layer" in a neural network is actually affine: $f(x) = Wx + b$. The bias term $b$ allows the function to shift the output away from the origin, which is necessary for representing functions that do not pass through zero. Some architectures omit the bias (e.g., some attention projections in LLaMA), but most include it.
 
@@ -1138,7 +1138,7 @@ The **degree** of the polynomial is $n$ (the highest power with non-zero coeffic
 
 **Weierstrass Approximation Theorem.** Every continuous function on a closed interval $[a, b]$ can be uniformly approximated by polynomials. That is, for any continuous $f: [a,b] \to \mathbb{R}$ and any $\varepsilon > 0$, there exists a polynomial $p$ with $|f(x) - p(x)| < \varepsilon$ for all $x \in [a,b]$.
 
-This is a classical universal approximation result — but it requires the degree (number of terms) to grow, and in general, the required degree grows quickly for complex functions.
+This is a classical universal approximation result - but it requires the degree (number of terms) to grow, and in general, the required degree grows quickly for complex functions.
 
 **Multivariate polynomials.** A polynomial in $n$ variables:
 
@@ -1172,7 +1172,7 @@ $$\sigma(x) = \frac{1}{1 + e^{-x}}$$
 | Symmetric | About $(0, 0.5)$: $\sigma(-x) = 1 - \sigma(x)$ |
 | Saturation | Gradients vanish for $|x| \gg 0$: $\sigma'(x) \to 0$ |
 
-**Problem.** Max derivative is $1/4$. After $L$ layers, gradient is at most $(1/4)^L$. For $L = 20$: $(1/4)^{20} \approx 10^{-12}$. This is the **vanishing gradient problem** — the reason sigmoid was abandoned as a hidden-layer activation in deep networks.
+**Problem.** Max derivative is $1/4$. After $L$ layers, gradient is at most $(1/4)^L$. For $L = 20$: $(1/4)^{20} \approx 10^{-12}$. This is the **vanishing gradient problem** - the reason sigmoid was abandoned as a hidden-layer activation in deep networks.
 
 **Tanh:**
 
@@ -1200,13 +1200,13 @@ $$\text{ReLU}(x) = \max(0, x) = \begin{cases} x & \text{if } x > 0 \\ 0 & \text{
 | Lipschitz constant | $1$ |
 | Bounded | No (unbounded above) |
 | Computation | Extremely cheap: just a comparison |
-| Dying ReLU | If pre-activation is always negative, gradient is always 0 — neuron is "dead" |
+| Dying ReLU | If pre-activation is always negative, gradient is always 0 - neuron is "dead" |
 | Sparsity | Roughly 50% of neurons output 0, creating sparse representations |
 
 **Why ReLU dominates.** Despite losing information (not injective) and not being differentiable at 0, ReLU works extremely well because:
-1. Gradient is exactly 1 for positive inputs — no vanishing gradient
-2. Creates piecewise linear functions — efficient to compute and optimise
-3. Induces sparsity — only active neurons contribute
+1. Gradient is exactly 1 for positive inputs - no vanishing gradient
+2. Creates piecewise linear functions - efficient to compute and optimise
+3. Induces sparsity - only active neurons contribute
 4. Extremely cheap to compute
 
 **GELU (Gaussian Error Linear Units, Hendrycks & Gimpel 2016):**
@@ -1219,7 +1219,7 @@ where $\Phi$ is the standard normal CDF. Approximation: $\text{GELU}(x) \approx 
 |---|---|
 | Range | $[\approx -0.17, \infty)$ |
 | Monotone | No (slight dip near $x \approx -0.17$) |
-| Smooth | Yes ($C^\infty$ — infinitely differentiable) |
+| Smooth | Yes ($C^\infty$ - infinitely differentiable) |
 | Used in | GPT-2, BERT, most transformer models before SwiGLU era |
 
 **SwiGLU (Shazeer 2020, used in LLaMA, PaLM, Gemini):**
@@ -1230,7 +1230,7 @@ where $\text{SiLU}(x) = x \cdot \sigma(x)$ (Swish activation) and $\odot$ is ele
 
 | Property | Value |
 |---|---|
-| Gated | Yes — one path gates the other via sigmoid |
+| Gated | Yes - one path gates the other via sigmoid |
 | Parameters | Requires 3 weight matrices instead of 2 (50% more parameters per FFN) |
 | Used in | LLaMA 1/2/3, PaLM, Gemini, Mistral, most 2023-2026 LLMs |
 | Why preferred | Empirically better than GELU for large-scale language models |
@@ -1269,13 +1269,13 @@ Geometrically: the line segment connecting any two points on the graph lies abov
 
 ```
          f(x)
-          │    ╱
-          │   ╱  Line segment (always above curve)
-          │  ·╱·
-          │ ╱ · 
-          │╱  ·  ← f curves below the line
-          ╱   ·    (this is convexity)
-         ╱────·───────── x
+          |    /
+          |   /  Line segment (always above curve)
+          |  */*
+          | / * 
+          |/  *  <- f curves below the line
+          /   *    (this is convexity)
+         /----*--------- x
 ```
 
 **Three equivalent characterisations (for differentiable $f$):**
@@ -1297,7 +1297,7 @@ Geometrically: the line segment connecting any two points on the graph lies abov
 |---|---|---|
 | Local minima | Every local minimum is global | Can have many local minima |
 | Gradient descent | Guaranteed to converge to global min | May converge to local min or saddle |
-| Uniqueness | Strict convex → unique minimum | Multiple minima possible |
+| Uniqueness | Strict convex -> unique minimum | Multiple minima possible |
 | Rate of convergence | $O(1/t)$ or $O(e^{-\mu t})$ | No guarantees |
 
 **For AI.** The loss landscape of neural networks is **non-convex** in the parameters $\theta$. However:
@@ -1349,7 +1349,7 @@ $$\|g(f(x)) - g(f(y))\| \leq L_g \|f(x) - f(y)\| \leq L_g L_f \|x - y\|$$
 
 $$\text{Lip}(f_{\text{network}}) \leq \prod_{l=1}^{L} L_l$$
 
-If each layer has Lipschitz constant $> 1$, the bound grows exponentially with depth — a small input perturbation could be amplified exponentially. This is exactly the phenomenon behind **adversarial examples**: a tiny, imperceptible change to the input causes a large change in the output.
+If each layer has Lipschitz constant $> 1$, the bound grows exponentially with depth - a small input perturbation could be amplified exponentially. This is exactly the phenomenon behind **adversarial examples**: a tiny, imperceptible change to the input causes a large change in the output.
 
 **Spectral normalisation (Miyato et al. 2018).** To control the Lipschitz constant of each layer, divide the weight matrix by its largest singular value:
 
@@ -1359,7 +1359,7 @@ This ensures $\|\tilde{W}\|_{\text{op}} = 1$, so each layer has Lipschitz consta
 
 **Applications of Lipschitz constraints in AI:**
 - **Wasserstein GANs (WGAN)**: The discriminator must be 1-Lipschitz; enforced via spectral normalisation or gradient penalty
-- **Certified robustness**: A network with Lipschitz constant $L$ is guaranteed to be robust to perturbations of size $\varepsilon/L$ — no adversarial example can flip the prediction within this radius
+- **Certified robustness**: A network with Lipschitz constant $L$ is guaranteed to be robust to perturbations of size $\varepsilon/L$ - no adversarial example can flip the prediction within this radius
 - **Training stability**: Constraining layer Lipschitz constants prevents gradient explosion
 - **ODE-based models**: Neural ODEs require Lipschitz dynamics for well-posedness (existence and uniqueness of solutions)
 
@@ -1387,13 +1387,13 @@ $$H: \mathcal{F} \to \mathcal{G} \quad \text{or} \quad H: \mathcal{F} \times X \
 
 ```
 # map applies a function to each element
-map(f, [x1, x2, x3]) → [f(x1), f(x2), f(x3)]
+map(f, [x1, x2, x3]) -> [f(x1), f(x2), f(x3)]
 
 # JAX grad: takes a function, returns its gradient function
-grad_f = jax.grad(f)  # grad: (R^n → R) → (R^n → R^n)
+grad_f = jax.grad(f)  # grad: (R^n -> R) -> (R^n -> R^n)
 
 # JAX vmap: takes a function, returns its batched version  
-batched_f = jax.vmap(f)  # vmap: (R^n → R^m) → (R^{B×n} → R^{B×m})
+batched_f = jax.vmap(f)  # vmap: (R^n -> R^m) -> (R^{B\timesn} -> R^{B\timesm})
 ```
 
 ### 7.2 Functionals (Functions of Functions)
@@ -1461,7 +1461,7 @@ where $\mathcal{L}$ is the **Lagrangian**. The function $f^*$ that minimises $J$
 
 $$\frac{\partial \mathcal{L}}{\partial f} - \frac{d}{dx}\frac{\partial \mathcal{L}}{\partial f'} = 0$$
 
-This is the **Euler-Lagrange equation** — an ODE whose solutions are the critical points of the functional.
+This is the **Euler-Lagrange equation** - an ODE whose solutions are the critical points of the functional.
 
 **Example: shortest path.** The length of a curve $y = f(x)$ from $(a, f(a))$ to $(b, f(b))$ is:
 
@@ -1478,11 +1478,11 @@ This measures how $J$ changes when $f$ is perturbed at the point $x$.
 **Connection to machine learning.** Training a neural network by gradient descent on parameters $\theta$ is a finite-dimensional approximation to functional optimisation:
 
 ```
-Functional view:     min_{f ∈ F}     L(f)        ← optimise over all functions
-                            ↑
-                     Parameterise f_θ
-                            ↓
-Parameter view:      min_{θ ∈ R^p}   L(f_θ)      ← optimise over parameters
+Functional view:     min_{f \in F}     L(f)        <- optimise over all functions
+                            up
+                     Parameterise f_\theta
+                            down
+Parameter view:      min_{\theta \in R^p}   L(f_\theta)      <- optimise over parameters
 ```
 
 The "lottery ticket hypothesis" and neural architecture search can be seen as trying to find the right parameterisation of the function space.
@@ -1504,13 +1504,13 @@ Modern deep learning frameworks extensively use higher-order functions. Here is 
 
 $$\text{jit}(\text{vmap}(\text{grad}(f)))$$
 
-This gives a compiled, batched gradient function — three layers of higher-order functions applied in sequence. Each transform takes a function and returns a new, enhanced function.
+This gives a compiled, batched gradient function - three layers of higher-order functions applied in sequence. Each transform takes a function and returns a new, enhanced function.
 
 **Autodiff as a higher-order function.** Automatic differentiation (the engine behind backpropagation) is fundamentally a higher-order function:
 
 $$\text{AD}: (f: \mathbb{R}^n \to \mathbb{R}^m) \to (\nabla f: \mathbb{R}^n \to \mathbb{R}^{m \times n})$$
 
-It takes any differentiable function and returns its Jacobian (or gradient, for scalar outputs). The reverse-mode variant computes gradients in $O(\text{cost}(f))$ time regardless of the number of parameters — this is why training networks with billions of parameters is feasible.
+It takes any differentiable function and returns its Jacobian (or gradient, for scalar outputs). The reverse-mode variant computes gradients in $O(\text{cost}(f))$ time regardless of the number of parameters - this is why training networks with billions of parameters is feasible.
 
 ---
 
@@ -1640,7 +1640,7 @@ This is why ReLU's non-differentiability at a single point is usually harmless i
 
 ### 11.1 Universal Approximation Theorems
 
-**The fundamental question.** Can neural networks represent any function? The **universal approximation theorem** says yes — with sufficient width or depth.
+**The fundamental question.** Can neural networks represent any function? The **universal approximation theorem** says yes - with sufficient width or depth.
 
 **Width version (Cybenko 1989, Hornik 1991).** For any continuous function $f: [0,1]^n \to \mathbb{R}$ and any $\varepsilon > 0$, there exists a single-hidden-layer network:
 
@@ -1653,7 +1653,7 @@ with $N$ sufficiently large (but finite), such that $\sup_{x \in [0,1]^n} |f(x) 
 - Extended (Hornik): Any continuous, non-polynomial $\sigma$ works
 - ReLU: Specific constructions show that ReLU networks are universal approximators
 
-**Depth version (Lu et al. 2017).** ReLU networks with width $n + 1$ (where $n$ is input dimension) but arbitrary depth are universal approximators. Width $\leq n$ is NOT sufficient — there exist continuous functions that cannot be approximated by arbitrarily deep but narrow ReLU networks.
+**Depth version (Lu et al. 2017).** ReLU networks with width $n + 1$ (where $n$ is input dimension) but arbitrary depth are universal approximators. Width $\leq n$ is NOT sufficient - there exist continuous functions that cannot be approximated by arbitrarily deep but narrow ReLU networks.
 
 **What the theorem does NOT say:**
 - It does NOT guarantee that gradient descent can find the approximation
@@ -1672,14 +1672,14 @@ This justifies deeper architectures: depth provides exponential efficiency gains
 The training loss decomposes as a composition of functions:
 
 ```
-Input x → Model f_θ(x) → Prediction ŷ → Loss ℓ(ŷ, y) → Scalar L
+Input x -> Model f_\theta(x) -> Prediction yhat -> Loss ell(yhat, y) -> Scalar L
 ```
 
 $$\mathcal{L}(\theta) = \frac{1}{n}\sum_{i=1}^{n} \ell(f_\theta(x_i), y_i)$$
 
 **Common loss functions and their properties:**
 
-| Loss | Formula | Domain → Range | Convex in pred? | Bounded? |
+| Loss | Formula | Domain -> Range | Convex in pred? | Bounded? |
 |---|---|---|---|---|
 | **MSE** | $\frac{1}{n}\sum(y_i - \hat{y}_i)^2$ | $\mathbb{R}^n \to [0, \infty)$ | Yes (strongly) | No |
 | **Cross-entropy** | $-\sum y_i \log \hat{y}_i$ | $\Delta^k \to [0, \infty)$ | Yes | No ($\to \infty$ as $\hat{y}_i \to 0$) |
@@ -1737,7 +1737,7 @@ $$\text{Attn}(X) = \text{softmax}\left(\frac{XW_Q (XW_K)^T}{\sqrt{d_k}}\right) X
 |---|---|
 | **Linear?** | No (softmax makes it nonlinear) |
 | **Injective?** | Generally yes (for distinct inputs) |
-| **Equivariant?** | Yes — permuting input rows permutes output rows |
+| **Equivariant?** | Yes - permuting input rows permutes output rows |
 | **Lipschitz?** | Yes, but constant depends on sequence length |
 | **Differentiable?** | Yes ($C^\infty$) |
 | **Input size** | Variable ($n$ can change) |
@@ -1760,15 +1760,15 @@ where $\Sigma$ is the character alphabet and $V$ is the token vocabulary. For BP
 $$\text{Embed}: V \to \mathbb{R}^d, \quad \text{Embed}(t) = E[t, :]$$
 
 where $E \in \mathbb{R}^{|V| \times d}$ is the embedding matrix. This is:
-- **Injective** (distinct tokens get distinct vectors — assuming no hash collisions)
+- **Injective** (distinct tokens get distinct vectors - assuming no hash collisions)
 - **Not continuous** (the domain $V$ is discrete, so continuity doesn't apply)
-- A **lookup table**, not a "computation" — but mathematically it's a function
+- A **lookup table**, not a "computation" - but mathematically it's a function
 
 **Complete pipeline as function composition:**
 
 ```
-String ──→ Tokens ──→ Embeddings ──→ + Position ──→ Transformer ──→ Logits ──→ Probs
-       Tokenise    Embed          PosEnc         f_θ           LM Head    Softmax
+String ---> Tokens ---> Embeddings ---> + Position ---> Transformer ---> Logits ---> Probs
+       Tokenise    Embed          PosEnc         f_\theta           LM Head    Softmax
 ```
 
 $$P(\text{next token} | \text{context}) = \text{softmax}(W_{\text{head}} \cdot f_\theta(\text{Embed}(\text{Tokenise}(\text{text})) + \text{PE}))$$
@@ -1842,16 +1842,16 @@ Subject to:
 3. $F$ preserves composition: $F(g \circ f) = F(g) \circ F(f)$
 4. $F$ preserves identities: $F(\text{id}_A) = \text{id}_{F(A)}$
 
-**Intuition.** A functor is a "homomorphism of categories" — it maps the entire structure (objects + arrows + composition) from one category to another.
+**Intuition.** A functor is a "homomorphism of categories" - it maps the entire structure (objects + arrows + composition) from one category to another.
 
 **Examples relevant to AI:**
 
 | Functor | From | To | Maps |
 |---|---|---|---|
-| **Forgetful** | Vect → Set | Vector spaces | Forget the linear structure |
-| **Free** | Set → Vect | Sets | Map to free vector space |
-| **Probability** | Meas → Set | Measurable spaces | Map to set of probability measures |
-| **Dual space** | Vect → Vect$^{\text{op}}$ | Vector spaces | $V \mapsto V^*$ (contravariant) |
+| **Forgetful** | Vect -> Set | Vector spaces | Forget the linear structure |
+| **Free** | Set -> Vect | Sets | Map to free vector space |
+| **Probability** | Meas -> Set | Measurable spaces | Map to set of probability measures |
+| **Dual space** | Vect -> Vect$^{\text{op}}$ | Vector spaces | $V \mapsto V^*$ (contravariant) |
 
 **For AI: JAX transforms as functors.** The `vmap` transform in JAX can be viewed as a functor:
 - It maps functions $f: \mathbb{R}^n \to \mathbb{R}^m$ to batched functions $\text{vmap}(f): \mathbb{R}^{B \times n} \to \mathbb{R}^{B \times m}$
@@ -1865,12 +1865,12 @@ Similarly, `grad` is a (contravariant-like) functor from scalar-valued functions
 **Definition.** A **natural transformation** $\eta: F \Rightarrow G$ between functors $F, G: \mathcal{C} \to \mathcal{D}$ assigns to each object $A$ a morphism $\eta_A: F(A) \to G(A)$ such that the following diagram commutes for every morphism $f: A \to B$:
 
 ```
-F(A) ──── η_A ────→ G(A)
-  │                    │
-F(f)│                    │G(f)
-  │                    │
-  ▼                    ▼
-F(B) ──── η_B ────→ G(B)
+F(A) ---- \eta_A -----> G(A)
+  |                    |
+F(f)|                    |G(f)
+  |                    |
+  v                    v
+F(B) ---- \eta_B -----> G(B)
 ```
 
 Commutative: $G(f) \circ \eta_A = \eta_B \circ F(f)$.
@@ -1879,7 +1879,7 @@ Commutative: $G(f) \circ \eta_A = \eta_B \circ F(f)$.
 
 **For AI.** Natural transformations appear in:
 - **Activation functions**: The ReLU activation defines a natural transformation from the identity functor to itself (in a suitable category of parameterised functions). It transforms each layer's output in a way that commutes with the layer's parameterisation.
-- **Normalisation layers**: Layer norm transforms representations in a way that is "natural" — it doesn't depend on the specific basis chosen for the hidden dimension.
+- **Normalisation layers**: Layer norm transforms representations in a way that is "natural" - it doesn't depend on the specific basis chosen for the hidden dimension.
 
 ### 12.4 Isomorphisms and Equivalences
 
@@ -1932,10 +1932,10 @@ The Yoneda perspective also connects to **representation learning** more broadly
 **Mistake:** Treating "$f(x) = x^2$" as the function, rather than understanding that the function is the mapping $f: \mathbb{R} \to \mathbb{R}$ defined by $x \mapsto x^2$.
 
 **Why it matters:** The same formula can define different functions depending on domain and codomain:
-- $f: \mathbb{R} \to \mathbb{R}$, $f(x) = x^2$ — NOT injective
-- $g: [0, \infty) \to \mathbb{R}$, $g(x) = x^2$ — injective
-- $h: \mathbb{R} \to [0, \infty)$, $h(x) = x^2$ — surjective
-- $k: [0, \infty) \to [0, \infty)$, $k(x) = x^2$ — bijective
+- $f: \mathbb{R} \to \mathbb{R}$, $f(x) = x^2$ - NOT injective
+- $g: [0, \infty) \to \mathbb{R}$, $g(x) = x^2$ - injective
+- $h: \mathbb{R} \to [0, \infty)$, $h(x) = x^2$ - surjective
+- $k: [0, \infty) \to [0, \infty)$, $k(x) = x^2$ - bijective
 
 These are four different functions with the same formula.
 
@@ -1948,22 +1948,22 @@ The codomain is part of the function's definition (what it can in principle outp
 - Range: $[0, \infty)$ (non-negative reals only)
 - The function is NOT surjective because range $\neq$ codomain
 
-In AI: a classifier $f: \mathbb{R}^d \to \mathbb{R}^{10}$ has codomain $\mathbb{R}^{10}$, but after softmax the actual outputs are in $\Delta^{10}$ (the probability simplex) — a strict subset.
+In AI: a classifier $f: \mathbb{R}^d \to \mathbb{R}^{10}$ has codomain $\mathbb{R}^{10}$, but after softmax the actual outputs are in $\Delta^{10}$ (the probability simplex) - a strict subset.
 
 ### 13.3 Assuming Composition is Commutative
 
 **Mistake:** Assuming $f \circ g = g \circ f$.
 
 Composition is almost never commutative. In neural networks:
-- Pre-LN: $x + \text{Attn}(\text{LN}(x))$ — normalise then attend
-- Post-LN: $\text{LN}(x + \text{Attn}(x))$ — attend then normalise
+- Pre-LN: $x + \text{Attn}(\text{LN}(x))$ - normalise then attend
+- Post-LN: $\text{LN}(x + \text{Attn}(x))$ - attend then normalise
 - These produce different results and have different training dynamics
 
 ### 13.4 Forgetting That Linear Means f(0) = 0
 
 **Mistake:** Calling $f(x) = Wx + b$ a "linear function".
 
-It is **affine**, not linear (unless $b = 0$). A truly linear function satisfies $f(0) = 0$, $f(x + y) = f(x) + f(y)$, and $f(\alpha x) = \alpha f(x)$. The term "linear layer" in deep learning is a misnomer — PyTorch's `nn.Linear` is actually an affine layer.
+It is **affine**, not linear (unless $b = 0$). A truly linear function satisfies $f(0) = 0$, $f(x + y) = f(x) + f(y)$, and $f(\alpha x) = \alpha f(x)$. The term "linear layer" in deep learning is a misnomer - PyTorch's `nn.Linear` is actually an affine layer.
 
 ### 13.5 Assuming Differentiable Implies Smooth
 
@@ -1976,18 +1976,18 @@ ReLU is not even $C^1$ (not differentiable at $x = 0$). The function $f(x) = x|x
 **Mistake:** Applying $\log(x)$ without checking that $x > 0$, or computing $1/x$ at $x = 0$.
 
 In AI, this appears as:
-- `log(0)` in cross-entropy loss when prediction is exactly 0 — fix: use `log(p + eps)` or `log_softmax`
-- Division by zero in normalisation when variance is 0 — fix: use $\text{LayerNorm}(x) = \frac{x - \mu}{\sigma + \varepsilon}$
-- `sqrt(0)` gradient is infinite — fix: use `sqrt(x + eps)`
+- `log(0)` in cross-entropy loss when prediction is exactly 0 - fix: use `log(p + eps)` or `log_softmax`
+- Division by zero in normalisation when variance is 0 - fix: use $\text{LayerNorm}(x) = \frac{x - \mu}{\sigma + \varepsilon}$
+- `sqrt(0)` gradient is infinite - fix: use `sqrt(x + eps)`
 
 ### 13.7 Confusing Bijectivity with Invertibility
 
 **Mistake:** Trying to "invert" a non-bijective function.
 
-The pseudo-inverse $A^+$ is NOT a true inverse — $AA^+A = A$ but $A^+AA^+ = A^+$ does not give $AA^+ = I$ or $A^+A = I$ in general. In AI:
+The pseudo-inverse $A^+$ is NOT a true inverse - $AA^+A = A$ but $A^+AA^+ = A^+$ does not give $AA^+ = I$ or $A^+A = I$ in general. In AI:
 - You cannot perfectly reconstruct an input from a lower-dimensional embedding (dimensionality reduction is not injective)
 - An autoencoder with bottleneck $d_{\text{latent}} < d_{\text{input}}$ cannot be bijective
-- Pooling layers (max pool, average pool) are not injective — information is lost
+- Pooling layers (max pool, average pool) are not injective - information is lost
 
 ---
 
@@ -2050,22 +2050,22 @@ The pseudo-inverse $A^+$ is NOT a true inverse — $AA^+A = A$ but $A^+AA^+ = A^
 The central thesis of this chapter: **every component of a modern AI system is a function**, and the properties of those functions (injectivity, surjectivity, linearity, continuity, differentiability, Lipschitz constants) directly determine the system's capabilities and limitations.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    THE AI SYSTEM AS A FUNCTION                  │
-│                                                                 │
-│  String ──→ Tokens ──→ Embeddings ──→ Hidden ──→ Logits ──→ P  │
-│         f₁         f₂            f₃         f₄         f₅     │
-│                                                                 │
-│  f₁: Tokenise (deterministic, not injective in general)        │
-│  f₂: Embed     (injective lookup, discrete → continuous)       │
-│  f₃: Transform (nonlinear, differentiable, high-dimensional)   │
-│  f₄: LM Head   (linear projection, dimension reduction)        │
-│  f₅: Softmax   (continuous, surjective onto int(Δ), bounded)  │
-│                                                                 │
-│  Full system: f = f₅ ∘ f₄ ∘ f₃ ∘ f₂ ∘ f₁                     │
-│  Training: find θ* = argmin_θ E[L(f_θ(x), y)]                 │
-│  Inference: sample from f_θ*(context)                           │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+|                    THE AI SYSTEM AS A FUNCTION                  |
+|                                                                 |
+|  String ---> Tokens ---> Embeddings ---> Hidden ---> Logits ---> P  |
+|         f_1         f_2            f_3         f_4         f_5     |
+|                                                                 |
+|  f_1: Tokenise (deterministic, not injective in general)        |
+|  f_2: Embed     (injective lookup, discrete -> continuous)       |
+|  f_3: Transform (nonlinear, differentiable, high-dimensional)   |
+|  f_4: LM Head   (linear projection, dimension reduction)        |
+|  f_5: Softmax   (continuous, surjective onto int(\Delta), bounded)  |
+|                                                                 |
+|  Full system: f = f_5 \circ f_4 \circ f_3 \circ f_2 \circ f_1                     |
+|  Training: find \theta* = argmin_\theta E[L(f_\theta(x), y)]                 |
+|  Inference: sample from f_\theta*(context)                           |
++-----------------------------------------------------------------+
 ```
 
 ### 15.2 The Function Properties That Matter Most
@@ -2087,12 +2087,12 @@ The remarkable discovery of the scaling laws era (2020-present): the function cl
 
 $$\mathcal{L}(C) \approx \left(\frac{C_0}{C}\right)^{\alpha_C}, \quad \mathcal{L}(D) \approx \left(\frac{D_0}{D}\right)^{\alpha_D}, \quad \mathcal{L}(N) \approx \left(\frac{N_0}{N}\right)^{\alpha_N}$$
 
-where $\mathcal{L}$ is the loss, $C$ is compute, $D$ is data, and $N$ is parameter count. These are power laws — the loss is a specific functional form of the "size" of the function class.
+where $\mathcal{L}$ is the loss, $C$ is compute, $D$ is data, and $N$ is parameter count. These are power laws - the loss is a specific functional form of the "size" of the function class.
 
 **From a function theory perspective:**
-- More parameters → larger hypothesis class → can approximate more complex functions
-- More data → better estimation of the target function → lower approximation error
-- More compute → more SGD steps → better search through the hypothesis class
+- More parameters -> larger hypothesis class -> can approximate more complex functions
+- More data -> better estimation of the target function -> lower approximation error
+- More compute -> more SGD steps -> better search through the hypothesis class
 - The power-law form suggests deep structural regularities in the relationship between function class capacity and approximation quality
 
 ## 16. Conceptual Bridge
@@ -2114,7 +2114,7 @@ The mathematical tools from this chapter appear throughout the rest of this curr
 
 Mathematics is, in a deep sense, the study of functions and their properties. Linear algebra studies linear functions. Calculus studies differentiable functions. Topology studies continuous functions. Measure theory studies measurable functions. Category theory studies all structure-preserving functions (morphisms) at once.
 
-The bridge forward is this: later chapters will often look like they are about matrices, gradients, probability distributions, or optimization algorithms, but underneath they are still about maps between spaces, compositions of transformations, and constraints on what those transformations can preserve. Understanding functions — truly understanding them — is understanding the language in which all of AI is written.
+The bridge forward is this: later chapters will often look like they are about matrices, gradients, probability distributions, or optimization algorithms, but underneath they are still about maps between spaces, compositions of transformations, and constraints on what those transformations can preserve. Understanding functions - truly understanding them - is understanding the language in which all of AI is written.
 
 ---
 
@@ -2127,7 +2127,7 @@ The bridge forward is this: later chapters will often look like they are about m
 5. Miyato, T. et al. (2018). "Spectral Normalization for Generative Adversarial Networks." *ICLR 2018*.
 6. Telgarsky, M. (2016). "Benefits of depth in neural networks." *COLT 2016*.
 7. He, K. et al. (2016). "Deep Residual Learning for Image Recognition." *CVPR 2016*.
-8. Kingma, D.P. & Dhariwal, P. (2018). "Glow: Generative Flow with Invertible 1×1 Convolutions." *NeurIPS 2018*.
+8. Kingma, D.P. & Dhariwal, P. (2018). "Glow: Generative Flow with Invertible 1\times1 Convolutions." *NeurIPS 2018*.
 9. Jang, E. et al. (2017). "Categorical Reparameterization with Gumbel-Softmax." *ICLR 2017*.
 10. Lu, Z. et al. (2017). "The Expressive Power of Neural Networks: A View from the Width." *NeurIPS 2017*.
 11. Penrose, R. (1955). "A generalized inverse for matrices." *Mathematical Proceedings of the Cambridge Philosophical Society*, 51(3), 406-413.

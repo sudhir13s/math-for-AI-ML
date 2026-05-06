@@ -1,4 +1,4 @@
-[← Back to Advanced Linear Algebra](../README.md) | [← Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md) | [Next: Positive Definite Matrices →](../07-Positive-Definite-Matrices/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md) | [Next: Positive Definite Matrices ->](../07-Positive-Definite-Matrices/notes.md)
 
 ---
 
@@ -8,18 +8,18 @@
 
 ## Overview
 
-Matrix norms answer a deceptively simple question: **how big is this matrix?** The answer depends on what we mean by "big" — the largest entry, the total energy, the most a vector can be stretched — and each choice of measurement gives a different norm, each useful in a different context.
+Matrix norms answer a deceptively simple question: **how big is this matrix?** The answer depends on what we mean by "big" - the largest entry, the total energy, the most a vector can be stretched - and each choice of measurement gives a different norm, each useful in a different context.
 
-This section builds a complete theory of matrix norms from first principles. We develop the three central families — Frobenius norms (entry-wise energy), induced operator norms (worst-case amplification), and Schatten norms (singular-value aggregates) — and the unifying concept of unitarily invariant norms. The condition number, which measures how much a matrix amplifies errors in linear systems, emerges as the ratio of the largest to smallest singular value.
+This section builds a complete theory of matrix norms from first principles. We develop the three central families - Frobenius norms (entry-wise energy), induced operator norms (worst-case amplification), and Schatten norms (singular-value aggregates) - and the unifying concept of unitarily invariant norms. The condition number, which measures how much a matrix amplifies errors in linear systems, emerges as the ratio of the largest to smallest singular value.
 
 For machine learning practitioners, matrix norms are not abstract tools. Spectral normalization (the key to stable GAN training) clips the spectral norm to 1 at each layer. Weight decay penalizes the Frobenius norm. Nuclear norm regularization promotes low-rank structure. Gradient clipping bounds the global L2 norm. Lipschitz constants of deep networks are products of per-layer spectral norms. Understanding these connections requires the precise definitions and inequalities developed here.
 
 ## Prerequisites
 
-- Vector norms: L1, L2, L∞, Lp — axioms and geometry
-- SVD: $A = U\Sigma V^\top$, singular values $\sigma_1 \geq \cdots \geq \sigma_r > 0$ — see [§02: SVD](../02-Singular-Value-Decomposition/notes.md)
-- Eigenvalues and spectral theory — see [§01: Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)
-- Orthogonal matrices, inner products — see [§05: Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)
+- Vector norms: L1, L2, L\infty, Lp - axioms and geometry
+- SVD: $A = U\Sigma V^\top$, singular values $\sigma_1 \geq \cdots \geq \sigma_r > 0$ - see [02: SVD](../02-Singular-Value-Decomposition/notes.md)
+- Eigenvalues and spectral theory - see [01: Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)
+- Orthogonal matrices, inner products - see [05: Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)
 
 ## Companion Notebooks
 
@@ -33,7 +33,7 @@ For machine learning practitioners, matrix norms are not abstract tools. Spectra
 After completing this section, you will be able to:
 
 - State the three norm axioms and verify them for any proposed norm
-- Compute Frobenius, spectral (operator 2-norm), nuclear, matrix 1-norm, and matrix ∞-norm
+- Compute Frobenius, spectral (operator 2-norm), nuclear, matrix 1-norm, and matrix \infty-norm
 - Derive the formula $\|A\|_2 = \sigma_1(A)$ and $\|A\|_* = \sum_i \sigma_i$ from the SVD
 - Prove that all induced norms are submultiplicative and explain the consequence for deep networks
 - Define unitarily invariant norms and classify Schatten and Ky Fan norms as examples
@@ -65,7 +65,7 @@ After completing this section, you will be able to:
 - [4. Induced (Operator) Norms](#4-induced-operator-norms)
   - [4.1 Definition and Geometric Meaning](#41-definition-and-geometric-meaning)
   - [4.2 The Spectral Norm](#42-the-spectral-norm)
-  - [4.3 The Matrix 1-Norm and ∞-Norm](#43-the-matrix-1-norm-and--norm)
+  - [4.3 The Matrix 1-Norm and \infty-Norm](#43-the-matrix-1-norm-and--norm)
   - [4.4 Submultiplicativity](#44-submultiplicativity)
   - [4.5 Consistency Between Matrix and Vector Norms](#45-consistency-between-matrix-and-vector-norms)
 - [5. Schatten Norms and the Nuclear Norm](#5-schatten-norms-and-the-nuclear-norm)
@@ -109,15 +109,15 @@ After completing this section, you will be able to:
 
 Before introducing any formula, consider five concrete scenarios where "how big is this matrix?" is not a vague question but a precise computational need:
 
-**Scenario 1 — Bounding errors in linear systems.** You solve $A\mathbf{x} = \mathbf{b}$ on a computer. The computed $\hat{\mathbf{x}}$ satisfies $(A+E)\hat{\mathbf{x}} = \mathbf{b}$ for some rounding error matrix $E$. How wrong is $\hat{\mathbf{x}}$? The answer involves $\|E\|$ and $\|A^{-1}\|$ — you need norms to bound the damage.
+**Scenario 1 - Bounding errors in linear systems.** You solve $A\mathbf{x} = \mathbf{b}$ on a computer. The computed $\hat{\mathbf{x}}$ satisfies $(A+E)\hat{\mathbf{x}} = \mathbf{b}$ for some rounding error matrix $E$. How wrong is $\hat{\mathbf{x}}$? The answer involves $\|E\|$ and $\|A^{-1}\|$ - you need norms to bound the damage.
 
-**Scenario 2 — Regularization.** Your neural network overfits. You add a penalty $\lambda\|W\|^2$ to the loss. Which norm $\|\cdot\|$? The Frobenius norm penalizes every weight equally. The spectral norm penalizes the largest singular value. The nuclear norm encourages low rank. Each choice embeds different inductive bias.
+**Scenario 2 - Regularization.** Your neural network overfits. You add a penalty $\lambda\|W\|^2$ to the loss. Which norm $\|\cdot\|$? The Frobenius norm penalizes every weight equally. The spectral norm penalizes the largest singular value. The nuclear norm encourages low rank. Each choice embeds different inductive bias.
 
-**Scenario 3 — Lipschitz constants.** Your network $f$ maps inputs to outputs. How much can a small input perturbation change the output? The Lipschitz constant of a linear layer is exactly $\|W\|_2$. The global Lipschitz constant of a deep network is bounded by $\prod_l \|W^{[l]}\|_2$.
+**Scenario 3 - Lipschitz constants.** Your network $f$ maps inputs to outputs. How much can a small input perturbation change the output? The Lipschitz constant of a linear layer is exactly $\|W\|_2$. The global Lipschitz constant of a deep network is bounded by $\prod_l \|W^{[l]}\|_2$.
 
-**Scenario 4 — Convergence of gradient descent.** Gradient descent on $\min_\mathbf{x} \frac{1}{2}\mathbf{x}^\top A\mathbf{x} - \mathbf{b}^\top\mathbf{x}$ converges geometrically with rate $1 - 2/(\kappa+1)$ where $\kappa = \|A\|_2\|A^{-1}\|_2$ is the condition number. A large condition number means slow convergence.
+**Scenario 4 - Convergence of gradient descent.** Gradient descent on $\min_\mathbf{x} \frac{1}{2}\mathbf{x}^\top A\mathbf{x} - \mathbf{b}^\top\mathbf{x}$ converges geometrically with rate $1 - 2/(\kappa+1)$ where $\kappa = \|A\|_2\|A^{-1}\|_2$ is the condition number. A large condition number means slow convergence.
 
-**Scenario 5 — Low-rank approximation quality.** The Eckart-Young theorem says the best rank-$k$ approximation to $A$ has error $\|A - A_k\|_2 = \sigma_{k+1}$ in spectral norm and $\|A - A_k\|_F = \sqrt{\sum_{i>k}\sigma_i^2}$ in Frobenius norm. Without norms, we cannot even state what "best approximation" means.
+**Scenario 5 - Low-rank approximation quality.** The Eckart-Young theorem says the best rank-$k$ approximation to $A$ has error $\|A - A_k\|_2 = \sigma_{k+1}$ in spectral norm and $\|A - A_k\|_F = \sqrt{\sum_{i>k}\sigma_i^2}$ in Frobenius norm. Without norms, we cannot even state what "best approximation" means.
 
 In every scenario, the choice of norm carries meaning. This section develops the machinery to make those choices deliberate and principled.
 
@@ -131,32 +131,32 @@ $V^\top$ rotates the sphere (orthogonal maps preserve spheres). $\Sigma$ stretch
 
 ```
 MATRIX NORMS AS ELLIPSOID GEOMETRY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Unit sphere in ℝⁿ         →  A maps to →  Ellipsoid in ℝᵐ
+  Unit sphere in \mathbb{R}^n         ->  A maps to ->  Ellipsoid in \mathbb{R}^m
 
-  ·····                                      ╭───────────╮
- · · · ·          A = UΣVᵀ                ╭─╯           ╰─╮
-· · · · ·    ───────────────▶            ╭─╯               ╰─╮
- · · · ·                                ╰──╮               ╭──╯
-  ·····                                    ╰─╮           ╭─╯  ← σ₂
-                                              ╰───────────╯
-                               ←────────────────────────────────────→
-                                              2σ₁  (longest axis)
+  *****                                      +-----------+
+ * * * *          A = U\SigmaV^T                +-+           +-+
+* * * * *    --------------->            +-+               +-+
+ * * * *                                +--+               +--+
+  *****                                    +-+           +-+  <- \sigma_2
+                                              +-----------+
+                               <-------------------------------------->
+                                              2\sigma_1  (longest axis)
 
-  Spectral norm  ‖A‖₂  = σ₁  = length of longest semi-axis
-  Frobenius norm ‖A‖_F = √(σ₁²+σ₂²+…) = "total energy" of axes
-  Nuclear norm   ‖A‖_*  = σ₁+σ₂+… = sum of all semi-axis lengths
+  Spectral norm  ||A||_2  = \sigma_1  = length of longest semi-axis
+  Frobenius norm ||A||_F = \sqrt(\sigma_1^2+\sigma_2^2+...) = "total energy" of axes
+  Nuclear norm   ||A||_*  = \sigma_1+\sigma_2+... = sum of all semi-axis lengths
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Each norm captures a different aspect of this ellipsoid:**
-- $\|A\|_2 = \sigma_1$: the worst-case amplification — how long is the longest axis?
+- $\|A\|_2 = \sigma_1$: the worst-case amplification - how long is the longest axis?
 - $\|A\|_F = \sqrt{\sum_i \sigma_i^2}$: root-mean-square amplification across all directions
 - $\|A\|_* = \sum_i \sigma_i$: total "size" of all directions (related to rank)
 
-**For AI:** Weight matrices in neural networks define such ellipsoids. A spectrally normalized layer has $\sigma_1 = 1$ — the unit sphere maps to an ellipsoid whose longest axis has length exactly 1. A Frobenius-regularized layer has bounded total energy across all singular values.
+**For AI:** Weight matrices in neural networks define such ellipsoids. A spectrally normalized layer has $\sigma_1 = 1$ - the unit sphere maps to an ellipsoid whose longest axis has length exactly 1. A Frobenius-regularized layer has bounded total energy across all singular values.
 
 ### 1.3 Why Matrix Norms Matter for AI
 
@@ -184,11 +184,11 @@ The table below shows each major AI technique and the norm that is its mathemati
 | 1951 | Ky Fan | Ky Fan k-norms; Fan dominance theorem |
 | 1960s | Golub, Kahan | Numerical algorithms for condition numbers; QR iteration |
 | 1976 | Rudin | Functional analysis formalization; duality of norms |
-| 1987 | Candès, Recht | Nuclear norm relaxation of rank minimization |
+| 1987 | Candes, Recht | Nuclear norm relaxation of rank minimization |
 | 1992 | Trefethen & Bau | Numerical linear algebra framing of condition number for ML |
-| 2009 | Candès & Recht | Matrix completion via nuclear norm minimization (Netflix Prize theory) |
-| 2018 | Miyato et al. | Spectral normalization for GANs — spectral norm goes mainstream in DL |
-| 2021–2024 | LoRA, DoRA, MuP | Mixed-norm methods for efficient fine-tuning of LLMs |
+| 2009 | Candes & Recht | Matrix completion via nuclear norm minimization (Netflix Prize theory) |
+| 2018 | Miyato et al. | Spectral normalization for GANs - spectral norm goes mainstream in DL |
+| 2021-2024 | LoRA, DoRA, MuP | Mixed-norm methods for efficient fine-tuning of LLMs |
 
 ---
 
@@ -206,7 +206,7 @@ The table below shows each major AI technique and the norm that is its mathemati
 
 A function satisfying N1 (without the zero condition), N2, and N3 is a **semi-norm**. A semi-norm can be zero on nonzero vectors.
 
-**Matrix space as a vector space.** The space $\mathbb{R}^{m \times n}$ of $m \times n$ real matrices is a vector space of dimension $mn$ under entry-wise addition and scalar multiplication. Any norm on $\mathbb{R}^{mn}$ (after reshaping) gives a valid matrix norm. But not every matrix norm is "compatible" with matrix multiplication — additional properties (submultiplicativity) are often required.
+**Matrix space as a vector space.** The space $\mathbb{R}^{m \times n}$ of $m \times n$ real matrices is a vector space of dimension $mn$ under entry-wise addition and scalar multiplication. Any norm on $\mathbb{R}^{mn}$ (after reshaping) gives a valid matrix norm. But not every matrix norm is "compatible" with matrix multiplication - additional properties (submultiplicativity) are often required.
 
 **Definition (submultiplicative norm).** A matrix norm $\|\cdot\|$ on $\mathbb{R}^{n \times n}$ is **submultiplicative** (or **consistent**) if:
 $$\|AB\| \leq \|A\|\|B\| \quad \text{for all } A, B \in \mathbb{R}^{n \times n}$$
@@ -227,25 +227,25 @@ The unit balls $\{\mathbf{x} : \|\mathbf{x}\|_p \leq 1\}$ have characteristic sh
 
 ```
 UNIT BALLS IN 2D FOR DIFFERENT p-NORMS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  p=1 (diamond)     p=2 (circle)     p=∞ (square)     p=1/2 (star)
+  p=1 (diamond)     p=2 (circle)     p=\infty (square)     p=1/2 (star)
                                                         [not a norm!]
-      *                 ___               ┌───┐
-     /|\               /   \             │   │               *
-    / | \             /     \            │   │              /|\
-  *──┼──*            │   ·   │           │   │            */   \*
-    \ | /             \     /            │   │              \   /
-     \|/               \___/             └───┘               \|/
+      *                 ___               +---+
+     /|\               /   \             |   |               *
+    / | \             /     \            |   |              /|\
+  *--+--*            |   *   |           |   |            */   \*
+    \ | /             \     /            |   |              \   /
+     \|/               \___/             +---+               \|/
       *                                                        *
 
-  p < 1: concave, violates triangle inequality → NOT a norm
-  p ≥ 1: convex, satisfies all axioms → valid norm
+  p < 1: concave, violates triangle inequality -> NOT a norm
+  p \geq 1: convex, satisfies all axioms -> valid norm
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**Hölder's inequality.** For conjugate exponents $1/p + 1/q = 1$ (with $p = 1 \Leftrightarrow q = \infty$):
+**Holder's inequality.** For conjugate exponents $1/p + 1/q = 1$ (with $p = 1 \Leftrightarrow q = \infty$):
 $$|\langle\mathbf{x},\mathbf{y}\rangle| = \left|\sum_i x_i y_i\right| \leq \|\mathbf{x}\|_p\|\mathbf{y}\|_q$$
 
 This generalizes the Cauchy-Schwarz inequality ($p = q = 2$) and is the foundation for dual norm theory.
@@ -266,9 +266,9 @@ $$c\|\mathbf{x}\|_\alpha \leq \|\mathbf{x}\|_\beta \leq C\|\mathbf{x}\|_\alpha \
 | $\|\mathbf{x}\|_\infty \leq \|\mathbf{x}\|_2 \leq \sqrt{n}\|\mathbf{x}\|_\infty$ | factor $\sqrt{n}$ | one / all entries equal |
 | $\|\mathbf{x}\|_\infty \leq \|\mathbf{x}\|_1 \leq n\|\mathbf{x}\|_\infty$ | factor $n$ | one / all entries equal |
 
-**Why this matters:** Norm equivalence guarantees that convergence in one norm implies convergence in all others — so the choice of norm for convergence analysis is flexible. However, the **constants** matter for quantitative bounds, and choosing the right norm can tighten bounds by factors of $\sqrt{n}$ or $n$.
+**Why this matters:** Norm equivalence guarantees that convergence in one norm implies convergence in all others - so the choice of norm for convergence analysis is flexible. However, the **constants** matter for quantitative bounds, and choosing the right norm can tighten bounds by factors of $\sqrt{n}$ or $n$.
 
-**Warning:** Norm equivalence fails in infinite dimensions. In $L^p$ function spaces, $L^2 \not\simeq L^\infty$ — this distinction is crucial in functional analysis and infinite-width neural network theory.
+**Warning:** Norm equivalence fails in infinite dimensions. In $L^p$ function spaces, $L^2 \not\simeq L^\infty$ - this distinction is crucial in functional analysis and infinite-width neural network theory.
 
 ### 2.4 Dual Norms
 
@@ -278,14 +278,14 @@ $$\|\mathbf{y}\|_* = \max_{\|\mathbf{x}\| \leq 1} \langle\mathbf{x}, \mathbf{y}\
 **Key dual pairs:**
 - $\|\cdot\|_1$ and $\|\cdot\|_\infty$ are dual: $\|\mathbf{y}\|_\infty = \max_{\|\mathbf{x}\|_1 \leq 1}\langle\mathbf{x},\mathbf{y}\rangle$
 - $\|\cdot\|_2$ is self-dual: $\|\mathbf{y}\|_2 = \max_{\|\mathbf{x}\|_2 \leq 1}\langle\mathbf{x},\mathbf{y}\rangle$ (Cauchy-Schwarz with equality)
-- $\|\cdot\|_p$ and $\|\cdot\|_q$ are dual when $1/p + 1/q = 1$ (Hölder conjugates)
+- $\|\cdot\|_p$ and $\|\cdot\|_q$ are dual when $1/p + 1/q = 1$ (Holder conjugates)
 
 **Dual norms for matrices** (treating them as vectors): the dual of the spectral norm is the nuclear norm:
 $$\|A\|_* = \max_{\|B\|_2 \leq 1}\langle A, B\rangle_F = \max_{\|B\|_2 \leq 1}\operatorname{tr}(A^\top B)$$
 
 This duality appears in optimization: the subdifferential of $\|A\|_*$ involves matrices with spectral norm $\leq 1$.
 
-**For AI:** The dual norm appears naturally in proximal gradient methods. The proximal operator of $\lambda\|A\|_*$ (nuclear norm) is soft-thresholding of singular values — a key step in matrix completion algorithms and low-rank optimization.
+**For AI:** The dual norm appears naturally in proximal gradient methods. The proximal operator of $\lambda\|A\|_*$ (nuclear norm) is soft-thresholding of singular values - a key step in matrix completion algorithms and low-rank optimization.
 
 ---
 ## 3. The Frobenius Norm
@@ -306,7 +306,7 @@ This turns the space $\mathbb{R}^{m \times n}$ into a Hilbert space. Cauchy-Schw
 **Geometric interpretation.** $\|A\|_F$ is the "size" of the linear map $A$ when averaged uniformly over the unit sphere. More precisely, if $\mathbf{x}$ is drawn uniformly from the unit sphere $S^{n-1}$, then:
 $$\mathbb{E}[\|A\mathbf{x}\|^2] = \frac{\|A\|_F^2}{n}$$
 
-This is the mean squared output energy — the Frobenius norm measures average amplification over all directions.
+This is the mean squared output energy - the Frobenius norm measures average amplification over all directions.
 
 ### 3.2 SVD Relationship
 
@@ -319,12 +319,12 @@ where $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_r > 0$ are the nonzero sin
 **Proof.** $\|A\|_F^2 = \operatorname{tr}(A^\top A)$. Since $A = U\Sigma V^\top$, we have $A^\top A = V\Sigma^2 V^\top$. Trace is invariant under similarity, so $\operatorname{tr}(A^\top A) = \operatorname{tr}(\Sigma^2) = \sum_i \sigma_i^2$.
 
 **Consequences:**
-- $\|A\|_F^2$ equals the sum of squared singular values — a measure of total "energy"
+- $\|A\|_F^2$ equals the sum of squared singular values - a measure of total "energy"
 - $\|A\|_F \geq \|A\|_2 = \sigma_1$ (Frobenius norm is at least as large as spectral norm)
 - $\|A\|_F \leq \sqrt{r}\|A\|_2$ (Frobenius norm bounded by $\sqrt{\text{rank}}$ times spectral norm)
 - For rank-1 matrices: $\|A\|_F = \|A\|_2 = \sigma_1$ (single singular value)
 
-**For AI:** The Frobenius norm of a weight matrix $W \in \mathbb{R}^{d_{out} \times d_{in}}$ equals $\|\boldsymbol{\sigma}(W)\|_2$ — the $\ell^2$ norm of singular values. Weight decay (L2 regularization) penalizes $\|W\|_F^2 = \sum_i \sigma_i^2$, encouraging all singular values to shrink uniformly. This is weaker than nuclear norm regularization ($\|\boldsymbol{\sigma}\|_1$), which promotes low-rank structure.
+**For AI:** The Frobenius norm of a weight matrix $W \in \mathbb{R}^{d_{out} \times d_{in}}$ equals $\|\boldsymbol{\sigma}(W)\|_2$ - the $\ell^2$ norm of singular values. Weight decay (L2 regularization) penalizes $\|W\|_F^2 = \sum_i \sigma_i^2$, encouraging all singular values to shrink uniformly. This is weaker than nuclear norm regularization ($\|\boldsymbol{\sigma}\|_1$), which promotes low-rank structure.
 
 ### 3.3 Key Properties and Inequalities
 
@@ -349,7 +349,7 @@ This follows from the SVD formula: unitary transformations permute singular valu
 
 ### 3.4 Best Low-Rank Approximation
 
-The Eckart-Young theorem — the fundamental result about low-rank approximation — is stated in terms of both the Frobenius and spectral norms:
+The Eckart-Young theorem - the fundamental result about low-rank approximation - is stated in terms of both the Frobenius and spectral norms:
 
 **Theorem (Eckart-Young, 1936).** Let $A = U\Sigma V^\top$ and $A_k = \sum_{i=1}^k \sigma_i \mathbf{u}_i \mathbf{v}_i^\top$. Then:
 $$\min_{\operatorname{rank}(B) \leq k} \|A - B\|_F = \|A - A_k\|_F = \sqrt{\sigma_{k+1}^2 + \cdots + \sigma_r^2}$$
@@ -357,7 +357,7 @@ $$\min_{\operatorname{rank}(B) \leq k} \|A - B\|_2 = \|A - A_k\|_2 = \sigma_{k+1
 
 In both norms, the optimal rank-$k$ approximation is obtained by truncating the SVD.
 
-**For AI:** This theorem is the mathematical foundation of PCA (→ [§03-PCA](../03-PCA/notes.md)), LoRA, and attention matrix compression. When training a LoRA adapter $W = W_0 + BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$, the Eckart-Young theorem guarantees this is the optimal rank-$r$ perturbation in the Frobenius norm.
+**For AI:** This theorem is the mathematical foundation of PCA (-> [03-PCA](../03-PCA/notes.md)), LoRA, and attention matrix compression. When training a LoRA adapter $W = W_0 + BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$, the Eckart-Young theorem guarantees this is the optimal rank-$r$ perturbation in the Frobenius norm.
 
 ### 3.5 Computing and Differentiating the Frobenius Norm
 
@@ -366,7 +366,7 @@ In both norms, the optimal rank-$k$ approximation is obtained by truncating the 
 **Gradient.** The Frobenius norm is differentiable everywhere. Its gradient with respect to $A$ is:
 $$\frac{\partial \|A\|_F^2}{\partial A} = 2A, \qquad \frac{\partial \|A\|_F}{\partial A} = \frac{A}{\|A\|_F}$$
 
-This makes the Frobenius norm easy to differentiate in backpropagation. Weight decay adds $\lambda \|W\|_F^2$ to the loss, contributing gradient $2\lambda W$ — the standard L2 regularization term.
+This makes the Frobenius norm easy to differentiate in backpropagation. Weight decay adds $\lambda \|W\|_F^2$ to the loss, contributing gradient $2\lambda W$ - the standard L2 regularization term.
 
 **For AI:** Spectral normalization (Miyato 2018) normalizes weight matrices by their spectral norm, not Frobenius. The gradient of the spectral norm is:
 $$\frac{\partial \|A\|_2}{\partial A} = \mathbf{u}_1 \mathbf{v}_1^\top$$
@@ -405,12 +405,12 @@ where $\mathbf{y} = V^\top \mathbf{x}$ has $\|\mathbf{y}\|_2 = \|\mathbf{x}\|_2 
 
 **For AI:** The spectral norm of a weight matrix $W_l$ in a neural network is the Lipschitz constant of that layer (for activations with Lipschitz constant 1). The overall network Lipschitz constant is $\prod_l \|W_l\|_2$. Spectral normalization divides each weight matrix by its spectral norm at every step, bounding this product and stabilizing GAN training.
 
-### 4.3 The Matrix 1-Norm and ∞-Norm
+### 4.3 The Matrix 1-Norm and \infty-Norm
 
 **Matrix 1-norm** ($p = q = 1$, input and output use $\ell^1$):
 $$\|A\|_1 = \max_j \sum_i |a_{ij}| = \text{maximum absolute column sum}$$
 
-**Matrix ∞-norm** ($p = q = \infty$, input and output use $\ell^\infty$):
+**Matrix \infty-norm** ($p = q = \infty$, input and output use $\ell^\infty$):
 $$\|A\|_\infty = \max_i \sum_j |a_{ij}| = \text{maximum absolute row sum}$$
 
 **Why these formulas.** For the 1-norm: $\|A\mathbf{x}\|_1 = \|\sum_j x_j \mathbf{a}_j\|_1 \leq \sum_j |x_j| \|\mathbf{a}_j\|_1$. Since $\sum_j |x_j| = \|\mathbf{x}\|_1 = 1$, the worst case is to put all weight ($x_j = 1$) on the column with maximum $\ell^1$ norm.
@@ -421,7 +421,7 @@ $$\|A\|_\infty = \max_i \sum_j |a_{ij}| = \text{maximum absolute row sum}$$
 
 **Duality.** $\|A\|_\infty = \|A^\top\|_1$. These two norms are transposes of each other.
 
-### 4.4 The 2→1 and 1→2 Norms (NP-Hard)
+### 4.4 The 2->1 and 1->2 Norms (NP-Hard)
 
 The **nuclear norm** is the induced $2 \to 1$ norm's dual... actually, let's be precise: computing $\|A\|_{1 \to 2}$ and $\|A\|_{2 \to 1}$ is **NP-hard** in general. This is a fundamental computational barrier.
 
@@ -470,20 +470,20 @@ with inequalities sharp for full-rank matrices with equal singular values.
 **Duality.** Schatten norms are dual in pairs: $(S_p)^* = S_q$ where $1/p + 1/q = 1$. In particular:
 $$\langle A, B\rangle_F \leq \|A\|_{S_p}\|B\|_{S_q} \qquad \left(\frac{1}{p}+\frac{1}{q}=1\right)$$
 
-This is Hölder's inequality for singular values.
+This is Holder's inequality for singular values.
 
 ### 5.2 The Nuclear Norm
 
 The **nuclear norm** (also called **trace norm** or **Ky Fan $r$-norm** when applied to all $r$ singular values) is:
 $$\|A\|_* = \sum_{i=1}^r \sigma_i = \operatorname{tr}(\sqrt{A^\top A}) = \operatorname{tr}(|A|)$$
 
-where $|A| = \sqrt{A^\top A}$ is the matrix square root (symmetric PSD). For square PSD matrices, $\|A\|_* = \operatorname{tr}(A)$ — hence "trace norm."
+where $|A| = \sqrt{A^\top A}$ is the matrix square root (symmetric PSD). For square PSD matrices, $\|A\|_* = \operatorname{tr}(A)$ - hence "trace norm."
 
 **The nuclear norm as the convex envelope of rank.** This is the key motivation:
 
 $$\|A\|_* = \operatorname{conv}\{\operatorname{rank}(A) : \|A\|_2 \leq 1\}$$
 
-More precisely, on the set $\{A : \|A\|_2 \leq 1\}$, the nuclear norm is the tightest convex lower bound on rank. This makes it the **convex relaxation of rank minimization** — replacing the NP-hard rank minimization with a convex nuclear norm minimization.
+More precisely, on the set $\{A : \|A\|_2 \leq 1\}$, the nuclear norm is the tightest convex lower bound on rank. This makes it the **convex relaxation of rank minimization** - replacing the NP-hard rank minimization with a convex nuclear norm minimization.
 
 **Dual norm.** The nuclear norm is dual to the spectral norm:
 $$\|A\|_* = \max_{\|B\|_2 \leq 1} \langle A, B\rangle_F = \max_{\|B\|_2 \leq 1} \operatorname{tr}(A^\top B)$$
@@ -515,7 +515,7 @@ $$\|A\|_{(k)} = \sum_{i=1}^k \sigma_i = \sigma_1 + \sigma_2 + \cdots + \sigma_k$
 - $k = 1$: $\|A\|_{(1)} = \sigma_1 = \|A\|_2$ (spectral norm)
 - $k = r$: $\|A\|_{(r)} = \sum_i \sigma_i = \|A\|_*$ (nuclear norm)
 
-Ky Fan norms form a chain: $\|A\|_{(1)} \leq \|A\|_{(2)} \leq \cdots \leq \|A\|_{(r)}$, but this is NOT a "norm" ordering — a matrix can have larger $\|A\|_{(1)}$ than another while having smaller $\|A\|_{(k)}$ for larger $k$.
+Ky Fan norms form a chain: $\|A\|_{(1)} \leq \|A\|_{(2)} \leq \cdots \leq \|A\|_{(r)}$, but this is NOT a "norm" ordering - a matrix can have larger $\|A\|_{(1)}$ than another while having smaller $\|A\|_{(k)}$ for larger $k$.
 
 **Variational formula.** The Ky Fan $k$-norm has a beautiful characterization:
 $$\|A\|_{(k)} = \max_{U_k, V_k \text{ orthonormal}} \operatorname{tr}(U_k^\top A V_k)$$
@@ -536,7 +536,7 @@ This means the norm depends only on the singular values of $A$, not on the speci
 **Von Neumann's characterization.** A norm is unitarily invariant if and only if it is a **symmetric gauge function** applied to the vector of singular values:
 $$\|A\| = g(\sigma_1(A), \sigma_2(A), \ldots, \sigma_r(A))$$
 
-where $g: \mathbb{R}^r \to \mathbb{R}$ is a **symmetric gauge function** — a norm on $\mathbb{R}^r$ that is:
+where $g: \mathbb{R}^r \to \mathbb{R}$ is a **symmetric gauge function** - a norm on $\mathbb{R}^r$ that is:
 1. A norm (positive definite, homogeneous, triangle inequality)
 2. Symmetric: $g(\sigma_{\pi(1)}, \ldots, \sigma_{\pi(r)}) = g(\sigma_1, \ldots, \sigma_r)$ for any permutation $\pi$
 3. Monotone: $g(\sigma_1, \ldots, \sigma_r) \geq g(\sigma_1', \ldots, \sigma_r')$ when $|\sigma_i| \geq |\sigma_i'|$ for all $i$
@@ -575,11 +575,11 @@ For unitarily invariant norms, Weyl's inequality gives bounds on singular value 
 **Theorem (Weyl).** If $A, E \in \mathbb{R}^{m \times n}$, then for all $i$:
 $$|\sigma_i(A + E) - \sigma_i(A)| \leq \sigma_1(E) = \|E\|_2$$
 
-Each singular value can change by at most $\|E\|_2$ under perturbation $E$. This will be developed fully in §8.
+Each singular value can change by at most $\|E\|_2$ under perturbation $E$. This will be developed fully in 8.
 
 ### 6.4 The Role in Optimization
 
-Unitarily invariant norms appear naturally in matrix optimization because they respect the singular value geometry of the problem. The **Mirsky theorem** states that for unitarily invariant norms, the best rank-$k$ approximation (in ANY unitarily invariant norm) is the truncated SVD — Eckart-Young generalizes beyond Frobenius.
+Unitarily invariant norms appear naturally in matrix optimization because they respect the singular value geometry of the problem. The **Mirsky theorem** states that for unitarily invariant norms, the best rank-$k$ approximation (in ANY unitarily invariant norm) is the truncated SVD - Eckart-Young generalizes beyond Frobenius.
 
 **For AI:** The invariance to unitary transformations aligns with key AI structures. Transformers apply learned projections $Q = XW_Q$, $K = XW_K$; if $W_Q, W_K$ undergo orthogonal reparametrization, unitarily invariant norms capture the effective capacity independently of parameterization choice. This is exploited in analyses of transformer expressivity.
 
@@ -602,18 +602,18 @@ the ratio of the largest to smallest singular value.
 
 ```
 CONDITION NUMBER GEOMETRY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  κ(A) = 1 (identity)        κ(A) = 10 (moderate)       κ(A) → ∞ (near-singular)
+  \kappa(A) = 1 (identity)        \kappa(A) = 10 (moderate)       \kappa(A) -> \infty (near-singular)
 
-      ●●●                        ●●●●●●●                    ─────────────────────
-     ●   ●                      ●       ●                   ─────────────────────
-      ●●●                        ●●●●●●●                    ─────────────────────
+      ***                        *******                    ---------------------
+     *   *                      *       *                   ---------------------
+      ***                        *******                    ---------------------
 
-  σ₁/σ₂ = 1                  σ₁/σ₂ = 10                 σ₁/σ₂ → ∞
-  (sphere)                    (ellipse)                   (flat disk → singular)
+  \sigma_1/\sigma_2 = 1                  \sigma_1/\sigma_2 = 10                 \sigma_1/\sigma_2 -> \infty
+  (sphere)                    (ellipse)                   (flat disk -> singular)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 7.2 Condition Number and Numerical Stability
@@ -629,7 +629,7 @@ The **relative error in the solution is at most $\kappa(A)$ times the relative e
 
 **For AI:** The Hessian of the loss $H = \nabla^2 \mathcal{L}$ has condition number $\kappa(H) = \lambda_{\max}/\lambda_{\min}$. High $\kappa(H)$ means:
 1. Gradient descent requires tiny step sizes (limited by $1/\lambda_{\max}$) but needs many steps (to make progress along $\lambda_{\min}$ directions)
-2. The loss landscape has steep valleys — the classic "ill-conditioned optimization" problem
+2. The loss landscape has steep valleys - the classic "ill-conditioned optimization" problem
 3. Adam and other adaptive optimizers implicitly precondition to reduce effective $\kappa$
 
 ### 7.3 Properties and Bounds
@@ -637,7 +637,7 @@ The **relative error in the solution is at most $\kappa(A)$ times the relative e
 **Key properties:**
 1. $\kappa(A) \geq 1$ for all nonsingular $A$ (since $1 = \|I\| = \|AA^{-1}\| \leq \|A\|\|A^{-1}\|$)
 2. $\kappa(A) = 1$ iff $A$ is a scalar multiple of a unitary matrix
-3. $\kappa(AB) \leq \kappa(A)\kappa(B)$ — condition numbers multiply
+3. $\kappa(AB) \leq \kappa(A)\kappa(B)$ - condition numbers multiply
 4. $\kappa(A) = \kappa(A^{-1})$
 5. $\kappa(\alpha A) = \kappa(A)$ for any scalar $\alpha \neq 0$
 
@@ -663,7 +663,7 @@ Since $\sigma_n^2 + \lambda \geq \lambda > 0$, the regularized system has finite
 
 **Solution bias.** The Tikhonov solution has smaller norm than the minimum-norm least-squares solution: $\|\hat{\mathbf{x}}_\lambda\| < \|\hat{\mathbf{x}}_{LS}\|$. This is the bias-variance tradeoff: regularization introduces bias to reduce variance (sensitivity to noise).
 
-**For AI:** L2 regularization (weight decay) in neural networks is essentially Tikhonov regularization applied to the loss landscape. Adding $\lambda\|W\|_F^2$ to the loss shifts the Hessian eigenvalues by $2\lambda$, bounding $\kappa(H + 2\lambda I) \leq (\lambda_{\max} + 2\lambda)/(2\lambda)$ — improving the condition number of the optimization problem.
+**For AI:** L2 regularization (weight decay) in neural networks is essentially Tikhonov regularization applied to the loss landscape. Adding $\lambda\|W\|_F^2$ to the loss shifts the Hessian eigenvalues by $2\lambda$, bounding $\kappa(H + 2\lambda I) \leq (\lambda_{\max} + 2\lambda)/(2\lambda)$ - improving the condition number of the optimization problem.
 
 ### 7.5 Estimating Condition Numbers
 
@@ -702,7 +702,7 @@ $$|\tilde{\sigma}_i - \sigma_i| \leq \|E\|_2 = \sigma_1(E)$$
 **Interpretation:** Singular values are **Lipschitz** functions of the matrix with Lipschitz constant 1 (with respect to the spectral norm):
 $$\|\boldsymbol{\sigma}(A+E) - \boldsymbol{\sigma}(A)\|_2 \leq \|E\|_F \leq \sqrt{p}\|E\|_2$$
 
-This makes singular values numerically stable — small matrix perturbations cause small changes.
+This makes singular values numerically stable - small matrix perturbations cause small changes.
 
 **Stronger form (Mirsky's theorem):**
 $$\|\boldsymbol{\sigma}(A+E) - \boldsymbol{\sigma}(A)\|_F \leq \|E\|_F$$
@@ -719,14 +719,14 @@ $$\min_j |\tilde{\lambda} - \lambda_j| \leq \kappa_2(P) \|E\|_2$$
 
 where $\kappa_2(P) = \|P\|_2\|P^{-1}\|_2$ is the condition number of the eigenvector matrix.
 
-**Key insight:** Eigenvalues of non-normal matrices can be extremely sensitive to perturbation. The condition number $\kappa_2(P)$ — which can be astronomically large for non-normal matrices — amplifies the perturbation. This is why direct eigenvalue computation for non-normal matrices is numerically dangerous.
+**Key insight:** Eigenvalues of non-normal matrices can be extremely sensitive to perturbation. The condition number $\kappa_2(P)$ - which can be astronomically large for non-normal matrices - amplifies the perturbation. This is why direct eigenvalue computation for non-normal matrices is numerically dangerous.
 
 **For AI:** The sensitivity of eigenvalues of non-normal operators appears in RNN/LSTM gradient flow analysis. The eigenvalues of the recurrent weight matrix $W_{hh}$ determine long-term memory, but if $W_{hh}$ is non-normal, small weight perturbations (from noise, finite-precision, or gradient updates) can dramatically change eigenvalues and hence gradient behavior.
 
 ### 8.4 Forward and Backward Error Analysis
 
-**Forward error:** $\|\hat{x} - x\|$ — how wrong is the computed answer?
-**Backward error:** $\min\{\|\delta A\| : (A + \delta A)\hat{x} = b\}$ — how much do we need to perturb the input for $\hat{x}$ to be exact?
+**Forward error:** $\|\hat{x} - x\|$ - how wrong is the computed answer?
+**Backward error:** $\min\{\|\delta A\| : (A + \delta A)\hat{x} = b\}$ - how much do we need to perturb the input for $\hat{x}$ to be exact?
 
 **Fundamental relationship:**
 $$\text{Forward error} \leq \kappa(A) \times \text{Backward error}$$
@@ -753,7 +753,7 @@ $$\mathcal{L}(W) = \text{task loss} + \lambda R(W)$$
 **Nuclear norm:** $R(W) = \|W\|_* = \sum_i \sigma_i$
 
 - Subgradient: $UV^\top$ (top singular vectors)
-- Effect: promotes sparsity in singular values → low-rank solutions
+- Effect: promotes sparsity in singular values -> low-rank solutions
 - Proximal step: singular value soft-thresholding
 - Used in: matrix completion, robust PCA, some transformer pruning methods
 
@@ -778,12 +778,12 @@ $$\text{Lip}(D) \leq \prod_{l=1}^L \|W_l\|_2$$
 **Spectral normalization** (Miyato et al., 2018) replaces each $W_l$ with $\hat{W}_l = W_l / \|W_l\|_2$, ensuring each layer has spectral norm exactly 1, hence:
 $$\text{Lip}(D_{\text{SN}}) \leq 1$$
 
-**Implementation.** The spectral norm is estimated via power iteration — a single step per training iteration suffices in practice:
+**Implementation.** The spectral norm is estimated via power iteration - a single step per training iteration suffices in practice:
 ```
-v ← W^T u / ||W^T u||
-u ← W v / ||W v||
-σ̂ ← u^T W v
-Ŵ ← W / σ̂
+v <- W^T u / ||W^T u||
+u <- W v / ||W v||
+\sigma <- u^T W v
+W <- W / \sigma
 ```
 
 This adds minimal overhead and dramatically stabilizes GAN training.
@@ -835,7 +835,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\rig
 
 The matrix $S = QK^\top / \sqrt{d_k} \in \mathbb{R}^{T \times T}$ (for sequence length $T$) is the **attention logit matrix**.
 
-**Nuclear norm of attention.** Empirically, trained attention matrices have low nuclear norm relative to their Frobenius norm — they exhibit low-rank structure. Dong et al. (2021) ("Attention is not All You Need") showed that purely attention-based models without MLP layers collapse to rank-1, connecting to the spectral norm of the attention matrix.
+**Nuclear norm of attention.** Empirically, trained attention matrices have low nuclear norm relative to their Frobenius norm - they exhibit low-rank structure. Dong et al. (2021) ("Attention is not All You Need") showed that purely attention-based models without MLP layers collapse to rank-1, connecting to the spectral norm of the attention matrix.
 
 **Multi-head Low-Rank Attention (MLA).** DeepSeek's MLA architecture (2024) explicitly parameterizes key-value caches in low-rank form to reduce memory:
 $$K = C_{KV} W^K, \quad V = C_{KV} W^V$$
@@ -843,7 +843,7 @@ where $C_{KV} \in \mathbb{R}^{T \times d_c}$ with $d_c \ll d_{model}$. This is e
 
 ### 9.7 Implicit Regularization in Deep Learning
 
-Deep learning optimizers (SGD, Adam) exhibit **implicit regularization** — they converge to solutions with small norms even without explicit regularization.
+Deep learning optimizers (SGD, Adam) exhibit **implicit regularization** - they converge to solutions with small norms even without explicit regularization.
 
 **Observation (Gunasekar et al., 2017).** Gradient flow on matrix factorization $\min_{U,V} \|UV^\top - A\|_F^2$ converges to the minimum nuclear norm solution. This is because the dynamics $\dot{U} = -(UV^\top - A)V$, $\dot{V} = -(UV^\top - A)^\top U$ implicitly minimize $\|UV^\top\|_*$.
 
@@ -861,12 +861,12 @@ Deep learning optimizers (SGD, Adam) exhibit **implicit regularization** — the
 |---|---------|----------------|-----|
 | 1 | Confusing $\|A\|_1$ (matrix 1-norm = max column sum) with $\|A\|_F$ (Frobenius) | The notation $\|A\|_1$ for matrices means max column sum, not the sum of absolute entries | Use `np.linalg.norm(A, 1)` for max col sum; `np.linalg.norm(A, 'fro')` for Frobenius |
 | 2 | Assuming the Frobenius norm is induced | $\|I\|_F = \sqrt{n} \neq 1$; no induced norm can have $\|I\| \neq 1$ | Remember: Frobenius = Euclidean on vectorized matrix; consistent but not induced |
-| 3 | Confusing $\|A\|_2$ (spectral norm = $\sigma_1$) with $\|A\|_F$ | For a general matrix, $\|A\|_2 \leq \|A\|_F$; they equal only for rank-1 matrices | $\|A\|_2 = \sigma_1$; $\|A\|_F = \|\boldsymbol{\sigma}\|_2$ — very different |
+| 3 | Confusing $\|A\|_2$ (spectral norm = $\sigma_1$) with $\|A\|_F$ | For a general matrix, $\|A\|_2 \leq \|A\|_F$; they equal only for rank-1 matrices | $\|A\|_2 = \sigma_1$; $\|A\|_F = \|\boldsymbol{\sigma}\|_2$ - very different |
 | 4 | Thinking $\|AB\|_F = \|A\|_F\|B\|_F$ | This equality fails in general; it's an upper bound | The submultiplicativity $\|AB\|_F \leq \|A\|_F\|B\|_F$ is an inequality, not equality |
 | 5 | Applying the spectral norm formula $\kappa = \sigma_1/\sigma_n$ to singular (or non-square) matrices | Singular matrices have $\sigma_n = 0$, giving $\kappa = \infty$ | For non-square or rank-deficient matrices, use the pseudocondition $\sigma_1/\sigma_r$ where $\sigma_r$ is the smallest nonzero singular value |
 | 6 | Forgetting that condition number depends on the norm choice | $\kappa_1(A)$, $\kappa_2(A)$, $\kappa_\infty(A)$ can differ by polynomial factors in $n$ | Specify the norm; use $\kappa_2$ (spectral) unless another norm is more natural |
 | 7 | Assuming small Frobenius norm implies small condition number | A matrix can have $\|A\|_F = 1$ but $\kappa(A) = 10^{15}$ | $\kappa$ depends on the ratio $\sigma_1/\sigma_n$, not the absolute values |
-| 8 | Misidentifying the matrix 1-norm as the entry-wise 1-norm (sum of all entries) | $\|A\|_1$ (induced) is max column sum; $\sum_{i,j}|a_{ij}|$ is sometimes called the "entry norm" but is NOT the induced 1-norm | The induced $\ell^1 \to \ell^1$ norm = max col sum; the Schatten $S_1$ norm = nuclear norm — entirely different objects |
+| 8 | Misidentifying the matrix 1-norm as the entry-wise 1-norm (sum of all entries) | $\|A\|_1$ (induced) is max column sum; $\sum_{i,j}|a_{ij}|$ is sometimes called the "entry norm" but is NOT the induced 1-norm | The induced $\ell^1 \to \ell^1$ norm = max col sum; the Schatten $S_1$ norm = nuclear norm - entirely different objects |
 | 9 | Assuming Weyl's inequality gives tight bounds on eigenvalue changes for non-symmetric matrices | For non-symmetric matrices, Weyl doesn't apply; use Bauer-Fike, which involves $\kappa(P)$ | Non-normal matrices can have extreme eigenvalue sensitivity; use pseudo-spectrum for analysis |
 | 10 | Thinking nuclear norm minimization always recovers low-rank matrices | Recovery requires incoherence conditions (columns/rows not aligned with standard basis) | Nuclear norm minimization provably recovers rank-$r$ matrices under RIP or incoherence; check conditions before claiming recovery |
 | 11 | Confusing spectral normalization (normalizes by $\|W\|_2$) with batch normalization (normalizes activations) | Spectral normalization is on weight matrices; batch normalization is on hidden layer activations | They target different quantities: spectral norm controls Lipschitz constant; batch norm controls activation statistics |
@@ -876,7 +876,7 @@ Deep learning optimizers (SGD, Adam) exhibit **implicit regularization** — the
 
 ## 11. Exercises
 
-**Exercise 1** ★ — Norm computation and verification
+**Exercise 1** * - Norm computation and verification
 
 Let $A = \begin{pmatrix} 3 & 1 & 0 \\ 0 & 2 & -1 \\ 1 & 0 & 4 \end{pmatrix}$.
 
@@ -890,7 +890,7 @@ Let $A = \begin{pmatrix} 3 & 1 & 0 \\ 0 & 2 & -1 \\ 1 & 0 & 4 \end{pmatrix}$.
 
 ---
 
-**Exercise 2** ★ — Frobenius norm properties
+**Exercise 2** * - Frobenius norm properties
 
 (a) Prove that $\|A\|_F^2 = \operatorname{tr}(A^\top A)$.
 
@@ -902,7 +902,7 @@ Let $A = \begin{pmatrix} 3 & 1 & 0 \\ 0 & 2 & -1 \\ 1 & 0 & 4 \end{pmatrix}$.
 
 ---
 
-**Exercise 3** ★ — Condition number analysis
+**Exercise 3** * - Condition number analysis
 
 (a) Construct a $3 \times 3$ matrix with condition number $\kappa_2 \approx 100$ and one with $\kappa_2 \approx 10^6$.
 
@@ -914,7 +914,7 @@ Let $A = \begin{pmatrix} 3 & 1 & 0 \\ 0 & 2 & -1 \\ 1 & 0 & 4 \end{pmatrix}$.
 
 ---
 
-**Exercise 4** ★★ — Nuclear norm and low-rank approximation
+**Exercise 4** ** - Nuclear norm and low-rank approximation
 
 (a) Generate a random rank-3 matrix $A = UV^\top$ with $U \in \mathbb{R}^{8 \times 3}$, $V \in \mathbb{R}^{10 \times 3}$. Confirm $\|A\|_* = \sum_{i=1}^3 \sigma_i$ and $\operatorname{rank}(A) = 3$.
 
@@ -926,19 +926,19 @@ Let $A = \begin{pmatrix} 3 & 1 & 0 \\ 0 & 2 & -1 \\ 1 & 0 & 4 \end{pmatrix}$.
 
 ---
 
-**Exercise 5** ★★ — Weyl's inequality and perturbation
+**Exercise 5** ** - Weyl's inequality and perturbation
 
 (a) Verify Weyl's inequality: construct $A, E \in \mathbb{R}^{5 \times 5}$ and verify $|\sigma_i(A+E) - \sigma_i(A)| \leq \|E\|_2$ for all $i$.
 
 (b) Show (numerically) that Weyl's bound is tight: construct $A$ and $E$ such that equality is achieved for $i=1$.
 
-(c) For a non-symmetric matrix $A$, compute eigenvalues of $A + E$ for several random perturbations $\|E\|_2 = \epsilon$. Compare the eigenvalue scatter to the singular value scatter — demonstrate that eigenvalues of non-normal matrices are more sensitive.
+(c) For a non-symmetric matrix $A$, compute eigenvalues of $A + E$ for several random perturbations $\|E\|_2 = \epsilon$. Compare the eigenvalue scatter to the singular value scatter - demonstrate that eigenvalues of non-normal matrices are more sensitive.
 
 (d) Bauer-Fike: compute $\kappa_2(P)$ where $P$ is the eigenvector matrix of your non-symmetric $A$. Verify the bound $\min_j|\tilde{\lambda} - \lambda_j| \leq \kappa_2(P)\|E\|_2$.
 
 ---
 
-**Exercise 6** ★★ — Dual norms and optimization
+**Exercise 6** ** - Dual norms and optimization
 
 (a) Verify the duality $\|A\|_* = \max_{\|B\|_2 \leq 1}\operatorname{tr}(A^\top B)$ numerically for a random $4 \times 4$ matrix.
 
@@ -950,7 +950,7 @@ Let $A = \begin{pmatrix} 3 & 1 & 0 \\ 0 & 2 & -1 \\ 1 & 0 & 4 \end{pmatrix}$.
 
 ---
 
-**Exercise 7** ★★★ — Spectral normalization for neural networks
+**Exercise 7** *** - Spectral normalization for neural networks
 
 Implement spectral normalization for a simple 2-layer network on a toy binary classification problem.
 
@@ -964,7 +964,7 @@ Implement spectral normalization for a simple 2-layer network on a toy binary cl
 
 ---
 
-**Exercise 8** ★★★ — Implicit regularization in matrix factorization
+**Exercise 8** *** - Implicit regularization in matrix factorization
 
 (a) Solve $\min_{U,V} \|UV^\top - A\|_F^2$ for a random $6 \times 6$ matrix $A$ with gradient flow (small step gradient descent). Initialize $U, V$ close to zero.
 
@@ -983,11 +983,11 @@ Implement spectral normalization for a simple 2-layer network on a toy binary cl
 | Frobenius norm | Weight decay (L2 regularization): penalizes $\|W\|_F^2$ | Controls parameter magnitudes; implicit bias toward small-norm solutions; universal in all optimizers with `weight_decay` |
 | Spectral norm ($\sigma_1$) | Spectral normalization in GANs; Lipschitz bound for discriminators; RoPE analysis | Guarantees Lipschitz-1 layers; stabilizes adversarial training; bounds gradient flow |
 | Nuclear norm | Low-rank regularization; matrix completion; LoRA implicit regularization; DoRA | Promotes sparse singular values; the convex proxy for rank; connects fine-tuning to compressed sensing |
-| Condition number | Loss landscape analysis; preconditioned optimizers (Adam); convergence theory | High $\kappa$ → slow convergence; Adam approximates $\kappa(H)^{-1}$ preconditioning; Shampoo computes exact preconditioning |
+| Condition number | Loss landscape analysis; preconditioned optimizers (Adam); convergence theory | High $\kappa$ -> slow convergence; Adam approximates $\kappa(H)^{-1}$ preconditioning; Shampoo computes exact preconditioning |
 | Weyl's inequality | Stability of trained models under weight noise; pruning/quantization error bounds | Guarantees singular value stability; bounds the effect of INT8 quantization on model behavior |
 | Eckart-Young theorem | LoRA, SVD compression, attention matrix analysis | Mathematical foundation of parameter-efficient fine-tuning; optimal rank-$k$ approximation in both F and spectral norms |
 | Stable rank | PAC-Bayes generalization bounds; network complexity measures | $\rho(W) = \|W\|_F^2/\|W\|_2^2$ predicts generalization better than raw rank |
-| Dual norms | Duality in optimization (nuclear ↔ spectral); proximal methods; online learning | Fenchel duality underlies mirror descent, natural gradient, and FTRL algorithms |
+| Dual norms | Duality in optimization (nuclear <-> spectral); proximal methods; online learning | Fenchel duality underlies mirror descent, natural gradient, and FTRL algorithms |
 | Bauer-Fike theorem | RNN gradient flow analysis; eigenvalue sensitivity of recurrent matrices | Non-normal recurrent weight matrices can have extreme eigenvalue sensitivity even with bounded $\|W\|_2$ |
 | Proximal gradient | Nuclear norm minimization algorithms; ADMM for matrix completion | Singular value soft-thresholding is the key computational primitive for nuclear norm optimization |
 | Low-rank structure | MLA (DeepSeek); attention compression; GQA/MQA | Empirical discovery that trained attention has low nuclear/stable rank; motivates linear attention approximations |
@@ -997,48 +997,48 @@ Implement spectral normalization for a simple 2-layer network on a toy binary cl
 
 ## 13. Conceptual Bridge
 
-Matrix norms are the measuring instruments of linear algebra. Without them, we cannot quantify stability, sensitivity, approximation quality, or regularization strength. Every major result in numerical linear algebra — condition number theory, perturbation bounds, error analysis — is stated in terms of matrix norms. And in machine learning, norms appear at every level: they define regularizers, measure approximation error, bound generalization, and determine convergence rates.
+Matrix norms are the measuring instruments of linear algebra. Without them, we cannot quantify stability, sensitivity, approximation quality, or regularization strength. Every major result in numerical linear algebra - condition number theory, perturbation bounds, error analysis - is stated in terms of matrix norms. And in machine learning, norms appear at every level: they define regularizers, measure approximation error, bound generalization, and determine convergence rates.
 
-**What came before.** This section builds on the SVD (→ [Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md)), which provides the singular values that define the spectral, Frobenius, nuclear, and Schatten norms. It uses eigenvalue theory (→ [Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)) for the spectral norm of symmetric PSD matrices and for condition number of symmetric positive definite systems. It uses orthogonality (→ [Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)) for the unitary invariance of Schatten norms.
+**What came before.** This section builds on the SVD (-> [Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md)), which provides the singular values that define the spectral, Frobenius, nuclear, and Schatten norms. It uses eigenvalue theory (-> [Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)) for the spectral norm of symmetric PSD matrices and for condition number of symmetric positive definite systems. It uses orthogonality (-> [Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)) for the unitary invariance of Schatten norms.
 
-**What comes after.** Condition number analysis is essential for numerical methods in the next chapter. Matrix norm theory enables gradient analysis in optimization (→ Chapter 8: Optimization). The nuclear norm and low-rank regularization connect directly to dimensionality reduction (→ [PCA](../03-PCA/notes.md)) and the mathematical foundations of LoRA and other PEFT methods in the models chapters. Perturbation theory connects to the stability analysis of RNNs and LSTMs (→ [RNN and LSTM Math](../../14-Math-for-Specific-Models/04-RNN-and-LSTM-Math/notes.md)).
+**What comes after.** Condition number analysis is essential for numerical methods in the next chapter. Matrix norm theory enables gradient analysis in optimization (-> Chapter 8: Optimization). The nuclear norm and low-rank regularization connect directly to dimensionality reduction (-> [PCA](../03-PCA/notes.md)) and the mathematical foundations of LoRA and other PEFT methods in the models chapters. Perturbation theory connects to the stability analysis of RNNs and LSTMs (-> [RNN and LSTM Math](../../14-Math-for-Specific-Models/04-RNN-and-LSTM-Math/notes.md)).
 
 ```
 MATRIX NORMS IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   02-Linear-Algebra-Basics              03-Advanced-Linear-Algebra
-  ───────────────────────               ────────────────────────────
+  -----------------------               ----------------------------
 
-  ┌──────────────────────┐             ┌───────────────────────────────┐
-  │ 05-Matrix-Rank       │  →  rank    │ 01-Eigenvalues-Eigenvectors   │
-  │ 04-Determinants      │  →  det     │ 02-SVD  ──┐                   │
-  └──────────────────────┘             │           │ singular values   │
-                                       │           ↓                   │
-                                       │ ┌─────────────────────────┐  │
-                                       │ │  06-Matrix-Norms  ★     │  │
-                                       │ │                         │  │
-                                       │ │  ‣ Frobenius (F-norm)   │  │
-                                       │ │  ‣ Spectral (σ₁)        │  │
-                                       │ │  ‣ Nuclear (Σσᵢ)        │  │
-                                       │ │  ‣ Schatten (ℓᵖ of σ)  │  │
-                                       │ │  ‣ Condition number     │  │
-                                       │ │  ‣ Perturbation theory  │  │
-                                       │ └─────────────┬───────────┘  │
-                                       │               │               │
-                                       │               ↓               │
-                                       │ 07-Linear-Transformations     │
-                                       │ 08-Matrix-Decompositions      │
-                                       └───────────────────────────────┘
-                                                       │
-                                     ┌─────────────────┼────────────────┐
-                                     ↓                 ↓                ↓
+  +----------------------+             +-------------------------------+
+  | 05-Matrix-Rank       |  ->  rank    | 01-Eigenvalues-Eigenvectors   |
+  | 04-Determinants      |  ->  det     | 02-SVD  --+                   |
+  +----------------------+             |           | singular values   |
+                                       |           down                   |
+                                       | +-------------------------+  |
+                                       | |  06-Matrix-Norms  *     |  |
+                                       | |                         |  |
+                                       | |  - Frobenius (F-norm)   |  |
+                                       | |  - Spectral (\sigma_1)        |  |
+                                       | |  - Nuclear (\Sigma\sigma^i)        |  |
+                                       | |  - Schatten (ell^p of \sigma)  |  |
+                                       | |  - Condition number     |  |
+                                       | |  - Perturbation theory  |  |
+                                       | +-------------+-----------+  |
+                                       |               |               |
+                                       |               down               |
+                                       | 07-Linear-Transformations     |
+                                       | 08-Matrix-Decompositions      |
+                                       +-------------------------------+
+                                                       |
+                                     +-----------------+----------------+
+                                     down                 down                down
                               08-Optimization    ML-Applications    14-Specific
                               (gradient flow,   (LoRA, spectral    (RNN stability,
                                convergence)      normalization,     attention rank,
                                                  PAC-Bayes)        MLA compression)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 The key insight unifying this section: **matrix norms reduce questions about linear operators to scalar quantities.** The spectral norm reduces Lipschitz analysis to a number. The nuclear norm reduces rank minimization to a convex program. The condition number reduces numerical stability to a ratio. This reduction from functional complexity to scalar measurement is the fundamental technical move that makes both theory and computation tractable.
@@ -1120,9 +1120,9 @@ with equality when $A$ and $B$ share the same left and right singular vectors (i
 
 **Consequences:**
 
-1. Nuclear-spectral Hölder: $|\langle A,B\rangle_F| \leq \|A\|_*\|B\|_2$
+1. Nuclear-spectral Holder: $|\langle A,B\rangle_F| \leq \|A\|_*\|B\|_2$
 2. Cauchy-Schwarz (Frobenius): $|\langle A,B\rangle_F| \leq \|A\|_F\|B\|_F$ (using $\sigma_i(A)\sigma_i(B) \leq (\sigma_i(A)^2+\sigma_i(B)^2)/2$)
-3. Duality: $\|A\|_* = \max_{\|B\|_2\leq 1}\operatorname{tr}(A^\top B)$ (proved in §A.5 using this inequality)
+3. Duality: $\|A\|_* = \max_{\|B\|_2\leq 1}\operatorname{tr}(A^\top B)$ (proved in A.5 using this inequality)
 
 **For AI:** This inequality bounds approximation errors in attention: $|\operatorname{tr}(\hat{S}^\top V^\top V)| \leq \|\hat{S}\|_* \|V\|_2^2$, connecting attention approximation quality to the nuclear norm of the approximate attention matrix.
 
@@ -1134,11 +1134,11 @@ $$\Lambda_\epsilon(A) = \{\lambda \in \mathbb{C} : \sigma_{\min}(A - \lambda I) 
 
 This is the set of complex numbers that are eigenvalues of some perturbation $A + E$ with $\|E\|_2 \leq \epsilon$.
 
-**Normal vs. non-normal.** For normal matrices ($A^\top A = AA^\top$), $\Lambda_\epsilon(A) = \bigcup_j D(\lambda_j, \epsilon)$ — just disks of radius $\epsilon$ around each eigenvalue. For non-normal matrices, the pseudo-spectrum can extend far beyond these disks.
+**Normal vs. non-normal.** For normal matrices ($A^\top A = AA^\top$), $\Lambda_\epsilon(A) = \bigcup_j D(\lambda_j, \epsilon)$ - just disks of radius $\epsilon$ around each eigenvalue. For non-normal matrices, the pseudo-spectrum can extend far beyond these disks.
 
-**Example: Jordan block.** $A = \begin{pmatrix}0&1\\0&0\end{pmatrix}$ has eigenvalue $0$ with multiplicity 2. Yet $\Lambda_\epsilon(A) \supset \{|z| < \sqrt{\epsilon}\}$ — a disk of radius $\sqrt{\epsilon}$, much larger than $\epsilon$ for small $\epsilon$.
+**Example: Jordan block.** $A = \begin{pmatrix}0&1\\0&0\end{pmatrix}$ has eigenvalue $0$ with multiplicity 2. Yet $\Lambda_\epsilon(A) \supset \{|z| < \sqrt{\epsilon}\}$ - a disk of radius $\sqrt{\epsilon}$, much larger than $\epsilon$ for small $\epsilon$.
 
-**For AI:** Non-normal recurrent weight matrices $W_{hh}$ in RNNs can transiently amplify signals even when $\|W_{hh}\|_2 < 1$. The pseudo-spectrum shows why the simple criterion "$\|W_{hh}\|_2 < 1$ implies stability" is insufficient — transient growth can lead to effective instability in finite-depth computations (finite unrolling of time steps).
+**For AI:** Non-normal recurrent weight matrices $W_{hh}$ in RNNs can transiently amplify signals even when $\|W_{hh}\|_2 < 1$. The pseudo-spectrum shows why the simple criterion "$\|W_{hh}\|_2 < 1$ implies stability" is insufficient - transient growth can lead to effective instability in finite-depth computations (finite unrolling of time steps).
 
 ### B.3 Stable Rank and Generalization
 
@@ -1155,7 +1155,7 @@ $$\rho(A) = \frac{\|A\|_F^2}{\|A\|_2^2} = \frac{\sum_i \sigma_i^2}{\sigma_1^2} =
 **Generalization bound.** For a linear predictor $\mathbf{f}(\mathbf{x}) = W\mathbf{x}$ learned from $n$ samples:
 $$\text{Generalization gap} \leq O\left(\sqrt{\frac{\rho(W)\|W\|_2^2}{n}}\right) = O\left(\sqrt{\frac{\|W\|_F^2}{n}}\right)$$
 
-This shows that the Frobenius norm (not rank) controls generalization for linear models — justifying Frobenius regularization (weight decay).
+This shows that the Frobenius norm (not rank) controls generalization for linear models - justifying Frobenius regularization (weight decay).
 
 **For deep networks.** Bartlett et al. (2017) proved:
 $$\text{Generalization gap} \leq O\left(\frac{\prod_l \|W_l\|_2 \cdot \sqrt{\sum_l \rho(W_l)}}{\gamma\sqrt{n}}\right)$$
@@ -1179,7 +1179,7 @@ The proximal operator $\operatorname{prox}_{\tau R}(V) = \arg\min_W \frac{1}{2}\
 | $\|W\|_2$ (spectral) | Cap all $\sigma_i$ at $\tau$; project onto spectral ball | Bound largest singular value |
 | $\|W\|_1$ (entry) | $\operatorname{sign}(V_{ij})\max(\lvert V_{ij}\rvert-\tau,0)$ | Soft-threshold each entry |
 
-**For AI:** The proximal operator for nuclear norm regularization is singular value soft-thresholding (SVT), the key subroutine in matrix completion algorithms (Cai-Candès-Shen, 2010). Modern deep learning rarely uses explicit nuclear norm regularization because the factored parameterization in LoRA provides implicit nuclear norm regularization via the dynamics of gradient descent on $\min_{B,A}\mathcal{L}(W_0+BA)$.
+**For AI:** The proximal operator for nuclear norm regularization is singular value soft-thresholding (SVT), the key subroutine in matrix completion algorithms (Cai-Candes-Shen, 2010). Modern deep learning rarely uses explicit nuclear norm regularization because the factored parameterization in LoRA provides implicit nuclear norm regularization via the dynamics of gradient descent on $\min_{B,A}\mathcal{L}(W_0+BA)$.
 
 ### B.5 Norm Balls and Geometry
 
@@ -1187,27 +1187,27 @@ The geometry of norm balls illuminates the differences between norms.
 
 ```
 UNIT BALLS IN 2D (for matrix norms, visualized on singular value vectors)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Spectral (ℓ∞ on σ)    Frobenius (ℓ² on σ)   Nuclear (ℓ¹ on σ)
+  Spectral (ell\infty on \sigma)    Frobenius (ell^2 on \sigma)   Nuclear (ell^1 on \sigma)
 
-    σ₂                     σ₂                     σ₂
-    │                      │                      │
-  1─┼───────┐            1─┼    ╭───╮           1─┤
-    │       │              │   ╱   ╲              │╲
-    │       │              │  │     │             │  ╲
-    │       │              │  │     │             │    ╲
-  ──┼───────┼──σ₁       ──┼──╰─────╯──σ₁      ──┼─────┼──σ₁
-    │       1              │        1             │     1
-    │                      │                      │
-    └ square               └ circle               └ diamond
+    \sigma_2                     \sigma_2                     \sigma_2
+    |                      |                      |
+  1-+-------+            1-+    +---+           1-+
+    |       |              |   /   \              |\
+    |       |              |  |     |             |  \
+    |       |              |  |     |             |    \
+  --+-------+--\sigma_1       --+--+-----+--\sigma_1      --+-----+--\sigma_1
+    |       1              |        1             |     1
+    |                      |                      |
+    + square               + circle               + diamond
 
-  All σ ≤ 1               σ₁²+σ₂² ≤ 1          σ₁+σ₂ ≤ 1
+  All \sigma \leq 1               \sigma_1^2+\sigma_2^2 \leq 1          \sigma_1+\sigma_2 \leq 1
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**The nuclear norm ball is a polytope** in singular value space (it's the $\ell^1$ ball), making nuclear norm minimization a linear program in singular value space — hence solvable efficiently.
+**The nuclear norm ball is a polytope** in singular value space (it's the $\ell^1$ ball), making nuclear norm minimization a linear program in singular value space - hence solvable efficiently.
 
 **The spectral norm ball is a hypercube** in singular value space ($\ell^\infty$ ball), with flat faces. This geometry means that spectral norm projection (projecting onto $\|W\|_2 \leq 1$) simply caps all singular values at 1.
 
@@ -1280,7 +1280,7 @@ def svt(A, threshold):
     return U @ np.diag(s_thresh) @ Vt
 
 # Returns argmin_X  (1/2)||X - A||_F^2 + threshold * ||X||_*
-# Singular values below threshold are zeroed → rank reduction
+# Singular values below threshold are zeroed -> rank reduction
 ```
 
 ### C.4 Stable Rank
@@ -1329,9 +1329,9 @@ Let $A = \begin{pmatrix} 4 & 0 & 0 \\ 0 & 2 & 0 \\ 0 & 0 & 1 \end{pmatrix}$ (dia
 | Condition number $\kappa_2$ | $\sigma_1/\sigma_3$ | $4$ | $4/1$ |
 | Stable rank $\rho$ | $\|A\|_F^2/\|A\|_2^2$ | $21/16 \approx 1.31$ | $21/16$ |
 
-**Ordering verification:** $\|A\|_2 = 4 \leq \|A\|_F \approx 4.58 \leq \|A\|_* = 7$ ✓
+**Ordering verification:** $\|A\|_2 = 4 \leq \|A\|_F \approx 4.58 \leq \|A\|_* = 7$ OK
 
-For rank-$r$ bounds: $\|A\|_F \leq \sqrt{3}\|A\|_2$ gives $4.58 \leq 6.93$ ✓ and $\|A\|_* \leq \sqrt{3}\|A\|_F$ gives $7 \leq 7.94$ ✓.
+For rank-$r$ bounds: $\|A\|_F \leq \sqrt{3}\|A\|_2$ gives $4.58 \leq 6.93$ OK and $\|A\|_* \leq \sqrt{3}\|A\|_F$ gives $7 \leq 7.94$ OK.
 
 ### D.2 Worked Example: Spectral Norm via Power Iteration
 
@@ -1349,18 +1349,18 @@ So $\sigma_1 = \sqrt{15 + 5\sqrt{5}} \approx \sqrt{26.18} \approx 5.12$ and $\|A
 
 | Iter | $A\mathbf{v}$ | $\mathbf{u}$ | $A^\top\mathbf{u}$ | $\mathbf{v}$ | $\sigma$ estimate |
 | --- | --- | --- | --- | --- | --- |
-| 0 | — | — | — | $(1,0)^\top$ | — |
+| 0 | - | - | - | $(1,0)^\top$ | - |
 | 1 | $(3,2)^\top$ | $(0.832,0.555)^\top$ | $(3.607,4.052)^\top$ | $(0.664,0.747)^\top$ | $5.43$ |
 | 2 | $(2.74,4.29)^\top$ | $(0.538,0.843)^\top$ | $(3.460,4.110)^\top$ | $(0.644,0.765)^\top$ | $5.37$ |
 | 3 | $(2.70,4.35)^\top$ | $(0.529,0.849)^\top$ | $(3.437,4.124)^\top$ | $(0.641,0.768)^\top$ | $5.37$ |
 
 Converging to $\sigma_1 \approx 5.12$ (the remaining gap is because we stopped early).
 
-**For AI:** This is exactly how PyTorch implements `torch.nn.utils.spectral_norm` — one step of power iteration per training step, with the previous estimate $\mathbf{v}$ stored as a buffer.
+**For AI:** This is exactly how PyTorch implements `torch.nn.utils.spectral_norm` - one step of power iteration per training step, with the previous estimate $\mathbf{v}$ stored as a buffer.
 
 ### D.3 Worked Example: Condition Number and Error Amplification
 
-Consider the **Hilbert matrix** $H_n$ with $(H_n)_{ij} = 1/(i+j-1)$ — a canonical example of an ill-conditioned matrix.
+Consider the **Hilbert matrix** $H_n$ with $(H_n)_{ij} = 1/(i+j-1)$ - a canonical example of an ill-conditioned matrix.
 
 For $n = 5$:
 $$H_5 = \begin{pmatrix} 1 & 1/2 & 1/3 & 1/4 & 1/5 \\ 1/2 & 1/3 & 1/4 & 1/5 & 1/6 \\ 1/3 & 1/4 & 1/5 & 1/6 & 1/7 \\ 1/4 & 1/5 & 1/6 & 1/7 & 1/8 \\ 1/5 & 1/6 & 1/7 & 1/8 & 1/9 \end{pmatrix}$$
@@ -1375,9 +1375,9 @@ The condition number grows as $\kappa_2(H_n) \approx e^{3.5n}$:
 
 Relative forward error $\leq \kappa(H_5) \cdot 10^{-16} \approx 4.77 \times 10^5 \cdot 10^{-16} \approx 5 \times 10^{-11}$
 
-So we lose about 5 decimal places of precision. For $H_{10}$, we'd lose 13 places — near total loss of information.
+So we lose about 5 decimal places of precision. For $H_{10}$, we'd lose 13 places - near total loss of information.
 
-**Tikhonov fix:** With $\lambda = 10^{-5}$, $\kappa(H_5 + \lambda I) \approx 8 \times 10^4$ — a 6× improvement at the cost of introducing systematic bias $\approx \lambda\|\mathbf{x}\|$.
+**Tikhonov fix:** With $\lambda = 10^{-5}$, $\kappa(H_5 + \lambda I) \approx 8 \times 10^4$ - a 6\times improvement at the cost of introducing systematic bias $\approx \lambda\|\mathbf{x}\|$.
 
 ### D.4 The Spectral Norm of the Attention Matrix
 
@@ -1388,7 +1388,7 @@ $$\mathbb{E}[\|QK^\top\|_2] \approx \frac{T + d_k}{d_k/T + 1} \cdot \frac{\sigma
 
 More concretely, by random matrix theory (Marchenko-Pastur law), $\|QK^\top\|_2 \approx 2\sqrt{Td_k}/d_k \cdot \sqrt{d_k} = 2\sqrt{T}$.
 
-The factor $1/\sqrt{d_k}$ in attention ($\text{softmax}(QK^\top/\sqrt{d_k})$) is a **spectral normalization**: it scales the attention logits so that $\|QK^\top/\sqrt{d_k}\|_2 \approx 2\sqrt{T/d_k}$ — preventing the softmax from collapsing to one-hot distributions when $T \gg d_k$.
+The factor $1/\sqrt{d_k}$ in attention ($\text{softmax}(QK^\top/\sqrt{d_k})$) is a **spectral normalization**: it scales the attention logits so that $\|QK^\top/\sqrt{d_k}\|_2 \approx 2\sqrt{T/d_k}$ - preventing the softmax from collapsing to one-hot distributions when $T \gg d_k$.
 
 **Nuclear norm and attention rank.** In trained models, attention matrices exhibit low stable rank. Dong et al. (2021) measured stable rank $\rho(A) = \|A\|_F^2/\|A\|_2^2$ averaging 4-8 in BERT's attention heads (out of possible 512), suggesting the effective attention rank is much lower than the sequence length.
 
@@ -1405,7 +1405,7 @@ LoRA fine-tuning adds $\Delta W = BA$ with $B \in \mathbb{R}^{d \times r}$, $A \
 **Implicit nuclear norm regularization.** The factored parameterization $\Delta W = BA$ has at most $r$ nonzero singular values (since $\text{rank}(BA) \leq r$). The nuclear norm $\|BA\|_* = \sum_{i=1}^r \sigma_i(BA)$ is automatically bounded by:
 $$\|BA\|_* \leq \sqrt{r}\|BA\|_F \leq \sqrt{r}\|B\|_F\|A\|_F$$
 
-During optimization, gradient descent on $\min_{B,A}\mathcal{L}(W_0+BA)$ implicitly minimizes $\|BA\|_*$ — this is the Gunasekar et al. (2017) implicit regularization result.
+During optimization, gradient descent on $\min_{B,A}\mathcal{L}(W_0+BA)$ implicitly minimizes $\|BA\|_*$ - this is the Gunasekar et al. (2017) implicit regularization result.
 
 **DoRA (weight decomposition).** DoRA (Liu et al., 2024) reparameterizes as $W = m\cdot(V+BA)/\|V+BA\|_{col}$ where $m$ controls the magnitude and $V+BA/\|...\|$ controls the direction. The column-wise normalization is related to the nuclear norm: $\|W\|_*$ is invariant to column-wise rescaling.
 
@@ -1422,10 +1422,10 @@ During training, norms of weight matrices evolve. Understanding this evolution h
 
 **Warning signs:**
 
-- $\|W\|_2$ growing rapidly → potential gradient explosion; increase weight decay
-- $\|W\|_2 \to 0$ → vanishing gradients or overly aggressive weight decay
-- $\kappa(W) \to 10^6$ → poorly conditioned optimization; consider preconditioning
-- $\rho(W) \to 1$ → the layer is becoming rank-1 (mode collapse); increase model capacity
+- $\|W\|_2$ growing rapidly -> potential gradient explosion; increase weight decay
+- $\|W\|_2 \to 0$ -> vanishing gradients or overly aggressive weight decay
+- $\kappa(W) \to 10^6$ -> poorly conditioned optimization; consider preconditioning
+- $\rho(W) \to 1$ -> the layer is becoming rank-1 (mode collapse); increase model capacity
 
 ### D.7 Norm-Based Pruning
 
@@ -1448,7 +1448,7 @@ Neural network pruning can be guided by matrix norms:
 
 ---
 
-*← [Back to Advanced Linear Algebra](../README.md) | [Next: Linear Transformations →](../07-Linear-Transformations/notes.md)*
+*<- [Back to Advanced Linear Algebra](../README.md) | [Next: Linear Transformations ->](../07-Linear-Transformations/notes.md)*
 
 ## Appendix E: Connections to Other Fields
 
@@ -1471,7 +1471,7 @@ Multicollinearity in $X$ gives large $\kappa(X^\top X)$, making OLS estimates nu
 **Sample covariance concentration.** For $n$ samples from $\mathcal{N}(0, \Sigma)$:
 $$\mathbb{E}\|\hat{\Sigma} - \Sigma\|_2 \lesssim \|\Sigma\|_2 \sqrt{\frac{p}{n}} \quad (p \leq n)$$
 
-The spectral norm of the estimation error scales as $\|\Sigma\|_2\sqrt{p/n}$ — one needs $n \gg p$ samples to estimate $\Sigma$ well in spectral norm.
+The spectral norm of the estimation error scales as $\|\Sigma\|_2\sqrt{p/n}$ - one needs $n \gg p$ samples to estimate $\Sigma$ well in spectral norm.
 
 ### E.2 Matrix Norms in Control Theory
 
@@ -1479,12 +1479,12 @@ Control systems use matrix norms to quantify system gain and stability margins.
 
 **System norms.** For a linear system $\dot{\mathbf{x}} = A\mathbf{x} + B\mathbf{u}$, $\mathbf{y} = C\mathbf{x}$:
 
-- **$H_\infty$ norm**: $\|G\|_\infty = \sup_\omega \sigma_{\max}(G(i\omega))$ — worst-case gain over all frequencies; the spectral norm of the frequency response
+- **$H_\infty$ norm**: $\|G\|_\infty = \sup_\omega \sigma_{\max}(G(i\omega))$ - worst-case gain over all frequencies; the spectral norm of the frequency response
 - **$H_2$ norm**: $\|G\|_2 = \sqrt{\operatorname{tr}(B^\top P B)}$ where $P$ solves a Lyapunov equation; related to Frobenius norm in the frequency domain
 
-**Stability.** A discrete-time system $\mathbf{x}_{t+1} = A\mathbf{x}_t$ is stable iff $\rho(A) < 1$ (spectral radius < 1). But for finite-time analysis, $\|A^t\|_2 \leq \|A\|_2^t$ — the spectral norm controls the growth of powers.
+**Stability.** A discrete-time system $\mathbf{x}_{t+1} = A\mathbf{x}_t$ is stable iff $\rho(A) < 1$ (spectral radius < 1). But for finite-time analysis, $\|A^t\|_2 \leq \|A\|_2^t$ - the spectral norm controls the growth of powers.
 
-**For AI:** Recurrent networks are discrete-time dynamical systems with $\mathbf{h}_{t+1} = \sigma(W_{hh}\mathbf{h}_t + W_{xh}\mathbf{x}_t)$. The condition $\|W_{hh}\|_2 < 1$ (spectral normalization) guarantees contractivity: gradients decay as $\|W_{hh}\|_2^t$ through time — preventing explosion but also potentially causing vanishing gradients in long sequences.
+**For AI:** Recurrent networks are discrete-time dynamical systems with $\mathbf{h}_{t+1} = \sigma(W_{hh}\mathbf{h}_t + W_{xh}\mathbf{x}_t)$. The condition $\|W_{hh}\|_2 < 1$ (spectral normalization) guarantees contractivity: gradients decay as $\|W_{hh}\|_2^t$ through time - preventing explosion but also potentially causing vanishing gradients in long sequences.
 
 ### E.3 Matrix Norms in Quantum Information
 
@@ -1498,9 +1498,9 @@ $$D(\rho, \sigma) = \frac{1}{2}\|\rho - \sigma\|_* = \frac{1}{2}\sum_i |\lambda_
 **Diamond norm.** For quantum channels $\mathcal{E}, \mathcal{F}$:
 $$\|\mathcal{E} - \mathcal{F}\|_\diamond = \max_\rho \|(\mathcal{E} \otimes I)(\rho) - (\mathcal{F} \otimes I)(\rho)\|_*$$
 
-This is the quantum analog of the $2 \to 1$ norm — measuring the maximum distinguishability of the channels.
+This is the quantum analog of the $2 \to 1$ norm - measuring the maximum distinguishability of the channels.
 
-**For AI:** Large language models in principle implement quantum-inspired computations when trained on quantum data. More concretely, tensor network approximations of quantum states use matrix norms (Frobenius) to bound truncation error in tensor decompositions — the same mathematics as SVD-based model compression.
+**For AI:** Large language models in principle implement quantum-inspired computations when trained on quantum data. More concretely, tensor network approximations of quantum states use matrix norms (Frobenius) to bound truncation error in tensor decompositions - the same mathematics as SVD-based model compression.
 
 ### E.4 Matrix Norms in Graph Theory
 
@@ -1510,7 +1510,7 @@ For a graph $G$ on $n$ vertices with adjacency matrix $A \in \{0,1\}^{n \times n
 
 **Graph conductance and mixing.** The second eigenvalue $\lambda_2$ of the normalized Laplacian controls the mixing time of random walks. Small $\lambda_2$ means slow mixing (large $\kappa$).
 
-**Graph neural networks.** A GNN layer applies $H^{(l+1)} = \sigma(\hat{A}H^{(l)}W^{(l)})$ where $\hat{A}$ is the normalized adjacency. The spectral norm $\|\hat{A}\|_2 \leq 1$ (by design of normalization) ensures the graph propagation is non-expansive — a Lipschitz constraint built into the architecture.
+**Graph neural networks.** A GNN layer applies $H^{(l+1)} = \sigma(\hat{A}H^{(l)}W^{(l)})$ where $\hat{A}$ is the normalized adjacency. The spectral norm $\|\hat{A}\|_2 \leq 1$ (by design of normalization) ensures the graph propagation is non-expansive - a Lipschitz constraint built into the architecture.
 
 **Over-smoothing and rank collapse.** After many GNN layers, the representations $H^{(L)}$ converge to a low-rank matrix. The nuclear norm of $H^{(L)}$ decreases, reflecting that all nodes' features converge to the same value (weighted by PageRank). This is the GNN analog of the attention rank collapse phenomenon.
 
@@ -1522,13 +1522,13 @@ The theory of matrix norms developed in parallel with the needs of numerical ana
 
 ```
 HISTORICAL TIMELINE: MATRIX NORMS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1844  Cauchy introduces the "module" of a complex matrix — early norm idea
+  1844  Cauchy introduces the "module" of a complex matrix - early norm idea
 
   1878  Frobenius studies bilinear forms; Frobenius norm implicit in his work
 
-  1905  Hilbert introduces "Hilbert space" — inner product → norm framework
+  1905  Hilbert introduces "Hilbert space" - inner product -> norm framework
 
   1929  Von Neumann: abstract operator theory in Hilbert space;
         nuclear operators (trace class) defined
@@ -1548,14 +1548,14 @@ HISTORICAL TIMELINE: MATRIX NORMS
   1970s  Numerical linear algebra matures (Golub, Van Loan)
         Condition number becomes central concept in floating-point analysis
 
-  1988  Grothendieck's "résumé" translated; connections to operator spaces
+  1988  Grothendieck's "resume" translated; connections to operator spaces
 
   1990s  Nuclear norm in matrix completion; compressed sensing foundations
 
-  2004  Candès & Tao: compressed sensing; nuclear norm as convex
+  2004  Candes & Tao: compressed sensing; nuclear norm as convex
         proxy for rank in matrix recovery
 
-  2010  Cai, Candès, Shen: singular value thresholding algorithm (SVT)
+  2010  Cai, Candes, Shen: singular value thresholding algorithm (SVT)
         for nuclear norm minimization
 
   2018  Miyato et al.: Spectral Normalization for GANs
@@ -1563,13 +1563,13 @@ HISTORICAL TIMELINE: MATRIX NORMS
 
   2021  Dong et al.: attention rank collapse analysis via matrix norms
 
-  2021  Hu et al.: LoRA — implicit nuclear norm regularization via
+  2021  Hu et al.: LoRA - implicit nuclear norm regularization via
         low-rank factored parameterization
 
   2024  DeepSeek MLA: explicit low-rank KV cache via nuclear norm
         motivated matrix compression
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Key insight from the historical development.** Matrix norms began as abstract tools in functional analysis (Von Neumann, Ky Fan) and numerical analysis (Frobenius, Bauer, Fike). Their entry into machine learning came through three channels:
@@ -1590,11 +1590,11 @@ The mathematical tools developed over 80 years now routinely appear in the train
 | Frobenius | $\|A\|_F$ | $\sqrt{\sum a_{ij}^2}$ | $\|\boldsymbol{\sigma}\|_2$ | `norm(A,'fro')` | Euclidean on entries; not induced |
 | Spectral | $\|A\|_2$ | $\max_{\|x\|=1}\|Ax\|$ | $\sigma_1$ | `norm(A,2)` | Largest singular value; induced |
 | Nuclear | $\|A\|_*$ | $\operatorname{tr}(\sqrt{A^\top A})$ | $\sum\sigma_i$ | `norm(A,'nuc')` | Dual of spectral; convex rank proxy |
-| Matrix-1 | $\|A\|_1$ | $\max_j\sum_i\|a_{ij}\|$ | — | `norm(A,1)` | Max col sum; induced |
-| Matrix-∞ | $\|A\|_\infty$ | $\max_i\sum_j\|a_{ij}\|$ | — | `norm(A,inf)` | Max row sum; induced |
+| Matrix-1 | $\|A\|_1$ | $\max_j\sum_i\|a_{ij}\|$ | - | `norm(A,1)` | Max col sum; induced |
+| Matrix-\infty | $\|A\|_\infty$ | $\max_i\sum_j\|a_{ij}\|$ | - | `norm(A,inf)` | Max row sum; induced |
 | Schatten-$p$ | $\|A\|_{S_p}$ | $(\sum\sigma_i^p)^{1/p}$ | $\|\boldsymbol{\sigma}\|_p$ | Custom (use SVD) | Unifies F, spec, nuclear |
 | Ky Fan-$k$ | $\|A\|_{(k)}$ | $\sigma_1+\cdots+\sigma_k$ | $\|\boldsymbol{\sigma}_{1:k}\|_1$ | `sum(svdvals[:k])` | Sum of top-$k$ singular values |
-| Max entry | $\|A\|_{\max}$ | $\max_{ij}\|a_{ij}\|$ | — | `np.max(abs(A))` | NOT submultiplicative |
+| Max entry | $\|A\|_{\max}$ | $\max_{ij}\|a_{ij}\|$ | - | `np.max(abs(A))` | NOT submultiplicative |
 
 ### G.2 Norm Inequality Summary
 
@@ -1633,11 +1633,11 @@ All inequalities are tight (achieved by appropriate matrices).
 
 | $\kappa_2(A)$ | Precision loss | Status | Action |
 | --- | --- | --- | --- |
-| $1$ | None | Perfectly conditioned | — |
+| $1$ | None | Perfectly conditioned | - |
 | $< 10^3$ | $< 3$ digits | Well conditioned | Standard algorithms |
-| $10^3$–$10^6$ | 3-6 digits | Moderately ill-conditioned | Watch for rounding |
-| $10^6$–$10^{10}$ | 6-10 digits | Ill-conditioned | Use Tikhonov; double-check |
-| $10^{10}$–$10^{14}$ | 10-14 digits | Severely ill-conditioned | Regularize aggressively |
+| $10^3$-$10^6$ | 3-6 digits | Moderately ill-conditioned | Watch for rounding |
+| $10^6$-$10^{10}$ | 6-10 digits | Ill-conditioned | Use Tikhonov; double-check |
+| $10^{10}$-$10^{14}$ | 10-14 digits | Severely ill-conditioned | Regularize aggressively |
 | $> 10^{14}$ | > 14 digits | Near-singular | Essentially singular in double precision |
 | $\infty$ | All digits | Singular | Problem is underdetermined |
 
@@ -1677,7 +1677,7 @@ For $A$ symmetric PSD: $\sigma_1 = \lambda_{\max}(A)$ (Lanczos iteration converg
 
 For $A$ sparse: Power iteration on $A^\top A$ with sparse matrix-vector products, $O(\text{nnz}(A) \cdot k)$ for $k$ iterations.
 
-For $A$ a convolution matrix (CNN weights): The spectral norm equals the maximum frequency response $\|\hat{a}\|_\infty$ where $\hat{a}$ is the Fourier transform of the filter — computable in $O(n\log n)$ via FFT.
+For $A$ a convolution matrix (CNN weights): The spectral norm equals the maximum frequency response $\|\hat{a}\|_\infty$ where $\hat{a}$ is the Fourier transform of the filter - computable in $O(n\log n)$ via FFT.
 
 **For AI:** The "singular value of a convolution" insight means spectral normalization of CNN layers can be done in $O(n\log n)$ using FFT instead of $O(n^2)$ SVD. This is exploited in efficient implementations of spectral normalization for CNNs.
 
@@ -1688,7 +1688,7 @@ In practice, if $Q, K$ are normalized (unit-norm rows), then $\|Q\|_2 \leq \sqrt
 
 **Spectral norm through training.** In typical training of GPT-like models:
 - At initialization (Xavier/Kaiming): $\|W\|_2 \approx \sqrt{2/d}$ (by design)
-- After training without regularization: $\|W\|_2$ can grow by 10-100× as features strengthen
+- After training without regularization: $\|W\|_2$ can grow by 10-100\times as features strengthen
 - With weight decay $\lambda$: equilibrium at $\|W\|_2 \approx \|\nabla_W\mathcal{L}\|_2/\lambda$ (gradient norm divided by decay rate)
 - With spectral normalization: $\|W\|_2 = 1$ exactly (enforced each step)
 
@@ -1708,19 +1708,19 @@ $$= \min_{\substack{A = B + C \\ B\text{ rank-1}}} \|B\|_* + \|C\|_* \qquad \tex
 
 **The factorization formula** $\|A\|_* = \min_{A=UV^\top}\frac{1}{2}(\|U\|_F^2+\|V\|_F^2)$ is particularly useful:
 
-It shows that the nuclear norm equals half the squared Frobenius norm at the optimal factorization — the one where the singular values split evenly: $U = U_0\Sigma^{1/2}$ and $V = V_0\Sigma^{1/2}$ in the SVD $A = U_0\Sigma V_0^\top$.
+It shows that the nuclear norm equals half the squared Frobenius norm at the optimal factorization - the one where the singular values split evenly: $U = U_0\Sigma^{1/2}$ and $V = V_0\Sigma^{1/2}$ in the SVD $A = U_0\Sigma V_0^\top$.
 
 **For AI:** This is exactly why LoRA works. The optimization $\min_{B,A}\mathcal{L}(W_0 + BA)$ with $B \in \mathbb{R}^{d\times r}$ and $A \in \mathbb{R}^{r\times d}$ implicitly minimizes $\|BA\|_* = \min_{\Delta W = BA}\|BA\|_*$ over rank-$r$ weight increments. The factored form is the "unfolded" version of nuclear norm minimization.
 
 **Nuclear norm SDP representation.** The nuclear norm can be computed via semidefinite programming:
 $$\|A\|_* = \min_{W_1, W_2} \frac{1}{2}(\operatorname{tr}(W_1) + \operatorname{tr}(W_2)) \quad\text{s.t.}\quad \begin{pmatrix}W_1 & A \\ A^\top & W_2\end{pmatrix} \succeq 0$$
 
-This shows nuclear norm minimization is a semidefinite program (SDP) — solvable in polynomial time (in principle). For large-scale problems, proximal methods (using SVT) are much faster than interior-point SDP solvers.
+This shows nuclear norm minimization is a semidefinite program (SDP) - solvable in polynomial time (in principle). For large-scale problems, proximal methods (using SVT) are much faster than interior-point SDP solvers.
 
 **Subdifferential.** The subdifferential of $\|\cdot\|_*$ at $A$ with compact SVD $A = U_r\Sigma_r V_r^\top$ (only positive singular values) is:
 $$\partial\|A\|_* = \{U_r V_r^\top + P_\perp W P_\perp : \|W\|_2 \leq 1\}$$
 
-where $P_\perp = I - U_rU_r^\top$ projects onto the orthogonal complement of the column space. The unique subgradient when all singular values are distinct is $U_r V_r^\top$ — the "direction matrix."
+where $P_\perp = I - U_rU_r^\top$ projects onto the orthogonal complement of the column space. The unique subgradient when all singular values are distinct is $U_r V_r^\top$ - the "direction matrix."
 
 ### H.3 Condition Number and Optimization Landscape
 
@@ -1733,7 +1733,7 @@ The convergence rate $(1-\mu/L) = 1 - 1/\kappa(H)$ depends directly on the condi
 
 **Newton's method.** Newton steps use the Hessian as a preconditioner: $\mathbf{x}^{(t+1)} = \mathbf{x}^{(t)} - H^{-1}\nabla\mathcal{L}$. This achieves **quadratic convergence** near the optimum, independent of $\kappa(H)$.
 
-**Adam as approximate preconditioning.** Adam maintains estimates of $\mathbb{E}[g_i^2]$ for each parameter. Dividing the gradient by $\sqrt{\mathbb{E}[g_i^2]}$ approximates dividing by $\sqrt{H_{ii}}$ — a diagonal preconditioning. This reduces the effective condition number:
+**Adam as approximate preconditioning.** Adam maintains estimates of $\mathbb{E}[g_i^2]$ for each parameter. Dividing the gradient by $\sqrt{\mathbb{E}[g_i^2]}$ approximates dividing by $\sqrt{H_{ii}}$ - a diagonal preconditioning. This reduces the effective condition number:
 $$\kappa_{\text{eff}} = \frac{\max_i H_{ii}/\mathbb{E}[g_i^2]^{1/2}}{\min_i H_{ii}/\mathbb{E}[g_i^2]^{1/2}} \ll \kappa(H)$$
 
 when $H$ is diagonally dominant. For non-diagonal $H$, Adam's approximation is crude, which is why Shampoo (full matrix preconditioning) converges faster.
@@ -1759,12 +1759,12 @@ This prevents extreme gradient flow: even if $\|J_{F_l}\|_2$ is large, the ident
 **RoPE (Rotary Position Embeddings).** RoPE applies a position-dependent rotation to queries and keys:
 $$\tilde{\mathbf{q}} = R_m \mathbf{q}, \quad \tilde{\mathbf{k}} = R_n \mathbf{k}$$
 
-where $R_m$ is a rotation matrix depending on position $m$. Since $R_m$ is unitary ($\|R_m\|_2 = 1$), this preserves the spectral norm of the query/key vectors: $\|\tilde{\mathbf{q}}\|_2 = \|\mathbf{q}\|_2$. The inner product $\tilde{\mathbf{q}}^\top\tilde{\mathbf{k}} = \mathbf{q}^\top R_m^\top R_n \mathbf{k} = \mathbf{q}^\top R_{n-m}\mathbf{k}$ — only the relative position $n-m$ matters.
+where $R_m$ is a rotation matrix depending on position $m$. Since $R_m$ is unitary ($\|R_m\|_2 = 1$), this preserves the spectral norm of the query/key vectors: $\|\tilde{\mathbf{q}}\|_2 = \|\mathbf{q}\|_2$. The inner product $\tilde{\mathbf{q}}^\top\tilde{\mathbf{k}} = \mathbf{q}^\top R_m^\top R_n \mathbf{k} = \mathbf{q}^\top R_{n-m}\mathbf{k}$ - only the relative position $n-m$ matters.
 
 **MLA (Multi-Head Latent Attention).** DeepSeek's MLA compresses the KV cache from $2Td_{kv}$ to $Td_c$ (with $d_c \ll 2d_{kv}$) by decomposing:
 $$K = C_{KV}W^K, \quad V = C_{KV}W^V$$
 
-where $C_{KV} \in \mathbb{R}^{T\times d_c}$ is the "latent" KV. The approximation error (measured in nuclear norm) is bounded by the nuclear norm of the difference $\|KV^\top - \hat{K}\hat{V}^\top\|_*$ — exactly the type of bound from Eckart-Young applied to the KV product matrix.
+where $C_{KV} \in \mathbb{R}^{T\times d_c}$ is the "latent" KV. The approximation error (measured in nuclear norm) is bounded by the nuclear norm of the difference $\|KV^\top - \hat{K}\hat{V}^\top\|_*$ - exactly the type of bound from Eckart-Young applied to the KV product matrix.
 
 ---
 ## Appendix I: Practice Problems and Solutions
@@ -1785,7 +1785,7 @@ where $C_{KV} \in \mathbb{R}^{T\times d_c}$ is the "latent" KV. The approximatio
 
 **Check 4.** Prove or disprove: $\|A+B\|_2 = \|A\|_2 + \|B\|_2$ implies $A$ and $B$ have the same top right singular vector.
 
-*Solution.* True. The spectral norm satisfies the triangle inequality $\|A+B\|_2 \leq \|A\|_2 + \|B\|_2$ with equality iff $A$ and $B$ are "aligned" in the spectral sense. Specifically, equality holds iff there exist unit vectors $\mathbf{u}, \mathbf{v}$ such that $\mathbf{u}^\top A\mathbf{v} = \|A\|_2$ and $\mathbf{u}^\top B\mathbf{v} = \|B\|_2$ — meaning $\mathbf{v}$ is the top right singular vector of both $A$ and $B$, and $\mathbf{u}$ is the corresponding top left singular vector. (Same structure as Cauchy-Schwarz equality condition.)
+*Solution.* True. The spectral norm satisfies the triangle inequality $\|A+B\|_2 \leq \|A\|_2 + \|B\|_2$ with equality iff $A$ and $B$ are "aligned" in the spectral sense. Specifically, equality holds iff there exist unit vectors $\mathbf{u}, \mathbf{v}$ such that $\mathbf{u}^\top A\mathbf{v} = \|A\|_2$ and $\mathbf{u}^\top B\mathbf{v} = \|B\|_2$ - meaning $\mathbf{v}$ is the top right singular vector of both $A$ and $B$, and $\mathbf{u}$ is the corresponding top left singular vector. (Same structure as Cauchy-Schwarz equality condition.)
 
 ### I.2 Computational Exercises with Answers
 
@@ -1837,9 +1837,9 @@ $\kappa(A^\top A + \lambda I) = (100+\lambda)/(10^{-4}+\lambda)$:
 | --- | --- | --- |
 | $0$ | $10^6$ | Original: very ill-conditioned |
 | $0.001$ | $(100.001)/(1.001\times10^{-3}) \approx 99,901$ | Modest improvement |
-| $0.01$ | $(100.01)/(0.0101) \approx 9,902$ | 100× improvement |
-| $0.1$ | $(100.1)/(0.1001) \approx 1,000$ | 1000× improvement |
-| $1$ | $(101)/(1.0001) \approx 101$ | 10,000× improvement |
+| $0.01$ | $(100.01)/(0.0101) \approx 9,902$ | 100\times improvement |
+| $0.1$ | $(100.1)/(0.1001) \approx 1,000$ | 1000\times improvement |
+| $1$ | $(101)/(1.0001) \approx 101$ | 10,000\times improvement |
 
 Each decade of $\lambda$ improves $\kappa$ dramatically but increases bias. The optimal $\lambda$ balances condition improvement against solution bias.
 
@@ -1861,7 +1861,7 @@ This is a standard SDP with $O(m+n)$ variables. Interior-point methods solve it 
 
 ---
 
-## Appendix J: Quick Reference — Key Theorems
+## Appendix J: Quick Reference - Key Theorems
 
 ### J.1 The Four Fundamental Theorems of Matrix Norms
 
@@ -1876,11 +1876,11 @@ $$c_1\|A\|_\alpha \leq \|A\|_\beta \leq c_2\|A\|_\alpha \quad \text{for all } A 
 
 **Theorem 3 (Weyl's Inequality).** Singular values are Lipschitz-1 functions of the matrix: $|\sigma_i(A+E) - \sigma_i(A)| \leq \sigma_1(E) = \|E\|_2$ for all $i$.
 
-*Implication:* Singular values are numerically stable — guaranteed small changes for small perturbations. Eigenvalues of non-symmetric matrices do NOT have this guarantee.
+*Implication:* Singular values are numerically stable - guaranteed small changes for small perturbations. Eigenvalues of non-symmetric matrices do NOT have this guarantee.
 
 **Theorem 4 (Von Neumann Trace Inequality).** $|\operatorname{tr}(A^\top B)| \leq \sum_i\sigma_i(A)\sigma_i(B)$, with equality when $A, B$ share singular vector bases.
 
-*Implication:* The trace inner product $\langle A,B\rangle_F = \operatorname{tr}(A^\top B)$ is bounded by singular value inner products. This is the fundamental inequality behind nuclear-spectral duality and all Hölder-type bounds for matrix norms.
+*Implication:* The trace inner product $\langle A,B\rangle_F = \operatorname{tr}(A^\top B)$ is bounded by singular value inner products. This is the fundamental inequality behind nuclear-spectral duality and all Holder-type bounds for matrix norms.
 
 ### J.2 Key Formulas at a Glance
 
@@ -1892,12 +1892,12 @@ $$\|A\|_2 \leq \|A\|_F \leq \sqrt{r}\|A\|_2 \leq \sqrt{r}\|A\|_* \leq r\|A\|_2$$
 
 **Proximal operators:**
 
-- $\operatorname{prox}_{\tau\|\cdot\|_*}(A) = U\operatorname{diag}(\max(\sigma_i-\tau,0))V^\top$ (nuclear norm → SVT)
-- $\operatorname{prox}_{\tau\|\cdot\|_F^2}(A) = A/(1+2\tau)$ (Frobenius squared → scaling)
+- $\operatorname{prox}_{\tau\|\cdot\|_*}(A) = U\operatorname{diag}(\max(\sigma_i-\tau,0))V^\top$ (nuclear norm -> SVT)
+- $\operatorname{prox}_{\tau\|\cdot\|_F^2}(A) = A/(1+2\tau)$ (Frobenius squared -> scaling)
 
 **Dual norm pairs:** spectral $\leftrightarrow$ nuclear; $\ell^p \leftrightarrow \ell^q$ (matrix 1-norm $\leftrightarrow$ $\infty$-norm); Frobenius is self-dual.
 
-**Stable rank:** $\rho(A) = \|A\|_F^2/\|A\|_2^2 \in [1, r]$ — a smooth proxy for rank that controls generalization bounds.
+**Stable rank:** $\rho(A) = \|A\|_F^2/\|A\|_2^2 \in [1, r]$ - a smooth proxy for rank that controls generalization bounds.
 
 ### J.3 Notation Reference
 
@@ -1920,43 +1920,43 @@ Following the project notation guide (`docs/NOTATION_GUIDE.md`):
 
 ---
 
-*← [Back to Advanced Linear Algebra](../README.md) | [Next: Linear Transformations →](../07-Linear-Transformations/notes.md)*
+*<- [Back to Advanced Linear Algebra](../README.md) | [Next: Linear Transformations ->](../07-Linear-Transformations/notes.md)*
 
 ## Appendix K: Further Reading
 
 ### K.1 Textbooks
 
-1. **Golub & Van Loan** — *Matrix Computations* (4th ed., 2013). The definitive numerical linear algebra reference. Chapters 2-3 cover matrix norms and condition numbers in full depth.
+1. **Golub & Van Loan** - *Matrix Computations* (4th ed., 2013). The definitive numerical linear algebra reference. Chapters 2-3 cover matrix norms and condition numbers in full depth.
 
-2. **Horn & Johnson** — *Matrix Analysis* (2nd ed., 2013). Comprehensive theoretical treatment of matrix norms, singular values, and inequalities.
+2. **Horn & Johnson** - *Matrix Analysis* (2nd ed., 2013). Comprehensive theoretical treatment of matrix norms, singular values, and inequalities.
 
-3. **Bhatia** — *Matrix Analysis* (1997). Advanced treatment of matrix inequalities, Schatten norms, and majorization. Chapter IV covers unitarily invariant norms.
+3. **Bhatia** - *Matrix Analysis* (1997). Advanced treatment of matrix inequalities, Schatten norms, and majorization. Chapter IV covers unitarily invariant norms.
 
-4. **Trefethen & Bau** — *Numerical Linear Algebra* (1997). Excellent pedagogical treatment. Lectures 4-5 cover norms; Lectures 11-12 cover condition number theory.
+4. **Trefethen & Bau** - *Numerical Linear Algebra* (1997). Excellent pedagogical treatment. Lectures 4-5 cover norms; Lectures 11-12 cover condition number theory.
 
 ### K.2 Foundational Papers
 
-1. **Eckart & Young (1936)** — "The approximation of one matrix by another of lower rank." *Psychometrika*. The Eckart-Young theorem.
+1. **Eckart & Young (1936)** - "The approximation of one matrix by another of lower rank." *Psychometrika*. The Eckart-Young theorem.
 
-2. **Mirsky (1960)** — "Symmetric gauge functions and unitarily invariant norms." *Quarterly Journal of Mathematics*. Unitarily invariant norm characterization via symmetric gauge functions.
+2. **Mirsky (1960)** - "Symmetric gauge functions and unitarily invariant norms." *Quarterly Journal of Mathematics*. Unitarily invariant norm characterization via symmetric gauge functions.
 
-3. **Candès & Recht (2009)** — "Exact matrix completion via convex optimization." *Foundations of Computational Mathematics*. Nuclear norm for matrix recovery under incoherence.
+3. **Candes & Recht (2009)** - "Exact matrix completion via convex optimization." *Foundations of Computational Mathematics*. Nuclear norm for matrix recovery under incoherence.
 
-4. **Cai, Candès & Shen (2010)** — "A singular value thresholding algorithm for matrix completion." *SIAM Journal on Optimization*. The SVT proximal algorithm.
+4. **Cai, Candes & Shen (2010)** - "A singular value thresholding algorithm for matrix completion." *SIAM Journal on Optimization*. The SVT proximal algorithm.
 
 ### K.3 Machine Learning Papers
 
-1. **Miyato et al. (2018)** — "Spectral Normalization for Generative Adversarial Networks." ICLR 2018. Spectral norm in GAN training; power iteration for $\sigma_1$.
+1. **Miyato et al. (2018)** - "Spectral Normalization for Generative Adversarial Networks." ICLR 2018. Spectral norm in GAN training; power iteration for $\sigma_1$.
 
-2. **Bartlett, Foster & Telgarsky (2017)** — "Spectrally-normalized margin bounds for neural networks." NeurIPS 2017. PAC-Bayes generalization bounds via spectral and Frobenius norms.
+2. **Bartlett, Foster & Telgarsky (2017)** - "Spectrally-normalized margin bounds for neural networks." NeurIPS 2017. PAC-Bayes generalization bounds via spectral and Frobenius norms.
 
-3. **Gunasekar et al. (2017)** — "Implicit Regularization in Matrix Factorization." NeurIPS 2017. Gradient flow on factored parameterization implicitly minimizes nuclear norm.
+3. **Gunasekar et al. (2017)** - "Implicit Regularization in Matrix Factorization." NeurIPS 2017. Gradient flow on factored parameterization implicitly minimizes nuclear norm.
 
-4. **Hu et al. (2021)** — "LoRA: Low-Rank Adaptation of Large Language Models." ICLR 2022. Low-rank weight adaptation; implicit nuclear norm regularization.
+4. **Hu et al. (2021)** - "LoRA: Low-Rank Adaptation of Large Language Models." ICLR 2022. Low-rank weight adaptation; implicit nuclear norm regularization.
 
-5. **Dong et al. (2021)** — "Attention is Not All You Need: Pure Attention Loses Rank Doubly Exponentially with Depth." ICML 2021. Attention matrix rank analysis via spectral/nuclear norms.
+5. **Dong et al. (2021)** - "Attention is Not All You Need: Pure Attention Loses Rank Doubly Exponentially with Depth." ICML 2021. Attention matrix rank analysis via spectral/nuclear norms.
 
-6. **DeepSeek-AI (2024)** — "DeepSeek-V2." MLA architecture and nuclear norm-motivated KV cache compression.
+6. **DeepSeek-AI (2024)** - "DeepSeek-V2." MLA architecture and nuclear norm-motivated KV cache compression.
 
 ### K.4 Online Resources
 
@@ -1969,7 +1969,7 @@ Following the project notation guide (`docs/NOTATION_GUIDE.md`):
 
 *This section is part of the Math for LLMs curriculum. All notation follows `docs/NOTATION_GUIDE.md`. For visualization standards, see `docs/VISUALIZATION_GUIDE.md`.*
 
-*← [Back to Advanced Linear Algebra](../README.md) | [Next: Linear Transformations →](../07-Linear-Transformations/notes.md)*
+*<- [Back to Advanced Linear Algebra](../README.md) | [Next: Linear Transformations ->](../07-Linear-Transformations/notes.md)*
 
 ---
 
@@ -1977,24 +1977,24 @@ Following the project notation guide (`docs/NOTATION_GUIDE.md`):
 
 Matrix norms are the central quantitative tools of matrix analysis. This section covered:
 
-**Core norm families** — The five principal matrix norms (Frobenius, spectral, nuclear, matrix-1, matrix-$\infty$) and the broader Schatten family that unifies them. Each norm captures a different geometric property of a linear map: the Frobenius norm measures RMS stretching; the spectral norm measures maximum stretching; the nuclear norm measures total stretching (sum of singular values).
+**Core norm families** - The five principal matrix norms (Frobenius, spectral, nuclear, matrix-1, matrix-$\infty$) and the broader Schatten family that unifies them. Each norm captures a different geometric property of a linear map: the Frobenius norm measures RMS stretching; the spectral norm measures maximum stretching; the nuclear norm measures total stretching (sum of singular values).
 
-**Induced vs. non-induced** — The spectral, matrix-1, and matrix-$\infty$ norms are induced (they arise from vector norms on input/output spaces). The Frobenius norm is not induced but is compatible. Every induced norm is submultiplicative; submultiplicativity is the key property for stability analysis.
+**Induced vs. non-induced** - The spectral, matrix-1, and matrix-$\infty$ norms are induced (they arise from vector norms on input/output spaces). The Frobenius norm is not induced but is compatible. Every induced norm is submultiplicative; submultiplicativity is the key property for stability analysis.
 
-**Unitarily invariant norms** — Norms that depend only on singular values (Frobenius, spectral, nuclear, Schatten, Ky Fan) have a unified theory via symmetric gauge functions. The Von Neumann trace inequality and Mirsky's theorem are the central results.
+**Unitarily invariant norms** - Norms that depend only on singular values (Frobenius, spectral, nuclear, Schatten, Ky Fan) have a unified theory via symmetric gauge functions. The Von Neumann trace inequality and Mirsky's theorem are the central results.
 
-**Condition number** — The ratio $\sigma_1/\sigma_n$ quantifies sensitivity to perturbations. Every decimal digit of $\log_{10}\kappa$ costs one digit of precision. Tikhonov regularization reduces $\kappa$ at the cost of introducing systematic bias.
+**Condition number** - The ratio $\sigma_1/\sigma_n$ quantifies sensitivity to perturbations. Every decimal digit of $\log_{10}\kappa$ costs one digit of precision. Tikhonov regularization reduces $\kappa$ at the cost of introducing systematic bias.
 
-**Perturbation theory** — Weyl's inequality (singular values are Lipschitz-1 w.r.t. spectral norm) guarantees stability of SVD computations. The Bauer-Fike theorem shows that non-normal eigenvalues can be much less stable.
+**Perturbation theory** - Weyl's inequality (singular values are Lipschitz-1 w.r.t. spectral norm) guarantees stability of SVD computations. The Bauer-Fike theorem shows that non-normal eigenvalues can be much less stable.
 
-**Machine learning connections** — Every major modern ML technique has a matrix norm interpretation: weight decay (Frobenius), spectral normalization (spectral), LoRA (nuclear via factored form), gradient clipping (spectral or Frobenius of gradients), PAC-Bayes bounds (stable rank and Frobenius/spectral), MLA compression (Eckart-Young), and attention analysis (nuclear norm rank collapse).
+**Machine learning connections** - Every major modern ML technique has a matrix norm interpretation: weight decay (Frobenius), spectral normalization (spectral), LoRA (nuclear via factored form), gradient clipping (spectral or Frobenius of gradients), PAC-Bayes bounds (stable rank and Frobenius/spectral), MLA compression (Eckart-Young), and attention analysis (nuclear norm rank collapse).
 
 The key unifying insight: **matrix norms reduce infinite-dimensional questions about linear operators to finite-dimensional scalar measurements.** This reduction is the mathematical move that makes analysis tractable, computation feasible, and regularization principled.
 
 
-This understanding of norms as measurement instruments prepares us for the next section on Linear Transformations, where we use norms to study how maps between vector spaces can be classified, composed, and analyzed. The spectral norm of a transformation matrix is precisely its operator norm — the fundamental quantity controlling how much the transformation can stretch vectors. Every topic in the remaining curriculum — optimization convergence (Chapter 8), probabilistic models (Chapter 10), and the mathematics of specific architectures (Chapter 14) — uses matrix norms as a core tool.
+This understanding of norms as measurement instruments prepares us for the next section on Linear Transformations, where we use norms to study how maps between vector spaces can be classified, composed, and analyzed. The spectral norm of a transformation matrix is precisely its operator norm - the fundamental quantity controlling how much the transformation can stretch vectors. Every topic in the remaining curriculum - optimization convergence (Chapter 8), probabilistic models (Chapter 10), and the mathematics of specific architectures (Chapter 14) - uses matrix norms as a core tool.
 
-The journey from abstract norm axioms to practical tools — power iteration, singular value thresholding, Tikhonov regularization, spectral normalization — illustrates how pure mathematics becomes engineering. Matrix norms are not just theoretical objects but the computational primitives of modern AI.
+The journey from abstract norm axioms to practical tools - power iteration, singular value thresholding, Tikhonov regularization, spectral normalization - illustrates how pure mathematics becomes engineering. Matrix norms are not just theoretical objects but the computational primitives of modern AI.
 
 
-Matrix norms connect every part of linear algebra — the SVD gives their values, orthogonality explains their invariance, eigenvalues govern condition numbers — and every part of machine learning — norms define regularizers, bound generalization, and stabilize training. They are the language in which the theory and practice of modern AI is written.
+Matrix norms connect every part of linear algebra - the SVD gives their values, orthogonality explains their invariance, eigenvalues govern condition numbers - and every part of machine learning - norms define regularizers, bound generalization, and stabilize training. They are the language in which the theory and practice of modern AI is written.

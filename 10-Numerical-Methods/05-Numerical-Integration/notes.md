@@ -1,34 +1,34 @@
-[← Back to Numerical Methods](../README.md) | [← Previous: Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)
+[<- Back to Numerical Methods](../README.md) | [<- Previous: Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md)
 
 ---
 
 # Numerical Integration
 
-> *"Numerical integration is the art of turning hard integrals into easy sums."*  
-> — Attributed to Philip Davis and Philip Rabinowitz
+> *"Numerical integration is the art of turning hard integrals into easy sums."*
+> - Attributed to Philip Davis and Philip Rabinowitz
 
 ## Overview
 
 **Numerical integration** (quadrature) computes $\int_a^b f(x) w(x) dx$ when no antiderivative is available, the function is known only at discrete points, or the exact integral is too expensive. The core idea is simple: approximate $f$ by an interpolant and integrate the interpolant exactly.
 
-The quality of this approximation depends entirely on the choice of interpolation nodes. Equispaced nodes give the Newton-Cotes rules (trapezoidal, Simpson's) which are easy to derive but have bounded accuracy. Optimal node placement — the zeros of orthogonal polynomials — gives Gaussian quadrature, which achieves "twice the accuracy for free" by allowing the nodes to vary. Adaptive quadrature refines the mesh where the integrand is rough, achieving near-machine accuracy automatically. Monte Carlo methods trade the deterministic $O(h^p)$ error for a stochastic $O(1/\sqrt{n})$ rate that is dimension-independent — crucial for high-dimensional integrals.
+The quality of this approximation depends entirely on the choice of interpolation nodes. Equispaced nodes give the Newton-Cotes rules (trapezoidal, Simpson's) which are easy to derive but have bounded accuracy. Optimal node placement - the zeros of orthogonal polynomials - gives Gaussian quadrature, which achieves "twice the accuracy for free" by allowing the nodes to vary. Adaptive quadrature refines the mesh where the integrand is rough, achieving near-machine accuracy automatically. Monte Carlo methods trade the deterministic $O(h^p)$ error for a stochastic $O(1/\sqrt{n})$ rate that is dimension-independent - crucial for high-dimensional integrals.
 
-For AI, numerical integration appears in: computing normalizing constants for probability distributions, training variational autoencoders (ELBO involves an expectation), Gaussian process marginal likelihoods, normalizing flows, and reinforcement learning value estimation. Understanding which quadrature method to use — and why — is essential for building numerically stable, efficient ML systems.
+For AI, numerical integration appears in: computing normalizing constants for probability distributions, training variational autoencoders (ELBO involves an expectation), Gaussian process marginal likelihoods, normalizing flows, and reinforcement learning value estimation. Understanding which quadrature method to use - and why - is essential for building numerically stable, efficient ML systems.
 
 ## Prerequisites
 
-- Calculus: definite integrals, Riemann sums, Taylor's theorem (§01-Mathematical-Foundations)
-- Interpolation: Lagrange polynomials, Chebyshev nodes, orthogonal polynomials (§10-04)
-- Linear algebra: solving linear systems (§02-Linear-Algebra-Basics, §10-02)
-- Floating-point arithmetic: rounding error accumulation (§10-01)
-- Probability: random variables, expected values, variance (§07-Probability)
+- Calculus: definite integrals, Riemann sums, Taylor's theorem (Section01-Mathematical-Foundations)
+- Interpolation: Lagrange polynomials, Chebyshev nodes, orthogonal polynomials (Section10-04)
+- Linear algebra: solving linear systems (Section02-Linear-Algebra-Basics, Section10-02)
+- Floating-point arithmetic: rounding error accumulation (Section10-01)
+- Probability: random variables, expected values, variance (Section07-Probability)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive: Newton-Cotes, Gaussian quadrature derivation, adaptive quadrature, Monte Carlo, multidimensional integration |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from trapezoidal rule to normalizing flow partition functions |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from trapezoidal rule to normalizing flow partition functions |
 
 ## Learning Objectives
 
@@ -109,41 +109,41 @@ The **error** is $E_n(f) = I(f) - Q_n(f)$.
 4. The dimensionality $d$ (high-dimensional integrals need Monte Carlo)
 
 **For AI:** Many ML objectives involve integrals:
-- $\log p(x) = \log \int p(x|z) p(z) dz$ — variational ELBO lower bounds this
-- Policy gradient $\nabla_\theta J = \mathbb{E}_\pi[\nabla_\theta \log \pi_\theta(a|s) R]$ — Monte Carlo estimates
-- Gaussian process likelihood $\log p(y) = -\frac{1}{2} y^\top K^{-1} y - \frac{1}{2}\log|K|$ — involves a determinant, not an integral, but the method of moments is related
+- $\log p(x) = \log \int p(x|z) p(z) dz$ - variational ELBO lower bounds this
+- Policy gradient $\nabla_\theta J = \mathbb{E}_\pi[\nabla_\theta \log \pi_\theta(a|s) R]$ - Monte Carlo estimates
+- Gaussian process likelihood $\log p(y) = -\frac{1}{2} y^\top K^{-1} y - \frac{1}{2}\log|K|$ - involves a determinant, not an integral, but the method of moments is related
 
 ### 1.2 Why Integration is Hard
 
 - **Indefinite integrals of elementary functions:** Only a small class have closed forms. $\int e^{-x^2} dx$, $\int \sin(x)/x \, dx$ have no elementary form.
-- **High-dimensional integrals:** The curse of dimensionality makes grid-based methods infeasible for $d > 5$–$10$.
-- **Singularities:** $\int_0^1 x^{-1/2} dx = 2$ — finite integral but $f(0) = \infty$.
-- **Oscillatory integrands:** $\int_0^{1000} \sin(x^2) dx$ — many sign changes, standard rules need many nodes.
-- **Stochastic integrals:** $\mathbb{E}[f(X)] = \int f(x) p(x) dx$ — typically solved by sampling.
+- **High-dimensional integrals:** The curse of dimensionality makes grid-based methods infeasible for $d > 5$-$10$.
+- **Singularities:** $\int_0^1 x^{-1/2} dx = 2$ - finite integral but $f(0) = \infty$.
+- **Oscillatory integrands:** $\int_0^{1000} \sin(x^2) dx$ - many sign changes, standard rules need many nodes.
+- **Stochastic integrals:** $\mathbb{E}[f(X)] = \int f(x) p(x) dx$ - typically solved by sampling.
 
 ### 1.3 Historical Timeline
 
 ```
 NUMERICAL INTEGRATION: HISTORICAL TIMELINE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1700  ─ Newton (1711): Newton-Cotes formulas from polynomial interpolation
-  1720  ─ Cotes: systematic derivation of Newton-Cotes weights
-  1800  ─ Gauss (1814): Gaussian quadrature with 2n-1 degree of exactness
-  1852  ─ Chebyshev: Gauss-Chebyshev quadrature with explicit node/weight formulas
-  1901  ─ Richardson: Richardson extrapolation to accelerate convergence
-  1955  ─ Romberg: Romberg integration (repeated Richardson extrapolation)
-  1960  ─ Clenshaw-Curtis: Chebyshev-based quadrature via DCT
-  1970  ─ Patterson, Kronrod: Gauss-Kronrod embedded rules for adaptive quadrature
-  1965  ─ Sobol: quasi-Monte Carlo sequences for multidimensional integration
-  1949  ─ Metropolis-Ulam: Monte Carlo method for nuclear physics calculations
-  1953  ─ Metropolis: Markov chain Monte Carlo (Metropolis algorithm)
-  1990  ─ Gelfand-Smith: MCMC for Bayesian inference becomes mainstream
-  2015  ─ Deep learning era: stochastic gradient estimation (REINFORCE, VAE ELBO)
-  2020  ─ Normalizing flows: exact likelihood via change-of-variables theorem
-  2022  ─ Score-based diffusion: sampling as integration of stochastic DEs
+  1700  - Newton (1711): Newton-Cotes formulas from polynomial interpolation
+  1720  - Cotes: systematic derivation of Newton-Cotes weights
+  1800  - Gauss (1814): Gaussian quadrature with 2n-1 degree of exactness
+  1852  - Chebyshev: Gauss-Chebyshev quadrature with explicit node/weight formulas
+  1901  - Richardson: Richardson extrapolation to accelerate convergence
+  1955  - Romberg: Romberg integration (repeated Richardson extrapolation)
+  1960  - Clenshaw-Curtis: Chebyshev-based quadrature via DCT
+  1970  - Patterson, Kronrod: Gauss-Kronrod embedded rules for adaptive quadrature
+  1965  - Sobol: quasi-Monte Carlo sequences for multidimensional integration
+  1949  - Metropolis-Ulam: Monte Carlo method for nuclear physics calculations
+  1953  - Metropolis: Markov chain Monte Carlo (Metropolis algorithm)
+  1990  - Gelfand-Smith: MCMC for Bayesian inference becomes mainstream
+  2015  - Deep learning era: stochastic gradient estimation (REINFORCE, VAE ELBO)
+  2020  - Normalizing flows: exact likelihood via change-of-variables theorem
+  2022  - Score-based diffusion: sampling as integration of stochastic DEs
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -170,25 +170,25 @@ Same order as midpoint but larger constant (midpoint is twice as accurate as tra
 
 $$S(f) = \frac{b-a}{6}\left[f(a) + 4f\!\left(\frac{a+b}{2}\right) + f(b)\right], \quad E_S = -\frac{(b-a)^5}{90} f^{(4)}(\xi)$$
 
-Integrates polynomials of degree $\leq 3$ exactly (degree of exactness 3, not 2 — odd-degree rules gain one extra order via symmetry).
+Integrates polynomials of degree $\leq 3$ exactly (degree of exactness 3, not 2 - odd-degree rules gain one extra order via symmetry).
 
 ```
 NEWTON-COTES RULES: GEOMETRIC INTERPRETATION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Midpoint:        Trapezoidal:        Simpson's:
-  ─────────        ────────────        ─────────
-    ──             /\                  ╭──╮
+  ---------        ------------        ---------
+    --             /\                  +--+
    /  \           /  \               /    \
   / f  \         / f  \             /  f   \
- /  ×  \        / × × \           / × × × \
- ────────       ──────────         ──────────
+ /  x  \        / x x \           / x x x \
+ --------       ----------         ----------
    (b-a)        (b-a)/2           (b-a)/6, 4/6, 1/6
 
-  × = quadrature node
+  x = quadrature node
   Approximation: rectangle, trapezoid, parabola through 3 points
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **General Newton-Cotes with $n+1$ equispaced nodes:** $x_i = a + ih$, $h = (b-a)/n$:
@@ -208,7 +208,7 @@ $$w_i^{\text{NC}} = \frac{1}{h} \int_a^b \ell_i(x) dx = \int_0^n \prod_{j \neq i
 | 3 | Simpson's 3/8 | $\frac{3h}{8}[1, 3, 3, 1]$ | 3 |
 | 4 | Boole's | $\frac{2h}{45}[7, 32, 12, 32, 7]$ | 5 |
 
-**Key observation:** Even-$n$ rules (trapezoidal with $n=2$, Boole's with $n=4$) automatically achieve one higher degree of exactness than expected — a consequence of symmetry.
+**Key observation:** Even-$n$ rules (trapezoidal with $n=2$, Boole's with $n=4$) automatically achieve one higher degree of exactness than expected - a consequence of symmetry.
 
 ### 2.2 Composite Rules and Error Analysis
 
@@ -242,8 +242,8 @@ $$T_m(f) = \int_a^b f(x) dx + \sum_{k=1}^{p} \frac{B_{2k}}{(2k)!} h^{2k} [f^{(2k
 where $B_{2k}$ are Bernoulli numbers ($B_2 = 1/6$, $B_4 = -1/30$, $B_6 = 1/42$, ...).
 
 **Key implications:**
-1. The error has an **asymptotic expansion in powers of $h^2$** — this is the foundation for Richardson extrapolation
-2. For **periodic functions** where all derivatives of $f$ match at $a$ and $b$, the boundary terms vanish for all $k$ — the composite trapezoidal rule achieves **spectral accuracy** for smooth periodic functions!
+1. The error has an **asymptotic expansion in powers of $h^2$** - this is the foundation for Richardson extrapolation
+2. For **periodic functions** where all derivatives of $f$ match at $a$ and $b$, the boundary terms vanish for all $k$ - the composite trapezoidal rule achieves **spectral accuracy** for smooth periodic functions!
 3. The formula predicts exactly how much extrapolation reduces error
 
 **Periodic functions example:** For $f(x) = \cos(2\pi x)$ on $[0,1]$ with $m$ equal intervals, the trapezoidal rule is exact to machine precision even for small $m$. This is why the DFT (which uses uniform sampling of a periodic function) is exact!
@@ -252,9 +252,9 @@ where $B_{2k}$ are Bernoulli numbers ($B_2 = 1/6$, $B_4 = -1/30$, $B_6 = 1/42$, 
 
 ### 2.4 Limitations of Newton-Cotes
 
-**Negative weights for large $n$:** Newton-Cotes weights become negative for $n \geq 8$. This means small perturbations in $f$ values can cancel to give a large error — **numerical instability**.
+**Negative weights for large $n$:** Newton-Cotes weights become negative for $n \geq 8$. This means small perturbations in $f$ values can cancel to give a large error - **numerical instability**.
 
-**Runge's phenomenon for integration:** Unlike interpolation, integration is a smoother operation — integrating the Runge interpolant gives reasonable results for moderate $n$. But for large $n$ with equispaced nodes, the interpolant oscillates wildly and the integral of the oscillations can be large.
+**Runge's phenomenon for integration:** Unlike interpolation, integration is a smoother operation - integrating the Runge interpolant gives reasonable results for moderate $n$. But for large $n$ with equispaced nodes, the interpolant oscillates wildly and the integral of the oscillations can be large.
 
 **Conclusion:** Use composite low-order rules (trapezoidal, Simpson's) rather than high-degree Newton-Cotes on a single interval.
 
@@ -272,13 +272,13 @@ where $B_{2k}$ are Bernoulli numbers ($B_2 = 1/6$, $B_4 = -1/30$, $B_6 = 1/42$, 
 
 **Counting argument:** A rule with $n$ free nodes has $2n$ free parameters ($n$ nodes $+ n$ weights). A polynomial basis requires matching $2n$ coefficients. We might hope to achieve degree of exactness $2n-1$.
 
-**Theorem (Gaussian quadrature):** This is achievable. With $n$ optimally chosen nodes, we can achieve degree of exactness $2n-1$ — exactly twice what equispaced nodes give.
+**Theorem (Gaussian quadrature):** This is achievable. With $n$ optimally chosen nodes, we can achieve degree of exactness $2n-1$ - exactly twice what equispaced nodes give.
 
 **How to find the nodes:** The optimal nodes for $\int_{-1}^1 f(x) dx$ are the **zeros of the $n$-th Legendre polynomial** $P_n(x)$.
 
 **Proof sketch:** For any polynomial $f$ of degree $\leq 2n-1$, write $f = q \cdot P_n + r$ where $q$ has degree $\leq n-1$ and $r$ has degree $\leq n-1$. Then:
-- $\int_{-1}^1 f = \int q \cdot P_n + \int r$ — the first integral is 0 by orthogonality of $P_n$ to lower-degree polynomials
-- $Q_n(f) = Q_n(q \cdot P_n) + Q_n(r) = 0 + Q_n(r)$ — the first term is 0 because $q \cdot P_n$ vanishes at all zeros of $P_n$
+- $\int_{-1}^1 f = \int q \cdot P_n + \int r$ - the first integral is 0 by orthogonality of $P_n$ to lower-degree polynomials
+- $Q_n(f) = Q_n(q \cdot P_n) + Q_n(r) = 0 + Q_n(r)$ - the first term is 0 because $q \cdot P_n$ vanishes at all zeros of $P_n$
 - $Q_n(r) = \int r$ because $Q_n$ is exact for polynomials of degree $\leq n-1 < 2n-1$ $\square$
 
 ### 3.2 Gauss-Legendre Quadrature
@@ -304,7 +304,7 @@ $$E_n = \frac{(n!)^4}{(2n+1)[(2n)!]^3} (b-a)^{2n+1} f^{(2n)}(\xi) = O(h^{2n})$$
 
 $$\int_a^b f(x) dx = \frac{b-a}{2} \int_{-1}^1 f\!\left(\frac{a+b}{2} + \frac{b-a}{2} t\right) dt \approx \frac{b-a}{2} \sum_{i=1}^n w_i f\!\left(\frac{a+b}{2} + \frac{b-a}{2} x_i\right)$$
 
-**Computing GL nodes:** Use the eigenvalue method — nodes are eigenvalues of the **Golub-Welsch tridiagonal matrix:**
+**Computing GL nodes:** Use the eigenvalue method - nodes are eigenvalues of the **Golub-Welsch tridiagonal matrix:**
 
 $$J_n = \begin{pmatrix} 0 & \beta_1 & & \\ \beta_1 & 0 & \beta_2 & \\ & \beta_2 & 0 & \ddots \\ & & \ddots & \ddots \end{pmatrix}, \quad \beta_k = \frac{k}{2\sqrt{k^2 - 1/4}}$$
 
@@ -313,7 +313,7 @@ The eigenvalues are the GL nodes, and the first components of the eigenvectors g
 **For AI:** Gauss-Legendre quadrature is used in:
 - **Normalizing flows:** Computing normalizing constants for complex distributions via quadrature
 - **Physics-informed networks:** Computing weak-form integrals $\int \nabla u \cdot \nabla v$ exactly
-- **ODE solvers:** Gauss collocation methods are implicit RK methods with GL nodes — they achieve the highest possible order for a given number of stages
+- **ODE solvers:** Gauss collocation methods are implicit RK methods with GL nodes - they achieve the highest possible order for a given number of stages
 
 ### 3.3 Gauss-Chebyshev Quadrature
 
@@ -322,8 +322,8 @@ For $\int_{-1}^1 f(x) (1-x^2)^{-1/2} dx$ (the Chebyshev weight), the nodes and w
 $$x_k = \cos\!\left(\frac{(2k-1)\pi}{2n}\right), \quad w_k = \frac{\pi}{n}, \quad k = 1, \ldots, n$$
 
 **Key properties:**
-- Nodes are equispaced in $\theta = \arccos(x)$ — no eigenvalue computation needed
-- All weights equal $\pi/n$ — uniform weights!
+- Nodes are equispaced in $\theta = \arccos(x)$ - no eigenvalue computation needed
+- All weights equal $\pi/n$ - uniform weights!
 - These are exactly the Chebyshev nodes of the first kind
 - Degree of exactness: $2n-1$
 
@@ -333,9 +333,9 @@ $$x_k = \cos\!\left(\frac{k\pi}{n+1}\right), \quad w_k = \frac{\pi}{n+1} \sin^2\
 
 ### 3.4 Other Gauss Rules
 
-**Gauss-Laguerre:** $\int_0^\infty f(x) e^{-x} dx \approx \sum_i w_i f(x_i)$ — nodes are zeros of Laguerre polynomials $L_n(x)$.
+**Gauss-Laguerre:** $\int_0^\infty f(x) e^{-x} dx \approx \sum_i w_i f(x_i)$ - nodes are zeros of Laguerre polynomials $L_n(x)$.
 
-**Gauss-Hermite:** $\int_{-\infty}^\infty f(x) e^{-x^2} dx \approx \sum_i w_i f(x_i)$ — nodes are zeros of Hermite polynomials $H_n(x)$.
+**Gauss-Hermite:** $\int_{-\infty}^\infty f(x) e^{-x^2} dx \approx \sum_i w_i f(x_i)$ - nodes are zeros of Hermite polynomials $H_n(x)$.
 
 **For AI:** Gauss-Hermite quadrature is used for computing expectations over Gaussian distributions:
 
@@ -343,7 +343,7 @@ $$\mathbb{E}_{x \sim \mathcal{N}(\mu, \sigma^2)}[f(x)] = \frac{1}{\sqrt{\pi}} \i
 
 This is used in computing the ELBO exactly in certain VAE architectures and in moment-matching for Gaussian approximations (expectation propagation).
 
-**Gauss-Jacobi:** $\int_{-1}^1 f(x) (1-x)^\alpha (1+x)^\beta dx$ — used for Beta-distributed random variables and Jacobi polynomial bases.
+**Gauss-Jacobi:** $\int_{-1}^1 f(x) (1-x)^\alpha (1+x)^\beta dx$ - used for Beta-distributed random variables and Jacobi polynomial bases.
 
 ### 3.5 Gauss-Kronrod Rules for Error Estimation
 
@@ -373,13 +373,13 @@ $$Q(h/2) = I + c_2 h^2/4 + O(h^4)$$
 
 $$I = \frac{4 Q(h/2) - Q(h)}{3} + O(h^4)$$
 
-This is **one step of Richardson extrapolation** — combining two $O(h^2)$ estimates to get $O(h^4)$.
+This is **one step of Richardson extrapolation** - combining two $O(h^2)$ estimates to get $O(h^4)$.
 
 **General Richardson extrapolation:** If $Q_k(h) = I + c_p h^p + O(h^{p+2})$:
 
 $$Q_{k+1}(h) = \frac{2^p Q_k(h/2) - Q_k(h)}{2^p - 1} + O(h^{p+2})$$
 
-**For AI:** Richardson extrapolation is the foundation of **gradient estimation via finite differences** — taking linear combinations of function evaluations to cancel lower-order error terms. The centered difference formula is a 2-step Richardson extrapolation.
+**For AI:** Richardson extrapolation is the foundation of **gradient estimation via finite differences** - taking linear combinations of function evaluations to cancel lower-order error terms. The centered difference formula is a 2-step Richardson extrapolation.
 
 ### 4.2 Romberg's Method
 
@@ -406,7 +406,7 @@ for k = 1, 2, ..., max_iter:
     if |R[k][k] - R[k-1][k-1]| < tol: break
 ```
 
-**Convergence:** For smooth, non-periodic functions, $R_{k,k}$ converges like $O(h_0^{2k+2})$ — faster than any fixed-order method!
+**Convergence:** For smooth, non-periodic functions, $R_{k,k}$ converges like $O(h_0^{2k+2})$ - faster than any fixed-order method!
 
 ### 4.3 Clenshaw-Curtis Quadrature
 
@@ -443,7 +443,7 @@ where $Q_{\text{fine}}$ uses more points (e.g., Gauss-Kronrod K15) and $Q_{\text
 2. If $\hat{E} < \text{tol} \cdot (b-a) / (B-A)$ (local tolerance proportional to interval width): accept
 3. Otherwise: bisect $[a,b]$ into $[a,(a+b)/2]$ and $[(a+b)/2, b]$, recurse on each
 
-**Global vs local tolerance:** The final error satisfies $|I - Q| \leq \sum_j |E_j| \leq \text{tol}$ if each leaf interval satisfies its local tolerance — requires careful accounting.
+**Global vs local tolerance:** The final error satisfies $|I - Q| \leq \sum_j |E_j| \leq \text{tol}$ if each leaf interval satisfies its local tolerance - requires careful accounting.
 
 ### 5.2 Error Control and Termination
 
@@ -510,13 +510,13 @@ $$\hat{I}_n - I \sim \mathcal{N}\!\left(0, \frac{|\Omega|^2 \text{Var}(f)}{n}\ri
 **Key properties:**
 1. **Dimension-independent:** $O(1/\sqrt{n})$ regardless of $d$
 2. **No smoothness requirement:** Works for discontinuous $f$
-3. **Slow convergence:** Need $n \sim 10^8$ for 4 decimal digits of accuracy — much slower than deterministic quadrature for smooth low-dimensional integrands
+3. **Slow convergence:** Need $n \sim 10^8$ for 4 decimal digits of accuracy - much slower than deterministic quadrature for smooth low-dimensional integrands
 4. **Easily parallelizable:** All samples are independent
 
 **When to use Monte Carlo:**
-- $d > 5$–$10$ (deterministic methods are exponentially worse)
+- $d > 5$-$10$ (deterministic methods are exponentially worse)
 - $f$ is discontinuous or has singularities
-- Accuracy requirement is modest ($\sim 1\%$–$5\%$)
+- Accuracy requirement is modest ($\sim 1\%$-$5\%$)
 - Sampling from $p(x)$ is easier than computing the integral directly
 
 ### 6.2 Variance Reduction Techniques
@@ -525,15 +525,15 @@ $$\hat{I}_n - I \sim \mathcal{N}\!\left(0, \frac{|\Omega|^2 \text{Var}(f)}{n}\ri
 
 $$I = \int f(x) dx = \int \frac{f(x)}{q(x)} q(x) dx = \mathbb{E}_{x \sim q}\left[\frac{f(x)}{q(x)}\right]$$
 
-Optimal $q^*(x) = |f(x)| / \int |f|$ — reduces variance to zero (but requires knowing the integral!). In practice, choose $q$ to be proportional to $|f|$ where $f$ is large.
+Optimal $q^*(x) = |f(x)| / \int |f|$ - reduces variance to zero (but requires knowing the integral!). In practice, choose $q$ to be proportional to $|f|$ where $f$ is large.
 
-**Estimator variance:** $\text{Var}_{q}\!\left(\frac{f}{q}\right) = \int \frac{f^2}{q} - I^2$ — minimized when $q \propto |f|$.
+**Estimator variance:** $\text{Var}_{q}\!\left(\frac{f}{q}\right) = \int \frac{f^2}{q} - I^2$ - minimized when $q \propto |f|$.
 
 **2. Control variates:** Find $g$ with known integral $I_g$ and high correlation with $f$:
 
 $$\hat{I} = \hat{I}_n(f) - \hat{I}_n(g) + I_g$$
 
-The variance is $\text{Var}(f - g) = \text{Var}(f) + \text{Var}(g) - 2\text{Cov}(f,g)$ — reduced when $f$ and $g$ are highly correlated.
+The variance is $\text{Var}(f - g) = \text{Var}(f) + \text{Var}(g) - 2\text{Cov}(f,g)$ - reduced when $f$ and $g$ are highly correlated.
 
 **3. Antithetic variates:** For symmetric domains, pair each sample $x_i$ with its mirror $2\mu - x_i$:
 
@@ -562,7 +562,7 @@ $$\left|\int f - \frac{1}{n}\sum_i f(x_i)\right| \leq V(f) \cdot D^*(x_1, \ldots
 
 where $V(f)$ is the variation of $f$ and $D^*$ is the star discrepancy.
 
-**Sobol sequences:** Quasi-random sequences with discrepancy $O((\log n)^d / n)$ — much better than random's $O(1/\sqrt{n})$ for low to moderate $d$.
+**Sobol sequences:** Quasi-random sequences with discrepancy $O((\log n)^d / n)$ - much better than random's $O(1/\sqrt{n})$ for low to moderate $d$.
 
 **Convergence comparison:**
 
@@ -594,7 +594,7 @@ $$Q_n^d(f) = \sum_{i_1=1}^{n} \cdots \sum_{i_d=1}^{n} w_{i_1} \cdots w_{i_d} f(x
 
 $$|E| = O(h^p d) \text{ (not } O(h^{pd}) \text{)}$$
 
-The error scales linearly with $d$, not exponentially — the convergence rate $O(h^p)$ is preserved. But the number of evaluations grows as $n^d$.
+The error scales linearly with $d$, not exponentially - the convergence rate $O(h^p)$ is preserved. But the number of evaluations grows as $n^d$.
 
 ### 7.2 Sparse Grids
 
@@ -604,7 +604,7 @@ $$Q_q^d = \sum_{|i|_1 \leq q+d-1} (-1)^{q+d-1-|i|_1} \binom{d-1}{q+d-1-|i|_1} \o
 
 where $\Delta_k^{(1)}$ is the difference between the $k$-th and $(k-1)$-th 1D rules.
 
-**Error for smooth $f$:** $O((\log n)^{d-1}/n^p)$ — polynomial in $d$ logarithm, not exponential.
+**Error for smooth $f$:** $O((\log n)^{d-1}/n^p)$ - polynomial in $d$ logarithm, not exponential.
 
 **For AI:** Sparse grid integration is used in:
 - High-dimensional numerical PDEs (atmospheric modeling, option pricing)
@@ -618,8 +618,8 @@ where $\Delta_k^{(1)}$ is the difference between the $k$-th and $(k-1)$-th 1D ru
 | 1 | GL-5 ($5$ pts, $O(h^{10})$) | $O(n^{-1/2})$ | $n \approx 100$ |
 | 5 | Sparse grid ($\sim n^3$) | $O(n^{-1/2})$ | $n \approx 10^4$ |
 | 10 | Sparse grid ($\sim n^5$) | $O(n^{-1/2})$ | $n \approx 10^6$ |
-| 20 | MC wins clearly | $O(n^{-1/2})$ | — |
-| 100 | MC only | $O(n^{-1/2})$ | — |
+| 20 | MC wins clearly | $O(n^{-1/2})$ | - |
+| 100 | MC only | $O(n^{-1/2})$ | - |
 
 **Practical advice:** For $d \leq 3$, use Gauss-Legendre or Clenshaw-Curtis. For $d \leq 15$, consider quasi-MC or sparse grids. For $d > 15$, use Monte Carlo with variance reduction.
 
@@ -634,7 +634,7 @@ where $\Delta_k^{(1)}$ is the difference between the $k$-th and $(k-1)$-th 1D ru
 $$p(x; \theta) = \frac{\exp(-E_\theta(x))}{Z(\theta)}, \quad Z(\theta) = \int \exp(-E_\theta(x)) dx$$
 
 Computing $Z(\theta)$ exactly is intractable for complex $E_\theta$. Solutions:
-- **Thermodynamic integration:** $\log Z(\theta_1) - \log Z(\theta_0) = \int_0^1 \mathbb{E}_{p(\cdot;\theta_t)}[E_{\theta_0}(x) - E_{\theta_1}(x)] dt$ — a 1D quadrature over the inverse temperature
+- **Thermodynamic integration:** $\log Z(\theta_1) - \log Z(\theta_0) = \int_0^1 \mathbb{E}_{p(\cdot;\theta_t)}[E_{\theta_0}(x) - E_{\theta_1}(x)] dt$ - a 1D quadrature over the inverse temperature
 - **Annealed importance sampling (AIS):** Monte Carlo estimate of the ratio $Z(\theta_1)/Z(\theta_0)$
 - **Score matching:** Avoid $Z(\theta)$ entirely by training on $\nabla_x \log p = -\nabla_x E_\theta$
 
@@ -642,7 +642,7 @@ Computing $Z(\theta)$ exactly is intractable for complex $E_\theta$. Solutions:
 
 $$\mathcal{L} = \mathbb{E}_q\left[\log \frac{q(x_{1:T}|x_0)}{p_\theta(x_{0:T})}\right]$$
 
-Each KL divergence term between Gaussians is computable analytically — no numerical integration needed. This is why diffusion models are tractable.
+Each KL divergence term between Gaussians is computable analytically - no numerical integration needed. This is why diffusion models are tractable.
 
 ### 8.2 ELBO and Variational Inference
 
@@ -656,13 +656,13 @@ $$z = \mu_\phi + \sigma_\phi \odot \varepsilon, \quad \varepsilon \sim \mathcal{
 
 $$\nabla_\phi \mathbb{E}_{q_\phi}[f(z)] = \nabla_\phi \mathbb{E}_\varepsilon[f(\mu_\phi + \sigma_\phi \varepsilon)] = \mathbb{E}_\varepsilon[\nabla_\phi f(\mu_\phi + \sigma_\phi \varepsilon)]$$
 
-This converts a **score function estimator** (high variance) to a **pathwise estimator** (low variance) — essentially converting a derivative of an expectation into an expectation of a derivative.
+This converts a **score function estimator** (high variance) to a **pathwise estimator** (low variance) - essentially converting a derivative of an expectation into an expectation of a derivative.
 
 **Gauss-Hermite for exact ELBO:** When $q_\phi(z|x) = \mathcal{N}(\mu, \sigma^2)$:
 
 $$\mathbb{E}_q[f(z)] = \frac{1}{\sqrt{\pi}} \int f(\sqrt{2}\sigma t + \mu) e^{-t^2} dt \approx \frac{1}{\sqrt{\pi}} \sum_{k=1}^n w_k f(\sqrt{2}\sigma x_k + \mu)$$
 
-With $n = 10$ Gauss-Hermite points, this is nearly exact for smooth $f$ — eliminating the Monte Carlo noise in the ELBO gradient.
+With $n = 10$ Gauss-Hermite points, this is nearly exact for smooth $f$ - eliminating the Monte Carlo noise in the ELBO gradient.
 
 ### 8.3 Gaussian Process Marginal Likelihood
 
@@ -670,7 +670,7 @@ The GP log marginal likelihood is:
 
 $$\log p(\mathbf{y} | X) = -\frac{1}{2} \mathbf{y}^\top (K + \sigma^2 I)^{-1} \mathbf{y} - \frac{1}{2}\log|K + \sigma^2 I| - \frac{n}{2}\log 2\pi$$
 
-Computing $|K + \sigma^2 I|$ requires the determinant of an $n \times n$ matrix — $O(n^3)$ via Cholesky. For large $n$:
+Computing $|K + \sigma^2 I|$ requires the determinant of an $n \times n$ matrix - $O(n^3)$ via Cholesky. For large $n$:
 
 **Stochastic trace estimation:** $\log|A| = \text{tr}(\log A) \approx \frac{1}{m} \sum_i z_i^\top (\log A) z_i$ for random $z_i \sim \mathcal{N}(0, I)$.
 
@@ -682,15 +682,15 @@ Computing $|K + \sigma^2 I|$ requires the determinant of an $n \times n$ matrix 
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[\sum_t \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t\right]$$
 
-This is a Monte Carlo estimate — simulate trajectories, compute returns $G_t$. The estimator is unbiased but high-variance. Variance reduction:
+This is a Monte Carlo estimate - simulate trajectories, compute returns $G_t$. The estimator is unbiased but high-variance. Variance reduction:
 - **Baseline subtraction:** Replace $G_t$ with $G_t - b(s_t)$ (leaves gradient unbiased, reduces variance if $b$ correlated with $G_t$)
-- **Actor-Critic:** Use $A_t = G_t - V^\pi(s_t)$ — advantage function reduces variance dramatically
+- **Actor-Critic:** Use $A_t = G_t - V^\pi(s_t)$ - advantage function reduces variance dramatically
 
 **TD learning** approximates $\mathbb{E}[G_t | s_t]$ via Bellman recursion rather than direct Monte Carlo:
 
 $$V(s_t) \approx r_t + \gamma V(s_{t+1})$$
 
-This is a **recursive quadrature** — approximating the integral of the value function over the next-state distribution using a single sample.
+This is a **recursive quadrature** - approximating the integral of the value function over the next-state distribution using a single sample.
 
 ---
 
@@ -699,15 +699,15 @@ This is a **recursive quadrature** — approximating the integral of the value f
 | # | Mistake | Why It's Wrong | Fix |
 |---|---|---|---|
 | 1 | Using Simpson's rule with an odd number of intervals | Simpson's requires $m$ even (pairs of intervals) | Use even $m$ or use the 3/8 rule for the odd remainder |
-| 2 | Applying high-degree Newton-Cotes on a single large interval | Negative weights for $n \geq 8$ → catastrophic cancellation | Use composite low-order rules |
-| 3 | Underestimating Monte Carlo variance | $O(1/\sqrt{n})$ convergence means 100× more samples for 10× accuracy | Use deterministic methods for $d \leq 5$, or variance reduction |
+| 2 | Applying high-degree Newton-Cotes on a single large interval | Negative weights for $n \geq 8$ -> catastrophic cancellation | Use composite low-order rules |
+| 3 | Underestimating Monte Carlo variance | $O(1/\sqrt{n})$ convergence means 100x more samples for 10x accuracy | Use deterministic methods for $d \leq 5$, or variance reduction |
 | 4 | Ignoring singularities in adaptive quadrature | Standard Gauss-Kronrod fails near singularities | Report singularity locations to `quad()` via `points=[]` parameter |
-| 5 | Claiming Monte Carlo is "exact in expectation" justifies any sample size | Unbiased ≠ accurate; confidence intervals require $n \gg 1$ | Always report MC standard errors alongside estimates |
+| 5 | Claiming Monte Carlo is "exact in expectation" justifies any sample size | Unbiased \\neq accurate; confidence intervals require $n \gg 1$ | Always report MC standard errors alongside estimates |
 | 6 | Using composite trapezoidal for periodic functions with wrong period | If the function period doesn't match the integration interval, the boundary terms don't cancel | Ensure $\int_a^b$ covers exactly an integer number of periods |
-| 7 | Forgetting the Jacobian when changing variables | For $x = g(u)$: $\int f(x) dx = \int f(g(u)) |g'(u)| du$ — the $|g'(u)|$ factor is essential | Always include the Jacobian |
+| 7 | Forgetting the Jacobian when changing variables | For $x = g(u)$: $\int f(x) dx = \int f(g(u)) |g'(u)| du$ - the $|g'(u)|$ factor is essential | Always include the Jacobian |
 | 8 | Using GL quadrature with cached nodes/weights outside $[-1,1]$ | Precomputed nodes are for $[-1,1]$; rescaling is required for $[a,b]$ | Apply the affine transformation $x = (a+b)/2 + (b-a)/2 \cdot t$ |
 | 9 | Stopping Romberg integration too early | The Romberg table diagonal may not show the true error until many rows | Always check at least 2 successive diagonal entries for convergence |
-| 10 | Using importance sampling with a poor proposal | If $q(x) \ll f(x) p(x)$ in some region, the ratio $f(x)/q(x)$ can be huge → infinite variance | Choose $q$ proportional to $|f(x)|$ where possible; check tail behavior |
+| 10 | Using importance sampling with a poor proposal | If $q(x) \ll f(x) p(x)$ in some region, the ratio $f(x)/q(x)$ can be huge -> infinite variance | Choose $q$ proportional to $|f(x)|$ where possible; check tail behavior |
 | 11 | Applying MC to 1D integrals where deterministic is available | MC needs $10^6$ samples for 3 digits; Gauss-Legendre needs 5 | Use MC only when deterministic methods are infeasible |
 | 12 | Forgetting that quasi-MC Sobol sequences need scrambling for correctness | Unscrambled Sobol sequences can have correlated estimators | Use scrambled Sobol from scipy.stats.qmc |
 
@@ -715,44 +715,44 @@ This is a **recursive quadrature** — approximating the integral of the value f
 
 ## 10. Exercises
 
-**Exercise 1 ★ — Newton-Cotes Rules from Scratch**  
-**(a)** Implement the composite trapezoidal rule `trap(f, a, b, m)` and verify $O(h^2)$ convergence on $\int_0^1 e^x dx = e - 1$.  
-**(b)** Implement composite Simpson's rule `simpson(f, a, b, m)` and verify $O(h^4)$ convergence.  
+**Exercise 1 * - Newton-Cotes Rules from Scratch**
+**(a)** Implement the composite trapezoidal rule `trap(f, a, b, m)` and verify $O(h^2)$ convergence on $\int_0^1 e^x dx = e - 1$.
+**(b)** Implement composite Simpson's rule `simpson(f, a, b, m)` and verify $O(h^4)$ convergence.
 **(c)** Show the midpoint rule is twice as accurate as the trapezoidal rule (same $O(h^2)$ but half the constant) by computing and comparing errors on a convex function.
 
-**Exercise 2 ★ — Romberg Integration**  
-**(a)** Implement Romberg's method building the triangular table $R_{k,j}$ for $k = 0, \ldots, 8$.  
-**(b)** Apply it to $\int_0^1 \sin(x^2) dx$ and compare convergence to composite trapezoidal.  
-**(c)** Show that for $f(x) = e^x$, the diagonal $R_{k,k}$ converges super-geometrically — the number of correct digits roughly doubles each step.
+**Exercise 2 * - Romberg Integration**
+**(a)** Implement Romberg's method building the triangular table $R_{k,j}$ for $k = 0, \ldots, 8$.
+**(b)** Apply it to $\int_0^1 \sin(x^2) dx$ and compare convergence to composite trapezoidal.
+**(c)** Show that for $f(x) = e^x$, the diagonal $R_{k,k}$ converges super-geometrically - the number of correct digits roughly doubles each step.
 
-**Exercise 3 ★ — Gauss-Legendre Quadrature**  
-**(a)** Compute the 5-point GL nodes and weights using the eigenvalue method (Golub-Welsch matrix).  
-**(b)** Verify: the rule integrates all polynomials of degree $\leq 9$ exactly.  
+**Exercise 3 * - Gauss-Legendre Quadrature**
+**(a)** Compute the 5-point GL nodes and weights using the eigenvalue method (Golub-Welsch matrix).
+**(b)** Verify: the rule integrates all polynomials of degree $\leq 9$ exactly.
 **(c)** Compare GL-5 accuracy on $\int_0^1 e^x dx$ vs composite Simpson's with 50 subintervals.
 
-**Exercise 4 ★★ — Adaptive Quadrature Implementation**  
-**(a)** Implement `adaptive_simpson(f, a, b, tol)` using recursive bisection with the 3-point Simpson estimate and the 5-point refined estimate for error control.  
-**(b)** Test on $\int_0^1 x^{-1/2} dx = 2$ (singular at 0) and $\int_0^{50} \sin(x) dx$ (oscillatory).  
+**Exercise 4 ** - Adaptive Quadrature Implementation**
+**(a)** Implement `adaptive_simpson(f, a, b, tol)` using recursive bisection with the 3-point Simpson estimate and the 5-point refined estimate for error control.
+**(b)** Test on $\int_0^1 x^{-1/2} dx = 2$ (singular at 0) and $\int_0^{50} \sin(x) dx$ (oscillatory).
 **(c)** Plot the adaptive mesh (where it placed evaluation points) for a function with a sharp peak.
 
-**Exercise 5 ★★ — Monte Carlo Integration**  
-**(a)** Estimate $\int_0^1 \int_0^1 \sqrt{x^2 + y^2} \, dx\, dy$ using plain Monte Carlo with $n = 10^3, 10^4, 10^5$ samples. Show the $O(1/\sqrt{n})$ error convergence.  
-**(b)** Implement importance sampling for $\int_0^\infty x e^{-x^2/2} dx$ with proposal $q(x) = xe^{-x^2/2}/C$ (half-normal). Compare variance vs uniform sampling.  
+**Exercise 5 ** - Monte Carlo Integration**
+**(a)** Estimate $\int_0^1 \int_0^1 \sqrt{x^2 + y^2} \, dx\, dy$ using plain Monte Carlo with $n = 10^3, 10^4, 10^5$ samples. Show the $O(1/\sqrt{n})$ error convergence.
+**(b)** Implement importance sampling for $\int_0^\infty x e^{-x^2/2} dx$ with proposal $q(x) = xe^{-x^2/2}/C$ (half-normal). Compare variance vs uniform sampling.
 **(c)** Implement antithetic variates for the 2D integral in (a) and measure the variance reduction factor.
 
-**Exercise 6 ★★ — Euler-Maclaurin and Periodic Functions**  
-**(a)** Numerically verify the Euler-Maclaurin formula for the trapezoidal rule on $\int_0^1 x^4 dx$: show the error matches $\sum B_{2k} h^{2k} [f^{(2k-1)}(1) - f^{(2k-1)}(0)]/(2k)!$.  
-**(b)** Demonstrate spectral accuracy: for $f(x) = e^{\sin(2\pi x)}$ (periodic), show the composite trapezoidal rule achieves machine precision with just 20 points.  
+**Exercise 6 ** - Euler-Maclaurin and Periodic Functions**
+**(a)** Numerically verify the Euler-Maclaurin formula for the trapezoidal rule on $\int_0^1 x^4 dx$: show the error matches $\sum B_{2k} h^{2k} [f^{(2k-1)}(1) - f^{(2k-1)}(0)]/(2k)!$.
+**(b)** Demonstrate spectral accuracy: for $f(x) = e^{\sin(2\pi x)}$ (periodic), show the composite trapezoidal rule achieves machine precision with just 20 points.
 **(c)** Explain why this makes the DFT exact: use the Euler-Maclaurin formula to show that integrating the DFT basis functions $e^{2\pi i k x}$ over $[0,1]$ with the trapezoidal rule is exact for integer $k$.
 
-**Exercise 7 ★★ — Gauss-Hermite for Gaussian Expectations**  
-**(a)** Implement $n$-point Gauss-Hermite quadrature for $\int_{-\infty}^\infty f(x) e^{-x^2} dx$ using the Golub-Welsch algorithm.  
-**(b)** Compute $\mathbb{E}_{x \sim \mathcal{N}(0,1)}[\log(1 + e^x)]$ (the binary cross-entropy expectation) using GH quadrature with $n = 5, 10, 20$ points. Compare to Monte Carlo with $10^4$ samples.  
+**Exercise 7 ** - Gauss-Hermite for Gaussian Expectations**
+**(a)** Implement $n$-point Gauss-Hermite quadrature for $\int_{-\infty}^\infty f(x) e^{-x^2} dx$ using the Golub-Welsch algorithm.
+**(b)** Compute $\mathbb{E}_{x \sim \mathcal{N}(0,1)}[\log(1 + e^x)]$ (the binary cross-entropy expectation) using GH quadrature with $n = 5, 10, 20$ points. Compare to Monte Carlo with $10^4$ samples.
 **(c)** Implement the reparameterization trick to compute the ELBO gradient $\nabla_\mu \mathbb{E}_{z \sim \mathcal{N}(\mu, 1)}[\log p(z)]$ for $p(z) = \mathcal{N}(0, 1)$ using both GH quadrature and the pathwise estimator.
 
-**Exercise 8 ★★★ — Quasi-Monte Carlo and Low-Discrepancy Sequences**  
-**(a)** Compare plain Monte Carlo vs Sobol quasi-MC for $\int_{[0,1]^d} \prod_{i=1}^d \sin(\pi x_i) dx = (2/\pi)^d$ for $d = 5, 10, 20$.  
-**(b)** Plot the convergence rate (log-log error vs log $n$) for both methods. Show MC gives slope $-0.5$ and Sobol gives slope $\approx -1$ for small $d$.  
+**Exercise 8 *** - Quasi-Monte Carlo and Low-Discrepancy Sequences**
+**(a)** Compare plain Monte Carlo vs Sobol quasi-MC for $\int_{[0,1]^d} \prod_{i=1}^d \sin(\pi x_i) dx = (2/\pi)^d$ for $d = 5, 10, 20$.
+**(b)** Plot the convergence rate (log-log error vs log $n$) for both methods. Show MC gives slope $-0.5$ and Sobol gives slope $\approx -1$ for small $d$.
 **(c)** For $d = 10$, how many samples do you need for MC to achieve $10^{-3}$ relative accuracy? For Sobol? Compute the ratio.
 
 ---
@@ -762,7 +762,7 @@ This is a **recursive quadrature** — approximating the integral of the value f
 | Concept | AI/LLM Impact |
 |---|---|
 | Monte Carlo integration | Foundation of all stochastic gradient methods; ELBO, policy gradient, score matching |
-| Reparameterization trick | VAE training, diffusion model score matching, normalizing flows — the key to backpropagating through stochastic variables |
+| Reparameterization trick | VAE training, diffusion model score matching, normalizing flows - the key to backpropagating through stochastic variables |
 | Gauss-Hermite quadrature | Exact ELBO computation in structured VAEs; expectation propagation for approximate inference |
 | Importance sampling | Off-policy RL (PPO uses importance weights $r_t = \pi_\theta/\pi_{\text{old}}$); rejection sampling for LLM alignment |
 | Quasi-Monte Carlo | Faster hyperparameter search (Optuna, Ray Tune use quasi-random sampling); faster random feature approximations |
@@ -777,46 +777,46 @@ This is a **recursive quadrature** — approximating the integral of the value f
 ## 12. Conceptual Bridge
 
 **Looking back:** Numerical integration is built directly on the foundations of this chapter and the broader curriculum:
-- **Floating-point arithmetic (§10-01):** All quadrature involves finite-precision arithmetic; catastrophic cancellation in the sum $\sum w_i f(x_i)$ must be avoided
-- **Interpolation (§10-04):** Quadrature rules are derived by integrating interpolants exactly. Every quadrature rule has a corresponding interpolation scheme
-- **Orthogonal polynomials (§10-04, §03-Advanced-Linear-Algebra):** Gaussian quadrature nodes are zeros of orthogonal polynomials; the Golub-Welsch algorithm is an eigenvalue computation
-- **Probability (§07):** Monte Carlo integration is equivalent to expectation estimation; variance reduction techniques exploit probability theory directly
+- **Floating-point arithmetic (Section10-01):** All quadrature involves finite-precision arithmetic; catastrophic cancellation in the sum $\sum w_i f(x_i)$ must be avoided
+- **Interpolation (Section10-04):** Quadrature rules are derived by integrating interpolants exactly. Every quadrature rule has a corresponding interpolation scheme
+- **Orthogonal polynomials (Section10-04, Section03-Advanced-Linear-Algebra):** Gaussian quadrature nodes are zeros of orthogonal polynomials; the Golub-Welsch algorithm is an eigenvalue computation
+- **Probability (Section07):** Monte Carlo integration is equivalent to expectation estimation; variance reduction techniques exploit probability theory directly
 
 **Looking forward:** Numerical integration connects to advanced topics throughout the curriculum:
 - **Ordinary and partial differential equations:** ODE solvers (RK4, Dormand-Prince) are quadrature formulas for $\int_{t_0}^{t_1} f(t, y(t)) dt$; Gauss collocation methods achieve the highest possible order
-- **Markov Chain Monte Carlo:** When direct sampling is unavailable, MCMC generates correlated samples whose empirical average still converges to the integral — at a slower $O(1/\sqrt{n/\tau})$ rate where $\tau$ is the autocorrelation time
+- **Markov Chain Monte Carlo:** When direct sampling is unavailable, MCMC generates correlated samples whose empirical average still converges to the integral - at a slower $O(1/\sqrt{n/\tau})$ rate where $\tau$ is the autocorrelation time
 - **Signal processing:** The DFT is a quadrature formula; the connection between Fourier analysis and quadrature (Clenshaw-Curtis via DCT) is deep
 
 ```
 NUMERICAL INTEGRATION IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §10-01 Floating-Point      §10-04 Interpolation
-  (rounding in sums)   ──►   (integrate interpolant)
-           │                        │
-           └────────────┬───────────┘
-                        ▼
-              §10-05 NUMERICAL INTEGRATION
-              ┌──────────────────────────┐
-              │ Newton-Cotes rules        │
-              │ Gaussian quadrature       │
-              │ Romberg / Richardson      │
-              │ Adaptive (Gauss-Kronrod)  │
-              │ Monte Carlo + QMC         │
-              │ Multidimensional          │
-              └────────────┬─────────────┘
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
+  Section10-01 Floating-Point      Section10-04 Interpolation
+  (rounding in sums)   -->   (integrate interpolant)
+           |                        |
+           +------------+-----------+
+                        v
+              Section10-05 NUMERICAL INTEGRATION
+              +--------------------------+
+              | Newton-Cotes rules        |
+              | Gaussian quadrature       |
+              | Romberg / Richardson      |
+              | Adaptive (Gauss-Kronrod)  |
+              | Monte Carlo + QMC         |
+              | Multidimensional          |
+              +------------+-------------+
+                           |
+          +----------------+----------------+
+          v                v                v
      ODE Solvers        VAE/ELBO         Bayesian
-     (§AdvCalc)       (reparam trick)   Optimization
+     (SectionAdvCalc)       (reparam trick)   Optimization
                       Diffusion models  (GP marginal
                       Policy gradient   likelihood)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**The unifying theme:** Every integration problem in ML is either a **low-dimensional, smooth integral** (use Gaussian quadrature — exact and fast) or a **high-dimensional, stochastic integral** (use Monte Carlo — dimension-independent convergence). The art is recognizing which regime you're in and applying the appropriate technique. The reparameterization trick is the bridge: it converts a "hard" stochastic integral into a "easy" pathwise integral, enabling efficient gradient computation.
+**The unifying theme:** Every integration problem in ML is either a **low-dimensional, smooth integral** (use Gaussian quadrature - exact and fast) or a **high-dimensional, stochastic integral** (use Monte Carlo - dimension-independent convergence). The art is recognizing which regime you're in and applying the appropriate technique. The reparameterization trick is the bridge: it converts a "hard" stochastic integral into a "easy" pathwise integral, enabling efficient gradient computation.
 
 ---
 
@@ -832,14 +832,14 @@ $$f(x) = q(x) \omega_n(x) + r(x)$$
 
 where $q, r \in \mathcal{P}_{n-1}$.
 
-**Step 1:** $\int_{-1}^1 q(x) \omega_n(x) dx = 0$.  
+**Step 1:** $\int_{-1}^1 q(x) \omega_n(x) dx = 0$.
 Since $\omega_n = c P_n$ for some constant $c$ (nodes are zeros of $P_n$), and $q \in \mathcal{P}_{n-1}$, orthogonality of $P_n$ to all lower-degree polynomials gives $\int q P_n = 0$.
 
-**Step 2:** $Q_n(q \omega_n) = \sum_i w_i q(x_i) \omega_n(x_i) = 0$.  
+**Step 2:** $Q_n(q \omega_n) = \sum_i w_i q(x_i) \omega_n(x_i) = 0$.
 Since $\omega_n(x_i) = 0$ for each node $x_i$.
 
-**Step 3:** $Q_n(r) = \int r$ exactly.  
-Since $r \in \mathcal{P}_{n-1}$ and any rule with $n$ nodes is exact for polynomials of degree $\leq n-1$ if it integrates the $n$ basis functions correctly — and the weights $w_i$ are chosen to integrate $r \in \mathcal{P}_{n-1}$ exactly.
+**Step 3:** $Q_n(r) = \int r$ exactly.
+Since $r \in \mathcal{P}_{n-1}$ and any rule with $n$ nodes is exact for polynomials of degree $\leq n-1$ if it integrates the $n$ basis functions correctly - and the weights $w_i$ are chosen to integrate $r \in \mathcal{P}_{n-1}$ exactly.
 
 **Step 4:** Combining:
 
@@ -863,7 +863,7 @@ where for Legendre polynomials: $\alpha_k = 0$ (by symmetry), $\beta_k = k / \sq
 3. Nodes: $x_i = \Lambda_{ii}$ (eigenvalues)
 4. Weights: $w_i = 2 (Q_{1i})^2$ (squared first component of eigenvectors, times 2 for the integral of 1 over $[-1,1]$)
 
-This reduces GL computation to a standard symmetric eigenvalue problem — $O(n^2)$ using QR iteration, or $O(n \log n)$ with divide-and-conquer.
+This reduces GL computation to a standard symmetric eigenvalue problem - $O(n^2)$ using QR iteration, or $O(n \log n)$ with divide-and-conquer.
 
 ```python
 import numpy as np
@@ -883,7 +883,7 @@ def gauss_legendre(n):
 
 ---
 
-## Appendix B: Richardson Extrapolation — Complete Analysis
+## Appendix B: Richardson Extrapolation - Complete Analysis
 
 ### B.1 The Error Expansion Assumption
 
@@ -894,7 +894,7 @@ $$Q(h) = I + c_p h^p + c_{p+2} h^{p+2} + c_{p+4} h^{p+4} + \cdots$$
 **When does this hold?**
 - Composite trapezoidal: Yes (Euler-Maclaurin guarantees $h^2, h^4, h^6, \ldots$ terms)
 - Composite Simpson's: Yes ($h^4, h^6, h^8, \ldots$ terms)
-- For periodic functions: The expansion is actually geometric — $O(e^{-cn/p})$ — Richardson extrapolation helps but eventually the geometric error dominates
+- For periodic functions: The expansion is actually geometric - $O(e^{-cn/p})$ - Richardson extrapolation helps but eventually the geometric error dominates
 
 ### B.2 Romberg Table Construction
 
@@ -908,7 +908,7 @@ $$R_{k,j} = \frac{4^j R_{k, j-1} - R_{k-1, j-1}}{4^j - 1}$$
 
 $$T_{2m}(f) = \frac{1}{2} T_m(f) + h \sum_{j=1}^{m} f(a + (2j-1)h), \quad h = \frac{b-a}{2m}$$
 
-Total function evaluations: $2^k + 1$ (not $2^0 + 2^1 + \cdots + 2^k = 2^{k+1} - 1$ — the old evaluations are reused).
+Total function evaluations: $2^k + 1$ (not $2^0 + 2^1 + \cdots + 2^k = 2^{k+1} - 1$ - the old evaluations are reused).
 
 ### B.3 Convergence of Romberg
 
@@ -916,13 +916,13 @@ For $f \in C^\infty[a,b]$, the diagonal $R_{k,k}$ satisfies:
 
 $$|I - R_{k,k}| \leq C_k h_0^{2k+2}$$
 
-where $h_0 = (b-a)$ and $C_k = O(1/(2k+2)!)$. The convergence is faster than any power of $h_0$ — supergeometric.
+where $h_0 = (b-a)$ and $C_k = O(1/(2k+2)!)$. The convergence is faster than any power of $h_0$ - supergeometric.
 
 **Practical stopping criterion:** Compare $|R_{k,k} - R_{k-1,k-1}|$. If this is smaller than the tolerance, stop. But be careful: the estimate can be misleading for non-smooth functions.
 
 ---
 
-## Appendix C: Monte Carlo — Detailed Variance Analysis
+## Appendix C: Monte Carlo - Detailed Variance Analysis
 
 ### C.1 Central Limit Theorem for MC
 
@@ -936,7 +936,7 @@ $$\sqrt{n}(\hat{I}_n - I) \xrightarrow{d} \mathcal{N}(0, |\Omega|^2 \text{Var}(f
 
 $$n = \left(\frac{1.96 |\Omega| \hat{\sigma}}{\varepsilon}\right)^2$$
 
-For $\varepsilon = 10^{-3}$ and $\hat{\sigma} = 1$: $n \approx 4 \times 10^6$ — about 4 million samples.
+For $\varepsilon = 10^{-3}$ and $\hat{\sigma} = 1$: $n \approx 4 \times 10^6$ - about 4 million samples.
 
 ### C.2 Importance Sampling: Optimal Proposal
 
@@ -946,7 +946,7 @@ $$\text{Var}_q\!\left(\frac{f(X)}{q(X)}\right) = \int \frac{f(x)^2}{q(x)} dx - I
 
 Minimize over $q$ subject to $\int q = 1$: By Cauchy-Schwarz, $\int \frac{f^2}{q} \geq \left(\int |f|\right)^2$ with equality when $q^* = |f| / \int |f|$.
 
-**With $q = q^*$:** The estimator is $\frac{f(X)/q^*(X)}{} = \pm \int |f|$ — zero variance! But computing $q^*$ requires knowing $\int f$.
+**With $q = q^*$:** The estimator is $\frac{f(X)/q^*(X)}{} = \pm \int |f|$ - zero variance! But computing $q^*$ requires knowing $\int f$.
 
 **Practical IS:** Choose $q$ close to $|f|$. A good choice in practice is $q(x) \propto f(x) p(x)$ where $p$ is the true weight.
 
@@ -962,14 +962,14 @@ where $V_{\text{HK}}$ is the Hardy-Krause variation and $D^*$ is the star discre
 
 **Convergence rate comparison:**
 - MC: $O(n^{-1/2})$
-- Sobol: $O(n^{-1} (\log n)^d)$ — faster by $O(n^{1/2} / (\log n)^d)$ factor
-- Break-even (Sobol faster): $n \gg (\log n)^{2d}$ — for $d=10$: $n \gg 10^{12}$... not practical!
+- Sobol: $O(n^{-1} (\log n)^d)$ - faster by $O(n^{1/2} / (\log n)^d)$ factor
+- Break-even (Sobol faster): $n \gg (\log n)^{2d}$ - for $d=10$: $n \gg 10^{12}$... not practical!
 
 **But:** The constant in front matters. For moderate $n$ (thousands to millions), Sobol consistently outperforms MC in practice for $d \leq 20$.
 
 ---
 
-## Appendix D: Integration and Machine Learning — Extended Connections
+## Appendix D: Integration and Machine Learning - Extended Connections
 
 ### D.1 The REINFORCE Gradient and Score Function Estimator
 
@@ -977,14 +977,14 @@ The policy gradient is a Monte Carlo estimate of $\nabla_\theta \mathbb{E}_\pi[R
 
 $$\nabla_\theta \mathbb{E}_{p_\theta(x)}[f(x)] = \mathbb{E}_{p_\theta(x)}[f(x) \nabla_\theta \log p_\theta(x)]$$
 
-**Proof:** 
+**Proof:**
 $$\nabla_\theta \int f(x) p_\theta(x) dx = \int f(x) \nabla_\theta p_\theta(x) dx = \int f(x) \frac{\nabla_\theta p_\theta(x)}{p_\theta(x)} p_\theta(x) dx = \mathbb{E}_{p_\theta}[f \nabla_\theta \log p_\theta]$$
 
-This requires only the ability to sample from $p_\theta$ and evaluate $\log p_\theta$ — but has **high variance** because $f(x) \nabla_\theta \log p_\theta(x)$ fluctuates wildly.
+This requires only the ability to sample from $p_\theta$ and evaluate $\log p_\theta$ - but has **high variance** because $f(x) \nabla_\theta \log p_\theta(x)$ fluctuates wildly.
 
 **Variance of REINFORCE:** $\text{Var}[f(x) \nabla_\theta \log p_\theta(x)] = \mathbb{E}[f^2 \|\nabla_\theta \log p_\theta\|^2] - \|\nabla_\theta \mathbb{E}[f]\|^2$
 
-This can be $O(\|f\|^2)$ — proportional to the square of the reward, which is large. Hence the need for baselines and actor-critic methods.
+This can be $O(\|f\|^2)$ - proportional to the square of the reward, which is large. Hence the need for baselines and actor-critic methods.
 
 ### D.2 The Reparameterization Trick as Pathwise Derivative
 
@@ -992,13 +992,13 @@ When $x = g_\theta(\varepsilon)$ with $\varepsilon \sim p(\varepsilon)$ (indepen
 
 $$\nabla_\theta \mathbb{E}_{p_\theta(x)}[f(x)] = \mathbb{E}_{p(\varepsilon)}[\nabla_\theta f(g_\theta(\varepsilon))]$$
 
-**Variance comparison:** The reparameterization estimator has variance $\text{Var}[\nabla_\theta f(g_\theta(\varepsilon))]$ — this is the squared norm of the gradient of $f$ w.r.t. the parameters, which is typically much smaller than the REINFORCE variance. Empirically, 10–100× lower variance.
+**Variance comparison:** The reparameterization estimator has variance $\text{Var}[\nabla_\theta f(g_\theta(\varepsilon))]$ - this is the squared norm of the gradient of $f$ w.r.t. the parameters, which is typically much smaller than the REINFORCE variance. Empirically, 10-100x lower variance.
 
 **When does reparameterization apply?**
-- Gaussian: $z = \mu + \sigma \varepsilon$, $\varepsilon \sim \mathcal{N}(0,1)$ ✓
-- Uniform: $z = a + (b-a)\varepsilon$, $\varepsilon \sim \text{Uniform}(0,1)$ ✓
-- Categorical (Gumbel-Softmax): $z = \text{softmax}((\log \pi + g)/\tau)$, $g \sim \text{Gumbel}(0,1)$ — continuous relaxation ✓
-- Any discrete distribution without continuous relaxation: ✗
+- Gaussian: $z = \mu + \sigma \varepsilon$, $\varepsilon \sim \mathcal{N}(0,1)$ [ok]
+- Uniform: $z = a + (b-a)\varepsilon$, $\varepsilon \sim \text{Uniform}(0,1)$ [ok]
+- Categorical (Gumbel-Softmax): $z = \text{softmax}((\log \pi + g)/\tau)$, $g \sim \text{Gumbel}(0,1)$ - continuous relaxation [ok]
+- Any discrete distribution without continuous relaxation:
 
 ### D.3 Numerical Integration in Normalizing Flows
 
@@ -1010,9 +1010,9 @@ The log-likelihood is:
 
 $$\log p_x(x) = \log p_z(f^{-1}(x)) + \log |\det J_{f^{-1}}(x)|$$
 
-Computing $\log |\det J|$ requires the determinant of an $n \times n$ Jacobian matrix — $O(n^3)$. Normalizing flows use structured architectures (coupling layers, autoregressive flows) where $J$ is triangular and $\log |\det J| = \sum_i \log |J_{ii}|$ — $O(n)$.
+Computing $\log |\det J|$ requires the determinant of an $n \times n$ Jacobian matrix - $O(n^3)$. Normalizing flows use structured architectures (coupling layers, autoregressive flows) where $J$ is triangular and $\log |\det J| = \sum_i \log |J_{ii}|$ - $O(n)$.
 
-**This is numerical integration in disguise:** We're computing $\log p_x(x) = \log \int \delta(x - f(z)) p(z) dz$ — a singular integral over $z$-space that the change-of-variables formula evaluates analytically for invertible flows.
+**This is numerical integration in disguise:** We're computing $\log p_x(x) = \log \int \delta(x - f(z)) p(z) dz$ - a singular integral over $z$-space that the change-of-variables formula evaluates analytically for invertible flows.
 
 ---
 
@@ -1141,9 +1141,9 @@ The weights for Newton-Cotes rules with $n \geq 8$ become negative. This is a fu
 
 $$|E| \leq \left(\sum_i |w_i|\right) \varepsilon = \Lambda_{\text{NC}} \varepsilon$$
 
-For $n=10$: $\Lambda_{\text{NC}} = \sum |w_i| \approx 3.4$ — significant amplification. For $n=20$: $\Lambda_{\text{NC}} \approx 10^8$ — catastrophic.
+For $n=10$: $\Lambda_{\text{NC}} = \sum |w_i| \approx 3.4$ - significant amplification. For $n=20$: $\Lambda_{\text{NC}} \approx 10^8$ - catastrophic.
 
-In contrast, Gaussian quadrature weights are **always positive** — the sum is exactly $b-a$ and rounding errors are not amplified.
+In contrast, Gaussian quadrature weights are **always positive** - the sum is exactly $b-a$ and rounding errors are not amplified.
 
 ### H.3 Peano Kernel Theorem
 
@@ -1154,13 +1154,13 @@ $$E(f) = \int_a^b K(t) f^{(p+1)}(t) dt$$
 where $p$ is the degree of exactness. The Peano kernel is zero when $t$ is outside $[a,b]$ and has a specific shape depending on the rule.
 
 **Implications:**
-1. The error depends on $f^{(p+1)}$ — the function's $(p+1)$-th derivative
+1. The error depends on $f^{(p+1)}$ - the function's $(p+1)$-th derivative
 2. If $K(t) \geq 0$ everywhere, we can write $E(f) = f^{(p+1)}(\xi) \int K / (p+1)!$ for some $\xi$ (mean value theorem for integrals)
 3. For symmetric rules (midpoint, trapezoidal, GL), the Peano kernel has definite sign for appropriate $p$
 
 ---
 
-## Appendix I: Adaptive Quadrature — Implementation Details
+## Appendix I: Adaptive Quadrature - Implementation Details
 
 ### I.1 Gauss-Kronrod G7-K15 Rule
 
@@ -1188,7 +1188,7 @@ def adaptive_quad(f, a, b, tol, depth=0, max_depth=50):
             adaptive_quad(f, m, b, tol/2, depth+1))
 ```
 
-**Priority-queue adaptive:** Better for functions with many singularities — always refines the worst subinterval first.
+**Priority-queue adaptive:** Better for functions with many singularities - always refines the worst subinterval first.
 
 ### I.3 Handling Singularities
 
@@ -1208,7 +1208,7 @@ This is the basis for the **tanh-sinh (double exponential)** quadrature method b
 
 ---
 
-## Appendix J: Monte Carlo in Practice — Recipes
+## Appendix J: Monte Carlo in Practice - Recipes
 
 ### J.1 Estimating $\pi$ via Monte Carlo
 
@@ -1222,7 +1222,7 @@ for n in [100, 1000, 10000, 1000000]:
     x, y = np.random.rand(n), np.random.rand(n)
     pi_est = 4 * (x**2 + y**2 <= 1).mean()
     std_err = 4 * np.sqrt((x**2+y**2<=1).mean() * (1-(x**2+y**2<=1).mean()) / n)
-    print(f"n={n:>8}: pi = {pi_est:.6f} ± {std_err:.6f}")
+    print(f"n={n:>8}: pi = {pi_est:.6f} +/- {std_err:.6f}")
 ```
 
 **Output:** Shows $O(1/\sqrt{n})$ standard error.
@@ -1243,7 +1243,7 @@ f = lambda x: np.log(1 + np.exp(x))
 exact_approx = gauss_hermite_expect(f, mu=0, sigma=1, n=20)
 mc_approx = f(np.random.randn(100000)).mean()
 print(f"GH-20: {exact_approx:.8f}")
-print(f"MC-1e5: {mc_approx:.6f} ± {f(np.random.randn(10000)).std()/100:.6f}")
+print(f"MC-1e5: {mc_approx:.6f} +/- {f(np.random.randn(10000)).std()/100:.6f}")
 ```
 
 ### J.3 ELBO Computation
@@ -1280,11 +1280,11 @@ $$y(t) = y_0 + \int_{t_0}^{t} f(s, y(s)) ds$$
 
 **Runge-Kutta methods** approximate this integral using quadrature:
 
-- **Euler:** $y_{n+1} = y_n + h f(t_n, y_n)$ — left-endpoint rule ($O(h)$)
-- **RK4:** $y_{n+1} = y_n + h(k_1 + 2k_2 + 2k_3 + k_4)/6$ — Simpson's-like rule ($O(h^4)$)
-- **Gauss collocation:** Gauss-Legendre-based — stiffly stable, exact for polynomials of degree $2s-1$ ($s$ stages)
+- **Euler:** $y_{n+1} = y_n + h f(t_n, y_n)$ - left-endpoint rule ($O(h)$)
+- **RK4:** $y_{n+1} = y_n + h(k_1 + 2k_2 + 2k_3 + k_4)/6$ - Simpson's-like rule ($O(h^4)$)
+- **Gauss collocation:** Gauss-Legendre-based - stiffly stable, exact for polynomials of degree $2s-1$ ($s$ stages)
 
-**Dormand-Prince (RK45):** Embedded 4th/5th order pair for adaptive step control — the default ODE solver in `scipy.integrate.solve_ivp`.
+**Dormand-Prince (RK45):** Embedded 4th/5th order pair for adaptive step control - the default ODE solver in `scipy.integrate.solve_ivp`.
 
 ### K.2 Feynman Path Integrals
 
@@ -1292,13 +1292,13 @@ In quantum mechanics, the probability amplitude is formally:
 
 $$\langle x_f | e^{-iHT/\hbar} | x_i \rangle = \int \mathcal{D}[x(t)] e^{iS[x]/\hbar}$$
 
-where $S[x] = \int L(x, \dot{x}) dt$ is the action. This is an **infinite-dimensional integral** — a functional integral over all paths.
+where $S[x] = \int L(x, \dot{x}) dt$ is the action. This is an **infinite-dimensional integral** - a functional integral over all paths.
 
 **Numerical discretization:** Replace the path integral by a finite product:
 
 $$\approx \left(\frac{m}{2\pi i\hbar \varepsilon}\right)^{N/2} \prod_{k=1}^N dx_k \exp\!\left(\frac{i\varepsilon}{\hbar} \sum_k L(x_k, (x_{k+1}-x_k)/\varepsilon)\right)$$
 
-This is a multi-dimensional integral evaluated by Monte Carlo — the **lattice QCD** approach uses this for nuclear physics calculations.
+This is a multi-dimensional integral evaluated by Monte Carlo - the **lattice QCD** approach uses this for nuclear physics calculations.
 
 ### K.3 Numerical Integration in Finite Element Methods
 
@@ -1317,7 +1317,7 @@ where $J_K$ is the Jacobian of the mapping from $\hat{K}$ to $K$.
 2. Computing the PDE residual at each point
 3. Minimizing the sum of residuals squared
 
-This is **meshless quadrature** — and the quality of the quadrature points (random vs quasi-random vs Gauss) directly affects training accuracy.
+This is **meshless quadrature** - and the quality of the quadrature points (random vs quasi-random vs Gauss) directly affects training accuracy.
 
 ---
 
@@ -1346,7 +1346,7 @@ This is **meshless quadrature** — and the quality of the quadrature points (ra
 
 ## Appendix M: Advanced Topics in Quadrature
 
-### M.1 Clenshaw-Curtis Quadrature — Full Derivation
+### M.1 Clenshaw-Curtis Quadrature - Full Derivation
 
 **Setup:** Integrate the Chebyshev interpolant of $f$ at the $n+1$ points $x_k = \cos(k\pi/n)$:
 
@@ -1362,10 +1362,10 @@ $$w_j = \sum_{k=0}^n c_k \int_{-1}^1 T_k(x_j) dx = \sum_{k=0}^n c_k \cdot m_k \c
 
 but more efficiently via the DCT applied to the moments vector $m = (2, 0, -2/3, 0, -2/15, 0, \ldots)$.
 
-**Why CC is competitive with GL:** For analytic functions, both achieve exponential convergence. CC uses $n+1$ nodes for degree-$n$ exactness while GL uses $n$ nodes for degree-$2n-1$ exactness — GL is more "efficient" per node. However:
-1. CC nodes nest: the $n/2+1$ nodes of CC-$n/2$ are a subset of the $n+1$ nodes of CC-$n$ — ideal for adaptive schemes
-2. CC weights are computed via DCT in $O(n \log n)$ — GL requires $O(n^2)$ via eigenvalue method
-3. CC nodes are the Chebyshev nodes — same as used in optimal polynomial approximation
+**Why CC is competitive with GL:** For analytic functions, both achieve exponential convergence. CC uses $n+1$ nodes for degree-$n$ exactness while GL uses $n$ nodes for degree-$2n-1$ exactness - GL is more "efficient" per node. However:
+1. CC nodes nest: the $n/2+1$ nodes of CC-$n/2$ are a subset of the $n+1$ nodes of CC-$n$ - ideal for adaptive schemes
+2. CC weights are computed via DCT in $O(n \log n)$ - GL requires $O(n^2)$ via eigenvalue method
+3. CC nodes are the Chebyshev nodes - same as used in optimal polynomial approximation
 
 ### M.2 Gauss-Kronrod Derivation
 
@@ -1397,9 +1397,9 @@ The derivative decays **double exponentially** as $|t| \to \infty$: faster than 
 
 $$|E| = O(e^{-\pi d / h})$$
 
-where $d$ is the half-width of the analytic strip and $h$ is the step size in $t$-space. This is double-exponential in $1/h$ — faster than any other method for this problem class.
+where $d$ is the half-width of the analytic strip and $h$ is the step size in $t$-space. This is double-exponential in $1/h$ - faster than any other method for this problem class.
 
-**For AI:** Tanh-sinh quadrature is used in high-precision computations (arbitrary precision arithmetic), computing special functions in ML kernels (Matérn covariance, Bayesian quadrature), and computing KL divergences between complex distributions.
+**For AI:** Tanh-sinh quadrature is used in high-precision computations (arbitrary precision arithmetic), computing special functions in ML kernels (Matern covariance, Bayesian quadrature), and computing KL divergences between complex distributions.
 
 ---
 
@@ -1433,42 +1433,42 @@ With 5 GH points: relative error $< 10^{-12}$. With 1000 MC samples: relative er
 
 ---
 
-## Appendix O: Summary Table — When to Use What
+## Appendix O: Summary Table - When to Use What
 
 ```
 QUADRATURE METHOD SELECTION GUIDE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Key: d = dimension, n = nodes/samples, f = function
 
   1D INTEGRATION (d=1):
-  ─────────────────────
-  f smooth + analytic  → Gauss-Legendre (5-10 pts) or CC  [best]
-  f smooth, C∞         → Romberg / Richardson extrapolation
-  f piecewise smooth   → Adaptive G7-K15 (scipy.integrate.quad)
-  f has singularities  → Adaptive + singularity declaration
-  f periodic           → Trapezoidal rule (spectral accuracy!)
-  f analytic + endpoint singularity → Tanh-sinh
+  ---------------------
+  f smooth + analytic  -> Gauss-Legendre (5-10 pts) or CC  [best]
+  f smooth, C\\infty         -> Romberg / Richardson extrapolation
+  f piecewise smooth   -> Adaptive G7-K15 (scipy.integrate.quad)
+  f has singularities  -> Adaptive + singularity declaration
+  f periodic           -> Trapezoidal rule (spectral accuracy!)
+  f analytic + endpoint singularity -> Tanh-sinh
 
   MULTIDIMENSIONAL (d > 1):
-  ─────────────────────────
-  d ≤ 3, f smooth      → Tensor product GL or CC
-  d ≤ 15, f smooth     → Sparse grids (Smolyak)
-  d ≤ 20               → Quasi-MC (scrambled Sobol)
-  d > 20               → Monte Carlo with variance reduction
-  f = E_p[g(X)]        → Gauss-Hermite (if p Gaussian)
-  Singular / complex   → MCMC (Metropolis-Hastings)
+  -------------------------
+  d \\leq 3, f smooth      -> Tensor product GL or CC
+  d \\leq 15, f smooth     -> Sparse grids (Smolyak)
+  d \\leq 20               -> Quasi-MC (scrambled Sobol)
+  d > 20               -> Monte Carlo with variance reduction
+  f = E_p[g(X)]        -> Gauss-Hermite (if p Gaussian)
+  Singular / complex   -> MCMC (Metropolis-Hastings)
 
   ML SPECIFIC:
-  ────────────
-  ELBO gradient        → Reparameterization + 1 MC sample
-  GP marginal lik.     → Cholesky + Lanczos quadrature
-  Policy gradient      → REINFORCE + baseline (MC)
-  Normalizing constant → AIS or thermodynamic integration
-  Neural ODE           → Adaptive RK (Dormand-Prince)
-  Posterior E[f(θ)]    → MCMC (HMC/NUTS for continuous θ)
+  ------------
+  ELBO gradient        -> Reparameterization + 1 MC sample
+  GP marginal lik.     -> Cholesky + Lanczos quadrature
+  Policy gradient      -> REINFORCE + baseline (MC)
+  Normalizing constant -> AIS or thermodynamic integration
+  Neural ODE           -> Adaptive RK (Dormand-Prince)
+  Posterior E[f(\\theta)]    -> MCMC (HMC/NUTS for continuous \\theta)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1477,13 +1477,13 @@ QUADRATURE METHOD SELECTION GUIDE
 
 ### P.1 Gauss's Contribution
 
-Carl Friedrich Gauss derived Gaussian quadrature in 1814 while working on geodesy and orbit computation. His insight was to treat both the nodes and weights as free variables — giving $2n$ degrees of freedom for an $n$-point rule, which (as he showed) is sufficient to integrate all polynomials of degree $\leq 2n-1$.
+Carl Friedrich Gauss derived Gaussian quadrature in 1814 while working on geodesy and orbit computation. His insight was to treat both the nodes and weights as free variables - giving $2n$ degrees of freedom for an $n$-point rule, which (as he showed) is sufficient to integrate all polynomials of degree $\leq 2n-1$.
 
 Gauss computed the first several GL rules by hand, finding the nodes as zeros of Legendre polynomials. The connection between optimal quadrature nodes and orthogonal polynomial zeros is now understood through the theory of Gaussian quadrature, but Gauss discovered the pattern empirically.
 
 ### P.2 The Monte Carlo Method's Origins
 
-The Monte Carlo method was invented by Stanislaw Ulam while recovering from illness in 1946. Playing solitaire, he wondered: what is the probability of success? Unable to compute it analytically, he realized he could estimate it by simulating many games. He mentioned the idea to John von Neumann, who immediately recognized its potential for nuclear physics computations (neutron diffusion through fissile material) — and the Los Alamos Monte Carlo method was born.
+The Monte Carlo method was invented by Stanislaw Ulam while recovering from illness in 1946. Playing solitaire, he wondered: what is the probability of success? Unable to compute it analytically, he realized he could estimate it by simulating many games. He mentioned the idea to John von Neumann, who immediately recognized its potential for nuclear physics computations (neutron diffusion through fissile material) - and the Los Alamos Monte Carlo method was born.
 
 The name "Monte Carlo" was suggested by Nicholas Metropolis, after the famous casino (and the element of chance in the method). The first large-scale application was computing the properties of materials for the hydrogen bomb in 1947.
 
@@ -1607,7 +1607,7 @@ for n in [100, 1000, 10000]:
 
 ---
 
-## Appendix S: Extended Theory — Bayesian Quadrature
+## Appendix S: Extended Theory - Bayesian Quadrature
 
 ### S.1 Bayesian Quadrature Framework
 
@@ -1623,7 +1623,7 @@ $$I | \mathbf{f}_n \sim \mathcal{N}(\hat{I}_n, \hat{V}_n)$$
 
 $$\hat{I}_n = \mathbf{z}^\top (K + \sigma^2 I)^{-1} \mathbf{f}_n$$
 
-where $z_i = \int k(x, x_i) p(x) dx$ (the "kernel mean" — computable analytically for many kernels).
+where $z_i = \int k(x, x_i) p(x) dx$ (the "kernel mean" - computable analytically for many kernels).
 
 **Posterior variance** (the uncertainty):
 
@@ -1632,7 +1632,7 @@ $$\hat{V}_n = \int\!\!\int k(x, x') p(x) p(x') dx\, dx' - \mathbf{z}^\top (K + \
 **Key properties:**
 1. BQ reduces to kernel ridge regression with kernel $k$
 2. With the Gaussian kernel, BQ is equivalent to Gauss-Hermite quadrature in the limit
-3. BQ provides **principled uncertainty** — the posterior variance tells us how uncertain we are about the integral given current samples
+3. BQ provides **principled uncertainty** - the posterior variance tells us how uncertain we are about the integral given current samples
 
 ### S.2 Connection to Gauss-Legendre
 
@@ -1651,23 +1651,23 @@ Rather than using fixed quadrature nodes, **active BQ** selects the next evaluat
 
 $$x_{n+1} = \arg\max_x \hat{V}_n - \hat{V}_{n+1}(x)$$
 
-This is equivalent to minimizing the posterior variance, giving an **information-theoretic** quadrature rule. For the Matérn-$1/2$ kernel, this recovers the bisection rule (adaptive quadrature). For smoother kernels, it places more points where $f$ is uncertain — naturally handling functions with local features.
+This is equivalent to minimizing the posterior variance, giving an **information-theoretic** quadrature rule. For the Matern-$1/2$ kernel, this recovers the bisection rule (adaptive quadrature). For smoother kernels, it places more points where $f$ is uncertain - naturally handling functions with local features.
 
 ---
 
-## Appendix T: Stochastic Integration — SDEs and Neural SDEs
+## Appendix T: Stochastic Integration - SDEs and Neural SDEs
 
-### T.1 Itô Integral
+### T.1 Ito Integral
 
-The **Itô integral** $\int_0^T H_t dW_t$ is a stochastic integral with respect to Brownian motion $W_t$:
+The **Ito integral** $\int_0^T H_t dW_t$ is a stochastic integral with respect to Brownian motion $W_t$:
 
 $$\int_0^T H_t dW_t = \lim_{n \to \infty} \sum_k H_{t_k} (W_{t_{k+1}} - W_{t_k})$$
 
-(left-endpoint rule — the Itô convention). The Euler-Maruyama scheme for SDEs $dx = f(x)dt + g(x)dW$ is:
+(left-endpoint rule - the Ito convention). The Euler-Maruyama scheme for SDEs $dx = f(x)dt + g(x)dW$ is:
 
 $$x_{t+h} \approx x_t + f(x_t) h + g(x_t) \sqrt{h} \, \varepsilon_t, \quad \varepsilon_t \sim \mathcal{N}(0,1)$$
 
-This is a first-order strong approximation — $O(\sqrt{h})$ strong convergence vs $O(h)$ weak convergence.
+This is a first-order strong approximation - $O(\sqrt{h})$ strong convergence vs $O(h)$ weak convergence.
 
 ### T.2 Neural SDEs and Diffusion Models
 
@@ -1681,9 +1681,9 @@ $$\log p(x_T) \geq -\text{KL}(q_\phi(x_T) \| p(x_0)) + \mathbb{E}_q\!\left[\int_
 
 The integral over $t$ is computed via numerical integration (e.g., Euler-Maruyama or higher-order SDE solvers). This is the foundation of **score-based diffusion models** (Song et al., 2021).
 
-**DDPM** (Ho et al., 2020) discretizes the diffusion trajectory at $T = 1000$ timesteps and computes the ELBO as a sum of Gaussian KL terms — discrete numerical integration over the diffusion trajectory.
+**DDPM** (Ho et al., 2020) discretizes the diffusion trajectory at $T = 1000$ timesteps and computes the ELBO as a sum of Gaussian KL terms - discrete numerical integration over the diffusion trajectory.
 
-**Continuous diffusion** (Song et al., 2021) uses the continuous-time SDE and numerical ODE solvers (Dormand-Prince, DDIM) for sampling — the sampling procedure is adaptive quadrature of the reverse SDE.
+**Continuous diffusion** (Song et al., 2021) uses the continuous-time SDE and numerical ODE solvers (Dormand-Prince, DDIM) for sampling - the sampling procedure is adaptive quadrature of the reverse SDE.
 
 ---
 
@@ -1691,20 +1691,20 @@ The integral over $t$ is computed via numerical integration (e.g., Euler-Maruyam
 
 | Topic | Connection | Reference |
 |---|---|---|
-| Legendre polynomials | GL nodes; Legendre-Gauss rule | §10-04 (orthogonal polynomials) |
-| Chebyshev polynomials | Clenshaw-Curtis; CC weights via DCT | §10-04 (Chebyshev approximation) |
-| Condition numbers | Vandermonde in NC; GL weights always positive | §10-01, §10-02 |
-| Finite differences | Richardson extrapolation; gradient checking | §10-03 |
-| Fourier analysis | DFT as trapezoidal rule; CC via DCT | §10-04 |
-| Monte Carlo | Stochastic gradient, ELBO, policy gradient | §07 (Probability) |
-| Linear algebra | Golub-Welsch tridiagonal eigenvalue | §10-02 |
-| Optimization | MCMC as sampling from Bayesian posterior | §08, §10-03 |
-| SDEs/Neural SDEs | Stochastic integration; Itô calculus | Advanced calculus |
-| Gaussian processes | GP marginal likelihood; Bayesian quadrature | §07, §10-04 |
+| Legendre polynomials | GL nodes; Legendre-Gauss rule | Section10-04 (orthogonal polynomials) |
+| Chebyshev polynomials | Clenshaw-Curtis; CC weights via DCT | Section10-04 (Chebyshev approximation) |
+| Condition numbers | Vandermonde in NC; GL weights always positive | Section10-01, Section10-02 |
+| Finite differences | Richardson extrapolation; gradient checking | Section10-03 |
+| Fourier analysis | DFT as trapezoidal rule; CC via DCT | Section10-04 |
+| Monte Carlo | Stochastic gradient, ELBO, policy gradient | Section07 (Probability) |
+| Linear algebra | Golub-Welsch tridiagonal eigenvalue | Section10-02 |
+| Optimization | MCMC as sampling from Bayesian posterior | Section08, Section10-03 |
+| SDEs/Neural SDEs | Stochastic integration; Ito calculus | Advanced calculus |
+| Gaussian processes | GP marginal likelihood; Bayesian quadrature | Section07, Section10-04 |
 
 ---
 
-## Appendix V: Worked Examples — Comparing Methods
+## Appendix V: Worked Examples - Comparing Methods
 
 ### V.1 Computing $\int_0^1 \sqrt{x(1-x)} dx = \pi/8$
 
@@ -1714,8 +1714,8 @@ This integral has integrable singularities at both endpoints ($f(0) = f(1) = 0$ 
 
 | Method | $n$ evaluations | Error |
 |---|---|---|
-| Composite trapezoidal | 1000 | $3.6 \times 10^{-3}$ ($O(h^{3/2})$ — slow due to singularity) |
-| Composite Simpson's | 1000 | $1.8 \times 10^{-3}$ ($O(h^{3/2})$ — same!) |
+| Composite trapezoidal | 1000 | $3.6 \times 10^{-3}$ ($O(h^{3/2})$ - slow due to singularity) |
+| Composite Simpson's | 1000 | $1.8 \times 10^{-3}$ ($O(h^{3/2})$ - same!) |
 | GL-20 on $[0,1]$ | 20 | $2.4 \times 10^{-3}$ (singularity causes slow convergence) |
 | Gauss-Jacobi $\alpha=\beta=1/2$ | 10 | $< 10^{-14}$ (exact for weight $(x(1-x))^{1/2}$!) |
 | Tanh-sinh, $h=0.1$ | ~50 | $10^{-12}$ (handles endpoint singularities) |
@@ -1731,13 +1731,13 @@ This integral has integrable singularities at both endpoints ($f(0) = f(1) = 0$ 
 | Tensor product GL-3 | $3^{10} = 59049$ | $< 10^{-10}$ | Fast |
 | MC (random) | $10^6$ | $\approx 0.002$ | Moderate |
 
-**Lesson:** For this smooth function in $d=10$, tensor product GL still wins with fewer evaluations. But for $d=50$, GL requires $3^{50} \approx 7 \times 10^{23}$ evaluations — infeasible.
+**Lesson:** For this smooth function in $d=10$, tensor product GL still wins with fewer evaluations. But for $d=50$, GL requires $3^{50} \approx 7 \times 10^{23}$ evaluations - infeasible.
 
 ### V.3 Gaussian Expectation: $\mathbb{E}_{x \sim \mathcal{N}(0,1)}[e^{x^2/2}]$
 
 This integral diverges! $\int_{-\infty}^\infty e^{x^2/2} \mathcal{N}(x;0,1) dx = \int e^{x^2/2} \frac{e^{-x^2/2}}{\sqrt{2\pi}} dx = \frac{1}{\sqrt{2\pi}} \int dx = \infty$.
 
-**Warning for AI:** Computing expectations over Gaussian distributions requires checking that the function is integrable. In VAE training, large activations can cause $\mathbb{E}_q[f(z)]$ to be numerically infinite — a symptom of a poor variational posterior $q$.
+**Warning for AI:** Computing expectations over Gaussian distributions requires checking that the function is integrable. In VAE training, large activations can cause $\mathbb{E}_q[f(z)]$ to be numerically infinite - a symptom of a poor variational posterior $q$.
 
 ### V.4 ELBO Term Computation
 
@@ -1745,7 +1745,7 @@ The KL divergence $\text{KL}(\mathcal{N}(\mu, \sigma^2) \| \mathcal{N}(0, 1))$:
 
 $$\text{KL} = \frac{1}{2}\left(\sigma^2 + \mu^2 - 1 - \log \sigma^2\right)$$
 
-This is analytical — no quadrature needed. The reconstruction term $\mathbb{E}_q[\log p(x|z)]$ requires Monte Carlo (or GH quadrature):
+This is analytical - no quadrature needed. The reconstruction term $\mathbb{E}_q[\log p(x|z)]$ requires Monte Carlo (or GH quadrature):
 
 ```python
 def elbo_reconstruction(x_data, mu_z, sigma_z, decoder, n_gh=20):
@@ -1756,7 +1756,7 @@ def elbo_reconstruction(x_data, mu_z, sigma_z, decoder, n_gh=20):
     return np.dot(w, log_likelihood) / np.sqrt(np.pi)
 ```
 
-With $n_{\text{GH}} = 20$, this achieves near-machine precision for smooth likelihoods — far superior to 1-sample MC.
+With $n_{\text{GH}} = 20$, this achieves near-machine precision for smooth likelihoods - far superior to 1-sample MC.
 
 ---
 
@@ -1776,7 +1776,7 @@ Each entry requires numerical integration over the domain. With $\mathcal{P}_1$ 
 
 **Spectral element methods** combine the geometric flexibility of FEM with the spectral accuracy of GL/CC quadrature:
 1. Divide the domain into $K$ elements
-2. On each element, use a high-degree polynomial basis ($p$-th order, typically $p = 5$–$16$)
+2. On each element, use a high-degree polynomial basis ($p$-th order, typically $p = 5$-$16$)
 3. Integrate with the matching Gauss-Lobatto-Legendre (GLL) quadrature rule
 
 **GLL rule:** GL rule with the constraint that the endpoints $x=\pm 1$ are always included. The $n+1$ GLL nodes consist of $\pm 1$ plus the $n-1$ interior zeros of $P_n'(x)$.
@@ -1814,7 +1814,7 @@ A **normalizing flow** defines a sequence of invertible transformations:
 
 $$z_0 \xrightarrow{f_1} z_1 \xrightarrow{f_2} \cdots \xrightarrow{f_K} z_K = x$$
 
-The log-likelihood is computed via the change-of-variables formula — a sequence of integration by substitution steps:
+The log-likelihood is computed via the change-of-variables formula - a sequence of integration by substitution steps:
 
 $$\log p_x(x) = \log p_{z_0}(z_0) - \sum_{k=1}^K \log |\det J_{f_k}(z_{k-1})|$$
 
@@ -1822,9 +1822,9 @@ $$\log p_x(x) = \log p_{z_0}(z_0) - \sum_{k=1}^K \log |\det J_{f_k}(z_{k-1})|$$
 
 $$\log |\det J_{f_k}| = \sum_{i=1}^d \log |[\partial f_k / \partial z_{k-1}]_{ii}|}$$
 
-(only valid when $J_{f_k}$ is triangular — the key design choice in autoregressive flows).
+(only valid when $J_{f_k}$ is triangular - the key design choice in autoregressive flows).
 
-**Integration interpretation:** $p_x(x)$ is the pushforward of $p_{z_0}$ through $f = f_K \circ \cdots \circ f_1$. Computing $\log p_x(x)$ is exact — no numerical quadrature needed! The integration is performed analytically by the change-of-variables formula.
+**Integration interpretation:** $p_x(x)$ is the pushforward of $p_{z_0}$ through $f = f_K \circ \cdots \circ f_1$. Computing $\log p_x(x)$ is exact - no numerical quadrature needed! The integration is performed analytically by the change-of-variables formula.
 
 ### Y.2 Diffusion Models as Numerical ODE Solvers
 
@@ -1838,7 +1838,7 @@ using the score function $\nabla_x \log p_t(x) \approx -\varepsilon_\theta(x_t, 
 
 $$x_{t_{i-1}} \approx x_{t_i} + \frac{\Delta t}{2}[3 s_\theta(x_{t_i}, t_i) - s_\theta(x_{t_{i+1}}, t_{i+1})]$$
 
-where $s_\theta \approx \nabla_x \log p_t$ is the score. This is exactly the 2-step Adams-Bashforth ODE solver — applied to the reverse SDE.
+where $s_\theta \approx \nabla_x \log p_t$ is the score. This is exactly the 2-step Adams-Bashforth ODE solver - applied to the reverse SDE.
 
 **Implication:** Faster diffusion sampling (fewer NFEs) is equivalent to using higher-order quadrature for the reverse SDE. Methods like DPM-Solver++ (Lu et al., 2022) use exponential integrators and 3rd-order Adams-type solvers to reduce from 1000 steps to 10-20 steps.
 
@@ -1855,57 +1855,57 @@ The GP log marginal likelihood requires $\log |K + \sigma^2 I|$ where $K \in \ma
 
 **Complexity:** $O(n q m)$ matrix-vector products vs $O(n^3)$ for Cholesky. For large $n$, SLQ is the only tractable approach.
 
-**GPyTorch** (Gardner et al., 2018) implements SLQ for GP training with $n > 10^4$ — enabling GP regression at the scale of deep learning datasets.
+**GPyTorch** (Gardner et al., 2018) implements SLQ for GP training with $n > 10^4$ - enabling GP regression at the scale of deep learning datasets.
 
 ---
 
-## Appendix Z: Final Reference — Decision Tree for Integration in ML
+## Appendix Z: Final Reference - Decision Tree for Integration in ML
 
 ```
 ML INTEGRATION DECISION TREE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   What are you computing?
-  │
-  ├── E_q[f(z)] with q Gaussian?
-  │   ├── Low-dimensional z (d≤3), need high accuracy?
-  │   │   └── → Gauss-Hermite quadrature (n=20 nodes)
-  │   └── High-dimensional z, gradient needed?
-  │       └── → Reparameterization + single MC sample
-  │
-  ├── log p(x) = log Z - E(x)?
-  │   ├── f(x) has known structure (flow, Gaussian)?
-  │   │   └── → Analytical formula (change of variables)
-  │   └── Intractable Z?
-  │       ├── Need unbiased estimate of Z?
-  │       │   └── → AIS (Annealed Importance Sampling)
-  │       └── Need to train model?
-  │           └── → Score matching / contrastive divergence
-  │
-  ├── Policy gradient E_π[G]?
-  │   ├── Continuous action, differentiable reward?
-  │   │   └── → Reparameterization (pathwise gradient)
-  │   └── Discrete action?
-  │       └── → REINFORCE with baseline (score function)
-  │
-  ├── GP marginal likelihood log|K + σ²I|?
-  │   ├── n ≤ 5000?
-  │   │   └── → Cholesky factorization (exact, O(n³))
-  │   └── n > 5000?
-  │       └── → Stochastic Lanczos Quadrature (O(nqm))
-  │
-  └── ODE/SDE simulation?
-      ├── Deterministic ODE?
-      │   └── → Adaptive Dormand-Prince (RK45)
-      └── Stochastic SDE?
-          └── → Euler-Maruyama or Milstein scheme
+  |
+  +-- E_q[f(z)] with q Gaussian?
+  |   +-- Low-dimensional z (d\\leq3), need high accuracy?
+  |   |   +-- -> Gauss-Hermite quadrature (n=20 nodes)
+  |   +-- High-dimensional z, gradient needed?
+  |       +-- -> Reparameterization + single MC sample
+  |
+  +-- log p(x) = log Z - E(x)?
+  |   +-- f(x) has known structure (flow, Gaussian)?
+  |   |   +-- -> Analytical formula (change of variables)
+  |   +-- Intractable Z?
+  |       +-- Need unbiased estimate of Z?
+  |       |   +-- -> AIS (Annealed Importance Sampling)
+  |       +-- Need to train model?
+  |           +-- -> Score matching / contrastive divergence
+  |
+  +-- Policy gradient E_\\pi[G]?
+  |   +-- Continuous action, differentiable reward?
+  |   |   +-- -> Reparameterization (pathwise gradient)
+  |   +-- Discrete action?
+  |       +-- -> REINFORCE with baseline (score function)
+  |
+  +-- GP marginal likelihood log|K + \\sigma^2I|?
+  |   +-- n \\leq 5000?
+  |   |   +-- -> Cholesky factorization (exact, O(n^3))
+  |   +-- n > 5000?
+  |       +-- -> Stochastic Lanczos Quadrature (O(nqm))
+  |
+  +-- ODE/SDE simulation?
+      +-- Deterministic ODE?
+      |   +-- -> Adaptive Dormand-Prince (RK45)
+      +-- Stochastic SDE?
+          +-- -> Euler-Maruyama or Milstein scheme
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
 
-## Appendix AA: Error Analysis for the Composite Rules — Detailed
+## Appendix AA: Error Analysis for the Composite Rules - Detailed
 
 ### AA.1 Euler-Maclaurin for Composite Trapezoidal
 
@@ -1923,7 +1923,7 @@ $$T_m(f) = \int_a^b f(x) dx + \sum_{k=1}^{p} \frac{B_{2k}}{(2k)!} h^{2k} [f^{(2k
 
 $$T_{2m} = I + \frac{h^2}{4}\frac{1}{12}[f'(b)-f'(a)] + O(h^4)$$
 
-So $\frac{4T_{2m} - T_m}{3} = I + O(h^4)$ — this is exactly the composite Simpson's rule!
+So $\frac{4T_{2m} - T_m}{3} = I + O(h^4)$ - this is exactly the composite Simpson's rule!
 
 ### AA.2 Superconvergence of Periodic Functions
 
@@ -1931,7 +1931,7 @@ For $f$ periodic on $[a,b]$ with period $b-a$: $f^{(k)}(a) = f^{(k)}(b)$ for all
 
 $$T_m(f) = \int_a^b f(x) dx + \sum_{k=1}^{\infty} \frac{B_{2k}}{(2k)!} h^{2k} \cdot 0 = I$$
 
-The trapezoidal rule is **exact to all orders** for smooth periodic functions. In practice, the error is bounded by the truncation of the Fourier series — exponentially small for analytic periodic functions.
+The trapezoidal rule is **exact to all orders** for smooth periodic functions. In practice, the error is bounded by the truncation of the Fourier series - exponentially small for analytic periodic functions.
 
 **Example:** $f(x) = e^{\cos(2\pi x)}$ on $[0,1]$:
 - Composite trapezoidal with $m=5$: error $\approx 10^{-8}$
@@ -1945,11 +1945,11 @@ This dramatic difference is the key insight behind the DFT's exact representatio
 
 ---
 
-## Appendix BB: Python Code — Complete Implementations
+## Appendix BB: Python Code - Complete Implementations
 
 ```python
 """
-Complete reference implementations for §10-05 Numerical Integration.
+Complete reference implementations for Section10-05 Numerical Integration.
 All functions tested against scipy.integrate.quad.
 """
 import numpy as np

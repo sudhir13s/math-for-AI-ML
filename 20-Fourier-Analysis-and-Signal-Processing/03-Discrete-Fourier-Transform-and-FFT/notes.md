@@ -1,34 +1,34 @@
-[← Back to Fourier Analysis](../README.md) | [Previous: Fourier Transform ←](../02-Fourier-Transform/notes.md) | [Next: Convolution Theorem →](../04-Convolution-Theorem/notes.md)
+[<- Back to Fourier Analysis](../README.md) | [Previous: Fourier Transform <-](../02-Fourier-Transform/notes.md) | [Next: Convolution Theorem ->](../04-Convolution-Theorem/notes.md)
 
 ---
 
 # Discrete Fourier Transform and FFT
 
 > _"The FFT is the most important numerical algorithm of our lifetime."_
-> — Gilbert Strang, MIT Mathematics
+> - Gilbert Strang, MIT Mathematics
 
 ## Overview
 
-The Discrete Fourier Transform (DFT) is the numerically computable version of the Fourier Transform: given $N$ equally-spaced samples of a signal, it produces $N$ complex frequency coefficients that describe the signal's spectral content. The DFT is not merely an approximation to the continuous Fourier Transform — it is an exact, invertible change of basis on $\mathbb{C}^N$, with its own complete theory of properties, convergence, and error.
+The Discrete Fourier Transform (DFT) is the numerically computable version of the Fourier Transform: given $N$ equally-spaced samples of a signal, it produces $N$ complex frequency coefficients that describe the signal's spectral content. The DFT is not merely an approximation to the continuous Fourier Transform - it is an exact, invertible change of basis on $\mathbb{C}^N$, with its own complete theory of properties, convergence, and error.
 
-What makes the DFT indispensable is the **Fast Fourier Transform (FFT)**: the Cooley–Tukey algorithm (1965) reduces the $O(N^2)$ matrix-vector product defining the DFT to $O(N \log N)$ arithmetic operations through a recursive divide-and-conquer strategy. For $N = 2^{20} \approx 10^6$, this is the difference between $10^{12}$ and $2 \times 10^7$ operations — five orders of magnitude. The FFT is the engine behind digital audio, MRI reconstruction, radar, telecommunications, JPEG compression, and — increasingly — large language models, neural operators, and efficient sequence modeling architectures.
+What makes the DFT indispensable is the **Fast Fourier Transform (FFT)**: the Cooley-Tukey algorithm (1965) reduces the $O(N^2)$ matrix-vector product defining the DFT to $O(N \log N)$ arithmetic operations through a recursive divide-and-conquer strategy. For $N = 2^{20} \approx 10^6$, this is the difference between $10^{12}$ and $2 \times 10^7$ operations - five orders of magnitude. The FFT is the engine behind digital audio, MRI reconstruction, radar, telecommunications, JPEG compression, and - increasingly - large language models, neural operators, and efficient sequence modeling architectures.
 
-This section develops the DFT rigorously from first principles, derives the Cooley–Tukey algorithm and its $O(N \log N)$ complexity, treats spectral leakage and windowing in depth, introduces the Short-Time Fourier Transform (STFT) for time-varying signals, and traces the FFT through modern AI systems: Whisper's mel spectrogram pipeline, the Fourier Neural Operator, Monarch matrices, and FlashFFTConv.
+This section develops the DFT rigorously from first principles, derives the Cooley-Tukey algorithm and its $O(N \log N)$ complexity, treats spectral leakage and windowing in depth, introduces the Short-Time Fourier Transform (STFT) for time-varying signals, and traces the FFT through modern AI systems: Whisper's mel spectrogram pipeline, the Fourier Neural Operator, Monarch matrices, and FlashFFTConv.
 
 ## Prerequisites
 
-- **Fourier Transform** — continuous FT definition ($\xi$-convention), Plancherel's theorem, uncertainty principle, Poisson summation formula ([§20-02](../02-Fourier-Transform/notes.md))
-- **Fourier Series** — complex Fourier coefficients, orthonormality of complex exponentials ([§20-01](../01-Fourier-Series/notes.md))
-- **Complex numbers** — $e^{i\theta} = \cos\theta + i\sin\theta$, roots of unity, complex modulus and argument ([§01](../../01-Mathematical-Foundations/README.md))
-- **Linear algebra** — matrix-vector products, unitary matrices, change of basis, inner products ([§02](../../02-Linear-Algebra-Basics/README.md))
-- **Sampling theory** — Nyquist–Shannon theorem (introduced here; connection to §02-7.5 Poisson summation)
+- **Fourier Transform** - continuous FT definition ($\xi$-convention), Plancherel's theorem, uncertainty principle, Poisson summation formula ([Section 20-02](../02-Fourier-Transform/notes.md))
+- **Fourier Series** - complex Fourier coefficients, orthonormality of complex exponentials ([Section 20-01](../01-Fourier-Series/notes.md))
+- **Complex numbers** - $e^{i\theta} = \cos\theta + i\sin\theta$, roots of unity, complex modulus and argument ([Section 01](../../01-Mathematical-Foundations/README.md))
+- **Linear algebra** - matrix-vector products, unitary matrices, change of basis, inner products ([Section 02](../../02-Linear-Algebra-Basics/README.md))
+- **Sampling theory** - Nyquist-Shannon theorem (introduced here; connection to Section 02-7.5 Poisson summation)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | DFT matrix, FFT from scratch, butterfly diagrams, window functions, STFT spectrograms, Whisper mel pipeline, FNO spectral layer |
-| [exercises.ipynb](exercises.ipynb) | 8 graded problems: DFT by hand through Monarch butterfly factorization |
+| [exercises.ipynb](exercises.ipynb) | 10 graded problems: DFT by hand through Monarch butterfly factorization |
 
 ## Learning Objectives
 
@@ -36,7 +36,7 @@ After completing this section, you will:
 
 1. Define the $N$-point DFT and compute it by hand for small $N$ using roots of unity
 2. Express the DFT as a unitary matrix transformation and verify orthonormality of the Fourier basis vectors
-3. State and prove the Cooley–Tukey radix-2 FFT recurrence and derive the $O(N\log_2 N)$ complexity
+3. State and prove the Cooley-Tukey radix-2 FFT recurrence and derive the $O(N\log_2 N)$ complexity
 4. Draw and interpret a butterfly diagram for an 8-point DFT
 5. Apply all standard DFT properties: linearity, circular shift, modulation, conjugate symmetry, Parseval
 6. Explain spectral leakage and quantify the tradeoff between main-lobe width and side-lobe level for Hann, Hamming, Blackman, and Kaiser windows
@@ -68,7 +68,7 @@ After completing this section, you will:
   - [3.3 Modulation (Frequency Shift)](#33-modulation-frequency-shift)
   - [3.4 Conjugate Symmetry for Real Inputs](#34-conjugate-symmetry-for-real-inputs)
   - [3.5 Parseval's Theorem for the DFT](#35-parsevals-theorem-for-the-dft)
-  - [3.6 Circular Convolution — Preview](#36-circular-convolution--preview)
+  - [3.6 Circular Convolution - Preview](#36-circular-convolution--preview)
   - [3.7 DFT Properties Master Table](#37-dft-properties-master-table)
 - [4. The Fast Fourier Transform Algorithm](#4-the-fast-fourier-transform-algorithm)
   - [4.1 Complexity of Naive DFT](#41-complexity-of-naive-dft)
@@ -112,7 +112,7 @@ After completing this section, you will:
 
 ### 1.1 From Continuous to Discrete: Sampling a Spectrum
 
-Every practical computation with signals must at some point confront a fundamental constraint: computers cannot store or process continuous functions. What they can store is a finite sequence of numbers — samples of a signal taken at discrete time instants. The passage from the continuous world of the Fourier Transform to the discrete world of the DFT is therefore not a mathematical nicety but a computational necessity.
+Every practical computation with signals must at some point confront a fundamental constraint: computers cannot store or process continuous functions. What they can store is a finite sequence of numbers - samples of a signal taken at discrete time instants. The passage from the continuous world of the Fourier Transform to the discrete world of the DFT is therefore not a mathematical nicety but a computational necessity.
 
 Suppose we record $N$ samples of a signal $x(t)$ at a sampling rate of $f_s$ samples per second:
 
@@ -120,8 +120,8 @@ $$x[n] = x(n \cdot T_s), \quad T_s = \frac{1}{f_s}, \quad n = 0, 1, \ldots, N-1$
 
 The total observation time is $T = N \cdot T_s$. What frequencies can we see in this finite record? Two constraints emerge immediately:
 
-1. **Highest observable frequency** (Nyquist): any frequency above $f_s/2$ will be indistinguishable from a lower frequency due to aliasing — two distinct sinusoids will produce identical sample sequences.
-2. **Frequency resolution**: the smallest frequency difference we can distinguish is $\Delta f = f_s / N = 1/T$ — the reciprocal of the observation duration.
+1. **Highest observable frequency** (Nyquist): any frequency above $f_s/2$ will be indistinguishable from a lower frequency due to aliasing - two distinct sinusoids will produce identical sample sequences.
+2. **Frequency resolution**: the smallest frequency difference we can distinguish is $\Delta f = f_s / N = 1/T$ - the reciprocal of the observation duration.
 
 The DFT honours both constraints. It examines the signal at exactly $N$ equally-spaced frequency bins:
 
@@ -129,11 +129,11 @@ $$\xi_k = \frac{k \cdot f_s}{N}, \quad k = 0, 1, \ldots, N-1$$
 
 covering one full period $[0, f_s)$ of the periodic spectrum. The first $N/2$ bins correspond to positive frequencies $[0, f_s/2)$; the remaining $N/2$ bins correspond to negative frequencies $(-f_s/2, 0)$ wrapped around to $[f_s/2, f_s)$. This wrapping is the discrete manifestation of the Nyquist limit.
 
-**For AI:** Every neural network that processes time-series data — speech, ECG, seismic, financial — ultimately works with sampled signals. Understanding the frequency axis setup of the DFT is essential for interpreting what spectral features (mel filterbanks in Whisper, power spectral density in EEG classifiers) actually represent. Misinterpreting negative-frequency bins is a common source of subtle bugs in spectrogram preprocessing.
+**For AI:** Every neural network that processes time-series data - speech, ECG, seismic, financial - ultimately works with sampled signals. Understanding the frequency axis setup of the DFT is essential for interpreting what spectral features (mel filterbanks in Whisper, power spectral density in EEG classifiers) actually represent. Misinterpreting negative-frequency bins is a common source of subtle bugs in spectrogram preprocessing.
 
 ### 1.2 What the DFT Does Geometrically
 
-The space of $N$-point complex sequences $\mathbb{C}^N$ has dimension $N$. The DFT provides a complete orthogonal basis for this space — the **Fourier basis** — consisting of $N$ complex sinusoids at the frequencies $\xi_k = k/N$:
+The space of $N$-point complex sequences $\mathbb{C}^N$ has dimension $N$. The DFT provides a complete orthogonal basis for this space - the **Fourier basis** - consisting of $N$ complex sinusoids at the frequencies $\xi_k = k/N$:
 
 $$\mathbf{f}_k = \begin{bmatrix} 1 \\ \omega_N^k \\ \omega_N^{2k} \\ \vdots \\ \omega_N^{(N-1)k} \end{bmatrix}, \quad \omega_N = e^{2\pi i / N}, \quad k = 0, 1, \ldots, N-1$$
 
@@ -147,7 +147,7 @@ The inverse DFT reconstructs the signal by superimposing all $N$ sinusoids with 
 
 $$x[n] = \frac{1}{N} \sum_{k=0}^{N-1} X[k]\, \omega_N^{nk}$$
 
-The factor $1/N$ comes from the normalization of the basis — the $\mathbf{f}_k$ have squared norm $\lVert \mathbf{f}_k \rVert^2 = N$, not 1. Using the orthonormal basis $\mathbf{f}_k / \sqrt{N}$, both forward and inverse transforms carry a $1/\sqrt{N}$ factor. Different software packages use different conventions; always check.
+The factor $1/N$ comes from the normalization of the basis - the $\mathbf{f}_k$ have squared norm $\lVert \mathbf{f}_k \rVert^2 = N$, not 1. Using the orthonormal basis $\mathbf{f}_k / \sqrt{N}$, both forward and inverse transforms carry a $1/\sqrt{N}$ factor. Different software packages use different conventions; always check.
 
 **Geometric picture:** if you think of the signal as a vector in $\mathbb{C}^N$, the DFT rotates this vector into a new coordinate system. The new coordinate axes are complex sinusoids. The DFT matrix $F_N$ is the rotation matrix (more precisely, a scaled unitary matrix). The operation $\mathbf{X} = F_N \mathbf{x}$ is a matrix-vector product; naive evaluation takes $O(N^2)$ operations. The FFT computes this same product in $O(N \log N)$.
 
@@ -157,10 +157,10 @@ To appreciate the scale of the FFT's impact, consider the arithmetic:
 
 | $N$ | Naive DFT ($N^2$) | FFT ($N \log_2 N$) | Speedup |
 |-----|------------------|---------------------|---------|
-| 64 | 4,096 | 384 | 11× |
-| 1,024 | 1,048,576 | 10,240 | 102× |
-| 65,536 | $4.3 \times 10^9$ | $1.0 \times 10^6$ | 4,369× |
-| $10^6$ | $10^{12}$ | $2.0 \times 10^7$ | 50,000× |
+| 64 | 4,096 | 384 | 11 |
+| 1,024 | 1,048,576 | 10,240 | 102 |
+| 65,536 | $4.3 \times 10^9$ | $1.0 \times 10^6$ | 4,369 |
+| $10^6$ | $10^{12}$ | $2.0 \times 10^7$ | 50,000 |
 
 Before the FFT, computing the spectrum of a 1-second audio clip sampled at 44.1 kHz was infeasible in real time. After the FFT, it takes microseconds. The entire modern infrastructure of digital audio, wireless communications (OFDM), radar, MRI, seismology, and antenna design rests on this algorithmic breakthrough.
 
@@ -172,21 +172,21 @@ The secret is that the DFT matrix $F_N$ has enormous **structure**: it is a Vand
 
 The story of the FFT is a case study in mathematical rediscovery and the transformative effect of the right algorithm at the right moment.
 
-**1805 — Carl Friedrich Gauss** derived what we now recognize as the FFT algorithm while computing asteroid orbits. His manuscript lay unpublished and largely unknown.
+**1805 - Carl Friedrich Gauss** derived what we now recognize as the FFT algorithm while computing asteroid orbits. His manuscript lay unpublished and largely unknown.
 
-**1903 — Carl Runge** independently derived a related fast algorithm for trigonometric interpolation.
+**1903 - Carl Runge** independently derived a related fast algorithm for trigonometric interpolation.
 
-**1942 — Danielson and Lanczos** published a recursive factorization of the DFT based on even-odd splitting, establishing the core mathematical structure.
+**1942 - Danielson and Lanczos** published a recursive factorization of the DFT based on even-odd splitting, establishing the core mathematical structure.
 
-**1965 — James Cooley and John Tukey** published "An Algorithm for the Machine Calculation of Complex Fourier Series," the paper that launched the digital signal processing revolution. Their algorithm was motivated by Tukey's desire to detect Soviet nuclear tests through seismic monitoring. The paper, just two pages, is one of the most cited in the history of applied mathematics.
+**1965 - James Cooley and John Tukey** published "An Algorithm for the Machine Calculation of Complex Fourier Series," the paper that launched the digital signal processing revolution. Their algorithm was motivated by Tukey's desire to detect Soviet nuclear tests through seismic monitoring. The paper, just two pages, is one of the most cited in the history of applied mathematics.
 
-**1966 — Gentleman and Sande** introduced the "decimation in frequency" variant; Bergland gave a comprehensive tutorial; the algorithm became standard in every engineering discipline within a decade.
+**1966 - Gentleman and Sande** introduced the "decimation in frequency" variant; Bergland gave a comprehensive tutorial; the algorithm became standard in every engineering discipline within a decade.
 
-**1984 — FFTW** — Frigo and Johnson developed FFTW ("Fastest Fourier Transform in the West"), an adaptive library that benchmarks and selects the optimal algorithm for any $N$ and hardware. FFTW ships in NumPy, SciPy, and is the backbone of essentially all scientific computing FFT pipelines.
+**1984 - FFTW** - Frigo and Johnson developed FFTW ("Fastest Fourier Transform in the West"), an adaptive library that benchmarks and selects the optimal algorithm for any $N$ and hardware. FFTW ships in NumPy, SciPy, and is the backbone of essentially all scientific computing FFT pipelines.
 
-**2021 — Fourier Neural Operator** (Li et al.) applies the DFT inside a neural network layer to learn solution operators for PDEs in $O(N \log N)$.
+**2021 - Fourier Neural Operator** (Li et al.) applies the DFT inside a neural network layer to learn solution operators for PDEs in $O(N \log N)$.
 
-**2022 — Monarch matrices** (Dao et al.) parameterize FFT-like structured transforms as products of sparse butterfly matrices, enabling learnable near-FFT computations in transformer architectures.
+**2022 - Monarch matrices** (Dao et al.) parameterize FFT-like structured transforms as products of sparse butterfly matrices, enabling learnable near-FFT computations in transformer architectures.
 
 ---
 
@@ -204,7 +204,7 @@ The complex number $\omega_N^{-nk} = e^{-2\pi i nk/N}$ is a sampled complex sinu
 
 **Sign convention.** The minus sign in $\omega_N^{-nk}$ is the physics/engineering convention (analysis kernel $e^{-2\pi i}$). Some mathematical texts use $\omega_N^{+nk}$ (positive sign) for the forward transform; this merely relabels forward and inverse. We follow NumPy/SciPy: forward DFT has the $-$ sign.
 
-**Roots of unity.** The $N$ values $\{\omega_N^0, \omega_N^1, \ldots, \omega_N^{N-1}\}$ are the $N$-th roots of unity — equally spaced points on the unit circle in $\mathbb{C}$, starting at 1 and rotating counterclockwise by $2\pi/N$ at each step. They satisfy:
+**Roots of unity.** The $N$ values $\{\omega_N^0, \omega_N^1, \ldots, \omega_N^{N-1}\}$ are the $N$-th roots of unity - equally spaced points on the unit circle in $\mathbb{C}$, starting at 1 and rotating counterclockwise by $2\pi/N$ at each step. They satisfy:
 
 $$\sum_{n=0}^{N-1} \omega_N^{nk} = \begin{cases} N & \text{if } k \equiv 0 \pmod{N} \\ 0 & \text{otherwise} \end{cases}$$
 
@@ -214,13 +214,13 @@ This **orthogonality of roots of unity** is the key identity underlying all DFT 
 
 *$N=2$:* $\omega_2 = e^{i\pi} = -1$. The 2-point DFT is:
 $$X[0] = x[0] + x[1], \quad X[1] = x[0] - x[1]$$
-This is the **Hadamard/Walsh transform** in 2D — just a sum and difference.
+This is the **Hadamard/Walsh transform** in 2D - just a sum and difference.
 
 *$N=4$:* $\omega_4 = e^{i\pi/2} = i$. The 4-point DFT:
 $$X[0] = x[0]+x[1]+x[2]+x[3], \quad X[1] = x[0] - ix[1] - x[2] + ix[3]$$
 $$X[2] = x[0]-x[1]+x[2]-x[3], \quad X[3] = x[0]+ix[1]-x[2]-ix[3]$$
 
-*Non-example:* An infinite sequence $x[n]$ for $n \in \mathbb{Z}$ does NOT have a DFT — you must first window or truncate it to $N$ points. Applying the DFT directly to an infinite sequence is a category error; what you would compute is the $z$-transform or DTFT (Discrete-Time Fourier Transform), which is distinct from the DFT.
+*Non-example:* An infinite sequence $x[n]$ for $n \in \mathbb{Z}$ does NOT have a DFT - you must first window or truncate it to $N$ points. Applying the DFT directly to an infinite sequence is a category error; what you would compute is the $z$-transform or DTFT (Discrete-Time Fourier Transform), which is distinct from the DFT.
 
 ### 2.2 Inverse DFT and Normalization Conventions
 
@@ -267,7 +267,7 @@ by the orthogonality of roots of unity. Therefore $F_N F_N^* = NI$, so $F_N^{-1}
 **Key structural properties of $F_N$:**
 
 - **Vandermonde structure**: $F_N$ is a Vandermonde matrix with nodes $\omega_N^0, \omega_N^{-1}, \ldots, \omega_N^{-(N-1)}$
-- **Symmetric**: $(F_N)_{kn} = (F_N)_{nk}$ — the matrix is symmetric (not Hermitian)
+- **Symmetric**: $(F_N)_{kn} = (F_N)_{nk}$ - the matrix is symmetric (not Hermitian)
 - **Periodic indexing**: all indices are taken modulo $N$, making the transform naturally circular
 
 ### 2.4 DFT as a Change of Basis
@@ -296,9 +296,9 @@ where $\Delta f = f_s/N$ is the frequency bin spacing. The DFT thus provides a d
 
 Three key approximation errors arise:
 
-1. **Aliasing**: frequencies above $f_s/2$ fold back into $[0, f_s/2)$ — see §6.3
-2. **Leakage**: the signal is observed for only $N$ samples, equivalent to multiplying by a rectangular window, causing sidelobe contamination in the spectrum — see §5
-3. **Picket fence**: the DFT only evaluates the spectrum at $N$ discrete frequencies, potentially missing peaks between bins — see §6.2
+1. **Aliasing**: frequencies above $f_s/2$ fold back into $[0, f_s/2)$ - see Section 6.3
+2. **Leakage**: the signal is observed for only $N$ samples, equivalent to multiplying by a rectangular window, causing sidelobe contamination in the spectrum - see Section 5
+3. **Picket fence**: the DFT only evaluates the spectrum at $N$ discrete frequencies, potentially missing peaks between bins - see Section 6.2
 
 ---
 
@@ -323,9 +323,9 @@ $$Y[k] = \omega_N^{-mk}\, X[k]$$
 **Proof.**
 $$Y[k] = \sum_{n=0}^{N-1} x[n-m]\,\omega_N^{-nk} \overset{l=n-m}{=} \sum_{l=0}^{N-1} x[l]\,\omega_N^{-(l+m)k} = \omega_N^{-mk} \sum_{l=0}^{N-1} x[l]\,\omega_N^{-lk} = \omega_N^{-mk} X[k]$$
 
-**Important distinction from continuous case.** In the continuous FT, a time shift by $\tau$ introduces the factor $e^{-2\pi i\xi\tau}$. In the DFT, the shift is **circular** (modular): shifting right pushes the last sample to the first position. If you apply a linear (non-circular) shift to a finite-length signal, the result is NOT simply the DFT multiplied by a phase factor — truncation effects occur. This is a frequent source of confusion when applying the shift property carelessly.
+**Important distinction from continuous case.** In the continuous FT, a time shift by $\tau$ introduces the factor $e^{-2\pi i\xi\tau}$. In the DFT, the shift is **circular** (modular): shifting right pushes the last sample to the first position. If you apply a linear (non-circular) shift to a finite-length signal, the result is NOT simply the DFT multiplied by a phase factor - truncation effects occur. This is a frequent source of confusion when applying the shift property carelessly.
 
-**Application.** In signal processing, circular shift models delay in a circular buffer. In machine learning, circular convolution (§3.6) exploits this property to compute convolutions via FFT.
+**Application.** In signal processing, circular shift models delay in a circular buffer. In machine learning, circular convolution (Section 3.6) exploits this property to compute convolutions via FFT.
 
 ### 3.3 Modulation (Frequency Shift)
 
@@ -335,7 +335,7 @@ $$Y[k] = X[k - m \bmod N]$$
 
 This is the **dual** of the circular shift property: multiplication in time = shift in frequency.
 
-**Application.** Frequency-shift keying (FSK) in communications. In transformers, rotary position encoding (RoPE) multiplies embeddings by complex exponentials — this is modulation in the DFT sense, shifting the frequency-domain representation of each token by its position.
+**Application.** Frequency-shift keying (FSK) in communications. In transformers, rotary position encoding (RoPE) multiplies embeddings by complex exponentials - this is modulation in the DFT sense, shifting the frequency-domain representation of each token by its position.
 
 ### 3.4 Conjugate Symmetry for Real Inputs
 
@@ -357,11 +357,11 @@ $$\sum_{n=0}^{N-1} |x[n]|^2 = \frac{1}{N} \sum_{k=0}^{N-1} |X[k]|^2$$
 
 $$\lVert \mathbf{x} \rVert^2 = \left\lVert \frac{1}{\sqrt{N}}F_N \mathbf{x} \right\rVert^2 = \frac{1}{N}\lVert \mathbf{X} \rVert^2$$
 
-**Interpretation.** Energy is perfectly preserved by the DFT — the total energy in the time domain equals the total energy in the frequency domain (up to the $1/N$ normalization factor). This is the discrete analog of Plancherel's theorem from §02.
+**Interpretation.** Energy is perfectly preserved by the DFT - the total energy in the time domain equals the total energy in the frequency domain (up to the $1/N$ normalization factor). This is the discrete analog of Plancherel's theorem from Section 02.
 
 **Application.** The **power spectral density** (PSD) is $|X[k]|^2 / N$, which by Parseval sums to the total signal power. In Whisper's mel spectrogram, the log power $\log(|X[k]|^2)$ of each FFT bin is computed and then summed over mel filterbanks.
 
-### 3.6 Circular Convolution — Preview
+### 3.6 Circular Convolution - Preview
 
 The most important DFT property is the **circular convolution theorem**: pointwise multiplication in frequency corresponds to circular convolution in time.
 
@@ -371,9 +371,9 @@ $$(x \circledast y)[n] = \sum_{m=0}^{N-1} x[m]\, y[n-m \bmod N]$$
 
 **Circular Convolution Theorem.** $\mathcal{F}\{x \circledast y\}[k] = X[k] \cdot Y[k]$.
 
-> **Preview:** This theorem is the entire foundation of FFT-based convolution. The full treatment — including the distinction between circular and linear convolution, overlap-add/save for long signals, filter design, and the connection to CNNs — is the subject of [§20-04 Convolution Theorem](../04-Convolution-Theorem/notes.md). Here we note the fact; the applications follow in §04.
+> **Preview:** This theorem is the entire foundation of FFT-based convolution. The full treatment - including the distinction between circular and linear convolution, overlap-add/save for long signals, filter design, and the connection to CNNs - is the subject of [Section 20-04 Convolution Theorem](../04-Convolution-Theorem/notes.md). Here we note the fact; the applications follow in Section 04.
 
-**Why circular?** The DFT implicitly assumes the signal is **periodic** with period $N$. The product $X[k]Y[k]$ is the DFT of the **circular** (not linear) convolution of $\mathbf{x}$ and $\mathbf{y}$. To compute linear convolution via FFT, zero-pad both sequences to length $N + M - 1$ before taking the DFT (§6.2).
+**Why circular?** The DFT implicitly assumes the signal is **periodic** with period $N$. The product $X[k]Y[k]$ is the DFT of the **circular** (not linear) convolution of $\mathbf{x}$ and $\mathbf{y}$. To compute linear convolution via FFT, zero-pad both sequences to length $N + M - 1$ before taking the DFT (Section 6.2).
 
 ### 3.7 DFT Properties Master Table
 
@@ -433,58 +433,58 @@ The Cooley-Tukey recursion is beautifully represented as a **signal flow graph**
 
 ```
 DFT-8 BUTTERFLY DIAGRAM (Decimation in Time)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input           Stage 1          Stage 2          Stage 3     Output
   (bit-rev)       N/8 DFTs         N/4 DFTs         N/2 DFTs
 
-  x[0] ────┬──────────────┬───────────────┬──────── X[0]
-            │              │               │
-  x[4] ────┤W⁰   ...      │               │
-            │              │               │
-  x[2] ────┤              │W⁰   ...       │
-            │              │               │
-  x[6] ────┤              │               │
-            │              │               │
-  x[1] ────┤              │               │W⁰
-            │              │               │
-  x[5] ────┤              │               │W¹
-            │              │               │
-  x[3] ────┤              │               │W²
-            │              │               │
-  x[7] ────────────────────────────────────────── X[7]
+  x[0] ----+--------------+---------------+-------- X[0]
+            |              |               |
+  x[4] ----+W0   ...      |               |
+            |              |               |
+  x[2] ----+              |W0   ...       |
+            |              |               |
+  x[6] ----+              |               |
+            |              |               |
+  x[1] ----+              |               |W0
+            |              |               |
+  x[5] ----+              |               |W1
+            |              |               |
+  x[3] ----+              |               |W2
+            |              |               |
+  x[7] ------------------------------------------ X[7]
 
   Each node: X[k] = E[k] + W^k * O[k]
              X[k+N/2] = E[k] - W^k * O[k]
 
-  W^k = ω_N^{-k} = e^{-2πik/N}  (twiddle factor)
+  W^k = _N^{-k} = e^{-2ik/N}  (twiddle factor)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 Each **butterfly** is a 2-input, 2-output operation:
 
 ```
-  a ──┬────── a + W·b
-      │    ╲
-      │     ╲
-      │      ╳  (butterfly crossing)
-      │     ╱
-      │    ╱
-  b ──┴── a - W·b
+  a --+------ a + Wb
+      |    
+      |     
+      |        (butterfly crossing)
+      |     
+      |    
+  b --+-- a - Wb
 ```
 
 For $N = 2^m$, the diagram has $m = \log_2 N$ stages, each containing $N/2$ butterflies. Total butterflies: $\frac{N}{2}\log_2 N$.
 
 ### 4.4 Decimation in Time vs Decimation in Frequency
 
-**Decimation in Time (DIT):** Split the input by even/odd indices. The input must be in **bit-reversed order** (see §4.5), while the output emerges in natural order. This is the form described above, and the most common in practice.
+**Decimation in Time (DIT):** Split the input by even/odd indices. The input must be in **bit-reversed order** (see Section 4.5), while the output emerges in natural order. This is the form described above, and the most common in practice.
 
 **Decimation in Frequency (DIF):** Split the output by even/odd frequencies. The input is in natural order, while the output emerges in bit-reversed order. The butterfly computation slightly differs but the complexity is identical.
 
 Both variants require exactly the same number of operations. The choice is often determined by memory access patterns or hardware constraints.
 
-**In-place computation:** The butterfly computation can be performed in-place — the two outputs overwrite the two inputs without needing extra memory. This makes the FFT extremely memory-efficient for large $N$.
+**In-place computation:** The butterfly computation can be performed in-place - the two outputs overwrite the two inputs without needing extra memory. This makes the FFT extremely memory-efficient for large $N$.
 
 ### 4.5 Bit-Reversal Permutation
 
@@ -501,7 +501,7 @@ The DIT-FFT requires the input in bit-reversed order. For $N = 8$ (3-bit indices
 | 6 | 110 | 011 | 3 |
 | 7 | 111 | 111 | 7 |
 
-**Why bit-reversal arises:** Each stage of the DIT recursion separates samples by their last bit (even vs odd) — what was the last bit of the original index becomes the first bit at the deepest recursion level. After $\log_2 N$ stages of even-odd splitting, the indices are fully bit-reversed.
+**Why bit-reversal arises:** Each stage of the DIT recursion separates samples by their last bit (even vs odd) - what was the last bit of the original index becomes the first bit at the deepest recursion level. After $\log_2 N$ stages of even-odd splitting, the indices are fully bit-reversed.
 
 **Efficient computation:** Bit-reversal can be computed in $O(N)$ time using integer bit-reversal operations or a simple loop with `bin()` in Python. Hardware FFT chips often include dedicated bit-reversal circuits.
 
@@ -532,7 +532,7 @@ $$= N \cdot T(1) + \frac{N}{2}\log_2 N = \frac{N}{2}\log_2 N$$
 
 For large $N$, the FFT uses less than 0.01% of the operations required by the naive DFT.
 
-**Empirical validation:** The $O(N \log N)$ curve can be confirmed by timing `numpy.fft.fft` for $N = 2^k$, $k = 6, \ldots, 20$ — the log-log plot should have slope $\approx 1$ (since $N \log N \approx N^1$ for moderate $N$, growing only slowly faster than linear).
+**Empirical validation:** The $O(N \log N)$ curve can be confirmed by timing `numpy.fft.fft` for $N = 2^k$, $k = 6, \ldots, 20$ - the log-log plot should have slope $\approx 1$ (since $N \log N \approx N^1$ for moderate $N$, growing only slowly faster than linear).
 
 ### 4.7 Variants and Extensions
 
@@ -544,7 +544,7 @@ For large $N$, the FFT uses less than 0.01% of the operations required by the na
 - **Rader's algorithm** (1968): Converts a prime-length DFT into a circular convolution of composite length, solvable by FFT.
 - **Bluestein's algorithm** (1970): Converts any DFT into a convolution via the identity $nk = \binom{n+k}{2} - \binom{n}{2} - \binom{k}{2}$, enabling FFT-based computation for any $N$.
 
-**Real-valued FFT (rfft).** For real inputs, conjugate symmetry (§3.4) means only $N/2+1$ output values are independent. `np.fft.rfft` computes only these, roughly halving computation and memory.
+**Real-valued FFT (rfft).** For real inputs, conjugate symmetry (Section 3.4) means only $N/2+1$ output values are independent. `np.fft.rfft` computes only these, roughly halving computation and memory.
 
 **FFTW (Fastest Fourier Transform in the West).** FFTW (Frigo & Johnson, 2005) automatically selects the best algorithm for any $N$ and hardware through a "plan" computed at initialization time. It achieves near-optimal performance across a wide range of $N$ and machine architectures. All major scientific computing libraries (NumPy, SciPy, MATLAB, Julia) use FFTW or FFTW-compatible libraries under the hood.
 
@@ -556,11 +556,11 @@ For large $N$, the FFT uses less than 0.01% of the operations required by the na
 
 ### 5.1 The Leakage Problem
 
-The DFT assumes that the $N$ samples represent one complete period of a periodic signal. In reality, we observe a finite segment of a continuous signal — we multiply by a **rectangular window** that is 1 inside $[0, N-1]$ and 0 outside. In frequency, multiplication by a rectangular window corresponds to **convolution** with the DFT of the rectangle — the **Dirichlet kernel**:
+The DFT assumes that the $N$ samples represent one complete period of a periodic signal. In reality, we observe a finite segment of a continuous signal - we multiply by a **rectangular window** that is 1 inside $[0, N-1]$ and 0 outside. In frequency, multiplication by a rectangular window corresponds to **convolution** with the DFT of the rectangle - the **Dirichlet kernel**:
 
 $$W_{\text{rect}}[k] = \sum_{n=0}^{N-1} \omega_N^{-nk} = \begin{cases} N & k=0 \\ \frac{1-\omega_N^{-Nk}}{1-\omega_N^{-k}} = \frac{\sin(\pi k)}{\sin(\pi k/N)}e^{-i\pi k(N-1)/N} & k \neq 0 \end{cases}$$
 
-For non-integer frequencies (frequencies that do not land exactly on a DFT bin), the Dirichlet kernel's large sidelobes spread energy from the true frequency into adjacent bins — this is **spectral leakage**.
+For non-integer frequencies (frequencies that do not land exactly on a DFT bin), the Dirichlet kernel's large sidelobes spread energy from the true frequency into adjacent bins - this is **spectral leakage**.
 
 **Example.** Suppose the signal is $x(t) = \cos(2\pi f_0 t)$ with $f_0 = 3.5 f_s/N$ (a non-integer number of cycles in the window). The true spectrum has just two peaks at $\pm f_0$. The DFT shows energy spread across all $N$ bins, with the main peak at the nearest bin ($k=3$ or $k=4$) and significant sidelobe contamination at all other bins.
 
@@ -572,7 +572,7 @@ A **window function** $w[n]$ tapers the signal to zero at its endpoints, reducin
 
 $$X_w[k] = \sum_{n=0}^{N-1} w[n]\, x[n]\, \omega_N^{-nk}$$
 
-The spectrum $X_w$ is the DFT of $w[n]x[n]$ — by the product property (§3.7), this equals the circular convolution of $X$ and $W$ (normalized by $1/N$). Windows with smaller sidelobes produce less leakage at the cost of a wider main lobe (reduced frequency resolution).
+The spectrum $X_w$ is the DFT of $w[n]x[n]$ - by the product property (Section 3.7), this equals the circular convolution of $X$ and $W$ (normalized by $1/N$). Windows with smaller sidelobes produce less leakage at the cost of a wider main lobe (reduced frequency resolution).
 
 **Standard window functions** (all defined for $n = 0, 1, \ldots, N-1$):
 
@@ -622,21 +622,21 @@ Every window function must satisfy a fundamental constraint: the product of main
 
 **Coherent gain:** the window amplitude gain, $\sum_n w[n]/N$. Windows with lower sidelobes also have lower coherent gain (the main peak is smaller), which must be corrected by dividing by the coherent gain when measuring amplitudes.
 
-**Equivalent noise bandwidth (ENBW):** the width of a rectangular window that would pass the same noise power. Hann has ENBW $= 1.5$ bins — it is effectively 1.5 times wider than the rectangular window for noise measurements.
+**Equivalent noise bandwidth (ENBW):** the width of a rectangular window that would pass the same noise power. Hann has ENBW $= 1.5$ bins - it is effectively 1.5 times wider than the rectangular window for noise measurements.
 
 ### 5.4 Scalloping Loss and the Picket Fence Effect
 
-The DFT evaluates the spectrum at exactly $N$ uniformly-spaced bins. If a sinusoid's true frequency $f_0$ falls exactly halfway between two bins (at $k + 0.5$ in bin units), then both neighboring bins are equally attenuated. The worst-case attenuation — the **scalloping loss** — depends on the window:
+The DFT evaluates the spectrum at exactly $N$ uniformly-spaced bins. If a sinusoid's true frequency $f_0$ falls exactly halfway between two bins (at $k + 0.5$ in bin units), then both neighboring bins are equally attenuated. The worst-case attenuation - the **scalloping loss** - depends on the window:
 
 - Rectangular: $-3.9\,\mathrm{dB}$ (worst case for nearest-bin amplitude estimate)
 - Hann: $-1.4\,\mathrm{dB}$
 - Blackman: $-0.8\,\mathrm{dB}$
 
-This is the **picket fence effect**: the DFT spectrum looks like a picket fence — it shows signal energy at the posts (bins) but may miss peaks in the gaps between posts.
+This is the **picket fence effect**: the DFT spectrum looks like a picket fence - it shows signal energy at the posts (bins) but may miss peaks in the gaps between posts.
 
 **Mitigation strategies:**
 
-1. **Zero-padding** (§6.2): append zeros to increase $N$ without changing the observation window, interpolating the spectrum between bins. This does NOT improve frequency resolution (the bandwidth $1/T$ is unchanged) but allows finer frequency estimation.
+1. **Zero-padding** (Section 6.2): append zeros to increase $N$ without changing the observation window, interpolating the spectrum between bins. This does NOT improve frequency resolution (the bandwidth $1/T$ is unchanged) but allows finer frequency estimation.
 
 2. **Parabolic interpolation**: fit a parabola to the peak bin and its two neighbors; the parabola's maximum is a better estimate of the true frequency.
 
@@ -675,45 +675,45 @@ The **frequency resolution** of the DFT is:
 
 $$\Delta f = \frac{f_s}{N} = \frac{1}{T}$$
 
-where $T = N/f_s$ is the total observation duration. This fundamental limit says: to distinguish two sinusoids at frequencies $f_1$ and $f_2$, you need to observe the signal for at least $T = 1/|f_1 - f_2|$ seconds. No amount of zero-padding or upsampling can circumvent this — it is a direct consequence of the uncertainty principle from §02.
+where $T = N/f_s$ is the total observation duration. This fundamental limit says: to distinguish two sinusoids at frequencies $f_1$ and $f_2$, you need to observe the signal for at least $T = 1/|f_1 - f_2|$ seconds. No amount of zero-padding or upsampling can circumvent this - it is a direct consequence of the uncertainty principle from Section 02.
 
 **The time-bandwidth product is fixed:** $T \cdot \Delta f = 1$. You cannot simultaneously have:
 - Short observation window (good for tracking rapid changes)
 - Fine frequency resolution (good for distinguishing close frequencies)
 
-**For AI:** Whisper uses a 25 ms analysis window (400 samples at 16 kHz) with 10 ms hop size, giving $\Delta f = 1/0.025 = 40$ Hz frequency resolution. This is a deliberate engineering choice: fine enough to separate speech formants (typically 100–300 Hz apart) while short enough to track fast phoneme transitions.
+**For AI:** Whisper uses a 25 ms analysis window (400 samples at 16 kHz) with 10 ms hop size, giving $\Delta f = 1/0.025 = 40$ Hz frequency resolution. This is a deliberate engineering choice: fine enough to separate speech formants (typically 100-300 Hz apart) while short enough to track fast phoneme transitions.
 
 ### 6.2 Zero-Padding
 
 **Zero-padding**: appending $M - N$ zeros to a signal of length $N$ before computing an $M$-point DFT ($M > N$).
 
-**What zero-padding does:** it computes $M$ equally-spaced samples of the **continuous** DTFT of the original $N$-point signal (i.e., the DTFT sampled at $M$ bins instead of $N$). This is **frequency-domain interpolation** — it fills in points between the original $N$ bins.
+**What zero-padding does:** it computes $M$ equally-spaced samples of the **continuous** DTFT of the original $N$-point signal (i.e., the DTFT sampled at $M$ bins instead of $N$). This is **frequency-domain interpolation** - it fills in points between the original $N$ bins.
 
 **What zero-padding does NOT do:** improve frequency resolution. The DTFT itself has resolution limited by $1/N$ (the original number of samples). Zero-padding only reveals the DTFT more finely; it cannot resolve frequencies closer than $1/N$ apart.
 
 **Applications of zero-padding:**
 
-1. **Sub-bin frequency estimation** (combine with interpolation): zero-padding by factor of 4–8 allows visual identification of spectral peaks with sub-bin accuracy.
+1. **Sub-bin frequency estimation** (combine with interpolation): zero-padding by factor of 4-8 allows visual identification of spectral peaks with sub-bin accuracy.
 
-2. **Linear convolution via FFT:** to convolve signals of lengths $L_1$ and $L_2$ linearly (not circularly), zero-pad both to length $\geq L_1 + L_2 - 1$ before DFT multiplication (§3.6). The circular convolution of the zero-padded sequences equals the linear convolution of the originals.
+2. **Linear convolution via FFT:** to convolve signals of lengths $L_1$ and $L_2$ linearly (not circularly), zero-pad both to length $\geq L_1 + L_2 - 1$ before DFT multiplication (Section 3.6). The circular convolution of the zero-padded sequences equals the linear convolution of the originals.
 
-3. **Next power-of-2**: zero-pad to the nearest power of 2 to maximize FFT efficiency, e.g., 1000 → 1024.
+3. **Next power-of-2**: zero-pad to the nearest power of 2 to maximize FFT efficiency, e.g., 1000 -> 1024.
 
-**For AI:** The Fourier Neural Operator (§8.2) explicitly truncates the spectrum to the lowest $K$ frequencies before learning, implicitly treating the signal as if zero-padded beyond the training domain. FlashFFTConv similarly uses zero-padding to convert long circular convolutions to linear ones.
+**For AI:** The Fourier Neural Operator (Section 8.2) explicitly truncates the spectrum to the lowest $K$ frequencies before learning, implicitly treating the signal as if zero-padded beyond the training domain. FlashFFTConv similarly uses zero-padding to convert long circular convolutions to linear ones.
 
 ### 6.3 The Nyquist-Shannon Sampling Theorem
 
-**Theorem (Shannon, 1949; Nyquist, 1928; Whittaker, 1915).** If a continuous signal $x(t)$ is bandlimited — meaning $\hat{x}(\xi) = 0$ for $|\xi| > B$ — then $x(t)$ can be perfectly reconstructed from samples at rate $f_s \geq 2B$.
+**Theorem (Shannon, 1949; Nyquist, 1928; Whittaker, 1915).** If a continuous signal $x(t)$ is bandlimited - meaning $\hat{x}(\xi) = 0$ for $|\xi| > B$ - then $x(t)$ can be perfectly reconstructed from samples at rate $f_s \geq 2B$.
 
 **Why the DFT cares:** if $f_s < 2B$, frequencies above $f_s/2$ **alias** onto lower frequencies. Specifically, a sinusoid at frequency $f_0 > f_s/2$ produces the same sample sequence as a sinusoid at frequency $f_s - f_0 < f_s/2$. In the DFT, bin $k$ and bin $N-k$ represent the same physical frequency if $f_s$ is not high enough.
 
 **The aliasing formula:** a signal at frequency $f_0$ aliases to $f_{\text{alias}} = |f_0 - \text{round}(f_0/f_s) \cdot f_s|$, i.e., the nearest copy within $[0, f_s/2)$.
 
-**Connection to Poisson summation** (from §02-7.5): the spectrum of the sampled signal is the sum of periodically-shifted copies of the continuous spectrum:
+**Connection to Poisson summation** (from Section 02-7.5): the spectrum of the sampled signal is the sum of periodically-shifted copies of the continuous spectrum:
 
 $$X_s(\xi) = f_s \sum_{k=-\infty}^{\infty} \hat{x}(\xi - kf_s)$$
 
-If adjacent copies overlap (i.e., $f_s < 2B$), they contaminate each other — this is aliasing. If $f_s \geq 2B$, the copies are non-overlapping and the original spectrum can be recovered by applying a lowpass filter with cutoff at $f_s/2$.
+If adjacent copies overlap (i.e., $f_s < 2B$), they contaminate each other - this is aliasing. If $f_s \geq 2B$, the copies are non-overlapping and the original spectrum can be recovered by applying a lowpass filter with cutoff at $f_s/2$.
 
 **Practical rule:** In practice, use $f_s \geq 2.5B$ with an anti-aliasing lowpass filter at $f_s/2$ before the ADC. Audio CDs use $f_s = 44.1$ kHz because human hearing extends to $\sim 20$ kHz (requires $f_s > 40$ kHz), with the extra 2.1 kHz providing a transition band for the anti-aliasing filter.
 
@@ -723,16 +723,16 @@ When computing an FFT-based spectral analysis, follow this sequence:
 
 ```
 PRACTICAL FFT CHECKLIST
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   1. CHOOSE N
      - Prefer N = 2^k (fastest FFT)
      - If not possible: N = 2^a * 3^b * 5^c (still fast)
-     - N controls frequency resolution: Δf = fs / N
+     - N controls frequency resolution: f = fs / N
 
   2. APPLY WINDOW
      - Default: Hann window (good sidelobes, modest resolution loss)
-     - High dynamic range: Blackman or Kaiser (β ≈ 8)
+     - High dynamic range: Blackman or Kaiser ( approx 8)
      - If signal is periodic with exactly N samples: rectangular
 
   3. COMPUTE FFT
@@ -745,15 +745,15 @@ PRACTICAL FFT CHECKLIST
      - After fftshift: freqs = [-fs/2, ..., 0, ..., fs/2]
 
   5. INTERPRET MAGNITUDE
-     - |X[k]| / N  →  amplitude of the sinusoid
-     - |X[k]|^2 / N  →  power spectral density
+     - |X[k]| / N  ->  amplitude of the sinusoid
+     - |X[k]|^2 / N  ->  power spectral density
      - Divide by window coherent gain for absolute amplitudes
 
   6. HANDLE NEGATIVE FREQUENCIES
      - Use fftshift(X) to center zero-frequency
      - For real inputs: mirror the positive half (rfft returns one-sided)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -762,9 +762,9 @@ PRACTICAL FFT CHECKLIST
 
 ### 7.1 Motivation: Time-Varying Spectra
 
-The DFT and continuous FT assume the signal's spectral content is **stationary** — constant over the entire observation window. This assumption fails catastrophically for real-world signals:
+The DFT and continuous FT assume the signal's spectral content is **stationary** - constant over the entire observation window. This assumption fails catastrophically for real-world signals:
 
-- **Speech**: phonemes last 20–100 ms, with frequency content changing at each phoneme boundary
+- **Speech**: phonemes last 20-100 ms, with frequency content changing at each phoneme boundary
 - **Music**: pitch and timbre evolve continuously; a melody is precisely a time-varying spectrum
 - **EEG**: neural oscillations appear and disappear; seizure onset is detected by spectral changes
 - **Radar**: target velocity changes the Doppler shift over time
@@ -787,10 +787,10 @@ where:
 
 | Parameter | Effect |
 |---|---|
-| Window length $M$ | Longer $M$ → better frequency resolution, worse time resolution |
-| Hop size $H$ | Smaller $H$ → more frames (denser time axis), more computation |
+| Window length $M$ | Longer $M$ -> better frequency resolution, worse time resolution |
+| Hop size $H$ | Smaller $H$ -> more frames (denser time axis), more computation |
 | FFT size $N$ | $N > M$: zero-padding for denser frequency grid (not more resolution) |
-| Window type | Hann (default), Hamming, Blackman — sidelobe/resolution tradeoff (§5.2) |
+| Window type | Hann (default), Hamming, Blackman - sidelobe/resolution tradeoff (Section 5.2) |
 
 **Whisper's STFT parameters:** $M = 400$ samples (25 ms), $H = 160$ samples (10 ms), $N = 512$, window = Hann. At 16 kHz, this gives 257 frequency bins and one frame every 10 ms.
 
@@ -804,13 +804,13 @@ It represents the **power** (not amplitude) of each frequency at each time frame
 
 **Log-power spectrogram:** $10\log_{10}(|\text{STFT}|^2)$ in decibels. The logarithmic scale compresses the dynamic range and matches the perceptual sensitivity of human hearing (roughly logarithmic in both time and frequency).
 
-**Mel spectrogram:** sum the spectrogram over mel-frequency filterbanks (triangular filters spaced on the mel scale, which is a perceptual frequency scale logarithmic above 1 kHz). Used in Whisper, most modern ASR systems, and many audio AI models. Full details in §8.1.
+**Mel spectrogram:** sum the spectrogram over mel-frequency filterbanks (triangular filters spaced on the mel scale, which is a perceptual frequency scale logarithmic above 1 kHz). Used in Whisper, most modern ASR systems, and many audio AI models. Full details in Section 8.1.
 
-**Chirp spectrogram** (example): a signal sweeping linearly from $f_1$ to $f_2$ shows a diagonal stripe in the spectrogram — the instantaneous frequency increases linearly with time. This illustrates how the STFT tracks time-varying frequency content.
+**Chirp spectrogram** (example): a signal sweeping linearly from $f_1$ to $f_2$ shows a diagonal stripe in the spectrogram - the instantaneous frequency increases linearly with time. This illustrates how the STFT tracks time-varying frequency content.
 
 ### 7.4 Uncertainty Principle for STFT
 
-The STFT cannot escape the Heisenberg uncertainty principle from §02. For the windowed transform with window $w$ of duration $T_w$ and bandwidth $B_w$:
+The STFT cannot escape the Heisenberg uncertainty principle from Section 02. For the windowed transform with window $w$ of duration $T_w$ and bandwidth $B_w$:
 
 $$T_w \cdot B_w \geq \frac{1}{4\pi}$$
 
@@ -822,7 +822,7 @@ $$\Delta t \cdot \Delta f \geq \frac{1}{4\pi} \approx 0.08$$
 - Fine time resolution (short window $\to$ small $M$)
 - Fine frequency resolution (long window $\to$ large $M$)
 
-For speech recognition (Whisper): $M = 400$ samples → $\Delta t = 25\,\text{ms}$, $\Delta f \approx 40\,\text{Hz}$. For musical pitch tracking (need $\Delta f < 1\,\text{Hz}$ to distinguish semitones near 100 Hz): requires $M > 16000$ samples ($> 1$ second window). The STFT is inadequate for simultaneously good time and frequency resolution across scales — **this is exactly why wavelets exist** (§05 Wavelets).
+For speech recognition (Whisper): $M = 400$ samples -> $\Delta t = 25\,\text{ms}$, $\Delta f \approx 40\,\text{Hz}$. For musical pitch tracking (need $\Delta f < 1\,\text{Hz}$ to distinguish semitones near 100 Hz): requires $M > 16000$ samples ($> 1$ second window). The STFT is inadequate for simultaneously good time and frequency resolution across scales - **this is exactly why wavelets exist** (Section 05 Wavelets).
 
 ### 7.5 Synthesis and Perfect Reconstruction
 
@@ -836,11 +836,11 @@ where $w_a$ is the analysis window and $w_s$ is the synthesis window.
 
 $$\sum_{l=-\infty}^{\infty} w[n - lH]^2 = C \quad \forall n \quad \text{(using synthesis window } w_s = w_a = w \text{)}$$
 
-Hann window with $H = M/2$ (50% overlap): $w[n]^2 + w[n-M/2]^2 = 1$ for all $n$ — COLA satisfied.
+Hann window with $H = M/2$ (50% overlap): $w[n]^2 + w[n-M/2]^2 = 1$ for all $n$ - COLA satisfied.
 
-**Modified DFT (MDCT):** audio codecs (AAC, Vorbis, Opus) use the MDCT — a cosine-based transform with 50% overlap and critically sampled (no redundancy). The MDCT satisfies exact reconstruction (called "Time Domain Aliasing Cancellation") and is why modern audio codecs can achieve high quality at low bit rates. Full filter bank theory is developed in §05 Wavelets.
+**Modified DFT (MDCT):** audio codecs (AAC, Vorbis, Opus) use the MDCT - a cosine-based transform with 50% overlap and critically sampled (no redundancy). The MDCT satisfies exact reconstruction (called "Time Domain Aliasing Cancellation") and is why modern audio codecs can achieve high quality at low bit rates. Full filter bank theory is developed in Section 05 Wavelets.
 
-> **Forward reference:** The STFT and MDCT are the simplest multi-resolution analyses. Wavelets generalize this by allowing different window lengths at different frequencies — short windows at high frequencies (good time resolution) and long windows at low frequencies (good frequency resolution). See [§20-05 Wavelets](../05-Wavelets/notes.md) for the full treatment.
+> **Forward reference:** The STFT and MDCT are the simplest multi-resolution analyses. Wavelets generalize this by allowing different window lengths at different frequencies - short windows at high frequencies (good time resolution) and long windows at low frequencies (good frequency resolution). See [Section 20-05 Wavelets](../05-Wavelets/notes.md) for the full treatment.
 
 ---
 
@@ -854,38 +854,38 @@ OpenAI Whisper (Radford et al., 2022) is a 680M-parameter transformer trained on
 
 ```
 WHISPER AUDIO PREPROCESSING PIPELINE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Raw audio (PCM, 16 kHz)
-        │
-        ▼
+        |
+        
   1. Resample to 16 kHz (if needed)
-        │
-        ▼
+        |
+        
   2. Pad/trim to 30-second segments (480,000 samples)
-        │
-        ▼
+        |
+        
   3. STFT: window=Hann(400), hop=160, N_FFT=512
-     → Complex spectrogram: shape (257, T_frames)
-        │
-        ▼
-  4. Power spectrogram: |STFT|² → shape (257, T_frames)
-        │
-        ▼
+     -> Complex spectrogram: shape (257, T_frames)
+        |
+        
+  4. Power spectrogram: |STFT|2 -> shape (257, T_frames)
+        |
+        
   5. Apply 80 mel filterbanks (triangular, mel-spaced, 0-8000 Hz)
-     → Mel power spectrogram: shape (80, T_frames)
-        │
-        ▼
+     -> Mel power spectrogram: shape (80, T_frames)
+        |
+        
   6. Log compression: log10(max(mel_spec, 1e-10))
-        │
-        ▼
+        |
+        
   7. Normalize: (log_mel - mean) / 4  (empirically determined)
-        │
-        ▼
+        |
+        
   Transformer input: shape (80, 3000) for 30-second clip
-  (3000 frames × 10ms/frame = 30 seconds)
+  (3000 frames  10ms/frame = 30 seconds)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Mel filterbanks:** The mel scale maps frequency $f$ (Hz) to perceived pitch $m$ (mel):
@@ -894,9 +894,9 @@ $$m = 2595 \log_{10}\!\left(1 + \frac{f}{700}\right)$$
 
 Filterbanks are triangular filters equally spaced on the mel scale, covering the range $[f_{\min}, f_{\max}] = [0, 8000]\,\text{Hz}$. Human speech information is concentrated below 8 kHz; the mel scale matches the roughly logarithmic frequency resolution of the cochlea.
 
-**Why log-mel spectrograms?** (1) Log compression matches the roughly logarithmic perception of loudness (Stevens' power law). (2) Log mel spectrograms are approximately translation-equivariant in the log-frequency dimension — a pitch shift is a translation in log-frequency. (3) Empirically, they produce much better ASR results than raw spectrograms or MFCCs (Mel-Frequency Cepstral Coefficients) for large-scale transformer models.
+**Why log-mel spectrograms?** (1) Log compression matches the roughly logarithmic perception of loudness (Stevens' power law). (2) Log mel spectrograms are approximately translation-equivariant in the log-frequency dimension - a pitch shift is a translation in log-frequency. (3) Empirically, they produce much better ASR results than raw spectrograms or MFCCs (Mel-Frequency Cepstral Coefficients) for large-scale transformer models.
 
-**For AI:** Every audio transformer (Whisper, AudioPaLM, MusicGen, AudioLM) uses a similar FFT → mel spectrogram pipeline as its front-end. Understanding the pipeline is essential for debugging audio preprocessing bugs, which are among the most common sources of silent failure in audio AI systems.
+**For AI:** Every audio transformer (Whisper, AudioPaLM, MusicGen, AudioLM) uses a similar FFT -> mel spectrogram pipeline as its front-end. Understanding the pipeline is essential for debugging audio preprocessing bugs, which are among the most common sources of silent failure in audio AI systems.
 
 ### 8.2 Fourier Neural Operator (FNO)
 
@@ -919,11 +919,11 @@ where:
 
 $$(\mathcal{F}[v_t])_k = 0 \quad \text{for } k > K$$
 
-This implements a **global convolution** with a low-frequency kernel — learning only the large-scale structure of the operator, discarding high-frequency noise. For 2D problems (e.g., Navier-Stokes), truncate to $(K_1, K_2)$ modes in each dimension.
+This implements a **global convolution** with a low-frequency kernel - learning only the large-scale structure of the operator, discarding high-frequency noise. For 2D problems (e.g., Navier-Stokes), truncate to $(K_1, K_2)$ modes in each dimension.
 
-**Computational cost:** $O(N \log N)$ for the DFT plus $O(K d_v^2)$ for the spectral convolution, vs. $O(N^2)$ for full global convolution. For $N = 10^5$ and $K = 20$: the FNO spectral layer is $\sim 250$× cheaper than full attention.
+**Computational cost:** $O(N \log N)$ for the DFT plus $O(K d_v^2)$ for the spectral convolution, vs. $O(N^2)$ for full global convolution. For $N = 10^5$ and $K = 20$: the FNO spectral layer is $\sim 250$ cheaper than full attention.
 
-**For AI:** FNO was the first neural architecture to demonstrate that learning in frequency space outperforms learning in physical space for many PDE tasks. It has been extended to weather prediction (Pathak et al., 2022 "FourCastNet"), fluid dynamics, and climate modeling. The core idea — truncate, learn in frequency, invert — generalizes the classic Galerkin method from numerical PDE.
+**For AI:** FNO was the first neural architecture to demonstrate that learning in frequency space outperforms learning in physical space for many PDE tasks. It has been extended to weather prediction (Pathak et al., 2022 "FourCastNet"), fluid dynamics, and climate modeling. The core idea - truncate, learn in frequency, invert - generalizes the classic Galerkin method from numerical PDE.
 
 ### 8.3 Monarch Matrices and Structured FFT
 
@@ -941,7 +941,7 @@ where $L$ and $R$ are block-diagonal "butterfly-like" matrices. This gives a lea
 
 **Applications:**
 - **Efficient attention**: Monarch matrices can approximate attention in $O(N\sqrt{N})$ vs $O(N^2)$
-- **Hyperspherical projection**: replacing standard linear layers with Monarch matrices in transformers for 2× speedup with minimal accuracy loss
+- **Hyperspherical projection**: replacing standard linear layers with Monarch matrices in transformers for 2 speedup with minimal accuracy loss
 - **FFT-based initialization**: Monarch matrices initialized as FFT butterfly factors learn sparse frequency representations naturally
 
 **For AI:** The butterfly matrix decomposition connects signal processing (FFT structure) to deep learning (efficient matrix approximation). Models like FLASHATTENTION-2 and several emerging efficient transformer variants build on butterfly-structured operators as efficient replacements for dense weight matrices.
@@ -955,11 +955,11 @@ Dao et al. (2023, "FlashFFTConv: Efficient Convolutions for Long Sequences with 
 **FlashFFTConv solution:** decompose the long convolution kernel $h$ of length $N$ using the Monarch factorization into a product of shorter matrix operations, enabling Tensor Core utilization while preserving $O(N \log N)$ asymptotic complexity.
 
 **Key results:**
-- 2–7.3× speedup over standard FFT convolution for sequences up to 4M tokens
+- 2-7.3 speedup over standard FFT convolution for sequences up to 4M tokens
 - Linear memory in sequence length (vs. quadratic for full attention)
 - Enables training SSMs on sequences orders of magnitude longer than attention allows
 
-**Connection to Mamba:** Mamba (Gu & Dao, 2023) uses selective state spaces — a time-varying SSM where the transition matrices depend on the input. The resulting recurrence can be parallelized via a parallel scan (prefix sum), NOT an FFT. FlashFFTConv applies specifically to time-invariant SSMs like S4.
+**Connection to Mamba:** Mamba (Gu & Dao, 2023) uses selective state spaces - a time-varying SSM where the transition matrices depend on the input. The resulting recurrence can be parallelized via a parallel scan (prefix sum), NOT an FFT. FlashFFTConv applies specifically to time-invariant SSMs like S4.
 
 ### 8.5 Spectral Methods in Graph Neural Networks
 
@@ -971,7 +971,7 @@ Graph Neural Networks (GCNs) performing spectral graph convolution use the **gra
 
 This is a graph-domain analog of the DFT, with the regular frequency grid replaced by the graph eigenvalue spectrum.
 
-> **Forward reference to §11-04:** The full treatment of spectral graph convolution — including ChebNet (Defferrard et al., 2016), GCN (Kipf & Welling, 2017), and the connection to the graph Laplacian — is the canonical content of [§11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md). Here we note only the structural analogy: DFT is to regular grids as graph Fourier transform is to irregular graphs.
+> **Forward reference to Section 11-04:** The full treatment of spectral graph convolution - including ChebNet (Defferrard et al., 2016), GCN (Kipf & Welling, 2017), and the connection to the graph Laplacian - is the canonical content of [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md). Here we note only the structural analogy: DFT is to regular grids as graph Fourier transform is to irregular graphs.
 
 
 ---
@@ -997,7 +997,7 @@ This is a graph-domain analog of the DFT, with the regular frequency grid replac
 
 ## 10. Exercises
 
-**Exercise 1** ★ — DFT by Hand
+**Exercise 1** * - DFT by Hand
 
 **(a)** Compute the 4-point DFT of $\mathbf{x} = (1, 0, -1, 0)$ by hand using $\omega_4 = i$.
 Show all four coefficients $X[0], X[1], X[2], X[3]$.
@@ -1010,9 +1010,9 @@ Show all four coefficients $X[0], X[1], X[2], X[3]$.
 
 ---
 
-**Exercise 2** ★ — DFT Matrix Properties
+**Exercise 2** * - DFT Matrix Properties
 
-**(a)** Construct the 4×4 DFT matrix $F_4$ explicitly and verify numerically that $F_4 F_4^* = 4I$.
+**(a)** Construct the 44 DFT matrix $F_4$ explicitly and verify numerically that $F_4 F_4^* = 4I$.
 
 **(b)** Show that $F_4^2 = N P$ where $P$ is the time-reversal permutation matrix (i.e., applying the DFT twice returns the time-reversed signal scaled by $N$).
 
@@ -1022,7 +1022,7 @@ Show all four coefficients $X[0], X[1], X[2], X[3]$.
 
 ---
 
-**Exercise 3** ★ — FFT Implementation from Scratch
+**Exercise 3** * - FFT Implementation from Scratch
 
 **(a)** Implement the radix-2 Cooley-Tukey FFT recursively in Python (without using `numpy.fft`). Your function should accept any power-of-2 length.
 
@@ -1034,7 +1034,7 @@ Show all four coefficients $X[0], X[1], X[2], X[3]$.
 
 ---
 
-**Exercise 4** ★★ — Spectral Leakage and Windowing
+**Exercise 4** ** - Spectral Leakage and Windowing
 
 **(a)** Generate a signal $x[n] = \cos(2\pi \cdot 3.7 \cdot n/N)$ for $N = 128$ samples (a sinusoid at a non-integer frequency). Compute and plot the DFT magnitude for rectangular, Hann, and Blackman windows.
 
@@ -1042,11 +1042,11 @@ Show all four coefficients $X[0], X[1], X[2], X[3]$.
 
 **(c)** Two sinusoids at frequencies $f_1 = 5$ and $f_2 = 5.5$ cycles over $N = 64$ samples. Show that they cannot be resolved with the rectangular window, but can be partially resolved after zero-padding to $N = 256$.
 
-**(d)** Implement Kaiser window computation (using `scipy.special.i0`) and sweep $\beta$ from 0 to 14. Plot peak sidelobe level vs. main-lobe width. Reproduce the three window parameter rows from the table in §5.3.
+**(d)** Implement Kaiser window computation (using `scipy.special.i0`) and sweep $\beta$ from 0 to 14. Plot peak sidelobe level vs. main-lobe width. Reproduce the three window parameter rows from the table in Section 5.3.
 
 ---
 
-**Exercise 5** ★★ — Parseval, Energy, and the Power Spectral Density
+**Exercise 5** ** - Parseval, Energy, and the Power Spectral Density
 
 **(a)** Generate a bandlimited noise signal: $x[n] = \sum_{k=10}^{20} \cos(2\pi kn/N + \phi_k)$ for $N = 512$ with random phases $\phi_k \sim \mathcal{U}(0, 2\pi)$. Verify Parseval's theorem numerically: $\sum_n |x[n]|^2 = \frac{1}{N}\sum_k |X[k]|^2$.
 
@@ -1058,7 +1058,7 @@ Show all four coefficients $X[0], X[1], X[2], X[3]$.
 
 ---
 
-**Exercise 6** ★★ — STFT and Spectrogram Analysis
+**Exercise 6** ** - STFT and Spectrogram Analysis
 
 **(a)** Generate a chirp signal: $x[n] = \cos(2\pi(f_0 + \alpha n/N) \cdot n/f_s)$ with $f_0 = 100$ Hz, $\alpha \cdot f_s = 1000$ Hz, $f_s = 8000$ Hz, $N = 8000$ samples (1 second). Compute and display the STFT spectrogram using Hann window of length 256 samples with 50% overlap.
 
@@ -1070,25 +1070,25 @@ Show all four coefficients $X[0], X[1], X[2], X[3]$.
 
 ---
 
-**Exercise 7** ★★★ — Whisper Mel Spectrogram Pipeline
+**Exercise 7** *** - Whisper Mel Spectrogram Pipeline
 
 **(a)** Implement the full Whisper mel-spectrogram pipeline from scratch:
   - STFT with Hann window (400 samples), hop 160, FFT size 512
   - Power spectrogram $|X|^2$
-  - 80 mel filterbanks covering 0–8000 Hz on the mel scale
+  - 80 mel filterbanks covering 0-8000 Hz on the mel scale
   - Log compression with floor at $10^{-10}$
   
 Test on a 1-second synthetic signal: a mixture of three sinusoids at 300, 1200, and 3500 Hz.
 
 **(b)** Verify that your mel filterbanks sum to (approximately) the total spectral power: $\sum_{m=1}^{80} \text{mel\_spec}[m, l] \approx \sum_k w_m[k] |X[k, l]|^2$.
 
-**(c)** Apply your pipeline to the test signal and plot the 80×100 mel spectrogram. Label the three sinusoid peaks.
+**(c)** Apply your pipeline to the test signal and plot the 80100 mel spectrogram. Label the three sinusoid peaks.
 
 **(d)** Analyze the effect of mel filterbank overlap: are the three sinusoids at 300, 1200, and 3500 Hz resolved in separate mel bins? What is the mel-bin width in Hz at each of the three frequencies?
 
 ---
 
-**Exercise 8** ★★★ — Fourier Neural Operator: Spectral Convolution Layer
+**Exercise 8** *** - Fourier Neural Operator: Spectral Convolution Layer
 
 **(a)** Implement the 1D FNO spectral convolution layer:
   ```python
@@ -1097,7 +1097,7 @@ Test on a 1-second synthetic signal: a mixture of three sinusoids at 300, 1200, 
       # weights: (in_channels, out_channels, modes) complex
       # modes: number of retained Fourier modes
   ```
-  The layer: DFT along last axis → truncate to `modes` → multiply by `weights` → zero-pad → IDFT.
+  The layer: DFT along last axis -> truncate to `modes` -> multiply by `weights` -> zero-pad -> IDFT.
 
 **(b)** Test on the 1D Burgers' equation approximation: generate smooth initial conditions $u_0 \sim \text{GP}(0, (-\partial^2_x + 1)^{-2})$ and apply your spectral layer. Show that retaining $K = 16$ modes captures $> 99\%$ of the energy for smooth functions.
 
@@ -1111,13 +1111,13 @@ Test on a 1-second synthetic signal: a mixture of three sinusoids at 300, 1200, 
 
 | Concept | AI/ML Impact |
 |---------|-------------|
-| **FFT O(N log N) complexity** | Foundation of all efficient sequence models: FNet, S4, Mamba, FNO, FlashFFTConv — the difference between feasible and infeasible at 100K+ token lengths |
-| **DFT matrix unitarity** | Guarantees that FFT-based feature maps preserve signal energy; relevant to gradient stability in FNO and FNet — unitary transforms avoid the vanishing/exploding gradient problem in deep spectral networks |
+| **FFT O(N log N) complexity** | Foundation of all efficient sequence models: FNet, S4, Mamba, FNO, FlashFFTConv - the difference between feasible and infeasible at 100K+ token lengths |
+| **DFT matrix unitarity** | Guarantees that FFT-based feature maps preserve signal energy; relevant to gradient stability in FNO and FNet - unitary transforms avoid the vanishing/exploding gradient problem in deep spectral networks |
 | **Spectral truncation** | FNO's key innovation: learning only low-frequency behavior yields generalizable, resolution-invariant operators; matches the inductive bias that real physics is smooth |
 | **STFT and mel spectrograms** | The front-end of every modern audio model (Whisper, AudioPaLM, MusicGen, AudioLM, VALL-E 2); getting the FFT pipeline right is prerequisite for any audio AI work |
 | **Windowing** | Hann/Hamming windows in Whisper's STFT directly affect spectrogram quality; poor window choice causes leakage artifacts that corrupt speech features used by the ASR transformer |
-| **Butterfly matrix structure** | Monarch matrices (Dao et al., 2022) parameterize structured transforms with $O(N\sqrt{N})$ parameters, enabling trainable FFT-like operations inside transformers at 2–4× speedup |
-| **Circular convolution theorem** | Makes FFT-based convolution O(N log N) instead of O(N²); used in FlashFFTConv for long-range dependencies; connection to §04 where this is developed fully |
+| **Butterfly matrix structure** | Monarch matrices (Dao et al., 2022) parameterize structured transforms with $O(N\sqrt{N})$ parameters, enabling trainable FFT-like operations inside transformers at 2-4 speedup |
+| **Circular convolution theorem** | Makes FFT-based convolution O(N log N) instead of O(N2); used in FlashFFTConv for long-range dependencies; connection to Section 04 where this is developed fully |
 | **Nyquist-Shannon theorem** | Governs sample rate requirements for all audio AI; at 16 kHz (Whisper), the Nyquist limit is 8 kHz, matching the mel filterbank design; misunderstanding aliasing causes silent audio processing bugs |
 | **Frequency resolution** | In FNO: $K$ retained modes determines the scale of PDE features the network can learn; too few modes = underfitting; too many = overfitting to noise; analogous to bandwidth selection in statistics |
 | **Fourier Neural Operator** | State-of-the-art for weather prediction (FourCastNet, GraphCast partially inspired), fluid dynamics, and climate modeling at $O(N\log N)$ cost; represents the convergence of PDE numerics and deep learning |
@@ -1128,47 +1128,47 @@ Test on a 1-second synthetic signal: a mixture of three sinusoids at 300, 1200, 
 
 ### Looking Backward
 
-This section discretizes and algorithmizes the continuous Fourier Transform from [§20-02](../02-Fourier-Transform/notes.md). The connection is precise: the DFT evaluates the continuous FT of a sampled signal at $N$ equally-spaced frequencies, with errors bounded by the Nyquist theorem and the windowing artifact. Every property of the continuous FT — linearity, shift, scaling, Plancherel — has a discrete analog, with the crucial difference that shifts are now circular. The $L^2$ inner product of $\mathbb{R}$ becomes the finite inner product on $\mathbb{C}^N$; unitarity of the continuous FT (Plancherel) becomes unitarity of the DFT matrix. The Poisson summation formula from §02-7.5 directly explains why sampled spectra are periodic and why aliasing occurs.
+This section discretizes and algorithmizes the continuous Fourier Transform from [Section 20-02](../02-Fourier-Transform/notes.md). The connection is precise: the DFT evaluates the continuous FT of a sampled signal at $N$ equally-spaced frequencies, with errors bounded by the Nyquist theorem and the windowing artifact. Every property of the continuous FT - linearity, shift, scaling, Plancherel - has a discrete analog, with the crucial difference that shifts are now circular. The $L^2$ inner product of $\mathbb{R}$ becomes the finite inner product on $\mathbb{C}^N$; unitarity of the continuous FT (Plancherel) becomes unitarity of the DFT matrix. The Poisson summation formula from Section 02-7.5 directly explains why sampled spectra are periodic and why aliasing occurs.
 
-The Cooley-Tukey FFT is not a mathematical theorem about the DFT — it is an algorithmic fact about how to implement the DFT matrix-vector product by exploiting the Vandermonde structure of the DFT matrix. The mathematics is in the DFT; the computer science is in the FFT.
+The Cooley-Tukey FFT is not a mathematical theorem about the DFT - it is an algorithmic fact about how to implement the DFT matrix-vector product by exploiting the Vandermonde structure of the DFT matrix. The mathematics is in the DFT; the computer science is in the FFT.
 
 ### Looking Forward
 
-The immediate next step is [§20-04 Convolution Theorem](../04-Convolution-Theorem/notes.md), which proves the central result previewed in §3.6: DFT multiplication equals circular convolution. This makes FFT-based convolution $O(N\log N)$ instead of $O(N^2)$, and underlies every CNN, SSM, and FNO architecture. Overlap-add and overlap-save (introduced in §5.5) are the standard tools for applying this theorem to long signals.
+The immediate next step is [Section 20-04 Convolution Theorem](../04-Convolution-Theorem/notes.md), which proves the central result previewed in Section 3.6: DFT multiplication equals circular convolution. This makes FFT-based convolution $O(N\log N)$ instead of $O(N^2)$, and underlies every CNN, SSM, and FNO architecture. Overlap-add and overlap-save (introduced in Section 5.5) are the standard tools for applying this theorem to long signals.
 
-[§20-05 Wavelets](../05-Wavelets/notes.md) addresses the STFT's fundamental limitation: fixed time-frequency resolution. Wavelets use variable window sizes — short windows at high frequencies, long windows at low frequencies — to achieve optimal time-frequency localization simultaneously across all scales. The connection runs through the filter bank theory developed in §04: Daubechies wavelets are exactly the solution to the "perfect reconstruction filter bank" problem.
+[Section 20-05 Wavelets](../05-Wavelets/notes.md) addresses the STFT's fundamental limitation: fixed time-frequency resolution. Wavelets use variable window sizes - short windows at high frequencies, long windows at low frequencies - to achieve optimal time-frequency localization simultaneously across all scales. The connection runs through the filter bank theory developed in Section 04: Daubechies wavelets are exactly the solution to the "perfect reconstruction filter bank" problem.
 
-Further afield, the Fourier Neural Operator of §8.2 will appear again in advanced PDE-solving contexts, and the spectral graph convolution preview of §8.5 connects to [§11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md). The mathematical framework of the DFT as a change of basis in a finite-dimensional Hilbert space generalizes to infinite-dimensional Hilbert spaces in [§12-02 Hilbert Spaces](../../12-Functional-Analysis/02-Hilbert-Spaces/notes.md), where the orthonormal Fourier basis becomes a complete orthonormal system and Parseval's identity extends to an equality that characterizes separable Hilbert spaces.
+Further afield, the Fourier Neural Operator of Section 8.2 will appear again in advanced PDE-solving contexts, and the spectral graph convolution preview of Section 8.5 connects to [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md). The mathematical framework of the DFT as a change of basis in a finite-dimensional Hilbert space generalizes to infinite-dimensional Hilbert spaces in [Section 12-02 Hilbert Spaces](../../12-Functional-Analysis/02-Hilbert-Spaces/notes.md), where the orthonormal Fourier basis becomes a complete orthonormal system and Parseval's identity extends to an equality that characterizes separable Hilbert spaces.
 
 ```
 POSITION IN THE FOURIER ANALYSIS CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §20-01  Fourier Series           periodic functions, L²[-π,π]
-          ↓  (take period T → ∞)
-  §20-02  Fourier Transform        continuous FT, Plancherel, uncertainty
-          ↓  (sample at rate fs, observe N points)
-  §20-03  DFT and FFT              ← YOU ARE HERE
-          ↓  (DFT multiplication = circular convolution)
-  §20-04  Convolution Theorem      CNNs, WaveNet, S4/Mamba, Hyena
-          ↓  (variable-resolution analysis)
-  §20-05  Wavelets                 MRA, Daubechies, scattering networks
+  Section 20-01  Fourier Series           periodic functions, L2[-,]
+          v  (take period T -> infty)
+  Section 20-02  Fourier Transform        continuous FT, Plancherel, uncertainty
+          v  (sample at rate fs, observe N points)
+  Section 20-03  DFT and FFT              <- YOU ARE HERE
+          v  (DFT multiplication = circular convolution)
+  Section 20-04  Convolution Theorem      CNNs, WaveNet, S4/Mamba, Hyena
+          v  (variable-resolution analysis)
+  Section 20-05  Wavelets                 MRA, Daubechies, scattering networks
 
   Key Connections:
-  ┌───────────────────────────────────────────────────────────┐
-  │ DFT = discrete + finite version of the continuous FT      │
-  │ FFT = O(N log N) algorithm for computing the DFT matrix   │
-  │ STFT = sliding DFT → time-frequency representation        │
-  │ Windowing = control leakage ↔ frequency resolution        │
-  │ Parseval: ‖x‖² = ‖X‖²/N  (energy conserved by DFT)      │
-  │ Circular convolution theorem → leads to §04               │
-  │ Fixed resolution limitation of STFT → leads to §05        │
-  └───────────────────────────────────────────────────────────┘
+  +-----------------------------------------------------------+
+  | DFT = discrete + finite version of the continuous FT      |
+  | FFT = O(N log N) algorithm for computing the DFT matrix   |
+  | STFT = sliding DFT -> time-frequency representation        |
+  | Windowing = control leakage  frequency resolution        |
+  | Parseval: x2 = X2/N  (energy conserved by DFT)      |
+  | Circular convolution theorem -> leads to Section 04               |
+  | Fixed resolution limitation of STFT -> leads to Section 05        |
+  +-----------------------------------------------------------+
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-[← Back to Fourier Analysis](../README.md) | [Previous: Fourier Transform ←](../02-Fourier-Transform/notes.md) | [Next: Convolution Theorem →](../04-Convolution-Theorem/notes.md)
+[<- Back to Fourier Analysis](../README.md) | [Previous: Fourier Transform <-](../02-Fourier-Transform/notes.md) | [Next: Convolution Theorem ->](../04-Convolution-Theorem/notes.md)
 
 ---
 
@@ -1198,7 +1198,7 @@ The **periodogram** is the classical (non-parametric) estimator of the Power Spe
 
 $$\hat{S}(f_k) = \frac{1}{N f_s} |X[k]|^2, \quad f_k = k f_s / N$$
 
-The periodogram is an **inconsistent** estimator — its variance does not decrease as $N \to \infty$, even though its mean converges to the true PSD. This is because each DFT coefficient is approximately a chi-squared random variable with 2 degrees of freedom, regardless of $N$.
+The periodogram is an **inconsistent** estimator - its variance does not decrease as $N \to \infty$, even though its mean converges to the true PSD. This is because each DFT coefficient is approximately a chi-squared random variable with 2 degrees of freedom, regardless of $N$.
 
 **Smoothed periodogram estimators:**
 
@@ -1259,7 +1259,7 @@ FOR each stage s = 1, 2, ..., log2(N):
             x[position + stride] = a - b   (overwrite)
 ```
 
-This avoids allocating a second array of size $N$, halving memory usage — critical for embedded systems and for FFTs of very large signals.
+This avoids allocating a second array of size $N$, halving memory usage - critical for embedded systems and for FFTs of very large signals.
 
 ### B.2 Multi-Dimensional FFT
 
@@ -1276,7 +1276,7 @@ $$X[k_1, k_2] = \sum_{n_1=0}^{N_1-1}\sum_{n_2=0}^{N_2-1} x[n_1, n_2]\,\omega_{N_
 
 ### B.3 Number-Theoretic Transform (NTT)
 
-The **Number-Theoretic Transform** replaces complex arithmetic with arithmetic modulo a prime $p$. The NTT uses a primitive $N$-th root of unity modulo $p$ — an integer $\omega$ such that $\omega^N \equiv 1 \pmod{p}$ and $\omega^k \not\equiv 1 \pmod{p}$ for $k < N$.
+The **Number-Theoretic Transform** replaces complex arithmetic with arithmetic modulo a prime $p$. The NTT uses a primitive $N$-th root of unity modulo $p$ - an integer $\omega$ such that $\omega^N \equiv 1 \pmod{p}$ and $\omega^k \not\equiv 1 \pmod{p}$ for $k < N$.
 
 **Why NTT matters:** unlike the FFT with floating-point arithmetic, the NTT is exact (integer arithmetic modulo $p$). It is used for:
 - **Polynomial multiplication modulo a prime**: key operation in lattice-based cryptography (NTRU, CRYSTALS-Kyber)
@@ -1313,7 +1313,7 @@ $$X[1] = E[1] + \omega_8^1 O[1] = (-3-i) + \frac{1-i}{\sqrt{2}}(-1-3i)$$
 
 Computing $\omega_8^1(-1-3i) = \frac{-1-3i-i+3i^2}{\sqrt{2}} \cdot (-1) = \frac{(1+3i)(1-i)}{\sqrt{2}} \cdot (-1)$... the exact arithmetic is tedious; numerically: $X = (20, -5.657, 0, -0.828, 0, -0.828, 0, -5.657)$.
 
-**Verification:** $X[0] = \sum_n x[n] = 1+2+3+4+4+3+2+1 = 20$ ✓. Parseval: $\sum_n x[n]^2 = 1+4+9+16+16+9+4+1 = 60$; $\frac{1}{8}\sum_k |X[k]|^2 = \frac{1}{8}(400 + 32 + 0 + 0.686 + 0 + 0.686 + 0 + 32) \approx 60$ ✓.
+**Verification:** $X[0] = \sum_n x[n] = 1+2+3+4+4+3+2+1 = 20$ PASS. Parseval: $\sum_n x[n]^2 = 1+4+9+16+16+9+4+1 = 60$; $\frac{1}{8}\sum_k |X[k]|^2 = \frac{1}{8}(400 + 32 + 0 + 0.686 + 0 + 0.686 + 0 + 32) \approx 60$ PASS.
 
 ### C.2 Leakage Quantification: Rectangular vs Hann
 
@@ -1321,7 +1321,7 @@ Signal: $x(t) = \cos(2\pi \cdot 3.5 t)$ sampled at $f_s = 1$ Hz for $N = 16$ sam
 
 **Rectangular window:** All 16 DFT values are nonzero. The two closest bins ($k=3$, $k=4$) have magnitude $\approx 7.1$ each (out of a maximum of 8 for a bin-aligned frequency). The farthest bins ($k=8$) have magnitude $\approx 0.5$. Leakage energy (all bins except 3, 4): $\approx 10\%$ of total.
 
-**Hann window:** $w[n] = \frac{1}{2}(1 - \cos(2\pi n/15))$. The main lobe is now 4 bins wide (bins 2, 3, 4, 5 have significant energy). Leakage energy outside the main lobe: $< 0.1\%$ — a 100× reduction in far-field leakage.
+**Hann window:** $w[n] = \frac{1}{2}(1 - \cos(2\pi n/15))$. The main lobe is now 4 bins wide (bins 2, 3, 4, 5 have significant energy). Leakage energy outside the main lobe: $< 0.1\%$ - a 100 reduction in far-field leakage.
 
 **Trade-off:** the Hann window "blurs" the frequency axis (wider main lobe), but dramatically reduces interference from distant frequency components. For audio analysis with multiple simultaneous tones, the Hann window is almost always preferred.
 
@@ -1329,11 +1329,11 @@ Signal: $x(t) = \cos(2\pi \cdot 3.5 t)$ sampled at $f_s = 1$ Hz for $N = 16$ sam
 
 A grayscale image $I[m, n]$ of size $256 \times 256$ has $2^{16}$ pixel values. The 2D DFT produces $2^{16}$ complex frequency coefficients.
 
-**Low-frequency concentration:** natural images have most energy in low spatial frequencies — slowly varying regions (sky, smooth surfaces). Empirically, the top-left $16 \times 16$ corner of the DFT magnitude (the lowest 16 frequencies in each direction) typically captures $> 90\%$ of total image energy.
+**Low-frequency concentration:** natural images have most energy in low spatial frequencies - slowly varying regions (sky, smooth surfaces). Empirically, the top-left $16 \times 16$ corner of the DFT magnitude (the lowest 16 frequencies in each direction) typically captures $> 90\%$ of total image energy.
 
 **Compression idea:** retain only $K \times K$ DFT coefficients. Setting all others to zero and applying the IDFT gives a low-frequency reconstruction. For $K = 32$: $1024$ retained coefficients out of $65536$ ($\approx 1.6\%$), with visually acceptable reconstruction for most images.
 
-This is the conceptual predecessor of JPEG, which uses the **Discrete Cosine Transform (DCT)** — the real-valued cousin of the DFT — in $8 \times 8$ blocks, achieving better compression due to avoiding complex arithmetic and reducing boundary artifacts.
+This is the conceptual predecessor of JPEG, which uses the **Discrete Cosine Transform (DCT)** - the real-valued cousin of the DFT - in $8 \times 8$ blocks, achieving better compression due to avoiding complex arithmetic and reducing boundary artifacts.
 
 ---
 
@@ -1348,7 +1348,7 @@ Different values of $N$ require dramatically different computation times even wi
 | Powers of 2 ($2^k$) | Fastest |
 | Products $2^a 3^b 5^c$ | Very fast |
 | Smooth numbers (all prime factors $\leq 7$) | Fast |
-| Prime $N$ (uses Bluestein) | Slow — avoid if possible |
+| Prime $N$ (uses Bluestein) | Slow - avoid if possible |
 | $N = 2p$ for large prime $p$ | Slow |
 
 **Rule of thumb:** always zero-pad to a highly composite number. `scipy.fft.next_fast_len(N)` returns the smallest integer $\geq N$ that has only small prime factors.
@@ -1359,7 +1359,7 @@ Different values of $N$ require dramatically different computation times even wi
 - `float32` (single precision): round-off error $\approx 10^{-7}$ per operation. For $N = 2^{20}$: accumulated FFT error $\approx 10^{-7} \times \log_2(2^{20}) \approx 2 \times 10^{-6}$.
 - `float64` (double precision): error $\approx 10^{-16}$ per operation. FFT error for $N = 2^{20}$: $\approx 3 \times 10^{-15}$.
 
-For audio processing (16-bit integer input → 32-bit float): single precision is fine. For scientific computing or precision-sensitive applications: use double precision.
+For audio processing (16-bit integer input -> 32-bit float): single precision is fine. For scientific computing or precision-sensitive applications: use double precision.
 
 **Large DFT sizes and memory bandwidth:** for $N > 10^6$, the FFT becomes memory-bandwidth-limited rather than compute-limited. The working set (the data being accessed at each butterfly stage) exceeds the CPU cache, and cache misses dominate runtime. For very large FFTs: consider FFT algorithms with cache-oblivious access patterns (e.g., FFTW's recursive divide-and-conquer).
 
@@ -1386,7 +1386,7 @@ More precisely, the matrix of circular convolution by $\mathbf{a}$ (the circulan
 
 $$C_a \mathbf{f}_k = A[k] \mathbf{f}_k$$
 
-The DFT simultaneously diagonalizes all circulant matrices. This is the algebraic foundation of the Convolution Theorem (§04).
+The DFT simultaneously diagonalizes all circulant matrices. This is the algebraic foundation of the Convolution Theorem (Section 04).
 
 ### E.2 DFT and Number Theory: Quadratic Gauss Sums
 
@@ -1408,12 +1408,12 @@ The CRT mapping is $n \leftrightarrow (n_1, n_2)$ with $n = N_2 n_1 + N_1 n_2 \b
 
 $$X[k_1 N_1 + k_2 N_2 \bmod N] = \text{DFT}_{N_1} \otimes \text{DFT}_{N_2}$$
 
-**Connection to representation theory:** the Good-Thomas algorithm expresses the DFT on a cyclic group $\mathbb{Z}_N$ in terms of DFTs on subgroups $\mathbb{Z}_{N_1}$ and $\mathbb{Z}_{N_2}$ when $N = N_1 N_2$ is coprime. The general theory of DFT on finite abelian groups is a special case of harmonic analysis on locally compact abelian groups (Pontryagin duality), which is developed in full in [§12 Functional Analysis](../../12-Functional-Analysis/README.md).
+**Connection to representation theory:** the Good-Thomas algorithm expresses the DFT on a cyclic group $\mathbb{Z}_N$ in terms of DFTs on subgroups $\mathbb{Z}_{N_1}$ and $\mathbb{Z}_{N_2}$ when $N = N_1 N_2$ is coprime. The general theory of DFT on finite abelian groups is a special case of harmonic analysis on locally compact abelian groups (Pontryagin duality), which is developed in full in [Section 12 Functional Analysis](../../12-Functional-Analysis/README.md).
 
 
 ---
 
-## Appendix F: DFT Properties — Detailed Proofs
+## Appendix F: DFT Properties - Detailed Proofs
 
 ### F.1 Time Reversal
 
@@ -1422,7 +1422,7 @@ If $y[n] = x[-n \bmod N]$, then $Y[k] = X[-k \bmod N] = X[N-k]$.
 **Proof.**
 $$Y[k] = \sum_{n=0}^{N-1} x[-n \bmod N]\,\omega_N^{-nk} \overset{m=-n \bmod N}{=} \sum_{m=0}^{N-1} x[m]\,\omega_N^{mk} = X[-k \bmod N]$$
 
-**Consequence.** For real $\mathbf{x}$: $X[N-k] = X[-k] = X[k]^*$ (conjugate symmetry, §3.4). Time reversal in the time domain maps to frequency reversal (conjugation) in the frequency domain.
+**Consequence.** For real $\mathbf{x}$: $X[N-k] = X[-k] = X[k]^*$ (conjugate symmetry, Section 3.4). Time reversal in the time domain maps to frequency reversal (conjugation) in the frequency domain.
 
 ### F.2 Duality
 
@@ -1445,11 +1445,11 @@ For a complex signal $z[n] = x[n] + iy[n]$ with real parts $x[n]$ and $y[n]$:
 $$X[k] = \mathcal{F}\{x[n]\}[k] = \frac{Z[k] + Z[N-k]^*}{2}$$
 $$Y[k] = \mathcal{F}\{y[n]\}[k] = \frac{Z[k] - Z[N-k]^*}{2i}$$
 
-This allows computing two real DFTs in the time of one complex DFT — an important optimization for processing stereo audio or in-phase/quadrature (IQ) signals.
+This allows computing two real DFTs in the time of one complex DFT - an important optimization for processing stereo audio or in-phase/quadrature (IQ) signals.
 
 ---
 
-## Appendix G: Windowing Theory — Spectral Analysis Framework
+## Appendix G: Windowing Theory - Spectral Analysis Framework
 
 ### G.1 The Window Design Problem
 
@@ -1460,7 +1460,7 @@ $$X_w[k] = \frac{1}{N}(X \circledast W)[k]$$
 where $W[k] = \mathcal{F}\{w[n]\}[k]$ is the DFT of the window. The true spectrum $X[k]$ is "blurred" by $W[k]$.
 
 **Ideal window properties (contradictory):**
-1. $W[k] = N\delta[k]$ (no leakage — only possible for infinite observation)
+1. $W[k] = N\delta[k]$ (no leakage - only possible for infinite observation)
 2. $w[n] = 1$ for $n \in [0, N-1]$ (rectangular window: maximum time-domain energy)
 3. Compact support in both time and frequency (impossible by uncertainty principle)
 
@@ -1470,9 +1470,9 @@ Any window must trade off between these competing desiderata. The Kaiser window 
 
 The rate at which sidelobes decrease away from the main lobe is called the **rolloff rate** (in dB per octave):
 
-- **Rectangular window**: discontinuities at $n=0$ and $n=N-1$ → $|W[k]| \sim 1/k$ → rolloff $\approx -6\,\text{dB/octave}$
-- **Hann window**: continuous at endpoints (value 0) but derivative discontinuity → $|W[k]| \sim 1/k^2$ → rolloff $\approx -18\,\text{dB/octave}$
-- **Blackman window**: zero at endpoints with zero first and second derivatives → $|W[k]| \sim 1/k^3$ → rolloff $\approx -18\,\text{dB/octave}$ (but lower peak sidelobe)
+- **Rectangular window**: discontinuities at $n=0$ and $n=N-1$ -> $|W[k]| \sim 1/k$ -> rolloff $\approx -6\,\text{dB/octave}$
+- **Hann window**: continuous at endpoints (value 0) but derivative discontinuity -> $|W[k]| \sim 1/k^2$ -> rolloff $\approx -18\,\text{dB/octave}$
+- **Blackman window**: zero at endpoints with zero first and second derivatives -> $|W[k]| \sim 1/k^3$ -> rolloff $\approx -18\,\text{dB/octave}$ (but lower peak sidelobe)
 
 **Generalization.** A window with $p-1$ continuous derivatives at the endpoints has sidelobe falloff $O(k^{-(p+1)})$, corresponding to a rolloff rate of $-6(p+1)\,\text{dB/octave}$. This is a direct consequence of the Riemann-Lebesgue lemma applied to the windowed Fourier series.
 
@@ -1486,7 +1486,7 @@ $$\text{maximize} \quad \frac{\sum_{|k| \leq KN} |W[k]|^2}{\sum_k |W[k]|^2}$$
 
 The solution is the first Slepian sequence, which is the eigenvector corresponding to the largest eigenvalue of the matrix $A_{nm} = \frac{\sin(2\pi W(n-m))}{\pi(n-m)}$.
 
-Slepian sequences achieve theoretically optimal concentration — the maximum possible energy fraction in a given bandwidth — and are used in **multitaper spectral estimation** (§A.2).
+Slepian sequences achieve theoretically optimal concentration - the maximum possible energy fraction in a given bandwidth - and are used in **multitaper spectral estimation** (Section A.2).
 
 ---
 
@@ -1499,7 +1499,7 @@ Modern CPUs provide SIMD (Single Instruction Multiple Data) instructions that pr
 - AVX2: 4 double-precision complex numbers per operation
 - AVX-512: 8 double-precision complex numbers per operation
 
-FFTW automatically generates SIMD-optimized code for each detected instruction set. For $N = 2^{20}$ at double precision, AVX-512 provides approximately 8× speedup over scalar code.
+FFTW automatically generates SIMD-optimized code for each detected instruction set. For $N = 2^{20}$ at double precision, AVX-512 provides approximately 8 speedup over scalar code.
 
 ### H.2 GPU FFT (cuFFT)
 
@@ -1522,7 +1522,7 @@ For transforms exceeding GPU memory (e.g., $N > 10^8$), the DFT can be decompose
 
 Total communication: $O(N/P)$ complex numbers per GPU per transpose step. For $P = 8$ GPUs and $N = 10^9$: $\sim 128\,\text{GB}$ data movement per step.
 
-**Applications:** seismic data processing, climate modeling, and cosmological simulations routinely require distributed FFTs of $10^9$–$10^{12}$ points.
+**Applications:** seismic data processing, climate modeling, and cosmological simulations routinely require distributed FFTs of $10^9$-$10^{12}$ points.
 
 ---
 
@@ -1534,19 +1534,19 @@ Given DFT coefficients $X[0], \ldots, X[K]$ (retaining only the lowest $K+1$ fre
 
 $$\hat{x}(t) = \frac{1}{N}\sum_{k=0}^{K} X[k]\, e^{2\pi i k t/N} + \text{conjugate terms}$$
 
-This is the continuous analog of what FNO does (§8.2): it parameterizes a function by its low-frequency DFT coefficients, and evaluates it at any desired spatial resolution.
+This is the continuous analog of what FNO does (Section 8.2): it parameterizes a function by its low-frequency DFT coefficients, and evaluates it at any desired spatial resolution.
 
 ### I.2 Compressed Sensing and Sparse Recovery
 
 **Problem (Compressed Sensing).** A signal $\mathbf{x} \in \mathbb{C}^N$ is $s$-sparse in the DFT domain: only $s \ll N$ Fourier coefficients are nonzero. Can we recover $\mathbf{x}$ from $m \ll N$ measurements?
 
-**Answer (Candès, Romberg, Tao, 2006; Donoho, 2006).** If $m \geq C \cdot s \log(N/s)$ random measurements are taken, $\mathbf{x}$ can be exactly recovered (with high probability) by solving the $\ell^1$ minimization:
+**Answer (Candes, Romberg, Tao, 2006; Donoho, 2006).** If $m \geq C \cdot s \log(N/s)$ random measurements are taken, $\mathbf{x}$ can be exactly recovered (with high probability) by solving the $\ell^1$ minimization:
 
 $$\min_{\hat{\mathbf{x}}} \lVert \hat{\mathbf{x}} \rVert_1 \quad \text{subject to} \quad A\hat{\mathbf{x}} = \mathbf{b}$$
 
 where $A$ is the random measurement matrix. This is dramatically below the $m \geq N$ requirements of classical sampling.
 
-**For AI:** compressed sensing underlies MRI reconstruction (6–8× speedup by acquiring 1/6 of $k$-space data), compressed attention (attending to sparse subsets of frequency components), and efficient LLM inference when activations are sparse in the Fourier domain. The theoretical guarantees connect directly to the RIP (Restricted Isometry Property) of random DFT matrices.
+**For AI:** compressed sensing underlies MRI reconstruction (6-8 speedup by acquiring 1/6 of $k$-space data), compressed attention (attending to sparse subsets of frequency components), and efficient LLM inference when activations are sparse in the Fourier domain. The theoretical guarantees connect directly to the RIP (Restricted Isometry Property) of random DFT matrices.
 
 ### I.3 Phase Retrieval
 
@@ -1571,7 +1571,7 @@ This section works through the complete mathematics behind the mel spectrogram u
 
 $$m(f) = 2595 \log_{10}\!\left(1 + \frac{f}{700}\right), \quad f(m) = 700\left(10^{m/2595} - 1\right)$$
 
-The mel scale is approximately linear below 1 kHz (300 Hz ≈ 401 mel; 700 Hz ≈ 811 mel) and logarithmic above 1 kHz, matching the frequency resolution of the human auditory system (the cochlea's place-frequency mapping).
+The mel scale is approximately linear below 1 kHz (300 Hz approx 401 mel; 700 Hz approx 811 mel) and logarithmic above 1 kHz, matching the frequency resolution of the human auditory system (the cochlea's place-frequency mapping).
 
 **Step 2: Filterbank design.** For $M = 80$ mel filters covering $[f_{\min}, f_{\max}] = [0, 8000]\,\text{Hz}$:
 
@@ -1581,8 +1581,8 @@ The mel scale is approximately linear below 1 kHz (300 Hz ≈ 401 mel; 700 Hz �
 4. For filterbank $m$ ($m = 1, \ldots, 80$), define the triangular filter:
    
 $$H_m[k] = \begin{cases}
-\dfrac{f_k - f_{m-1}}{f_m - f_{m-1}} & f_{m-1} \leq f_k \leq f_m \\[6pt]
-\dfrac{f_{m+1} - f_k}{f_{m+1} - f_m} & f_m \leq f_k \leq f_{m+1} \\[6pt]
+\dfrac{f_k - f_{m-1}}{f_m - f_{m-1}} & f_{m-1} \leq f_k \leq f_m \\
+\dfrac{f_{m+1} - f_k}{f_{m+1} - f_m} & f_m \leq f_k \leq f_{m+1} \\
 0 & \text{otherwise}
 \end{cases}$$
 
@@ -1599,9 +1599,9 @@ $$\text{log\_mel}[m, l] = \log_{10}\!\left(\max\!\left(\text{mel\_spec}[m, l], 1
 The floor $10^{-10}$ prevents $\log(0)$. The Whisper normalization subtracts the mean of `log_mel` and divides by 4 (an empirically chosen scale factor that centers the values near $[-1, 1]$ for typical speech).
 
 **Why these choices?**
-- 80 mel bins: empirically optimal for large-scale ASR (more bins → marginal improvement; fewer → information loss)
-- 0–8000 Hz: human speech information is concentrated here; extending to 8+ kHz adds noise without significant ASR benefit
-- 25 ms window / 10 ms hop: matches the typical duration of speech phonemes (20–200 ms)
+- 80 mel bins: empirically optimal for large-scale ASR (more bins -> marginal improvement; fewer -> information loss)
+- 0-8000 Hz: human speech information is concentrated here; extending to 8+ kHz adds noise without significant ASR benefit
+- 25 ms window / 10 ms hop: matches the typical duration of speech phonemes (20-200 ms)
 - Log compression: matches perceptual loudness; prevents high-amplitude phonemes from dominating the feature representation
 
 ### J.2 FNO Architecture: Complete Mathematical Description
@@ -1615,13 +1615,13 @@ The Fourier Neural Operator (Li et al., 2021) architecture for 1D problems:
 
 ```
 Layer 0: Input lifting
-  a ∈ R^{N × d_a}  →  v ∈ R^{N × d_v}   (learnable MLP)
+  a  R^{N  d_a}  ->  v  R^{N  d_v}   (learnable MLP)
 
-Layer 1–4: FNO blocks
-  v ← FNO-Block(v)
+Layer 1-4: FNO blocks
+  v <- FNO-Block(v)
 
 Layer 5: Output projection
-  v ∈ R^{N × d_v}  →  u ∈ R^{N × d_u}   (learnable MLP)
+  v  R^{N  d_v}  ->  u  R^{N  d_u}   (learnable MLP)
 ```
 
 **FNO Block:**
@@ -1631,15 +1631,15 @@ FNO-Block(v):
     1. Spectral branch:
        V = DFT(v)                  # shape: (N, d_v) complex
        V_trunc = V[:K, :]           # keep lowest K modes
-       V_out = R @ V_trunc          # R ∈ C^{K × d_v × d_v}: learned weight
+       V_out = R @ V_trunc          # R  C^{K  d_v  d_v}: learned weight
        V_pad = [V_out; 0, ..., 0]   # zero-pad back to N modes
        v_spectral = IDFT(V_pad)     # shape: (N, d_v)
     
     2. Local branch:
-       v_local = W @ v              # W ∈ R^{d_v × d_v}: learned weight
+       v_local = W @ v              # W  R^{d_v  d_v}: learned weight
     
     3. Combine:
-       v_new = σ(v_spectral + v_local)  # σ = GeLU
+       v_new = (v_spectral + v_local)  #  = GeLU
     
     return v_new
 ```
@@ -1674,7 +1674,7 @@ where:
 
 $$F_N = (I_{N_1} \otimes F_{N_2}) \cdot D \cdot (F_{N_1} \otimes I_{N_2}) \cdot P_{\text{bit-reverse}}$$
 
-where $D$ is a diagonal twiddle-factor matrix and $\otimes$ is the Kronecker product. Each butterfly stage is a block-diagonal matrix — exactly the Monarch structure. Thus the FFT is a special Monarch matrix with specific parameter values.
+where $D$ is a diagonal twiddle-factor matrix and $\otimes$ is the Kronecker product. Each butterfly stage is a block-diagonal matrix - exactly the Monarch structure. Thus the FFT is a special Monarch matrix with specific parameter values.
 
 **Monarch parameterization:** instead of fixing the block entries to be DFT matrices, let $L_i$ and $R_j$ be learnable complex matrices. This gives $O(N(N_1 + N_2)) = O(N\sqrt{N})$ parameters (choosing $N_1 = N_2 = \sqrt{N}$).
 
@@ -1728,13 +1728,13 @@ A common real-world bug in Whisper-based systems illustrates why understanding t
 
 **Root cause:** the new microphone captures at 44.1 kHz (not 16 kHz). Naive resampling using `librosa.load(file, sr=16000)` with default settings may introduce aliasing artifacts or produce a slightly different frequency axis. Specifically:
 
-1. **Aliasing from incorrect anti-aliasing filter**: if the 44.1 kHz signal is downsampled by factor $\approx 2.76$ without applying a proper lowpass filter at 8 kHz (the Nyquist for 16 kHz), frequencies between 8 kHz and 22.05 kHz alias into the 0–8 kHz band, corrupting the mel spectrogram.
+1. **Aliasing from incorrect anti-aliasing filter**: if the 44.1 kHz signal is downsampled by factor $\approx 2.76$ without applying a proper lowpass filter at 8 kHz (the Nyquist for 16 kHz), frequencies between 8 kHz and 22.05 kHz alias into the 0-8 kHz band, corrupting the mel spectrogram.
 
-2. **Frequency axis mismatch**: if the mel filterbanks were designed for exactly 16 kHz sampling, resampling to 15,994 Hz (a common off-by-one error in resampling libraries) shifts all frequency bin centers by $\approx 0.04\%$ — too small to affect single-frequency detection but enough to corrupt the precise triangular filterbank overlaps.
+2. **Frequency axis mismatch**: if the mel filterbanks were designed for exactly 16 kHz sampling, resampling to 15,994 Hz (a common off-by-one error in resampling libraries) shifts all frequency bin centers by $\approx 0.04\%$ - too small to affect single-frequency detection but enough to corrupt the precise triangular filterbank overlaps.
 
 **Fix:** explicitly verify sample rate after loading (`assert sr == 16000`), use `scipy.signal.resample_poly` with explicit anti-aliasing, and validate the mel filterbank output against a known reference signal.
 
-**Lesson:** every stage of the FFT pipeline — sampling rate, window length, hop size, FFT size, filterbank design — has exact numerical requirements. The DFT is unforgiving of approximations.
+**Lesson:** every stage of the FFT pipeline - sampling rate, window length, hop size, FFT size, filterbank design - has exact numerical requirements. The DFT is unforgiving of approximations.
 
 ### L.2 FNO for Climate Modeling: FourCastNet
 
@@ -1742,10 +1742,10 @@ FourCastNet (Pathak et al., 2022, NVIDIA) uses a variant of the FNO architecture
 
 ```
 AFNO Layer:
-  1. Patchify: divide input grid (720×1440) into patches → tokens
+  1. Patchify: divide input grid (7201440) into patches -> tokens
   2. DFT along spatial dimensions (2D FFT)
   3. Mix frequencies with learned complex weights (block-diagonal for efficiency)
-  4. IDFT → spatial domain
+  4. IDFT -> spatial domain
   5. MLP for channel mixing
 ```
 
@@ -1756,19 +1756,19 @@ AFNO Layer:
 - Competitive with ECMWF operational forecasts on 2-week horizons for key variables (temperature at 500 hPa, wind at 850 hPa)
 - Trained on 40 years of ERA5 reanalysis data (3.8 TB)
 
-**Why frequency domain?** Atmospheric dynamics are dominated by large-scale planetary waves (low spatial frequencies) — the Rossby waves that govern jet streams and storm tracks. Truncating to $K = 32$ modes in each dimension captures $> 95\%$ of the variance in ERA5 data. Higher-frequency turbulence below the grid scale is parameterized separately.
+**Why frequency domain?** Atmospheric dynamics are dominated by large-scale planetary waves (low spatial frequencies) - the Rossby waves that govern jet streams and storm tracks. Truncating to $K = 32$ modes in each dimension captures $> 95\%$ of the variance in ERA5 data. Higher-frequency turbulence below the grid scale is parameterized separately.
 
 ### L.3 STFT Denoising in Production Audio
 
 Modern audio denoising systems (used in Zoom, Teams, Discord) use STFT-based processing:
 
 **Architecture:**
-1. STFT with Hann window (1024 samples, hop 256) → spectrogram $|X[l,k]|$ and phase $\angle X[l,k]$
+1. STFT with Hann window (1024 samples, hop 256) -> spectrogram $|X[l,k]|$ and phase $\angle X[l,k]$
 2. Neural network (small RNN or transformer) estimates the noise mask $M[l,k] \in [0,1]$
 3. Apply mask: $\hat{X}[l,k] = M[l,k] \cdot X[l,k]$ (keep speech, suppress noise)
 4. Reconstruct waveform via ISTFT with original phase (overlap-add)
 
-**Why preserve phase:** human perception is relatively insensitive to phase errors in speech (the McGurk effect), but phase-inconsistent reconstruction (Griffin-Lim iterations) introduces audible artifacts. Most commercial denoisers use the noisy signal's phase directly — a pragmatic approximation.
+**Why preserve phase:** human perception is relatively insensitive to phase errors in speech (the McGurk effect), but phase-inconsistent reconstruction (Griffin-Lim iterations) introduces audible artifacts. Most commercial denoisers use the noisy signal's phase directly - a pragmatic approximation.
 
 **Real-time constraint:** at 48 kHz with 1024-sample windows and 256-sample hop: one frame every 5.33 ms. A DNN processing one frame must complete in $< 5\,\text{ms}$ on the target hardware (often a small DSP or CPU). This limits the network size to $\sim 10^5$ parameters.
 
@@ -1780,15 +1780,15 @@ Modern audio denoising systems (used in Zoom, Teams, Discord) use STFT-based pro
 
 ### M.1 Harmonic Analysis on Finite Abelian Groups
 
-The DFT on $\mathbb{Z}_N$ (the cyclic group of integers modulo $N$) is a special case of harmonic analysis on locally compact abelian groups (LCA groups). For a finite abelian group $G$, the **Pontryagin dual** $\hat{G}$ is the group of characters (group homomorphisms $\chi: G \to S^1$). For $G = \mathbb{Z}_N$: $\hat{G} \cong \mathbb{Z}_N$ with characters $\chi_k(n) = \omega_N^{kn}$ — exactly the DFT basis.
+The DFT on $\mathbb{Z}_N$ (the cyclic group of integers modulo $N$) is a special case of harmonic analysis on locally compact abelian groups (LCA groups). For a finite abelian group $G$, the **Pontryagin dual** $\hat{G}$ is the group of characters (group homomorphisms $\chi: G \to S^1$). For $G = \mathbb{Z}_N$: $\hat{G} \cong \mathbb{Z}_N$ with characters $\chi_k(n) = \omega_N^{kn}$ - exactly the DFT basis.
 
 The **abstract Fourier transform** on $G$ is:
 
 $$\hat{f}(\chi) = \sum_{g \in G} f(g)\,\overline{\chi(g)}$$
 
-For $G = \mathbb{Z}_N$: this recovers the DFT exactly. For $G = \mathbb{R}$: this recovers the continuous FT. The same theorem — Pontryagin duality, Plancherel's theorem, Poisson summation — holds in all cases.
+For $G = \mathbb{Z}_N$: this recovers the DFT exactly. For $G = \mathbb{R}$: this recovers the continuous FT. The same theorem - Pontryagin duality, Plancherel's theorem, Poisson summation - holds in all cases.
 
-This unification is developed fully in [§12 Functional Analysis](../../12-Functional-Analysis/README.md), connecting the DFT to representation theory of compact groups, wavelet theory, and the Fourier analysis of non-commutative groups (non-abelian harmonic analysis).
+This unification is developed fully in [Section 12 Functional Analysis](../../12-Functional-Analysis/README.md), connecting the DFT to representation theory of compact groups, wavelet theory, and the Fourier analysis of non-commutative groups (non-abelian harmonic analysis).
 
 ### M.2 Number-Theoretic Applications
 
@@ -1803,7 +1803,7 @@ This is a DFT-like object: $G(a, N) = X[a]$ where $x[n] = 1$ for all $n$ and the
 
 ---
 
-## Appendix N: Spectral Analysis in Practice — Extended Examples
+## Appendix N: Spectral Analysis in Practice - Extended Examples
 
 ### N.1 Frequency Estimation: Sub-Bin Accuracy
 
@@ -1815,13 +1815,13 @@ A key practical problem: given noisy measurements $y[n] = A\cos(2\pi f_0 n/f_s +
 
 $$\hat{k} = k_{\max} + \frac{|Y[k_{\max}+1]| - |Y[k_{\max}-1]|}{2(2|Y[k_{\max}]| - |Y[k_{\max}-1]| - |Y[k_{\max}+1]|)}$$
 
-This achieves approximately 10× better accuracy than the coarse estimate for SNR $> 20$ dB.
+This achieves approximately 10 better accuracy than the coarse estimate for SNR $> 20$ dB.
 
 **Step 3: Quinn's Estimator.** For even better accuracy, use the complex DFT values directly:
 
 $$\hat{k} = k_{\max} + \operatorname{Re}\!\left[\frac{Y[k_{\max}+1]/Y[k_{\max}]}{1 - Y[k_{\max}+1]/Y[k_{\max}]}\right]$$
 
-Quinn's estimator is unbiased and achieves near-Cramér-Rao bound accuracy.
+Quinn's estimator is unbiased and achieves near-Cramer-Rao bound accuracy.
 
 **Step 4: Amplitude and phase.** Once $\hat{k}$ is estimated, the amplitude is $\hat{A} = 2|Y[\hat{k}]|/N$ (for a one-sided real spectrum) corrected for the window's coherent gain, and the phase is $\hat{\phi} = \angle Y[\hat{k}]$.
 
@@ -1834,7 +1834,7 @@ Speech is approximately **quasi-periodic**: voiced sounds (vowels) have a fundam
 2. Form the product spectrum: $P[k] = \prod_{h=1}^{H} |X[hk]|$
 3. Estimate $F_0 = f_s \cdot \arg\max_k P[k] / N$
 
-The HPS effectively downsamples the spectrum by factors $1, 2, \ldots, H$ and takes the product — aligning the harmonic peaks while suppressing noise between them.
+The HPS effectively downsamples the spectrum by factors $1, 2, \ldots, H$ and takes the product - aligning the harmonic peaks while suppressing noise between them.
 
 **In AI:** pitch estimation (fundamental frequency detection) is a key component of speech processing pipelines for voice synthesis (VALL-E, SoundStorm), emotion recognition, and singing voice synthesis. Modern deep-learning pitch detectors (CREPE, PYIN, PENN) outperform HPS but rely on spectral representations derived from the STFT.
 
@@ -1844,16 +1844,16 @@ The dominant paradigm for audio language models (AudioLM, VALL-E, MusicLM, Stabl
 
 ```
 Audio waveform
-    ↓ FFT → Mel spectrogram (continuous representation)
-    ↓ VQ-VAE or EnCodec → Discrete tokens
-    ↓ Language model (transformer) → Next-token prediction
-    ↓ Decoder → Reconstructed mel spectrogram
-    ↓ Vocoder (HiFi-GAN, WaveGrad) → Audio waveform
+    v FFT -> Mel spectrogram (continuous representation)
+    v VQ-VAE or EnCodec -> Discrete tokens
+    v Language model (transformer) -> Next-token prediction
+    v Decoder -> Reconstructed mel spectrogram
+    v Vocoder (HiFi-GAN, WaveGrad) -> Audio waveform
 ```
 
 The FFT and mel spectrogram serve as both the input representation for the encoder and the target representation for the decoder. The transformer operates entirely in the token space derived from the mel spectrogram.
 
-**Why not train end-to-end on waveforms?** The waveform representation at 16–44 kHz requires sequence lengths of $10^4$–$10^5$ samples per second — far beyond current transformer context lengths. The mel spectrogram with 10 ms frame shift compresses by a factor of $\sim 160\times$ (16 kHz) while preserving the perceptually relevant structure. This compression is what makes transformer-based audio generation feasible.
+**Why not train end-to-end on waveforms?** The waveform representation at 16-44 kHz requires sequence lengths of $10^4$-$10^5$ samples per second - far beyond current transformer context lengths. The mel spectrogram with 10 ms frame shift compresses by a factor of $\sim 160\times$ (16 kHz) while preserving the perceptually relevant structure. This compression is what makes transformer-based audio generation feasible.
 
 ---
 
@@ -1861,9 +1861,9 @@ The FFT and mel spectrogram serve as both the input representation for the encod
 
 | AI System | DFT Role | Key Parameters |
 |---|---|---|
-| **OpenAI Whisper** | FFT → mel spectrogram as input | $f_s=16$kHz, $M=400$, $H=160$, $N=512$, 80 mel bins |
+| **OpenAI Whisper** | FFT -> mel spectrogram as input | $f_s=16$kHz, $M=400$, $H=160$, $N=512$, 80 mel bins |
 | **FNet (Google)** | Full 2D DFT replaces attention | DFT along sequence AND embedding dims; no learned weights |
-| **FNO (CalTech)** | Truncated spectral convolution | $K=16$–$32$ modes; global PDE operator learning |
+| **FNO (CalTech)** | Truncated spectral convolution | $K=16$-$32$ modes; global PDE operator learning |
 | **FourCastNet (NVIDIA)** | AFNO block for weather prediction | 2D FFT on $720\times1440$ lat/lon grid; 73 variables |
 | **FlashFFTConv** | Butterfly-structured long convolution | Monarch factorization; $O(N\log N)$ with Tensor Cores |
 | **Monarch (Together AI)** | FFT butterfly as trainable transform | $O(N\sqrt{N})$ parameters; used as attention surrogate |
@@ -1872,7 +1872,7 @@ The FFT and mel spectrogram serve as both the input representation for the encod
 | **CREPE (pitch)** | Spectrogram input to CNN | $n_{\text{fft}}=1024$, $h=10$ms; pitch detection on mel spec |
 | **HiFi-GAN (vocoder)** | Multi-period discriminator | Multi-resolution STFT loss; discriminates real vs fake |
 | **S4/Mamba** | Spectral view of state space models | SSM recurrence equivalent to causal convolution (FFT in training) |
-| **RoPE (LLaMA)** | Frequency-domain position encoding | Complex rotation = modulation in DFT sense (§3.3) |
+| **RoPE (LLaMA)** | Frequency-domain position encoding | Complex rotation = modulation in DFT sense (Section 3.3) |
 
 
 ---
@@ -1907,7 +1907,7 @@ where $\text{supp}(\mathbf{x}) = \{n : x[n] \neq 0\}$ is the support of $\mathbf
 
 **Corollary.** A signal cannot have fewer than $\sqrt{N}$ nonzero samples AND fewer than $\sqrt{N}$ nonzero DFT coefficients simultaneously. This is the discrete analog of the Heisenberg uncertainty principle.
 
-**For AI:** compressed sensing exploits this theorem: a signal supported on $S$ DFT bins can be recovered from $m \geq CS\log N$ time-domain measurements — far fewer than $N$. This justifies FNO's use of $K \ll N$ Fourier modes: smooth solutions to PDEs have small Fourier support.
+**For AI:** compressed sensing exploits this theorem: a signal supported on $S$ DFT bins can be recovered from $m \geq CS\log N$ time-domain measurements - far fewer than $N$. This justifies FNO's use of $K \ll N$ Fourier modes: smooth solutions to PDEs have small Fourier support.
 
 ### P.3 Aliasing Formula: Proof via Poisson Summation
 
@@ -1915,9 +1915,9 @@ When $x(t)$ is sampled at rate $f_s$ (below the Nyquist rate for bandlimited $x$
 
 $$X_s[k] = \sum_{n=-\infty}^{\infty} \hat{x}\!\left(\frac{k}{N T_s} - \frac{n}{T_s}\right) = \frac{1}{T_s}\sum_{n=-\infty}^{\infty} \hat{x}(k\Delta f - n f_s)$$
 
-This is the **aliased spectrum**: the true spectrum $\hat{x}$ summed over all frequency shifts by integer multiples of $f_s$. When $\hat{x}$ is nonzero outside $[-f_s/2, f_s/2)$, adjacent copies overlap and contaminate each other — this is aliasing.
+This is the **aliased spectrum**: the true spectrum $\hat{x}$ summed over all frequency shifts by integer multiples of $f_s$. When $\hat{x}$ is nonzero outside $[-f_s/2, f_s/2)$, adjacent copies overlap and contaminate each other - this is aliasing.
 
-**Proof.** Starting from the Poisson summation formula (§02-7.5):
+**Proof.** Starting from the Poisson summation formula (Section 02-7.5):
 
 $$\sum_{n=-\infty}^{\infty} f(t - nT) = \frac{1}{T}\sum_{k=-\infty}^{\infty} \hat{f}(k/T)\, e^{2\pi i k t/T}$$
 
@@ -1934,21 +1934,21 @@ The left side is the DTFT of the sampled signal; the right side is the periodize
 
 ### Primary References
 
-1. **Cooley, J.W. and Tukey, J.W.** (1965). "An Algorithm for the Machine Calculation of Complex Fourier Series." *Mathematics of Computation*, 19(90), 297-301. — The original FFT paper; two pages, historically indispensable.
+1. **Cooley, J.W. and Tukey, J.W.** (1965). "An Algorithm for the Machine Calculation of Complex Fourier Series." *Mathematics of Computation*, 19(90), 297-301. - The original FFT paper; two pages, historically indispensable.
 
-2. **Oppenheim, A.V. and Schafer, R.W.** (2010). *Discrete-Time Signal Processing* (3rd ed.). Prentice Hall. — The standard reference for DSP; chapters 8-10 cover DFT, FFT, and windowing comprehensively.
+2. **Oppenheim, A.V. and Schafer, R.W.** (2010). *Discrete-Time Signal Processing* (3rd ed.). Prentice Hall. - The standard reference for DSP; chapters 8-10 cover DFT, FFT, and windowing comprehensively.
 
-3. **Strang, G.** (1986). "The Discrete Cosine Transform." *SIAM Review*, 41(1), 135-147. — Beautiful exposition connecting FFT, DCT, and linear algebra.
+3. **Strang, G.** (1986). "The Discrete Cosine Transform." *SIAM Review*, 41(1), 135-147. - Beautiful exposition connecting FFT, DCT, and linear algebra.
 
-4. **Frigo, M. and Johnson, S.G.** (2005). "The Design and Implementation of FFTW3." *Proceedings of the IEEE*, 93(2), 216-231. — FFTW's adaptive algorithm selection strategy.
+4. **Frigo, M. and Johnson, S.G.** (2005). "The Design and Implementation of FFTW3." *Proceedings of the IEEE*, 93(2), 216-231. - FFTW's adaptive algorithm selection strategy.
 
-5. **Li, Z. et al.** (2021). "Fourier Neural Operator for Parametric Partial Differential Equations." *ICLR 2021*. — FNO architecture and theory.
+5. **Li, Z. et al.** (2021). "Fourier Neural Operator for Parametric Partial Differential Equations." *ICLR 2021*. - FNO architecture and theory.
 
-6. **Dao, T. et al.** (2022). "Monarch: Expressive Structured Matrices for Efficient and Accurate Training." *ICML 2022*. — Butterfly matrix parameterization.
+6. **Dao, T. et al.** (2022). "Monarch: Expressive Structured Matrices for Efficient and Accurate Training." *ICML 2022*. - Butterfly matrix parameterization.
 
-7. **Radford, A. et al.** (2022). "Robust Speech Recognition via Large-Scale Weak Supervision." *ICML 2023*. — Whisper architecture and mel spectrogram preprocessing.
+7. **Radford, A. et al.** (2022). "Robust Speech Recognition via Large-Scale Weak Supervision." *ICML 2023*. - Whisper architecture and mel spectrogram preprocessing.
 
-8. **Donoho, D.L. and Stark, P.B.** (1989). "Uncertainty Principles and Signal Recovery." *SIAM Journal on Applied Mathematics*, 49(3), 906-931. — Discrete uncertainty principle.
+8. **Donoho, D.L. and Stark, P.B.** (1989). "Uncertainty Principles and Signal Recovery." *SIAM Journal on Applied Mathematics*, 49(3), 906-931. - Discrete uncertainty principle.
 
 ### Online Resources
 
@@ -1989,11 +1989,11 @@ The left side is the DTFT of the sampled signal; the right side is the periodize
 
 $$T(N) = 2T(N/2) + O(N) \implies T(N) = O(N \log_2 N)$$
 
-Compared to naive DFT: $N = 10^6$ reduces from $10^{12}$ to $2 \times 10^7$ operations — a $50\,000\times$ speedup.
+Compared to naive DFT: $N = 10^6$ reduces from $10^{12}$ to $2 \times 10^7$ operations - a $50\,000\times$ speedup.
 
 ### Key identities
 
-$$x \circledast y \;\overset{\mathcal{F}}{\longleftrightarrow}\; X[k] \cdot Y[k] \qquad \text{(see §04)}$$
+$$x \circledast y \;\overset{\mathcal{F}}{\longleftrightarrow}\; X[k] \cdot Y[k] \qquad \text{(see Section 04)}$$
 
 $$\sum_{n=0}^{N-1}|x[n]|^2 = \frac{1}{N}\sum_{k=0}^{N-1}|X[k]|^2 \qquad \text{(Parseval)}$$
 

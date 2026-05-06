@@ -1,34 +1,34 @@
-[← Back to Fourier Analysis](../README.md) | [Previous: DFT and FFT ←](../03-Discrete-Fourier-Transform-and-FFT/notes.md) | [Next: Wavelets →](../05-Wavelets/notes.md)
+[<- Back to Fourier Analysis](../README.md) | [Previous: DFT and FFT <-](../03-Discrete-Fourier-Transform-and-FFT/notes.md) | [Next: Wavelets ->](../05-Wavelets/notes.md)
 
 ---
 
 # Convolution Theorem
 
-> _"The convolution theorem is the most important theorem in signal processing — it is what makes Fourier analysis a practical computational tool rather than a purely theoretical construct."_
-> — Alan V. Oppenheim, MIT EECS
+> _"The convolution theorem is the most important theorem in signal processing - it is what makes Fourier analysis a practical computational tool rather than a purely theoretical construct."_
+> - Alan V. Oppenheim, MIT EECS
 
 ## Overview
 
-The Convolution Theorem establishes one of the most beautiful and practically consequential dualities in all of mathematics: **convolution in the time domain equals pointwise multiplication in the frequency domain**. This single identity reduces an $O(N^2)$ sliding-dot-product computation to $O(N \log N)$ FFT-based arithmetic — a transformation that made real-time digital audio processing possible in the 1970s and powers nearly every modern deep learning architecture today.
+The Convolution Theorem establishes one of the most beautiful and practically consequential dualities in all of mathematics: **convolution in the time domain equals pointwise multiplication in the frequency domain**. This single identity reduces an $O(N^2)$ sliding-dot-product computation to $O(N \log N)$ FFT-based arithmetic - a transformation that made real-time digital audio processing possible in the 1970s and powers nearly every modern deep learning architecture today.
 
 This section develops the Convolution Theorem rigorously in both its continuous and discrete forms, builds the surrounding theory of linear time-invariant (LTI) systems and filter design, treats efficient block-convolution algorithms (overlap-add, overlap-save), and traces the theorem's consequences through cross-correlation, the Wiener-Khinchin theorem, and deconvolution. The second half connects these classical results to modern AI: convolutional neural networks as learned frequency filters, WaveNet's causal dilated convolutions, state space models (S4, Mamba) as implicit convolution operators, the Hyena hierarchy's parameterized long convolutions, and FNet's replacement of multi-head attention with a single 2D FFT.
 
-The Convolution Theorem is not merely useful — it is a ring isomorphism. The DFT diagonalizes the circular convolution algebra $\mathbb{C}[\mathbb{Z}/N\mathbb{Z}]$, turning a non-commutative-looking operation into trivial pointwise multiplication. Understanding *why* this works — through the lens of group representation theory and Fourier analysis on abelian groups — gives deep insight into why spectral methods are so pervasive in modern sequence modeling.
+The Convolution Theorem is not merely useful - it is a ring isomorphism. The DFT diagonalizes the circular convolution algebra $\mathbb{C}[\mathbb{Z}/N\mathbb{Z}]$, turning a non-commutative-looking operation into trivial pointwise multiplication. Understanding *why* this works - through the lens of group representation theory and Fourier analysis on abelian groups - gives deep insight into why spectral methods are so pervasive in modern sequence modeling.
 
 ## Prerequisites
 
-- **DFT and FFT** — DFT definition, circular convolution preview, FFT algorithm, $O(N \log N)$ complexity ([§20-03](../03-Discrete-Fourier-Transform-and-FFT/notes.md))
-- **Fourier Transform** — continuous FT definition ($\xi$-convention), Plancherel's theorem, $L^1$ and $L^2$ theory ([§20-02](../02-Fourier-Transform/notes.md))
-- **Fourier Series** — complex exponential basis, Parseval's identity ([§20-01](../01-Fourier-Series/notes.md))
-- **Linear algebra** — inner products, unitary matrices, change of basis ([§02](../../02-Linear-Algebra-Basics/README.md))
-- **Complex analysis** — $e^{i\theta}$, modulus, argument, roots of unity ([§01](../../01-Mathematical-Foundations/README.md))
+- **DFT and FFT** - DFT definition, circular convolution preview, FFT algorithm, $O(N \log N)$ complexity ([Section 20-03](../03-Discrete-Fourier-Transform-and-FFT/notes.md))
+- **Fourier Transform** - continuous FT definition ($\xi$-convention), Plancherel's theorem, $L^1$ and $L^2$ theory ([Section 20-02](../02-Fourier-Transform/notes.md))
+- **Fourier Series** - complex exponential basis, Parseval's identity ([Section 20-01](../01-Fourier-Series/notes.md))
+- **Linear algebra** - inner products, unitary matrices, change of basis ([Section 02](../../02-Linear-Algebra-Basics/README.md))
+- **Complex analysis** - $e^{i\theta}$, modulus, argument, roots of unity ([Section 01](../../01-Mathematical-Foundations/README.md))
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |----------|-------------|
 | [theory.ipynb](theory.ipynb) | Convolution theorem proofs, LTI frequency response, overlap-add, Wiener filter, CNN filters, S4/Mamba SSM, Hyena, FNet |
-| [exercises.ipynb](exercises.ipynb) | 8 graded problems: convolution by hand through Hyena long-convolution parameterization |
+| [exercises.ipynb](exercises.ipynb) | 10 graded problems: convolution by hand through Hyena long-convolution parameterization |
 
 ## Learning Objectives
 
@@ -117,78 +117,78 @@ $$(f * g)(t) = \int_{-\infty}^{\infty} f(\tau)\, g(t - \tau)\, d\tau$$
 The operation appears in an enormous variety of contexts, often without being recognized as convolution:
 
 - **Image blurring**: convolving an image with a Gaussian kernel $g(x,y) = e^{-(x^2+y^2)/2\sigma^2}$ produces a smoothed version. Each output pixel is a weighted average of its neighborhood.
-- **Running average**: a box filter $g[n] = \frac{1}{M}\mathbf{1}_{[0,M-1]}$ convolved with a time series produces the $M$-point moving average — standard in financial data smoothing.
+- **Running average**: a box filter $g[n] = \frac{1}{M}\mathbf{1}_{[0,M-1]}$ convolved with a time series produces the $M$-point moving average - standard in financial data smoothing.
 - **Polynomial multiplication**: multiplying $(a_0 + a_1 x + a_2 x^2)$ by $(b_0 + b_1 x)$ gives coefficients that are exactly the linear convolution of $[a_0, a_1, a_2]$ and $[b_0, b_1]$. This is why the FFT can multiply two degree-$N$ polynomials in $O(N \log N)$ operations.
 - **Echo simulation**: convolving an audio signal with a room impulse response $h(t)$ (the sound of a clap in an empty hall) produces the "reverberated" signal.
-- **Probability**: the PDF of the sum $Z = X + Y$ of independent random variables is $(p_X * p_Y)(z)$ — convolution of their PDFs.
+- **Probability**: the PDF of the sum $Z = X + Y$ of independent random variables is $(p_X * p_Y)(z)$ - convolution of their PDFs.
 
 The defining algebraic property is that convolution is **commutative** ($f * g = g * f$), **associative** ($(f * g) * h = f * (g * h)$), and **distributive** over addition. These properties make it a natural operation in any linear system.
 
-**For AI:** every convolutional layer in a CNN computes exactly this operation. A $3 \times 3$ filter $W$ convolved with feature map $X$ gives $Y = W * X$ — the kernel slides over the input, taking inner products at each position. Understanding convolution as sliding-overlap reveals why translation equivariance holds: if the input shifts, the output shifts by the same amount.
+**For AI:** every convolutional layer in a CNN computes exactly this operation. A $3 \times 3$ filter $W$ convolved with feature map $X$ gives $Y = W * X$ - the kernel slides over the input, taking inner products at each position. Understanding convolution as sliding-overlap reveals why translation equivariance holds: if the input shifts, the output shifts by the same amount.
 
 ### 1.2 The Central Insight: Frequency Domain Diagonalization
 
-Computing convolution directly costs $O(N^2)$ operations: for each of $N$ output positions, you compute an inner product with $N$ filter coefficients. For $N = 10^6$ samples (one second of audio at 1 MHz), this is $10^{12}$ multiplications — completely infeasible.
+Computing convolution directly costs $O(N^2)$ operations: for each of $N$ output positions, you compute an inner product with $N$ filter coefficients. For $N = 10^6$ samples (one second of audio at 1 MHz), this is $10^{12}$ multiplications - completely infeasible.
 
 The Convolution Theorem provides a dramatic shortcut. The key observation is that **complex exponentials are eigenfunctions of convolution**:
 
 $$(h * e^{2\pi i f \cdot})(t) = \underbrace{\left(\int_{-\infty}^{\infty} h(\tau) e^{-2\pi i f \tau} d\tau\right)}_{\hat{h}(f) = H(f)} \cdot e^{2\pi i f t}$$
 
-Each complex exponential $e^{2\pi i ft}$ passes through any LTI system unchanged in frequency — it is only scaled by the complex number $H(f) = \hat{h}(f)$. This means:
+Each complex exponential $e^{2\pi i ft}$ passes through any LTI system unchanged in frequency - it is only scaled by the complex number $H(f) = \hat{h}(f)$. This means:
 1. **Decompose** the input $x$ into its frequency components via the Fourier transform: $X(f) = \mathcal{F}(x)(f)$
 2. **Multiply** each component by the filter's frequency response: $Y(f) = H(f) \cdot X(f)$ (pointwise, $O(N)$)
 3. **Reconstruct** the output via the inverse Fourier transform: $y = \mathcal{F}^{-1}(Y)$
 
-Steps 1 and 3 each cost $O(N \log N)$ via the FFT. Step 2 costs $O(N)$. The total is $O(N \log N)$ — compared to $O(N^2)$ for direct convolution.
+Steps 1 and 3 each cost $O(N \log N)$ via the FFT. Step 2 costs $O(N)$. The total is $O(N \log N)$ - compared to $O(N^2)$ for direct convolution.
 
 ```
 CONVOLUTION THEOREM: TWO EQUIVALENT COMPUTATIONS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   TIME DOMAIN                     FREQUENCY DOMAIN
-  ──────────────────────          ──────────────────────
+  ----------------------          ----------------------
   x[n], h[n]  (length N, M)       X[k] = DFT(x)
-       ↓                               ↓
-  y = x ⊛ h                      Y[k] = X[k] · H[k]
-  O(N·M) operations                    ↓
+       v                               v
+  y = x  h                      Y[k] = X[k]  H[k]
+  O(NM) operations                    v
                                    y = IDFT(Y)
                            O(N log N) via FFT
 
   Both computations give IDENTICAL output y[n].
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The mathematical reason this works is deep: the DFT is a **ring isomorphism** between $(\mathbb{C}^N, \circledast)$ — the ring of sequences under circular convolution — and $(\mathbb{C}^N, \cdot)$ — the ring of sequences under pointwise multiplication. Convolution, which looks complicated, becomes trivial multiplication after a change of basis.
+The mathematical reason this works is deep: the DFT is a **ring isomorphism** between $(\mathbb{C}^N, \circledast)$ - the ring of sequences under circular convolution - and $(\mathbb{C}^N, \cdot)$ - the ring of sequences under pointwise multiplication. Convolution, which looks complicated, becomes trivial multiplication after a change of basis.
 
 ### 1.3 Why This Matters for AI (First Look)
 
-The Convolution Theorem is not merely a classical signal processing tool — it is at the heart of modern deep learning architectures:
+The Convolution Theorem is not merely a classical signal processing tool - it is at the heart of modern deep learning architectures:
 
 - **CNNs**: every `torch.nn.Conv2d` layer computes a learned 2D convolution. For large kernels, PyTorch uses FFT-based convolution internally. The frequency domain perspective explains why early CNN layers learn Gabor-like filters (oriented bandpass filters) and why deep layers respond to semantic content.
 - **WaveNet** (van den Oord et al., 2016): autoregressive waveform generation using dilated causal convolutions. The receptive field grows exponentially with depth via dilation, reaching $2^L - 1$ samples with only $L$ layers.
 - **S4** (Gu et al., 2021): represents a sequence model as a linear recurrence $\mathbf{h}_t = A\mathbf{h}_{t-1} + B x_t$, $y_t = C\mathbf{h}_t$. During training, the recurrence is unrolled into a convolution $y = \bar{\mathbf{K}} * x$ where $\bar{\mathbf{K}} = [C\bar{B}, C\bar{A}\bar{B}, C\bar{A}^2\bar{B}, \ldots]$ is the SSM kernel, computed in $O(N \log N)$ via FFT.
 - **Hyena** (Poli et al., 2023): replaces attention with $d$ learned long convolutions $h_1, \ldots, h_d$, each parameterized by a neural network. Complexity is $O(N \log N)$ per layer vs. $O(N^2)$ for attention.
-- **FNet** (Lee-Thorp et al., 2022): replaces multi-head attention with a single 2D FFT mixing operation, achieving 92% of BERT's GLUE score with 7× speedup.
+- **FNet** (Lee-Thorp et al., 2022): replaces multi-head attention with a single 2D FFT mixing operation, achieving 92% of BERT's GLUE score with 7 speedup.
 
 ### 1.4 Historical Timeline
 
 | Year | Event |
 |------|-------|
 | 1821 | Cauchy identifies convolution in complex function theory |
-| 1822 | Fourier's *Théorie analytique* — FT diagonalizes the heat equation (an LTI PDE) |
+| 1822 | Fourier's *Theorie analytique* - FT diagonalizes the heat equation (an LTI PDE) |
 | 1887 | Heaviside introduces operational calculus; transfer functions for electrical circuits |
 | 1920s | Norbert Wiener develops autocorrelation and power spectral density theory |
 | 1942 | Wiener invents the optimal Wiener deconvolution filter |
-| 1965 | Cooley & Tukey — FFT makes convolution theorem computationally practical |
+| 1965 | Cooley & Tukey - FFT makes convolution theorem computationally practical |
 | 1970s | Digital signal processing revolution: digital filters, audio processing |
-| 1989 | LeCun et al. — LeNet: CNNs for handwritten digit recognition |
-| 1998 | LeNet-5 — modern CNN architecture with learned convolutional filters |
-| 2012 | AlexNet — deep CNNs dominate ImageNet; GPU-accelerated conv layers |
-| 2016 | WaveNet (DeepMind) — dilated causal convolutions for audio generation |
-| 2021 | S4 (Stanford) — SSMs as implicit FFT convolutions for long sequences |
-| 2022 | FNet (Google) — FFT replaces attention at competitive performance |
-| 2023 | Hyena / Mamba — parameterized and selective convolutions for sub-quadratic LLMs |
+| 1989 | LeCun et al. - LeNet: CNNs for handwritten digit recognition |
+| 1998 | LeNet-5 - modern CNN architecture with learned convolutional filters |
+| 2012 | AlexNet - deep CNNs dominate ImageNet; GPU-accelerated conv layers |
+| 2016 | WaveNet (DeepMind) - dilated causal convolutions for audio generation |
+| 2021 | S4 (Stanford) - SSMs as implicit FFT convolutions for long sequences |
+| 2022 | FNet (Google) - FFT replaces attention at competitive performance |
+| 2023 | Hyena / Mamba - parameterized and selective convolutions for sub-quadratic LLMs |
 
 
 ## 2. Formal Definitions
@@ -218,16 +218,16 @@ For finite sequences of lengths $M$ and $N$, the output has length $M + N - 1$.
 
 **Standard examples:**
 
-*Example 1 (Gaussian ★ Gaussian):* If $f = \mathcal{N}(0, \sigma_1^2)$ and $g = \mathcal{N}(0, \sigma_2^2)$ (as PDFs), then:
+*Example 1 (Gaussian * Gaussian):* If $f = \mathcal{N}(0, \sigma_1^2)$ and $g = \mathcal{N}(0, \sigma_2^2)$ (as PDFs), then:
 $$(f * g)(t) = \mathcal{N}(0, \sigma_1^2 + \sigma_2^2)(t)$$
 Convolution of Gaussians is Gaussian with variance sum. This is the sum-of-independent-normals theorem.
 
-*Example 2 (rect ★ rect = triangle):* The convolution of two rectangular pulses $\Pi_{[0,1]}$ is the triangle function $\Lambda$ supported on $[0, 2]$. Each rect ★ rect gives a piecewise-linear tent.
+*Example 2 (rect * rect = triangle):* The convolution of two rectangular pulses $\Pi_{[0,1]}$ is the triangle function $\Lambda$ supported on $[0, 2]$. Each rect * rect gives a piecewise-linear tent.
 
 *Example 3 (polynomial multiplication):* $(1 + 2x)(3 + 4x) = 3 + 10x + 8x^2$. As convolution: $[1, 2] * [3, 4] = [3, 10, 8]$.
 
 **Non-examples:**
-- $f * g$ is NOT the pointwise product $f \cdot g$ — these are entirely different operations.
+- $f * g$ is NOT the pointwise product $f \cdot g$ - these are entirely different operations.
 - The convolution of two non-integrable functions (e.g., constants) is not generally well-defined in $L^1$.
 
 ### 2.2 Circular (Periodic) Convolution
@@ -238,7 +238,7 @@ $$(x \circledast y)[n] = \sum_{m=0}^{N-1} x[m]\, y[(n - m) \bmod N], \quad n = 0
 
 Circular convolution wraps the index modulo $N$: sample $y[-1]$ is the same as $y[N-1]$.
 
-The **key difference** from linear convolution: circular convolution assumes both signals are periodic with period $N$. When the input is not actually periodic, the wrap-around creates **time-aliasing** — contributions from the "end" of the sequence wrap around and contaminate the "beginning" of the output. This produces incorrect results whenever $y$ is not truly $N$-periodic.
+The **key difference** from linear convolution: circular convolution assumes both signals are periodic with period $N$. When the input is not actually periodic, the wrap-around creates **time-aliasing** - contributions from the "end" of the sequence wrap around and contaminate the "beginning" of the output. This produces incorrect results whenever $y$ is not truly $N$-periodic.
 
 **Matrix form:** Circular convolution is exactly a matrix-vector product with a **circulant matrix**:
 
@@ -270,7 +270,7 @@ Properties:
 - $R_{ff}(\tau) = R_{ff}^*(-\tau)$ (Hermitian symmetry)
 - $|R_{ff}(\tau)| \leq R_{ff}(0)$ for all $\tau$
 
-**For AI:** Cross-correlation is the operation actually computed in standard "convolution" layers in PyTorch and TensorFlow. The `torch.nn.Conv2d` layer computes $(W \star x)$ (cross-correlation), not $(W * x)$ (true convolution). Since the filter weights are learned, this distinction does not affect expressive power — the network simply learns the time-reversed filter.
+**For AI:** Cross-correlation is the operation actually computed in standard "convolution" layers in PyTorch and TensorFlow. The `torch.nn.Conv2d` layer computes $(W \star x)$ (cross-correlation), not $(W * x)$ (true convolution). Since the filter weights are learned, this distinction does not affect expressive power - the network simply learns the time-reversed filter.
 
 ### 2.4 The Convolution Algebra
 
@@ -285,7 +285,7 @@ The **cyclic group algebra** $\mathbb{C}[\mathbb{Z}/N\mathbb{Z}] \cong \mathbb{C
 
 $$\mathbb{C}[\mathbb{Z}/N\mathbb{Z}] \cong \bigoplus_{k=0}^{N-1} \mathbb{C} \cdot e_k$$
 
-where $e_k$ are the primitive idempotents — the DFT basis vectors $\omega_N^{kn}$. The DFT is exactly the isomorphism to the direct sum. Convolution in the group algebra becomes pointwise multiplication in the direct sum decomposition — this is the algebraic content of the Convolution Theorem.
+where $e_k$ are the primitive idempotents - the DFT basis vectors $\omega_N^{kn}$. The DFT is exactly the isomorphism to the direct sum. Convolution in the group algebra becomes pointwise multiplication in the direct sum decomposition - this is the algebraic content of the Convolution Theorem.
 
 
 ## 3. The Convolution Theorem
@@ -296,7 +296,7 @@ where $e_k$ are the primitive idempotents — the DFT basis vectors $\omega_N^{k
 
 $$\mathcal{F}(f * g)(\xi) = \hat{f}(\xi) \cdot \hat{g}(\xi)$$
 
-where $\hat{f}(\xi) = \int_{-\infty}^{\infty} f(t)\, e^{-2\pi i \xi t}\, dt$ (using the $\xi$-convention consistent with §20-02).
+where $\hat{f}(\xi) = \int_{-\infty}^{\infty} f(t)\, e^{-2\pi i \xi t}\, dt$ (using the $\xi$-convention consistent with Section 20-02).
 
 **Proof.** Compute directly using Fubini's theorem (justified by $\lVert f * g \rVert_1 \leq \lVert f \rVert_1 \lVert g \rVert_1 < \infty$):
 
@@ -312,7 +312,7 @@ $$= \int_{-\infty}^{\infty} f(\tau) \left[\int_{-\infty}^{\infty} g(u)\, e^{-2\p
 $$\hat{g}_a(\xi) = e^{-2\pi i a \xi} \hat{g}(\xi)$$
 This follows from the Convolution Theorem applied to $g * \delta_a$ where $\hat{\delta}_a(\xi) = e^{-2\pi i a \xi}$.
 
-**For AI:** Dilated convolutions in WaveNet compute $(h * x_{\text{dilated}})[n]$ where $x_{\text{dilated}}[n] = x[n/d]$ for dilation factor $d$. In frequency: $\mathcal{F}(x_{\text{dilated}})(\xi) = |d| \cdot \hat{x}(d\xi)$ — dilation in time becomes compression in frequency. Each dilation level captures different frequency bands.
+**For AI:** Dilated convolutions in WaveNet compute $(h * x_{\text{dilated}})[n]$ where $x_{\text{dilated}}[n] = x[n/d]$ for dilation factor $d$. In frequency: $\mathcal{F}(x_{\text{dilated}})(\xi) = |d| \cdot \hat{x}(d\xi)$ - dilation in time becomes compression in frequency. Each dilation level captures different frequency bands.
 
 ### 3.2 Discrete Version
 
@@ -355,7 +355,7 @@ $$\mathcal{F}(f \cdot g)(\xi) = (\hat{f} * \hat{g})(\xi) = \int_{-\infty}^{\inft
 Pointwise multiplication in time = convolution in frequency. This is exact duality with the Convolution Theorem.
 
 **Consequences:**
-- **Windowing:** Multiplying a signal by a window $w(t)$ (e.g., Hann window) convolves its spectrum with $\hat{w}(\xi)$. This is the spectral leakage mechanism studied in §20-03: the wider the window in time, the narrower $\hat{w}$ in frequency, and the less leakage.
+- **Windowing:** Multiplying a signal by a window $w(t)$ (e.g., Hann window) convolves its spectrum with $\hat{w}(\xi)$. This is the spectral leakage mechanism studied in Section 20-03: the wider the window in time, the narrower $\hat{w}$ in frequency, and the less leakage.
 - **Amplitude modulation:** $x(t) \cos(2\pi f_0 t) = x(t) \cdot \frac{1}{2}(e^{2\pi i f_0 t} + e^{-2\pi i f_0 t})$ shifts the spectrum to $\pm f_0$. In the frequency domain: $\hat{X}(\xi - f_0)/2 + \hat{X}(\xi + f_0)/2$.
 - **Parseval's theorem:** Setting $g = f$ and $\xi = 0$: $\int |f(t)|^2 dt = \int |\hat{f}(\xi)|^2 d\xi$.
 
@@ -374,14 +374,14 @@ Special cases:
 - $p = q = 1, r = 1$: $\lVert f * g \rVert_1 \leq \lVert f \rVert_1 \lVert g \rVert_1$ (Banach algebra property)
 - $p = 1, q = \infty, r = \infty$: $\lVert f * g \rVert_\infty \leq \lVert f \rVert_1 \lVert g \rVert_\infty$
 
-**Energy interpretation:** The energy of the filtered output is bounded by the filter's $L^1$ norm times the input's $L^2$ energy. A filter with $\lVert h \rVert_1 \leq 1$ is **energy non-increasing** — it cannot amplify energy.
+**Energy interpretation:** The energy of the filtered output is bounded by the filter's $L^1$ norm times the input's $L^2$ energy. A filter with $\lVert h \rVert_1 \leq 1$ is **energy non-increasing** - it cannot amplify energy.
 
 
 ## 4. Circular vs. Linear Convolution
 
 ### 4.1 The Wrap-Around Problem
 
-Circular convolution assumes periodicity. When you apply the DFT-multiply-IDFT recipe to two finite sequences without zero-padding, you compute *circular* convolution — and the result is *not* the same as linear convolution.
+Circular convolution assumes periodicity. When you apply the DFT-multiply-IDFT recipe to two finite sequences without zero-padding, you compute *circular* convolution - and the result is *not* the same as linear convolution.
 
 **The wrap-around artifact.** Suppose $x = [1, 2, 3]$ and $h = [1, 1]$ (both length $N = 3$). Linear convolution gives $y_{\text{lin}} = [1, 3, 5, 3]$ (length 4). But the 3-point circular convolution gives:
 
@@ -393,25 +393,25 @@ because the term $x[-1 \bmod 3] = x[2]$ wraps around. The correct linear result 
 
 ```
 CIRCULAR vs LINEAR CONVOLUTION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   x = [1, 2, 3],  h = [1, 1]
 
   LINEAR (correct):                CIRCULAR (N=3, wrap-around error):
-  y[0] = 1·1         = 1          y[0] = 1·1 + 3·1 = 4  ← WRONG
-  y[1] = 2·1 + 1·1   = 3          y[1] = 2·1 + 1·1 = 3  ✓
-  y[2] = 3·1 + 2·1   = 5          y[2] = 3·1 + 2·1 = 5  ✓
-  y[3] =      3·1    = 3          (missing term — aliased into y[0])
+  y[0] = 11         = 1          y[0] = 11 + 31 = 4  <- WRONG
+  y[1] = 21 + 11   = 3          y[1] = 21 + 11 = 3  PASS
+  y[2] = 31 + 21   = 5          y[2] = 31 + 21 = 5  PASS
+  y[3] =      31    = 3          (missing term - aliased into y[0])
   Output length: 4                 Output length: 3
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 4.2 The Zero-Padding Solution
 
 **Theorem.** Let $x \in \mathbb{C}^M$ and $h \in \mathbb{C}^L$. If we zero-pad both to length $N \geq M + L - 1$ before computing the DFT, then the first $M + L - 1$ samples of the $N$-point IDFT of $X \cdot H$ equal the linear convolution $x *_{\text{lin}} h$.
 
-**Why it works.** The linear convolution output has $M + L - 1$ non-zero samples. Padding to $N \geq M + L - 1$ ensures the circular buffer is large enough that the "wrap-around" tail falls on zero-padded positions — so no aliasing occurs.
+**Why it works.** The linear convolution output has $M + L - 1$ non-zero samples. Padding to $N \geq M + L - 1$ ensures the circular buffer is large enough that the "wrap-around" tail falls on zero-padded positions - so no aliasing occurs.
 
 **Practical recipe:**
 ```python
@@ -453,12 +453,12 @@ $$\text{if } y = \mathcal{H}(x), \text{ then } \mathcal{H}(x(\cdot - \tau)) = y(
 **Characterization theorem:** Every LTI system is completely described by its **impulse response** $h(t) = \mathcal{H}(\delta)(t)$. The output for any input $x$ is:
 $$y(t) = (h * x)(t) = \int_{-\infty}^{\infty} h(\tau)\, x(t-\tau)\, d\tau$$
 
-**Causality:** $h(t) = 0$ for $t < 0$. A causal system cannot depend on future inputs — essential for real-time processing. The convolution simplifies to $y(t) = \int_0^{\infty} h(\tau) x(t - \tau) d\tau$.
+**Causality:** $h(t) = 0$ for $t < 0$. A causal system cannot depend on future inputs - essential for real-time processing. The convolution simplifies to $y(t) = \int_0^{\infty} h(\tau) x(t - \tau) d\tau$.
 
 **Stability (BIBO):** An LTI system is bounded-input bounded-output (BIBO) stable if and only if:
 $$\lVert h \rVert_1 = \int_{-\infty}^{\infty} |h(t)|\, dt < \infty$$
 
-This is the $L^1$ condition — exactly the domain in which the Convolution Theorem holds most cleanly.
+This is the $L^1$ condition - exactly the domain in which the Convolution Theorem holds most cleanly.
 
 **For AI:** Recurrent neural networks can be analyzed through the LTI lens. A linear RNN $\mathbf{h}_t = A\mathbf{h}_{t-1} + \mathbf{b} x_t$ has impulse response $h[n] = CA^n B$ for $n \geq 0$. BIBO stability requires $\rho(A) < 1$ (spectral radius). S4 enforces stability by constraining $A$ to have negative-real eigenvalues via the HiPPO initialization.
 
@@ -471,13 +471,13 @@ This is simply the Fourier transform of the impulse response. The Convolution Th
 $$Y(f) = H(f) \cdot X(f)$$
 
 The system applies a **complex gain** $H(f)$ to each frequency component:
-- $|H(f)|$ — the **magnitude response** (gain/attenuation at frequency $f$)
-- $\angle H(f)$ — the **phase response** (phase shift at frequency $f$)
+- $|H(f)|$ - the **magnitude response** (gain/attenuation at frequency $f$)
+- $\angle H(f)$ - the **phase response** (phase shift at frequency $f$)
 
 **Group delay.** The group delay measures how much each frequency band is delayed:
 $$\tau_g(f) = -\frac{d}{df} \angle H(f)$$
 
-A system with **constant group delay** $\tau_g(f) = \tau_0$ is said to have **linear phase**: $\angle H(f) = -2\pi f \tau_0$. This means all frequencies are delayed by the same amount $\tau_0$ — no dispersion, no distortion of waveform shape.
+A system with **constant group delay** $\tau_g(f) = \tau_0$ is said to have **linear phase**: $\angle H(f) = -2\pi f \tau_0$. This means all frequencies are delayed by the same amount $\tau_0$ - no dispersion, no distortion of waveform shape.
 
 **Frequency response examples:**
 
@@ -489,7 +489,7 @@ A system with **constant group delay** $\tau_g(f) = \tau_0$ is said to have **li
 | Differentiator | $2\pi i f$ | $\delta'(t)$ |
 | Hilbert transformer | $-i \operatorname{sgn}(f)$ | $\frac{1}{\pi t}$ (Cauchy principal value) |
 
-**For AI:** The Hilbert transformer shifts all frequency components by 90°, producing the analytic signal $z(t) = x(t) + i\mathcal{H}[x](t)$. This is used in envelope detection for audio and is related to the complex-valued activations in modern SSM architectures.
+**For AI:** The Hilbert transformer shifts all frequency components by 90, producing the analytic signal $z(t) = x(t) + i\mathcal{H}[x](t)$. This is used in envelope detection for audio and is related to the complex-valued activations in modern SSM architectures.
 
 ### 5.3 FIR vs. IIR Filters
 
@@ -532,9 +532,9 @@ The four ideal filter types, defined by their frequency response:
 | Bandpass (BP) | $1$ for $f_1 \leq |f| \leq f_2$, $0$ otherwise | Channel selection, mel filters |
 | Bandstop (BS) | $0$ for $f_1 \leq |f| \leq f_2$, $1$ otherwise | Notch filter (50/60 Hz hum removal) |
 
-All ideal filters have impulse responses that are $\operatorname{sinc}$-like — non-causal (extend to $-\infty$) and non-realizable. Real-world filter design approximates these ideal brick-wall responses.
+All ideal filters have impulse responses that are $\operatorname{sinc}$-like - non-causal (extend to $-\infty$) and non-realizable. Real-world filter design approximates these ideal brick-wall responses.
 
-**Gibbs phenomenon.** Truncating the infinite sinc impulse response creates the Gibbs overshoot: the truncated filter's frequency response overshoots the ideal by $\approx 9\%$ at the cutoff regardless of truncation length. Windowing the sinc (multiplying by Hann or Kaiser window) reduces the Gibbs ripple at the cost of a wider transition band — the same leakage-resolution trade-off from §20-03.
+**Gibbs phenomenon.** Truncating the infinite sinc impulse response creates the Gibbs overshoot: the truncated filter's frequency response overshoots the ideal by $\approx 9\%$ at the cutoff regardless of truncation length. Windowing the sinc (multiplying by Hann or Kaiser window) reduces the Gibbs ripple at the cost of a wider transition band - the same leakage-resolution trade-off from Section 20-03.
 
 
 ## 6. Efficient Long Convolution
@@ -549,10 +549,10 @@ The overlap-add (OA) algorithm efficiently convolves a long signal $x$ of length
 3. For each block $m = 0, 1, 2, \ldots$:
    a. Extract $x_m = x[mB : (m+1)B]$ (zero-padded if needed)
    b. Compute $X_m = \text{FFT}(x_m, N)$
-   c. Compute $Y_m = \text{IFFT}(X_m \cdot H, N)$ — length $N = B + L - 1$
+   c. Compute $Y_m = \text{IFFT}(X_m \cdot H, N)$ - length $N = B + L - 1$
    d. Add $Y_m$ to the output buffer with overlap: `output[m*B : m*B + N] += Y_m`
 
-The last $L - 1$ samples of each block output overlap with the first $L - 1$ samples of the next — these overlapping tails are summed (the "add" in overlap-add).
+The last $L - 1$ samples of each block output overlap with the first $L - 1$ samples of the next - these overlapping tails are summed (the "add" in overlap-add).
 
 **Why it works.** Each block-convolution $Y_m$ contains the correct contribution of block $x_m$ to the full output. The convolution theorem guarantees linearity: summing all contributions gives the correct total output.
 
@@ -604,7 +604,7 @@ y = signal.fftconvolve(x, h, mode='valid')   # only fully-overlapping part
 ```python
 y = signal.oaconvolve(x, h, mode='full')    # uses overlap-add internally
 ```
-This is typically 10-100× faster than `fftconvolve` when $M \gg L$.
+This is typically 10-100 faster than `fftconvolve` when $M \gg L$.
 
 **For AI:** The overlap-add structure appears in neural audio synthesis. In WaveNet, the causal dilated convolutions can be viewed as a sequence of overlapping block convolutions, where each block is processed causally. This is why WaveNet inference is slow (sequential) but training is fast (parallel over all positions using FFT convolution).
 
@@ -629,9 +629,9 @@ $$\mathcal{F}(x \star y)[k] = X^*[k] \cdot Y[k]$$
 In NumPy: `np.fft.ifft(np.conj(X) * Y)` computes cross-correlation via FFT.
 
 **Applications:**
-- **Template matching**: $(h \star x)(\tau)$ peaks where $x$ most resembles the template $h$ — used in pattern recognition, face detection, audio fingerprinting (Shazam)
+- **Template matching**: $(h \star x)(\tau)$ peaks where $x$ most resembles the template $h$ - used in pattern recognition, face detection, audio fingerprinting (Shazam)
 - **Time-delay estimation**: the peak of $|R_{xy}(\tau)|$ estimates the time delay between two sensors
-- **Matched filter**: the optimal linear filter for detecting a known signal in white noise is the cross-correlator (see §7.3)
+- **Matched filter**: the optimal linear filter for detecting a known signal in white noise is the cross-correlator (see Section 7.3)
 
 ### 7.2 Autocorrelation and Wiener-Khinchin Theorem
 
@@ -646,7 +646,7 @@ $$\mathbb{E}[|X(t)|^2] = R_{XX}(0) = \int_{-\infty}^{\infty} S_{XX}(f)\, df$$
 
 (By Parseval's theorem applied to the autocorrelation.)
 
-**Spectral factorization.** Since $S_{XX}(f) = |\hat{X}(f)|^2 \geq 0$ is non-negative and real, one can always write $S_{XX}(f) = |L(f)|^2$ for a causal filter $L$ — the **spectral factor**. This is used in Wiener filter design.
+**Spectral factorization.** Since $S_{XX}(f) = |\hat{X}(f)|^2 \geq 0$ is non-negative and real, one can always write $S_{XX}(f) = |L(f)|^2$ for a causal filter $L$ - the **spectral factor**. This is used in Wiener filter design.
 
 **Practical estimation.** The **periodogram** estimates the PSD from $N$ samples:
 $$\hat{S}_{XX}(f_k) = \frac{1}{N} |X[k]|^2, \quad X = \text{FFT}(x)$$
@@ -654,7 +654,7 @@ $$\hat{S}_{XX}(f_k) = \frac{1}{N} |X[k]|^2, \quad X = \text{FFT}(x)$$
 The periodogram is an **inconsistent estimator** (variance doesn't decrease with $N$). Welch's method averages periodograms over overlapping windowed segments:
 $$\hat{S}_{XX}^{\text{Welch}}(f) = \frac{1}{K} \sum_{m=0}^{K-1} \frac{1}{N} |\text{FFT}(x_m \cdot w)|^2$$
 
-**For AI:** Welch's PSD is used in analyzing neural network weight matrices and gradient noise. The gradient PSD reveals dominant frequency scales of gradient oscillations — key for understanding Adam's moment estimation and learning rate scheduling.
+**For AI:** Welch's PSD is used in analyzing neural network weight matrices and gradient noise. The gradient PSD reveals dominant frequency scales of gradient oscillations - key for understanding Adam's moment estimation and learning rate scheduling.
 
 ### 7.3 Matched Filtering
 
@@ -663,7 +663,7 @@ $$\hat{S}_{XX}^{\text{Welch}}(f) = \frac{1}{K} \sum_{m=0}^{K-1} \frac{1}{N} |\te
 **Theorem (Matched Filter).** The optimal filter is:
 $$H_{\text{MF}}(f) = \frac{S^*(f) e^{-2\pi i f t_0}}{N_0}$$
 
-i.e., $h(t) = \frac{1}{N_0} s^*(t_0 - t)$ — the time-reversed, conjugated, delayed signal. The maximum output SNR is:
+i.e., $h(t) = \frac{1}{N_0} s^*(t_0 - t)$ - the time-reversed, conjugated, delayed signal. The maximum output SNR is:
 $$\text{SNR}_{\text{max}} = \frac{2}{N_0} \int |S(f)|^2 df = \frac{2 \lVert s \rVert_2^2}{N_0}$$
 
 The matched filter output is proportional to the cross-correlation of $y$ with $s$.
@@ -682,7 +682,7 @@ In the frequency domain: $Y(f) = H(f) X(f) + N(f)$.
 **Naive inverse filter.** The obvious approach is $\hat{X}(f) = Y(f) / H(f)$. This recovers $X(f)$ exactly when $n = 0$, but in the presence of noise:
 $$\hat{X}(f) = X(f) + \frac{N(f)}{H(f)}$$
 
-When $H(f) \approx 0$ at some frequencies (the filter attenuates them strongly), the noise term $N(f)/H(f)$ is amplified catastrophically. The inverse filter is numerically **ill-conditioned** — a small noise level can produce arbitrarily large artifacts.
+When $H(f) \approx 0$ at some frequencies (the filter attenuates them strongly), the noise term $N(f)/H(f)$ is amplified catastrophically. The inverse filter is numerically **ill-conditioned** - a small noise level can produce arbitrarily large artifacts.
 
 **Example (image deblurring):** A Gaussian blur $H(f) = e^{-\pi^2 f^2 / (2\sigma^2)}$ decays to near-zero at high frequencies. Dividing by $H(f)$ at high frequencies amplifies high-frequency noise by factors of $e^{\pi^2 f^2 / (2\sigma^2)}$, producing extreme ringing artifacts.
 
@@ -699,12 +699,12 @@ where $S_{xx}(f)$ is the PSD of the signal and $S_{nn}(f)$ is the PSD of the noi
 $$G(f) = \frac{H^*(f) S_{xx}(f)}{|H(f)|^2 S_{xx}(f) + S_{nn}(f)}$$
 
 **Intuition.** The Wiener filter trades off between two regimes:
-- When $|H(f)|^2 S_{xx}(f) \gg S_{nn}(f)$ (high SNR): $H_W(f) \approx 1/H(f)$ — nearly perfect inversion
-- When $|H(f)|^2 S_{xx}(f) \ll S_{nn}(f)$ (low SNR): $H_W(f) \approx 0$ — suppress the noisy frequency, don't attempt to invert
+- When $|H(f)|^2 S_{xx}(f) \gg S_{nn}(f)$ (high SNR): $H_W(f) \approx 1/H(f)$ - nearly perfect inversion
+- When $|H(f)|^2 S_{xx}(f) \ll S_{nn}(f)$ (low SNR): $H_W(f) \approx 0$ - suppress the noisy frequency, don't attempt to invert
 
 The ratio $\text{SNR}(f) = S_{xx}(f)|H(f)|^2 / S_{nn}(f)$ governs the transition between inversion and suppression at each frequency.
 
-**For AI:** The Wiener filter principle appears in *noise-robust attention*. Sparse attention patterns (Longformer, BigBird) can be viewed as suppressing "noisy" long-range attention weights when the query-key similarity is low — a form of adaptive filtering where the "SNR" is the attention score.
+**For AI:** The Wiener filter principle appears in *noise-robust attention*. Sparse attention patterns (Longformer, BigBird) can be viewed as suppressing "noisy" long-range attention weights when the query-key similarity is low - a form of adaptive filtering where the "SNR" is the attention score.
 
 ### 8.3 Regularized Deconvolution
 
@@ -717,7 +717,7 @@ The regularization parameter $\lambda > 0$ prevents division by near-zero values
 - $\lambda \to \infty$: output $\hat{x} \to 0$ (over-regularized)
 - Optimal $\lambda$ chosen by cross-validation or the **discrepancy principle**
 
-**L-curve method.** Plot $\lVert \hat{x} \rVert_2$ vs. $\lVert y - h * \hat{x} \rVert_2$ as $\lambda$ varies. The "corner" of the L-shaped curve gives a good $\lambda$ — balancing solution norm against residual.
+**L-curve method.** Plot $\lVert \hat{x} \rVert_2$ vs. $\lVert y - h * \hat{x} \rVert_2$ as $\lambda$ varies. The "corner" of the L-shaped curve gives a good $\lambda$ - balancing solution norm against residual.
 
 **Sparse deconvolution.** When the clean signal $x$ is sparse (e.g., spike train, musical onset detection), using $L^1$ regularization instead of $L^2$:
 $$\hat{x} = \arg\min_x \lVert y - h * x \rVert_2^2 + \lambda \lVert x \rVert_1$$
@@ -738,36 +738,36 @@ $$(Y)_{i,j} = \sum_{m,n} W_{m,n} X_{i+m,\, j+n} + b$$
 - Layer 2 filters: corners, textures (combinations of edge filters)
 - Layer $L$ filters: object parts, semantic features
 
-**Dilated convolutions** expand the receptive field without increasing parameters: $(X *_d W)[n] = \sum_k W[k] X[n - dk]$. In frequency: this is equivalent to subsampling $\hat{W}$ by factor $d$, creating copies at multiples of $f_s/d$ — the dilation aliases the filter spectrum.
+**Dilated convolutions** expand the receptive field without increasing parameters: $(X *_d W)[n] = \sum_k W[k] X[n - dk]$. In frequency: this is equivalent to subsampling $\hat{W}$ by factor $d$, creating copies at multiples of $f_s/d$ - the dilation aliases the filter spectrum.
 
-**1×1 convolutions** are pointwise linear transformations across channels — equivalent to applying a separate MLP at each spatial position. They mix channel information without spatial mixing.
+**11 convolutions** are pointwise linear transformations across channels - equivalent to applying a separate MLP at each spatial position. They mix channel information without spatial mixing.
 
-**For AI (2026):** Modern vision transformers (ViT) treat patches as tokens. Recent work shows that early ViT layers perform operations similar to CNN filters — local spatial filtering. Conversely, "ConvNeXt" (Liu et al., 2022) shows that pure CNN architectures can match ViT by adopting transformer-inspired design choices (depth-wise convolutions, GELU activations, layer norm).
+**For AI (2026):** Modern vision transformers (ViT) treat patches as tokens. Recent work shows that early ViT layers perform operations similar to CNN filters - local spatial filtering. Conversely, "ConvNeXt" (Liu et al., 2022) shows that pure CNN architectures can match ViT by adopting transformer-inspired design choices (depth-wise convolutions, GELU activations, layer norm).
 
 ### 9.2 Causal Convolution and WaveNet
 
 **WaveNet** (van den Oord et al., 2016) generates raw audio waveforms autoregressively at 16/24 kHz using **dilated causal convolutions**.
 
-**Causal convolution:** $(h *_{\text{causal}} x)[n] = \sum_{k=0}^{L-1} h[k] x[n-k]$ — only past samples contribute. In training, implemented as a padded standard convolution.
+**Causal convolution:** $(h *_{\text{causal}} x)[n] = \sum_{k=0}^{L-1} h[k] x[n-k]$ - only past samples contribute. In training, implemented as a padded standard convolution.
 
 **Dilated receptive field:** With dilation factors $d = 1, 2, 4, 8, \ldots, 2^{L-1}$ over $L$ layers, the total receptive field is $2^L - 1$ samples using only $L$ layers of $K$-tap filters. At 16 kHz with $L = 10$ layers of $K = 2$ taps: receptive field = $2^{10} - 1 = 1023$ samples = 64 ms.
 
 ```
 WAVENET DILATED CAUSAL RECEPTIVE FIELD (L=4 layers)
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Input:  x[0] x[1] x[2] x[3] x[4] x[5] x[6] x[7] x[8]
-           │    │    │    │    │    │    │    │    │
-  d=1:    ├────┤    ├────┤    ├────┤    ├────┤    (receptive field: 2)
-           │         │         │         │
-  d=2:    ├─────────┤    ├─────────┤    (receptive field: 4)
-           │              │
-  d=4:    ├──────────────┤              (receptive field: 8)
+           |    |    |    |    |    |    |    |    |
+  d=1:    +----+    +----+    +----+    +----+    (receptive field: 2)
+           |         |         |         |
+  d=2:    +---------+    +---------+    (receptive field: 4)
+           |              |
+  d=4:    +--------------+              (receptive field: 8)
 
   Total receptive field: 2^4 - 1 = 15 samples
   Output y[n] depends on x[n], x[n-1], ..., x[n-14]
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 9.3 State Space Models as Convolution (S4)
@@ -792,11 +792,11 @@ The SSM kernel $\bar{\mathbf{K}} = [C\bar{B},\; C\bar{A}\bar{B},\; C\bar{A}^2\ba
 
 ### 9.4 Mamba and Selective State Spaces
 
-**Mamba** (Gu & Dao, 2023) extends S4 with **input-selective** SSM parameters: $\bar{A}(x_t), \bar{B}(x_t), C(x_t)$ depend on the input token. This breaks the time-invariance of S4's convolution kernel — the filter $\bar{K}$ is now input-dependent and changes for every sequence.
+**Mamba** (Gu & Dao, 2023) extends S4 with **input-selective** SSM parameters: $\bar{A}(x_t), \bar{B}(x_t), C(x_t)$ depend on the input token. This breaks the time-invariance of S4's convolution kernel - the filter $\bar{K}$ is now input-dependent and changes for every sequence.
 
 **Why not use FFT directly:** Since $\bar{K}$ changes with input, Mamba cannot precompute a single convolution kernel and apply it via FFT. Instead, it uses a **hardware-aware parallel scan** algorithm (Blelloch 1990) that processes the recurrence in $O(N)$ time on GPU with memory efficiency via kernel fusion.
 
-**Selective mechanism:** The input-dependent parameters enable the model to selectively "remember" or "forget" context — analogous to LSTM gates but more flexible. This allows Mamba to match or exceed Transformer performance on language modeling while maintaining sub-quadratic scaling.
+**Selective mechanism:** The input-dependent parameters enable the model to selectively "remember" or "forget" context - analogous to LSTM gates but more flexible. This allows Mamba to match or exceed Transformer performance on language modeling while maintaining sub-quadratic scaling.
 
 ### 9.5 Hyena and Parameterized Long Convolutions
 
@@ -811,7 +811,7 @@ where each $h_i$ is a learned long convolution (length $= $ sequence length), $v
 
 **Complexity:** Each convolution costs $O(N \log N)$ via FFT. Total: $O(dN \log N)$ per layer for order-$d$ Hyena vs. $O(N^2 d)$ for attention.
 
-**For AI:** Hyena reaches 99.9% of attention's performance on CIFAR-10 at sequence length 1024 while being 8× faster. It scales better to length 64K where attention becomes prohibitive.
+**For AI:** Hyena reaches 99.9% of attention's performance on CIFAR-10 at sequence length 1024 while being 8 faster. It scales better to length 64K where attention becomes prohibitive.
 
 ### 9.6 FNet: Replacing Attention with FFT
 
@@ -819,14 +819,14 @@ where each $h_i$ is a learned long convolution (length $= $ sequence length), $v
 
 $$\text{FNetMix}(X) = \text{Re}(\mathcal{F}_{\text{seq}}(\mathcal{F}_{\text{model}}(X)))$$
 
-Two FFTs: one along the sequence dimension, one along the model dimension. No learned parameters in the mixing layer — just a fixed unitary transformation. The FFN sub-layers remain unchanged.
+Two FFTs: one along the sequence dimension, one along the model dimension. No learned parameters in the mixing layer - just a fixed unitary transformation. The FFN sub-layers remain unchanged.
 
 **Results:**
 - Achieves 92-97% of BERT's performance on GLUE
-- Training speed: 7× faster than BERT on TPUs (no attention computation)
+- Training speed: 7 faster than BERT on TPUs (no attention computation)
 - Parameter count: same as BERT (all parameters are in FFN, embeddings, output projection)
 
-**Why it works:** The 2D FFT performs a *global* mixing of all positions and all channels simultaneously. It acts like an "equal attention" that attends to all positions — less expressive than learned attention but sufficient for many tasks after fine-tuning.
+**Why it works:** The 2D FFT performs a *global* mixing of all positions and all channels simultaneously. It acts like an "equal attention" that attends to all positions - less expressive than learned attention but sufficient for many tasks after fine-tuning.
 
 **For AI (2026):** FNet is the existence proof that token mixing does not require learned attention. This insight motivated Mlp-Mixer, gMLP, and other mixing architectures that replace $O(N^2)$ attention with $O(N)$ or $O(N \log N)$ alternatives.
 
@@ -834,11 +834,11 @@ Two FFTs: one along the sequence dimension, one along the model dimension. No le
 
 > **Preview: Wavelets and Filter Banks**
 >
-> The Convolution Theorem underlies an even richer structure: **filter banks** — collections of bandpass filters that partition the spectrum. Convolving a signal with a bank of bandpass filters and subsampling the outputs gives a multi-resolution representation. The **perfect reconstruction** condition requires that the synthesis filters exactly invert the analysis filters — a constraint directly expressed via the Convolution Theorem.
+> The Convolution Theorem underlies an even richer structure: **filter banks** - collections of bandpass filters that partition the spectrum. Convolving a signal with a bank of bandpass filters and subsampling the outputs gives a multi-resolution representation. The **perfect reconstruction** condition requires that the synthesis filters exactly invert the analysis filters - a constraint directly expressed via the Convolution Theorem.
 >
 > The Haar wavelet is the simplest perfect-reconstruction filter bank: a lowpass filter $h_0 = [1, 1]/\sqrt{2}$ and highpass $h_1 = [1, -1]/\sqrt{2}$. Iterating the lowpass branch produces the discrete wavelet transform (DWT).
 >
-> → _Full treatment: [Wavelets](../05-Wavelets/notes.md)_
+> -> _Full treatment: [Wavelets](../05-Wavelets/notes.md)_
 
 
 ## 10. Advanced Topics
@@ -879,7 +879,7 @@ This is the Convolution Theorem on graphs: spectral multiplication = graph convo
 
 **Limitations:** Computing $U$ costs $O(N^3)$; the resulting filters are non-localized. ChebNet (Defferrard et al., 2016) approximates $\hat{h}(\Lambda)$ by a Chebyshev polynomial, giving $K$-hop local filters. GCN (Kipf & Welling, 2017) uses the first-order approximation $\hat{h}(\Lambda) \approx \hat{h}_0 I + \hat{h}_1 \tilde{\Lambda}$ (two-parameter filter).
 
-> → _Full treatment: [Spectral Graph Theory](../../11-Graph-Theory-and-Networks/04-Spectral-Graph-Theory/notes.md)_
+> -> _Full treatment: [Spectral Graph Theory](../../11-Graph-Theory-and-Networks/04-Spectral-Graph-Theory/notes.md)_
 
 ### 10.3 Young's Convolution Inequality
 
@@ -895,12 +895,12 @@ $$\lVert f * g \rVert_r \leq \lVert f \rVert_p \lVert g \rVert_q$$
 | 1 | $\infty$ | $\infty$ | Bounded signals remain bounded after $L^1$ filtering |
 | 2 | 2 | $\infty$ | Autocorrelation is bounded |
 
-**Proof sketch.** Generalized Holder's inequality applied to the convolution integral; see Lieb & Loss "Analysis" §4.2.
+**Proof sketch.** Generalized Holder's inequality applied to the convolution integral; see Lieb & Loss "Analysis" Section 4.2.
 
 **Sharp version (Beckner-Brascamp-Lieb).** The sharp constant in Young's inequality is:
 $$\lVert f * g \rVert_r \leq C_{p,q} \lVert f \rVert_p \lVert g \rVert_q, \quad C_{p,q} = \prod_s \left(\frac{p_s^{1/p_s}}{p_s'^{1/p_s'}}\right)^{1/2}$$
 
-Gaussians are the extremizers — they saturate the inequality with equality.
+Gaussians are the extremizers - they saturate the inequality with equality.
 
 
 ## 11. Common Mistakes
@@ -911,37 +911,37 @@ Gaussians are the extremizers — they saturate the inequality with equality.
 | 2 | Forgetting to zero-pad to a power of 2 | Non-power-of-2 FFT sizes use slower mixed-radix algorithms | Use `N = 2**ceil(log2(M+L-1))` or let `scipy.fft` choose `N` |
 | 3 | Double-dividing by $N$ | Manually computing $\frac{1}{N}\sum x[n]\omega^{nk}$ then calling `np.fft.ifft` (which already divides by $N$) | Use either all-manual or all-NumPy; never mix conventions |
 | 4 | Confusing convolution with cross-correlation | `torch.nn.Conv2d` computes cross-correlation $(W \star x)$, not $(W * x)$; for symmetric kernels they are equal, but in general they differ | Cross-correlation flips one input; for learned filters it makes no difference (the network learns the flip) |
-| 5 | Ignoring phase response | Analyzing only $|H(f)|$ while ignoring $\angle H(f)$ — phase distortion causes waveform dispersion even if the magnitude response is correct | Always check group delay $\tau_g(f) = -d\angle H/df$; use linear-phase FIR if constant delay is required |
+| 5 | Ignoring phase response | Analyzing only $|H(f)|$ while ignoring $\angle H(f)$ - phase distortion causes waveform dispersion even if the magnitude response is correct | Always check group delay $\tau_g(f) = -d\angle H/df$; use linear-phase FIR if constant delay is required |
 | 6 | Applying IIR filters in both directions without understanding "zero-phase" | `scipy.signal.filtfilt` applies a filter twice (forward then backward) to achieve zero phase, but it is non-causal; cannot be used in real-time streaming | Use `filtfilt` only for offline analysis; use `lfilter` with delay compensation for real-time |
-| 7 | Using periodogram directly as PSD estimate | The periodogram has variance equal to its mean (inconsistent estimator) — averaging periodograms over many realizations does not reduce variance | Use Welch's method (`scipy.signal.welch`) to average windowed periodogram estimates |
+| 7 | Using periodogram directly as PSD estimate | The periodogram has variance equal to its mean (inconsistent estimator) - averaging periodograms over many realizations does not reduce variance | Use Welch's method (`scipy.signal.welch`) to average windowed periodogram estimates |
 | 8 | Naive inverse filter on attenuated frequencies | Dividing by $H(f) \approx 0$ amplifies noise by $1/|H(f)|$, which diverges | Use Wiener filter $H_W = H^* S_{xx}/(|H|^2 S_{xx} + S_{nn})$ or regularized inverse $H_W = H^*/(|H|^2 + \lambda)$ |
 | 9 | Confusing convolution with element-wise multiplication | Writing `y = h * x` in Python (NumPy) gives element-wise multiply, not convolution | Use `np.convolve(x, h)` or `scipy.signal.fftconvolve(x, h)` for convolution |
 | 10 | Incorrect output length after convolution | Not accounting for the "full", "same", or "valid" output modes, or expecting circular convolution to give $M + L - 1$ output samples (it gives $N$) | Know the output lengths: full = $M+L-1$; same = $\max(M,L)$; valid = $|M-L|+1$ |
 
 ## 12. Exercises
 
-**Exercise 1 ★ — Convolution by Hand**
+**Exercise 1 * - Convolution by Hand**
 Compute the linear convolution of $x = [1, 2, 3, 2, 1]$ and $h = [1, 0, -1]$ by hand using the sliding-dot-product definition. Verify your answer using `np.convolve`. Then compute the 5-point circular convolution of the same inputs and identify which output samples differ from the linear convolution result due to wrap-around.
 
-**Exercise 2 ★ — Convolution Theorem Verification**
+**Exercise 2 * - Convolution Theorem Verification**
 For $x = [1, 2, 3, 4]$ and $h = [1, -1, 1]$: (a) Compute the linear convolution directly. (b) Compute it via the FFT route (zero-pad, multiply spectra, IFFT). (c) Verify that both approaches give the same result to machine precision. (d) Verify Parseval: $\lVert y \rVert_2^2 = \frac{1}{N}\lVert Y \rVert_2^2$ where $Y = \text{DFT}(y)$.
 
-**Exercise 3 ★ — LTI Frequency Response**
+**Exercise 3 * - LTI Frequency Response**
 Design a simple FIR lowpass filter using the window method: (a) Start with the ideal lowpass impulse response $h_d[n] = 2f_c \operatorname{sinc}(2f_c n)$ with cutoff $f_c = 0.2$ (in normalized frequency). (b) Truncate to $L = 51$ taps. (c) Multiply by a Hann window. (d) Plot $|H(f)|$ in dB and measure the passband ripple, stopband attenuation, and transition bandwidth.
 
-**Exercise 4 ★★ — Circular vs. Linear Convolution Demo**
+**Exercise 4 ** - Circular vs. Linear Convolution Demo**
 (a) Convolve a length-64 chirp signal with a length-16 Hann-windowed filter using both direct `np.convolve` and the 64-point circular DFT method. (b) Show the circular convolution error (difference from linear convolution). (c) Repeat with zero-padding to length $64 + 16 - 1 = 79$ (or next power of 2 = 128). (d) Verify that the zero-padded circular convolution matches linear convolution exactly.
 
-**Exercise 5 ★★ — Overlap-Add Implementation**
+**Exercise 5 ** - Overlap-Add Implementation**
 Implement the overlap-add algorithm from scratch: `def overlap_add(x, h, block_size)`. (a) Process a 1024-sample signal with a 64-sample filter using block size 128. (b) Verify your output matches `scipy.signal.fftconvolve(x, h)` to machine precision. (c) Measure and compare the runtime of your overlap-add, `np.convolve`, and `scipy.signal.fftconvolve` for varying signal lengths.
 
-**Exercise 6 ★★ — Wiener Deconvolution**
+**Exercise 6 ** - Wiener Deconvolution**
 Given a blurred signal $y = h * x + n$ where $h$ is a Gaussian blur, $x$ is a test signal, and $n$ is white Gaussian noise: (a) Implement the naive inverse filter and show the noise amplification. (b) Implement the Wiener filter assuming known $S_{xx}$ and $S_{nn}$. (c) Show the deconvolution result for three SNR levels ($10, 20, 30$ dB). (d) Compare with regularized Tikhonov deconvolution using the L-curve to select $\lambda$.
 
-**Exercise 7 ★★★ — S4 SSM as FFT Convolution**
+**Exercise 7 *** - S4 SSM as FFT Convolution**
 Implement the S4 state space model in convolutional mode: (a) Construct the SSM matrices $A, B, C$ for a simple diagonal SSM with $N = 64$ states. (b) Discretize with step $\Delta = 0.01$ using the ZOH method: $\bar{A} = e^{\Delta A}$, $\bar{B} = (e^{\Delta A} - I)A^{-1}B$. (c) Compute the SSM kernel $\bar{K} = [C\bar{B}, C\bar{A}\bar{B}, \ldots, C\bar{A}^{L-1}\bar{B}]$ for $L = 256$. (d) Apply the kernel to a test sequence via FFT convolution. (e) Verify by also running the recurrence directly and comparing outputs.
 
-**Exercise 8 ★★★ — Hyena Parameterized Long Convolution**
+**Exercise 8 *** - Hyena Parameterized Long Convolution**
 Implement a simplified order-2 Hyena operator: (a) Define two learnable filters $h_1, h_2$ of length $L = 128$, parameterized by a 2-layer MLP evaluated at positions $t = 0, \ldots, L-1$. (b) Implement the Hyena forward pass: $y = h_2 * (v_2 \odot (h_1 * (v_1 \odot x)))$ where $v_i = W_i x$ are learned projections. (c) Verify that the total compute is $O(L \log L)$ per forward pass. (d) Compare: for $L = 1024$, count the FLOPs for Hyena vs. self-attention ($O(L^2 d)$ with $d = 64$).
 
 ## 13. Why This Matters for AI (2026 Perspective)
@@ -957,52 +957,52 @@ Implement a simplified order-2 Hyena operator: (a) Define two learnable filters 
 | Wiener filter (optimal deconvolution) | Noise-robust attention; NLP denoising objectives; diffusion model score matching as optimal deconvolution |
 | Overlap-add / overlap-save | WaveNet training (parallel causal conv); audio codec inference; streaming inference for SSMs |
 | Group convolution (equivariance) | SE(3)-equivariant networks in protein structure (AlphaFold 2); molecular dynamics (NequIP, MACE) |
-| Spectral graph convolution | GCN, ChebNet, GraphSAGE — all use graph convolution derived from graph Laplacian diagonalization |
-| Hyena parameterized convolutions | Sub-quadratic LLM attention replacement; competitive with transformers at context lengths 8K–64K |
+| Spectral graph convolution | GCN, ChebNet, GraphSAGE - all use graph convolution derived from graph Laplacian diagonalization |
+| Hyena parameterized convolutions | Sub-quadratic LLM attention replacement; competitive with transformers at context lengths 8K-64K |
 | FNet (FFT attention replacement) | Existence proof that fixed global mixing (FFT) achieves 92% of BERT; motivates Mlp-Mixer, gMLP architectures |
 
 ## 14. Conceptual Bridge
 
 ### Looking Back
 
-This section builds directly on three prior foundations. From **§20-01 (Fourier Series)**, we inherit the idea that periodic signals decompose into sinusoidal harmonics and that these harmonics are orthogonal — the very orthogonality that makes the DFT a unitary transform. From **§20-02 (Fourier Transform)**, we carry forward the continuous convolution theorem, Plancherel's theorem, and the $L^1$/$L^2$ framework in which these operations are well-defined. From **§20-03 (DFT and FFT)**, we take the computational machinery: the DFT matrix, the Cooley-Tukey algorithm, and the concept of circular periodicity that makes the discrete Convolution Theorem exact rather than approximate.
+This section builds directly on three prior foundations. From **Section 20-01 (Fourier Series)**, we inherit the idea that periodic signals decompose into sinusoidal harmonics and that these harmonics are orthogonal - the very orthogonality that makes the DFT a unitary transform. From **Section 20-02 (Fourier Transform)**, we carry forward the continuous convolution theorem, Plancherel's theorem, and the $L^1$/$L^2$ framework in which these operations are well-defined. From **Section 20-03 (DFT and FFT)**, we take the computational machinery: the DFT matrix, the Cooley-Tukey algorithm, and the concept of circular periodicity that makes the discrete Convolution Theorem exact rather than approximate.
 
-The Convolution Theorem can be seen as the *payoff* of all the Fourier analysis developed in §01-03: the abstract orthogonal decomposition becomes a practical speedup. The key insight — that eigenfunctions of convolution are complex exponentials — was already visible in §01's Fourier series (eigenfunctions of translation operators on the circle) and §02's FT (eigenfunctions of all LTI operators). Here we make that insight computationally concrete.
+The Convolution Theorem can be seen as the *payoff* of all the Fourier analysis developed in Section 01-03: the abstract orthogonal decomposition becomes a practical speedup. The key insight - that eigenfunctions of convolution are complex exponentials - was already visible in Section 01's Fourier series (eigenfunctions of translation operators on the circle) and Section 02's FT (eigenfunctions of all LTI operators). Here we make that insight computationally concrete.
 
 ### The Core Equation
 
 $$x \circledast y \;\overset{\mathcal{F}}{\longleftrightarrow}\; X[k] \cdot Y[k]$$
 
-This identity, proved in §3.2, is what connects abstract Fourier analysis to practical engineering and modern deep learning. Every CNN layer, every S4/Mamba layer, every FNet mixer, and every overlap-add audio system computes a consequence of this equation.
+This identity, proved in Section 3.2, is what connects abstract Fourier analysis to practical engineering and modern deep learning. Every CNN layer, every S4/Mamba layer, every FNet mixer, and every overlap-add audio system computes a consequence of this equation.
 
 ### Looking Forward
 
-The **immediate next step** is §20-05 (Wavelets), which uses the Convolution Theorem as its foundation. Wavelet analysis overcomes Fourier's fundamental limitation — no time localization — by using *short* convolutions with oscillatory kernels at multiple scales. The perfect reconstruction filter bank condition (the core technical requirement of wavelets) is a system of equations on the Fourier transforms of the analysis and synthesis filters. Every MRA, DWT, and lifting scheme is a cleverly designed set of convolutions satisfying this spectral condition.
+The **immediate next step** is Section 20-05 (Wavelets), which uses the Convolution Theorem as its foundation. Wavelet analysis overcomes Fourier's fundamental limitation - no time localization - by using *short* convolutions with oscillatory kernels at multiple scales. The perfect reconstruction filter bank condition (the core technical requirement of wavelets) is a system of equations on the Fourier transforms of the analysis and synthesis filters. Every MRA, DWT, and lifting scheme is a cleverly designed set of convolutions satisfying this spectral condition.
 
 Looking further, this section connects to:
-- **§11-04 (Spectral Graph Theory):** Graph convolution = signal processing on irregular domains; ChebNet, GCN, and spectral clustering all use the graph Laplacian eigendecomposition in the same way the Convolution Theorem uses DFT eigenvectors
-- **§12-02 (Hilbert Spaces):** The Convolution Theorem in $L^2$ is a statement about isometric isomorphisms of Hilbert spaces; Plancherel's theorem is the isometry; the Convolution Theorem is a multiplicative structure on top
-- **§17 (Generative Models):** Diffusion models can be interpreted as iterative deconvolution — the forward process convolves with progressively wider Gaussians, and the reverse process learns the Wiener deconvolution at each noise level
+- **Section 11-04 (Spectral Graph Theory):** Graph convolution = signal processing on irregular domains; ChebNet, GCN, and spectral clustering all use the graph Laplacian eigendecomposition in the same way the Convolution Theorem uses DFT eigenvectors
+- **Section 12-02 (Hilbert Spaces):** The Convolution Theorem in $L^2$ is a statement about isometric isomorphisms of Hilbert spaces; Plancherel's theorem is the isometry; the Convolution Theorem is a multiplicative structure on top
+- **Section 17 (Generative Models):** Diffusion models can be interpreted as iterative deconvolution - the forward process convolves with progressively wider Gaussians, and the reverse process learns the Wiener deconvolution at each noise level
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §20-01 Fourier Series          §20-02 Fourier Transform
+  Section 20-01 Fourier Series          Section 20-02 Fourier Transform
   (periodic, discrete spectrum)  (aperiodic, continuous spectrum)
-         ↓                              ↓
-  §20-03 DFT and FFT  ─────────── §20-04 Convolution Theorem  ← HERE
+         v                              v
+  Section 20-03 DFT and FFT  ----------- Section 20-04 Convolution Theorem  <- HERE
   (discrete, computable)          (theorem + LTI + ML apps)
-                                         ↓
-                               §20-05 Wavelets
+                                         v
+                               Section 20-05 Wavelets
                                (multi-resolution, time-local)
-                                         ↓
-                    ┌────────────────────┼────────────────────┐
-                    ↓                    ↓                    ↓
-             §11-04 Spectral     §12-02 Hilbert        §17 Diffusion
-             Graph Theory        Spaces (L²)           Models
+                                         v
+                    +--------------------+--------------------+
+                    v                    v                    v
+             Section 11-04 Spectral     Section 12-02 Hilbert        Section 17 Diffusion
+             Graph Theory        Spaces (L2)           Models
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 
@@ -1042,7 +1042,7 @@ $$H(z) = (z - e^{2\pi i f_0})(z - e^{-2\pi i f_0}) = z^2 - 2\cos(2\pi f_0)z + 1$
 
 This creates a perfect null at $f_0$. Used in power-line interference removal (50/60 Hz notch filter).
 
-**For AI:** The poles of a linear RNN $A$ are the Z-transform poles of its impulse response. Stable initialization requires all eigenvalues of $A$ inside the unit disk. S4's HiPPO matrix has eigenvalues on the imaginary axis (continuous time), which after discretization map to eigenvalues near but inside the unit circle — ensuring stability while preserving long-range information.
+**For AI:** The poles of a linear RNN $A$ are the Z-transform poles of its impulse response. Stable initialization requires all eigenvalues of $A$ inside the unit disk. S4's HiPPO matrix has eigenvalues on the imaginary axis (continuous time), which after discretization map to eigenvalues near but inside the unit circle - ensuring stability while preserving long-range information.
 
 ## Appendix B: Worked Examples
 
@@ -1060,7 +1060,7 @@ This is a simple ODE in $t$: $\hat{u}(\xi, t) = \hat{u}_0(\xi) e^{-(2\pi\xi)^2 t
 The Convolution Theorem identifies $e^{-(2\pi\xi)^2 t} = \hat{G}_t(\xi)$ (the FT of the Gaussian kernel $G_t$). Inverting:
 $$u(x, t) = \mathcal{F}^{-1}(\hat{G}_t \cdot \hat{u}_0)(x) = (G_t * u_0)(x) \qquad \square$$
 
-The Fourier transform diagonalizes the heat operator: each frequency evolves independently, decaying at rate $(2\pi\xi)^2$. High frequencies decay fastest — blurring sharp features. This is exactly why Gaussian convolution produces smooth outputs.
+The Fourier transform diagonalizes the heat operator: each frequency evolves independently, decaying at rate $(2\pi\xi)^2$. High frequencies decay fastest - blurring sharp features. This is exactly why Gaussian convolution produces smooth outputs.
 
 ### B.2 Verification of Circular vs. Linear Convolution
 
@@ -1074,17 +1074,17 @@ Let $x = [3, 1, 4, 1]$ (length 4) and $h = [1, 2]$ (length 2).
 - $y[4] = 1 \cdot 2 = 2$
 - $y_{\text{lin}} = [3, 7, 6, 9, 2]$
 
-**4-point circular convolution** (wrong — wrap-around):
-- $y[0] = 3 \cdot 1 + 1 \cdot 2 = 5$ ← includes $x[3] \cdot h[1]$, wrong
-- $y[1] = 1 \cdot 1 + 3 \cdot 2 = 7$ ✓
-- $y[2] = 4 \cdot 1 + 1 \cdot 2 = 6$ ✓
-- $y[3] = 1 \cdot 1 + 4 \cdot 2 = 9$ ✓
-- $y_{\text{circ,4}} = [5, 7, 6, 9]$ — first sample is wrong
+**4-point circular convolution** (wrong - wrap-around):
+- $y[0] = 3 \cdot 1 + 1 \cdot 2 = 5$ <- includes $x[3] \cdot h[1]$, wrong
+- $y[1] = 1 \cdot 1 + 3 \cdot 2 = 7$ PASS
+- $y[2] = 4 \cdot 1 + 1 \cdot 2 = 6$ PASS
+- $y[3] = 1 \cdot 1 + 4 \cdot 2 = 9$ PASS
+- $y_{\text{circ,4}} = [5, 7, 6, 9]$ - first sample is wrong
 
 **8-point circular convolution** (zero-padded, correct):
 - Zero-pad $x \to [3,1,4,1,0,0,0,0]$ and $h \to [1,2,0,0,0,0,0,0]$
 - Circular convolution of length-8 vectors gives $[3,7,6,9,2,0,0,0]$
-- Trim to length 5: $[3, 7, 6, 9, 2]$ ✓ matches linear convolution
+- Trim to length 5: $[3, 7, 6, 9, 2]$ PASS matches linear convolution
 
 ### B.3 Wiener Filter Derivation in Detail
 
@@ -1136,9 +1136,9 @@ y = np.fft.irfft(X * H, n=N)[:len(x) + len(h) - 1]
 
 ### C.3 Numerical Precision in Convolution
 
-**Round-off error.** FFT-based convolution introduces floating-point errors of order $O(\varepsilon_{\text{mach}} N \log N)$ where $\varepsilon_{\text{mach}} \approx 2.2 \times 10^{-16}$ for double precision. For $N = 2^{20}$: error $\approx 2.2 \times 10^{-16} \times 20 \times 10^6 \approx 4 \times 10^{-9}$ — acceptable for most applications.
+**Round-off error.** FFT-based convolution introduces floating-point errors of order $O(\varepsilon_{\text{mach}} N \log N)$ where $\varepsilon_{\text{mach}} \approx 2.2 \times 10^{-16}$ for double precision. For $N = 2^{20}$: error $\approx 2.2 \times 10^{-16} \times 20 \times 10^6 \approx 4 \times 10^{-9}$ - acceptable for most applications.
 
-**Exact convolution.** For integer-valued signals, the NTT (Number Theoretic Transform over $\mathbb{Z}_p$) computes exact convolution without floating-point error — covered in §20-03.
+**Exact convolution.** For integer-valued signals, the NTT (Number Theoretic Transform over $\mathbb{Z}_p$) computes exact convolution without floating-point error - covered in Section 20-03.
 
 ### C.4 Memory Layout for Batched Convolution
 
@@ -1173,7 +1173,7 @@ The regularization parameter $\lambda$ has the same role as in the Wiener filter
 
 ### D.3 Convolution and Kernel Methods
 
-A shift-invariant kernel $k(x - y)$ defines a feature map $\phi: x \mapsto k(x, \cdot)$ such that $k(x, y) = \langle \phi(x), \phi(y) \rangle$. By Bochner's theorem, $k$ is a positive definite shift-invariant kernel if and only if $\hat{k}(\omega) \geq 0$ for all $\omega$ — i.e., $k$ is the FT of a non-negative measure.
+A shift-invariant kernel $k(x - y)$ defines a feature map $\phi: x \mapsto k(x, \cdot)$ such that $k(x, y) = \langle \phi(x), \phi(y) \rangle$. By Bochner's theorem, $k$ is a positive definite shift-invariant kernel if and only if $\hat{k}(\omega) \geq 0$ for all $\omega$ - i.e., $k$ is the FT of a non-negative measure.
 
 **Random Fourier Features** (Rahimi & Recht, 2007): approximate a shift-invariant kernel via Monte Carlo:
 $$k(x - y) = \mathbb{E}_{\omega \sim \hat{k}}[e^{i\omega^\top(x-y)}] \approx \frac{1}{D}\sum_{j=1}^D e^{i\omega_j^\top x} (e^{i\omega_j^\top y})^*$$
@@ -1239,10 +1239,10 @@ $$\mathcal{F}_{2D}(f * g)(\xi, \eta) = \hat{f}(\xi, \eta) \cdot \hat{g}(\xi, \et
 
 where $\hat{f}(\xi, \eta) = \int\!\!\int f(x,y) e^{-2\pi i(\xi x + \eta y)} dx\, dy$.
 
-**Separable filters.** A 2D filter $h(x, y) = h_1(x) h_2(y)$ is **separable** — its 2D FT factors as $\hat{h}(\xi, \eta) = \hat{h}_1(\xi) \hat{h}_2(\eta)$. Separable filtering can be implemented as two sequential 1D convolutions:
+**Separable filters.** A 2D filter $h(x, y) = h_1(x) h_2(y)$ is **separable** - its 2D FT factors as $\hat{h}(\xi, \eta) = \hat{h}_1(\xi) \hat{h}_2(\eta)$. Separable filtering can be implemented as two sequential 1D convolutions:
 $$(h * f)(x, y) = (h_1 *_x (h_2 *_y f))(x, y)$$
 
-Cost: $O(N^2(K_1 + K_2))$ vs $O(N^2 K_1 K_2)$ for non-separable. **Depthwise separable convolutions** in MobileNet exploit this: apply a 1D filter per channel, then mix channels — reducing parameters by a factor of $K^2$ for a $K \times K$ filter.
+Cost: $O(N^2(K_1 + K_2))$ vs $O(N^2 K_1 K_2)$ for non-separable. **Depthwise separable convolutions** in MobileNet exploit this: apply a 1D filter per channel, then mix channels - reducing parameters by a factor of $K^2$ for a $K \times K$ filter.
 
 ### F.2 Image Processing Applications
 
@@ -1256,7 +1256,7 @@ Common 2D convolution kernels and their frequency responses:
 | Box filter $\frac{1}{K^2}\mathbf{1}_{K\times K}$ | $\operatorname{sinc}(K\xi)\operatorname{sinc}(K\eta)$ | Lowpass, boxy |
 | Identity | $1$ everywhere | No change |
 
-**Unsharp masking:** $f_{\text{sharp}} = f + \alpha(f - G_\sigma * f) = (1 + \alpha)f - \alpha G_\sigma * f$. In frequency: $H(\xi) = 1 + \alpha(1 - e^{-2\pi^2\sigma^2|\xi|^2})$ — boosts high frequencies.
+**Unsharp masking:** $f_{\text{sharp}} = f + \alpha(f - G_\sigma * f) = (1 + \alpha)f - \alpha G_\sigma * f$. In frequency: $H(\xi) = 1 + \alpha(1 - e^{-2\pi^2\sigma^2|\xi|^2})$ - boosts high frequencies.
 
 ## Appendix G: Convolution in Sequence Modeling Timeline
 
@@ -1288,7 +1288,7 @@ The trajectory is clear: convolution is progressively replacing or supplementing
 | Linear conv (continuous) | $(f*g)(t) = \int f(\tau)g(t-\tau)d\tau$ | $O(N^2)$ direct |
 | Linear conv (discrete) | $(x*h)[n] = \sum_k x[k]h[n-k]$ | $O(MN)$ direct |
 | Circular conv (discrete) | $(x \circledast y)[n] = \sum_{m} x[m]y[(n-m)\bmod N]$ | $O(N \log N)$ via FFT |
-| FFT convolution | zero-pad → FFT → multiply → IFFT | $O(N \log N)$ |
+| FFT convolution | zero-pad -> FFT -> multiply -> IFFT | $O(N \log N)$ |
 | Cross-correlation | $(f \star g)(\tau) = \int f^*(t)g(t+\tau)dt$ | $O(N \log N)$ via FFT |
 | Autocorrelation | $R_{ff}(\tau) = (f \star f)(\tau)$ | $O(N \log N)$ via FFT |
 
@@ -1387,14 +1387,14 @@ This is the origin of poles in IIR filters: the denominator $1 - H_1 H_2 = 0$ de
 
 ## References
 
-1. Oppenheim, A.V. & Schafer, R.W. (2009). *Discrete-Time Signal Processing*, 3rd ed. Prentice Hall. — The definitive textbook; Chapters 2-4 cover LTI systems and Z-transform.
-2. Proakis, J.G. & Manolakis, D.G. (2006). *Digital Signal Processing*, 4th ed. Pearson. — Thorough treatment of filter design.
-3. van den Oord, A. et al. (2016). WaveNet: A Generative Model for Raw Audio. *arXiv:1609.03499*. — Dilated causal convolutions for audio.
-4. Gu, A. et al. (2021). Efficiently Modeling Long Sequences with Structured State Spaces. *ICLR 2022*. — S4 SSM as FFT convolution.
-5. Gu, A. & Dao, T. (2023). Mamba: Linear-Time Sequence Modeling with Selective State Spaces. *arXiv:2312.00752*. — Selective SSM.
-6. Poli, M. et al. (2023). Hyena Hierarchy. *ICML 2023*. — Parameterized long convolutions.
-7. Lee-Thorp, J. et al. (2022). FNet: Mixing Tokens with Fourier Transforms. *NAACL 2022*. — FFT as attention substitute.
-8. Cohen, T. & Welling, M. (2016). Group Equivariant Convolutional Networks. *ICML 2016*. — $G$-CNNs.
-9. Wiener, N. (1942). *Extrapolation, Interpolation, and Smoothing of Stationary Time Series*. MIT Press. — Original Wiener filter paper.
-10. Young, W.H. (1912). On the multiplication of successions of Fourier constants. *Proc. R. Soc. London*. — Original Young's inequality.
+1. Oppenheim, A.V. & Schafer, R.W. (2009). *Discrete-Time Signal Processing*, 3rd ed. Prentice Hall. - The definitive textbook; Chapters 2-4 cover LTI systems and Z-transform.
+2. Proakis, J.G. & Manolakis, D.G. (2006). *Digital Signal Processing*, 4th ed. Pearson. - Thorough treatment of filter design.
+3. van den Oord, A. et al. (2016). WaveNet: A Generative Model for Raw Audio. *arXiv:1609.03499*. - Dilated causal convolutions for audio.
+4. Gu, A. et al. (2021). Efficiently Modeling Long Sequences with Structured State Spaces. *ICLR 2022*. - S4 SSM as FFT convolution.
+5. Gu, A. & Dao, T. (2023). Mamba: Linear-Time Sequence Modeling with Selective State Spaces. *arXiv:2312.00752*. - Selective SSM.
+6. Poli, M. et al. (2023). Hyena Hierarchy. *ICML 2023*. - Parameterized long convolutions.
+7. Lee-Thorp, J. et al. (2022). FNet: Mixing Tokens with Fourier Transforms. *NAACL 2022*. - FFT as attention substitute.
+8. Cohen, T. & Welling, M. (2016). Group Equivariant Convolutional Networks. *ICML 2016*. - $G$-CNNs.
+9. Wiener, N. (1942). *Extrapolation, Interpolation, and Smoothing of Stationary Time Series*. MIT Press. - Original Wiener filter paper.
+10. Young, W.H. (1912). On the multiplication of successions of Fourier constants. *Proc. R. Soc. London*. - Original Young's inequality.
 

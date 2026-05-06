@@ -1,11 +1,11 @@
 # Bayesian Inference
 
-[← Back to Chapter 7: Statistics](../README.md) | [Next: Time Series →](../05-Time-Series/notes.md)
+[<- Back to Chapter 7: Statistics](../README.md) | [Next: Time Series ->](../05-Time-Series/notes.md)
 
 ---
 
 > _"Probability theory is nothing but common sense reduced to calculation."_
-> — Pierre-Simon Laplace
+> - Pierre-Simon Laplace
 
 ## Overview
 
@@ -29,7 +29,7 @@ This section develops Bayesian inference in a way that is rigorous, scoped, and 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations and simulations for conjugate Bayes, MAP, posterior predictive inference, Bayes factors, MCMC, VI, and Bayesian ML examples |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises covering closed-form posterior updates, MAP estimation, posterior prediction, Bayes factors, sampling, ELBO derivations, and Bayesian uncertainty in ML |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises covering closed-form posterior updates, MAP estimation, posterior prediction, Bayes factors, sampling, ELBO derivations, and Bayesian uncertainty in ML |
 
 ## Learning Objectives
 
@@ -1818,7 +1818,7 @@ Non-examples:
 The Bayesian view is most useful when it changes design decisions. For example:
 
 - Should the prior be centered at zero or at pretrained weights? (LoRA centers at zero; a Bayesian treatment might center at the pretrained value with tight scale.)
-- Should updates be globally isotropic or structured by layer and task? (DoRA's magnitude–direction decomposition suggests direction-specific priors.)
+- Should updates be globally isotropic or structured by layer and task? (DoRA's magnitude-direction decomposition suggests direction-specific priors.)
 - Should uncertainty be propagated into predictions after fine-tuning?
 - Should low-rank adaptation be interpreted as a computational constraint, a prior belief, or both?
 
@@ -2007,4 +2007,4 @@ That perspective will keep returning. Whenever a later chapter asks us to choose
 12. Johari, R. "Lecture 16: Bayesian Inference." Stanford MS&E 226 notes.
 13. Jeffreys, H. _Theory of Probability_. Oxford University Press.
 14. Gelman, A. and Shalizi, C. R. "Philosophy and the Practice of Bayesian Statistics." _British Journal of Mathematical and Statistical Psychology_ (2013).
-15. Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., and Bürkner, P.-C. "Rank-Normalization, Folding, and Localization: An Improved R-hat for Assessing Convergence of MCMC." _Bayesian Analysis_ (2021).
+15. Vehtari, A., Gelman, A., Simpson, D., Carpenter, B., and Burkner, P.-C. "Rank-Normalization, Folding, and Localization: An Improved R-hat for Assessing Convergence of MCMC." _Bayesian Analysis_ (2021).

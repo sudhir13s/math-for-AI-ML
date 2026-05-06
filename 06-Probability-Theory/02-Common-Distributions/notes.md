@@ -1,30 +1,30 @@
-[← Back to Probability Theory](../README.md) | [Next: Joint Distributions →](../03-Joint-Distributions/notes.md)
+[<- Back to Probability Theory](../README.md) | [Next: Joint Distributions ->](../03-Joint-Distributions/notes.md)
 
 ---
 
-# §6.2 Common Distributions
+# Section6.2 Common Distributions
 
-> _"God does not play dice — but physicists, statisticians, and machine learning engineers do. The distributions in this chapter are the dice they use."_
+> _"God does not play dice - but physicists, statisticians, and machine learning engineers do. The distributions in this chapter are the dice they use."_
 
 ## Overview
 
-Every probabilistic model makes a choice: what distribution describes the data? A Bernoulli for a coin flip, a Gaussian for continuous measurements, a Categorical for language model token prediction, a Dirichlet for topic proportions. These are not arbitrary choices — each distribution encapsulates a specific data-generating story, a set of assumptions, and a collection of mathematical properties that make inference tractable.
+Every probabilistic model makes a choice: what distribution describes the data? A Bernoulli for a coin flip, a Gaussian for continuous measurements, a Categorical for language model token prediction, a Dirichlet for topic proportions. These are not arbitrary choices - each distribution encapsulates a specific data-generating story, a set of assumptions, and a collection of mathematical properties that make inference tractable.
 
 This section gives the complete treatment of every named distribution that appears throughout this curriculum. For each distribution you will find: the PDF or PMF, the CDF where useful, the parameters and their interpretations, the moments (mean, variance, skewness), the moment generating function, the shape behaviour as parameters vary, the special cases and limiting forms, and the concrete ML applications where the distribution appears.
 
 The section culminates in two unifying frameworks: the **exponential family**, which shows that Bernoulli, Gaussian, Poisson, Beta, Gamma, Dirichlet, and Categorical are all instances of a single canonical form; and **conjugate priors**, which explains why Bayesian inference is analytically tractable for precisely these distributions.
 
-**What this section assumes:** The definitions of PDF, PMF, CDF, and the basic probability axioms from [§01](../01-Introduction-and-Random-Variables/notes.md). Bernoulli and Gaussian were introduced there; this section gives their full treatment.
+**What this section assumes:** The definitions of PDF, PMF, CDF, and the basic probability axioms from [Section01](../01-Introduction-and-Random-Variables/notes.md). Bernoulli and Gaussian were introduced there; this section gives their full treatment.
 
-**What this section defers:** Expectation derivations are stated as facts here and derived from first principles in [§04](../04-Expectation-and-Moments/notes.md). The multivariate Gaussian is previewed here and fully developed in [§03](../03-Joint-Distributions/notes.md).
+**What this section defers:** Expectation derivations are stated as facts here and derived from first principles in [Section04](../04-Expectation-and-Moments/notes.md). The multivariate Gaussian is previewed here and fully developed in [Section03](../03-Joint-Distributions/notes.md).
 
 ---
 
 ## Prerequisites
 
-- [§01 Introduction and Random Variables](../01-Introduction-and-Random-Variables/notes.md) — probability axioms, CDF, PDF, PMF, Bernoulli (intro)
-- Integration: computing areas under curves, substitution, gamma function — [§03 Integration](../../04-Calculus-Fundamentals/03-Integration/notes.md)
-- Series: power series, convergence — [§04 Series and Sequences](../../04-Calculus-Fundamentals/04-Series-and-Sequences/notes.md)
+- [Section01 Introduction and Random Variables](../01-Introduction-and-Random-Variables/notes.md) - probability axioms, CDF, PDF, PMF, Bernoulli (intro)
+- Integration: computing areas under curves, substitution, gamma function - [Section03 Integration](../../04-Calculus-Fundamentals/03-Integration/notes.md)
+- Series: power series, convergence - [Section04 Series and Sequences](../../04-Calculus-Fundamentals/04-Series-and-Sequences/notes.md)
 
 ---
 
@@ -33,7 +33,7 @@ The section culminates in two unifying frameworks: the **exponential family**, w
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive visualisations of all distributions; exponential family; conjugacy updates |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises: PMF/MGF computation, exponential family identification, conjugate Bayesian updating |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises: PMF/MGF computation, exponential family identification, conjugate Bayesian updating |
 
 ---
 
@@ -43,7 +43,7 @@ After completing this section, you will:
 
 - State the PMF or PDF, support, mean, variance, and MGF of every major named distribution
 - Identify which distribution models a given data-generating process
-- Explain the relationships between distributions (Binomial→Poisson, Binomial→Normal, Beta→Dirichlet)
+- Explain the relationships between distributions (Binomial->Poisson, Binomial->Normal, Beta->Dirichlet)
 - Write any exponential family member in canonical form and identify its sufficient statistics and log-partition function
 - Compute the posterior in a conjugate Bayesian model (Beta-Binomial, Dirichlet-Categorical, Gamma-Poisson, Normal-Normal)
 - Derive the softmax function as the natural parameterisation of the Categorical exponential family
@@ -109,9 +109,9 @@ A probability distribution is completely specified by its CDF. So why do we name
 
 Three reasons:
 
-**Sufficient statistics compress data.** If you observe $n$ coin flips, all the information about $p$ is contained in the count of heads — not the sequence. The Binomial distribution formalises this: its PMF depends on the data only through $\sum_i x_i$. Named distributions arise precisely when the data-generating process has this kind of compressibility.
+**Sufficient statistics compress data.** If you observe $n$ coin flips, all the information about $p$ is contained in the count of heads - not the sequence. The Binomial distribution formalises this: its PMF depends on the data only through $\sum_i x_i$. Named distributions arise precisely when the data-generating process has this kind of compressibility.
 
-**Tractable inference.** Computing posteriors, marginals, and predictions requires integration. For most distributions this is intractable. The named distributions are the ones for which the integration can be done in closed form — either because the MGF factors, or because they belong to the exponential family where the normalisation constant has an analytic form.
+**Tractable inference.** Computing posteriors, marginals, and predictions requires integration. For most distributions this is intractable. The named distributions are the ones for which the integration can be done in closed form - either because the MGF factors, or because they belong to the exponential family where the normalisation constant has an analytic form.
 
 **Interpretable parameters.** A Gaussian $\mathcal{N}(\mu, \sigma^2)$ has a mean $\mu$ and a standard deviation $\sigma$ that are immediately meaningful. A Beta$(2, 5)$ prior encodes "I've seen 2 successes and 5 failures before the experiment." Named distributions give parameters human-interpretable meaning.
 
@@ -121,60 +121,60 @@ Three reasons:
 
 ```
 DATA GENERATING PROCESS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Discrete outcomes?
-  ├── Two outcomes (0/1)             → Bernoulli(p)  [single trial]
-  ├── Count of successes in n trials → Binomial(n, p)
-  ├── Trials until first success     → Geometric(p)
-  ├── Trials until r-th success      → Negative Binomial(r, p)
-  ├── Count of events in interval    → Poisson(λ)
-  ├── One of K categories            → Categorical(p)
-  └── Counts across K categories     → Multinomial(n, p)
+  +-- Two outcomes (0/1)             -> Bernoulli(p)  [single trial]
+  +-- Count of successes in n trials -> Binomial(n, p)
+  +-- Trials until first success     -> Geometric(p)
+  +-- Trials until r-th success      -> Negative Binomial(r, p)
+  +-- Count of events in interval    -> Poisson(\\lambda)
+  +-- One of K categories            -> Categorical(p)
+  +-- Counts across K categories     -> Multinomial(n, p)
 
   Continuous outcomes?
-  ├── Bounded, equal weight          → Uniform(a, b)
-  ├── Unbounded, symmetric bell      → Gaussian(μ, σ²)
-  ├── Non-negative, time to event    → Exponential(λ) or Gamma(α, β)
-  ├── Probability value in (0, 1)    → Beta(α, β)
-  ├── Probability vector on simplex  → Dirichlet(α)
-  └── Heavy-tailed, small samples    → Student-t(ν)
+  +-- Bounded, equal weight          -> Uniform(a, b)
+  +-- Unbounded, symmetric bell      -> Gaussian(\\mu, \\sigma^2)
+  +-- Non-negative, time to event    -> Exponential(\\lambda) or Gamma(\\alpha, \\beta)
+  +-- Probability value in (0, 1)    -> Beta(\\alpha, \\beta)
+  +-- Probability vector on simplex  -> Dirichlet(\\alpha)
+  +-- Heavy-tailed, small samples    -> Student-t(\\nu)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.3 The Distribution Family Tree
 
 ```
 DISTRIBUTION FAMILY TREE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   DISCRETE                              CONTINUOUS
-  ────────────────────────────          ──────────────────────────────
+  ----------------------------          ------------------------------
 
   Bernoulli(p)                          Uniform(a,b)
-      │ n trials                              │
-      ▼                                       ▼ (generalise)
-  Binomial(n,p) ─────── CLT ──────────→ Gaussian(μ,σ²)
-      │                                       │
-      │ n→∞, p→0, np=λ                        │ μ=0, σ²=ν (ν→∞)
-      ▼                                       ▼
-  Poisson(λ) ────── Poisson ──────────→ Exponential(λ)
-      │             process                   │ sum of α
-      │ count                                 ▼
-  Multinomial(n,p) ◄──── generalise ── Gamma(α,β)
-      │                                       │ α=1
-  Categorical(p)                         Exponential(λ)
-      │                                       │ α=k/2, β=½
+      | n trials                              |
+      v                                       v (generalise)
+  Binomial(n,p) ------- CLT -----------> Gaussian(\\mu,\\sigma^2)
+      |                                       |
+      | n->\\infty, p->0, np=\\lambda                        | \\mu=0, \\sigma^2=\\nu (\\nu->\\infty)
+      v                                       v
+  Poisson(\\lambda) ------ Poisson -----------> Exponential(\\lambda)
+      |             process                   | sum of \\alpha
+      | count                                 v
+  Multinomial(n,p) <---- generalise -- Gamma(\\alpha,\\beta)
+      |                                       | \\alpha=1
+  Categorical(p)                         Exponential(\\lambda)
+      |                                       | \\alpha=k/2, \\beta=1/2
   conjugate prior:                       Chi-squared(k)
-      │                                       │
-      ▼                                       ▼
-  Dirichlet(α) ──── marginals ────────→ Beta(α,β)
+      |                                       |
+      v                                       v
+  Dirichlet(\\alpha) ---- marginals ---------> Beta(\\alpha,\\beta)
                                              (K=2 case)
 
-  Student-t(ν) = Gaussian / √(Chi²(ν)/ν)  [heavy tails; ν→∞ → Gaussian]
+  Student-t(\\nu) = Gaussian / \\sqrt(Chi^2(\\nu)/\\nu)  [heavy tails; \\nu->\\infty -> Gaussian]
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 1.4 Historical Timeline
@@ -184,7 +184,7 @@ DISTRIBUTION FAMILY TREE
 | 1713 | Bernoulli distribution, Law of Large Numbers | Jakob Bernoulli |
 | 1733 | Normal approximation to Binomial | Abraham de Moivre |
 | 1809 | Normal distribution as error model (least squares) | Carl Friedrich Gauss |
-| 1837 | Poisson distribution as limit of rare events | Siméon-Denis Poisson |
+| 1837 | Poisson distribution as limit of rare events | Simeon-Denis Poisson |
 | 1839 | Dirichlet distribution (as Bayesian prior) | Peter Gustav Lejeune Dirichlet |
 | 1860 | Exponential distribution (Maxwell's speed distribution) | James Clerk Maxwell |
 | 1893 | Chi-squared distribution | Karl Pearson |
@@ -232,7 +232,7 @@ $$M_X(t) = \mathbb{E}[e^{tX}] = (1-p) + pe^t = 1 - p + pe^t$$
 **Log-odds / logit:** The natural parameterisation for the Bernoulli is the **logit**:
 $$\eta = \log\frac{p}{1-p} \in (-\infty, \infty)$$
 
-Inverting: $p = \sigma(\eta) = \frac{e^\eta}{1+e^\eta} = \frac{1}{1+e^{-\eta}}$ — the **sigmoid function**. This is why logistic regression parameterises the Bernoulli distribution.
+Inverting: $p = \sigma(\eta) = \frac{e^\eta}{1+e^\eta} = \frac{1}{1+e^{-\eta}}$ - the **sigmoid function**. This is why logistic regression parameterises the Bernoulli distribution.
 
 **For AI:**
 - **Binary classification:** labels $y \in \{0, 1\}$ are Bernoulli. The cross-entropy loss $-y\log\hat{p} - (1-y)\log(1-\hat{p})$ is the negative log-likelihood of a Bernoulli model.
@@ -268,7 +268,7 @@ $$M_X(t) = \prod_{i=1}^n M_{X_i}(t) = (1-p+pe^t)^n$$
 - $p < 0.5$: right-skewed (most counts are below the mean)
 - $p = 0.5$: symmetric
 - $p > 0.5$: left-skewed
-- As $n$ grows: bell-shaped by the Central Limit Theorem (CLT preview → §06)
+- As $n$ grows: bell-shaped by the Central Limit Theorem (CLT preview -> Section06)
 
 **Normal approximation (CLT preview):** For large $n$:
 $$\frac{X - np}{\sqrt{np(1-p)}} \xrightarrow{d} \mathcal{N}(0, 1) \quad \text{as } n \to \infty$$
@@ -278,7 +278,7 @@ Rule of thumb: approximation is accurate when $np \geq 5$ and $n(1-p) \geq 5$.
 **Poisson limit:** When $n \to \infty$ and $p \to 0$ with $np = \lambda$ fixed:
 $$\binom{n}{k}p^k(1-p)^{n-k} \to \frac{\lambda^k e^{-\lambda}}{k!}$$
 
-(Full derivation in §2.4.)
+(Full derivation in Section2.4.)
 
 **For AI:**
 - **A/B testing:** number of conversions in $n$ visits follows Binomial$(n, p)$.
@@ -317,7 +317,7 @@ $$P(X > s + t \mid X > s) = P(X > t)$$
 
 The Geometric distribution is the **unique discrete memoryless distribution** (just as the Exponential is the unique continuous memoryless distribution).
 
-**Variant:** Some sources define $X$ as the number of failures before the first success, giving PMF $P(X=k) = (1-p)^k p$ for $k = 0, 1, 2, \ldots$ — this shifts everything by 1. Always check which convention a source uses.
+**Variant:** Some sources define $X$ as the number of failures before the first success, giving PMF $P(X=k) = (1-p)^k p$ for $k = 0, 1, 2, \ldots$ - this shifts everything by 1. Always check which convention a source uses.
 
 #### Negative Binomial($r$, $p$)
 
@@ -328,7 +328,7 @@ $$P(X = k) = \binom{k-1}{r-1} p^r (1-p)^{k-r}, \quad k = r, r+1, r+2, \ldots$$
 
 **Moments:** Mean $= r/p$, Variance $= r(1-p)/p^2$.
 
-**Overdispersion:** The variance $r(1-p)/p^2 = (r/p) \cdot (1-p)/p > r/p$ exceeds the mean (for $p < 1$). This makes the Negative Binomial useful for count data with **overdispersion** — variance greater than the mean — which the Poisson cannot model.
+**Overdispersion:** The variance $r(1-p)/p^2 = (r/p) \cdot (1-p)/p > r/p$ exceeds the mean (for $p < 1$). This makes the Negative Binomial useful for count data with **overdispersion** - variance greater than the mean - which the Poisson cannot model.
 
 **For AI:**
 - **Sequence length modelling:** the length of a sentence until a full stop follows approximately Geometric or Negative Binomial.
@@ -364,7 +364,7 @@ $$M_X(t) = e^{\lambda(e^t - 1)}$$
 
 *Proof via MGFs:* $M_{X+Y}(t) = M_X(t) M_Y(t) = e^{\lambda_1(e^t-1)} \cdot e^{\lambda_2(e^t-1)} = e^{(\lambda_1+\lambda_2)(e^t-1)}$. $\square$
 
-**Poisson Limit Theorem (Binomial → Poisson):**
+**Poisson Limit Theorem (Binomial -> Poisson):**
 
 As $n \to \infty$, $p \to 0$, with $np = \lambda$ fixed:
 $$\binom{n}{k} p^k (1-p)^{n-k} \to \frac{\lambda^k e^{-\lambda}}{k!}$$
@@ -400,7 +400,7 @@ $$P(X = \mathbf{e}_k) = p_k$$
 The probability vector $\mathbf{p}$ lives on the $(K-1)$-dimensional probability simplex $\Delta^{K-1} = \{\mathbf{p} : p_k \geq 0, \sum_k p_k = 1\}$. For unconstrained logits $\mathbf{z} \in \mathbb{R}^K$, the natural parameterisation is:
 $$p_k = \operatorname{softmax}(\mathbf{z})_k = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}}$$
 
-This is the **exponential family natural parameterisation** of the Categorical — the logits $\mathbf{z}$ are the natural parameters.
+This is the **exponential family natural parameterisation** of the Categorical - the logits $\mathbf{z}$ are the natural parameters.
 
 **Temperature scaling:** The Categorical can be "sharpened" or "softened" by temperature $\tau > 0$:
 $$p_k \propto e^{z_k/\tau}$$
@@ -432,7 +432,7 @@ $$\mathbb{E}[X_k] = np_k, \quad \operatorname{Var}(X_k) = np_k(1-p_k), \quad \op
 
 The **negative covariance** between categories is inevitable: if more of one category is observed, fewer of the others must be. This negative dependence structure is a fundamental constraint of fixed-total count vectors.
 
-**Marginals:** Each marginal $X_k \sim \operatorname{Binomial}(n, p_k)$ — this is why Binomial is the two-category special case ($K=2$) of Multinomial.
+**Marginals:** Each marginal $X_k \sim \operatorname{Binomial}(n, p_k)$ - this is why Binomial is the two-category special case ($K=2$) of Multinomial.
 
 **For AI:**
 - **Topic models (LDA):** document word counts follow Multinomial$(|\text{doc}|, \boldsymbol{\theta})$ where $\boldsymbol{\theta}$ is the topic-word distribution.
@@ -465,7 +465,7 @@ $$M_X(t) = \frac{e^{tb} - e^{ta}}{t(b-a)}, \quad t \neq 0; \quad M_X(0) = 1$$
 
 **Maximum entropy:** Among all distributions supported on $[a, b]$, the Uniform has the maximum Shannon entropy. This makes it the natural "least informative" prior when only the support is known.
 
-**Universality:** If $X$ has continuous CDF $F_X$, then $U = F_X(X) \sim \mathcal{U}(0,1)$. Conversely, $F_X^{-1}(U) \sim F_X$ for $U \sim \mathcal{U}(0,1)$. This is the **inverse CDF sampling method** introduced in §01.
+**Universality:** If $X$ has continuous CDF $F_X$, then $U = F_X(X) \sim \mathcal{U}(0,1)$. Conversely, $F_X^{-1}(U) \sim F_X$ for $U \sim \mathcal{U}(0,1)$. This is the **inverse CDF sampling method** introduced in Section01.
 
 **For AI:**
 - **Weight initialisation:** Kaiming uniform initialisation draws weights from $\mathcal{U}(-\sqrt{3/\text{fan\_in}}, \sqrt{3/\text{fan\_in}})$, chosen so that $\operatorname{Var}(W) = 1/\text{fan\_in}$.
@@ -483,11 +483,11 @@ $$f_X(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\
 
 **Normalisation proof sketch:**
 $$\int_{-\infty}^\infty e^{-x^2/2}\,dx = \sqrt{2\pi}$$
-This follows from the Gaussian integral trick: $I^2 = \int\!\int e^{-(x^2+y^2)/2}\,dx\,dy = 2\pi\int_0^\infty re^{-r^2/2}\,dr = 2\pi$, so $I = \sqrt{2\pi}$. (Full proof in Appendix A of §01.)
+This follows from the Gaussian integral trick: $I^2 = \int\!\int e^{-(x^2+y^2)/2}\,dx\,dy = 2\pi\int_0^\infty re^{-r^2/2}\,dr = 2\pi$, so $I = \sqrt{2\pi}$. (Full proof in Appendix A of Section01.)
 
 **Parameters:**
-- $\mu \in \mathbb{R}$: **mean** (location parameter — shifts the peak)
-- $\sigma^2 > 0$: **variance** (scale parameter — controls spread)
+- $\mu \in \mathbb{R}$: **mean** (location parameter - shifts the peak)
+- $\sigma^2 > 0$: **variance** (scale parameter - controls spread)
 - $\sigma = \sqrt{\sigma^2}$: **standard deviation** (same units as $X$)
 
 **Moments:**
@@ -525,24 +525,24 @@ $$P(\mu - 3\sigma \leq X \leq \mu + 3\sigma) \approx 0.997$$
 
 1. **Linear stability:** $aX + b \sim \mathcal{N}(a\mu + b, a^2\sigma^2)$
 2. **Additive stability:** $X_1 + X_2 \sim \mathcal{N}(\mu_1+\mu_2, \sigma_1^2+\sigma_2^2)$ when $X_1 \perp\!\!\!\perp X_2$
-3. **Closure under conditioning:** the conditional distribution of a Gaussian given a linear observation is Gaussian (developed in §03)
+3. **Closure under conditioning:** the conditional distribution of a Gaussian given a linear observation is Gaussian (developed in Section03)
 
 **Maximum entropy:** Among all distributions with mean $\mu$ and variance $\sigma^2$, the Gaussian maximises entropy. This is the information-theoretic justification for its ubiquity.
 
-**Forward reference — Multivariate Gaussian:**
+**Forward reference - Multivariate Gaussian:**
 
 > **Preview: Multivariate Gaussian $\mathcal{N}(\boldsymbol{\mu}, \Sigma)$**
 > The $d$-dimensional generalisation replaces the scalar mean with $\boldsymbol{\mu} \in \mathbb{R}^d$
 > and the scalar variance with a positive definite covariance matrix $\Sigma \in \mathbb{R}^{d \times d}$:
 > $$f(\mathbf{x}) = \frac{1}{(2\pi)^{d/2}|\Sigma|^{1/2}} \exp\!\left(-\tfrac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^\top \Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})\right)$$
-> The Gaussian process (§06) extends this to infinite dimensions.
+> The Gaussian process (Section06) extends this to infinite dimensions.
 >
-> → _Full treatment: [§03 Joint Distributions](../03-Joint-Distributions/notes.md)_
+> -> _Full treatment: [Section03 Joint Distributions](../03-Joint-Distributions/notes.md)_
 
 **For AI:**
 - **Weight initialisation:** Xavier/Glorot initialisation uses $\mathcal{N}(0, 2/(n_\text{in}+n_\text{out}))$; Kaiming uses $\mathcal{N}(0, 2/n_\text{in})$.
 - **VAE latent prior:** $p(\mathbf{z}) = \mathcal{N}(\mathbf{0}, I)$ is the prior on the latent code. The encoder outputs $(\boldsymbol{\mu}_\phi, \log\sigma^2_\phi)$ and samples $\mathbf{z} = \boldsymbol{\mu}_\phi + \sigma_\phi \odot \boldsymbol{\epsilon}$, $\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, I)$.
-- **Gaussian process:** a prior over functions where any finite collection of function values follows a multivariate Gaussian (§06).
+- **Gaussian process:** a prior over functions where any finite collection of function values follows a multivariate Gaussian (Section06).
 - **SGD noise:** the gradient noise in stochastic gradient descent is approximately Gaussian by the CLT, with covariance proportional to the gradient covariance matrix.
 - **Diffusion models:** the forward noising process adds Gaussian noise $q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}x_{t-1}, \beta_t I)$.
 
@@ -563,7 +563,7 @@ $$f_X(x) = \lambda e^{-\lambda x}, \quad x \geq 0 \qquad F_X(x) = 1 - e^{-\lambd
 |---|---|
 | Mean | $1/\lambda$ |
 | Variance | $1/\lambda^2$ |
-| Mode | $0$ (always — the mode is at the boundary) |
+| Mode | $0$ (always - the mode is at the boundary) |
 | Median | $\log(2)/\lambda$ |
 | Skewness | $2$ (always right-skewed, regardless of $\lambda$) |
 | Entropy | $1 - \log\lambda$ |
@@ -666,7 +666,7 @@ The mean depends only on the ratio $\alpha/(\alpha+\beta)$. The **concentration*
 
 **Pseudocounts interpretation:** Beta$(\alpha, \beta)$ encodes the belief arising from having seen $\alpha - 1$ successes and $\beta - 1$ failures. Beta$(1,1) = \text{Uniform}(0,1)$ encodes no prior knowledge.
 
-**Relationship to Dirichlet:** Beta$(\alpha, \beta) = \text{Dirichlet}(\alpha, \beta)$ — the $K=2$ special case.
+**Relationship to Dirichlet:** Beta$(\alpha, \beta) = \text{Dirichlet}(\alpha, \beta)$ - the $K=2$ special case.
 
 **For AI:**
 - **RLHF preference model:** the Bradley-Terry model places a Beta prior on the probability that one response is preferred over another.
@@ -693,12 +693,12 @@ where $B(\boldsymbol{\alpha}) = \Gamma(\alpha_1)\cdots\Gamma(\alpha_K)/\Gamma(\a
 | $\operatorname{Var}(p_k)$ | $\frac{\alpha_k(\alpha_0 - \alpha_k)}{\alpha_0^2(\alpha_0+1)}$ |
 | $\operatorname{Cov}(p_j, p_k)$ | $-\frac{\alpha_j\alpha_k}{\alpha_0^2(\alpha_0+1)}$ for $j \neq k$ |
 
-The mean probability vector is $\boldsymbol{\alpha}/\alpha_0$ — normalised concentration parameters.
+The mean probability vector is $\boldsymbol{\alpha}/\alpha_0$ - normalised concentration parameters.
 
 **Concentration parameter $\alpha_0 = \sum_k \alpha_k$:**
-- Small $\alpha_0$ (e.g., $\alpha_k = 0.1$): **sparse** — samples concentrate near corners of the simplex
+- Small $\alpha_0$ (e.g., $\alpha_k = 0.1$): **sparse** - samples concentrate near corners of the simplex
 - $\alpha_0 = K$ with all $\alpha_k = 1$: uniform over simplex
-- Large $\alpha_0$: **concentrated** — samples cluster near the mean $\boldsymbol{\alpha}/\alpha_0$
+- Large $\alpha_0$: **concentrated** - samples cluster near the mean $\boldsymbol{\alpha}/\alpha_0$
 
 **Symmetric Dirichlet:** When all $\alpha_k = \alpha$ (scalar), the distribution is exchangeable across categories. The parameter $\alpha$ controls concentration:
 - $\alpha < 1$: sparse, near-one-hot samples
@@ -708,7 +708,7 @@ The mean probability vector is $\boldsymbol{\alpha}/\alpha_0$ — normalised con
 **Marginals:** Each marginal $p_k \sim \text{Beta}(\alpha_k, \alpha_0 - \alpha_k)$.
 
 **For AI:**
-- **LDA (Latent Dirichlet Allocation):** document topic proportions $\boldsymbol{\theta}_d \sim \text{Dirichlet}(\boldsymbol{\alpha})$. A small $\alpha$ enforces document sparsity — each document covers few topics.
+- **LDA (Latent Dirichlet Allocation):** document topic proportions $\boldsymbol{\theta}_d \sim \text{Dirichlet}(\boldsymbol{\alpha})$. A small $\alpha$ enforces document sparsity - each document covers few topics.
 - **Token vocabulary priors:** Dirichlet priors on subword token distributions encode assumptions about language patterns.
 - **Bayesian categorical models:** Dirichlet$(\boldsymbol{\alpha})$ is the conjugate prior to Categorical$(\mathbf{p})$. After observing counts $\mathbf{c} = (c_1, \ldots, c_K)$, the posterior is Dirichlet$(\boldsymbol{\alpha} + \mathbf{c})$.
 
@@ -716,7 +716,7 @@ The mean probability vector is $\boldsymbol{\alpha}/\alpha_0$ — normalised con
 
 ### 3.7 Student-$t$($\nu$)
 
-**Story:** The distribution of the $t$-statistic when estimating the mean of a Gaussian with unknown variance from small samples. A Gaussian with heavier tails — more robust to outliers.
+**Story:** The distribution of the $t$-statistic when estimating the mean of a Gaussian with unknown variance from small samples. A Gaussian with heavier tails - more robust to outliers.
 
 **PDF:**
 $$f_X(x) = \frac{\Gamma\!\left(\frac{\nu+1}{2}\right)}{\sqrt{\nu\pi}\,\Gamma\!\left(\frac{\nu}{2}\right)} \left(1 + \frac{x^2}{\nu}\right)^{-(\nu+1)/2}, \quad x \in \mathbb{R}$$
@@ -734,7 +734,7 @@ $$f_X(x) = \frac{\Gamma\!\left(\frac{\nu+1}{2}\right)}{\sqrt{\nu\pi}\,\Gamma\!\l
 
 The moments do **not exist** for small $\nu$: variance undefined for $\nu \leq 2$, mean undefined for $\nu \leq 1$ (Cauchy distribution).
 
-**Tail heaviness:** The tails decay as $|x|^{-(\nu+1)}$ — **polynomial** decay, much heavier than the Gaussian's $e^{-x^2/2}$ decay. For $\nu = 1$: Cauchy distribution (variance $= \infty$). For $\nu \to \infty$: $\to \mathcal{N}(0,1)$.
+**Tail heaviness:** The tails decay as $|x|^{-(\nu+1)}$ - **polynomial** decay, much heavier than the Gaussian's $e^{-x^2/2}$ decay. For $\nu = 1$: Cauchy distribution (variance $= \infty$). For $\nu \to \infty$: $\to \mathcal{N}(0,1)$.
 
 **Gaussian construction:** $T = Z / \sqrt{\chi^2_\nu/\nu}$ where $Z \sim \mathcal{N}(0,1) \perp\!\!\!\perp \chi^2_\nu$. This gives $T \sim t_\nu$.
 
@@ -752,50 +752,50 @@ The moments do **not exist** for small $\nu$: variance undefined for $\nu \leq 2
 
 ### 4.1 Limiting Relationships
 
-**Binomial → Poisson (rare events limit):**
+**Binomial -> Poisson (rare events limit):**
 
 When $n \to \infty$, $p \to 0$, $np \to \lambda$: $\operatorname{Binomial}(n,p) \to \operatorname{Poisson}(\lambda)$.
 
 Rule of thumb: approximation is good when $n \geq 20$ and $p \leq 0.05$.
 
-**Binomial → Normal (Central Limit Theorem preview):**
+**Binomial -> Normal (Central Limit Theorem preview):**
 
 When $n \to \infty$: $(X - np)/\sqrt{np(1-p)} \to \mathcal{N}(0,1)$.
 
-> → _Full proof: [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md)_
+> -> _Full proof: [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md)_
 
-**Gamma → Normal (large shape):**
+**Gamma -> Normal (large shape):**
 
 When $\alpha \to \infty$ (fixed $\beta$): $(\text{Gamma}(\alpha,\beta) - \alpha/\beta)/\sqrt{\alpha}/\beta \to \mathcal{N}(0,1)$.
 
-**Poisson → Normal (large rate):**
+**Poisson -> Normal (large rate):**
 
 When $\lambda \to \infty$: $(X - \lambda)/\sqrt{\lambda} \to \mathcal{N}(0,1)$.
 
-**Beta → Dirac (large concentration):**
+**Beta -> Dirac (large concentration):**
 
 When $\alpha, \beta \to \infty$ with $\alpha/(\alpha+\beta) = \mu$ fixed: Beta$(\alpha,\beta) \to \delta(\mu)$.
 
-**Student-$t$ → Normal:**
+**Student-$t$ -> Normal:**
 
 As $\nu \to \infty$: $t_\nu \to \mathcal{N}(0,1)$. For $\nu \geq 30$, the approximation is excellent.
 
 ```
 LIMITING RELATIONSHIPS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Binomial(n,p) ─── n→∞, p→0, np=λ ──→ Poisson(λ)
-       │
-       │  n→∞ (CLT)
-       ▼
+  Binomial(n,p) --- n->\\infty, p->0, np=\\lambda ---> Poisson(\\lambda)
+       |
+       |  n->\\infty (CLT)
+       v
   Gaussian N(np, np(1-p))
 
-  Gamma(α,β) ──── α→∞ ────────────→ Gaussian (CLT)
-  Poisson(λ) ──── λ→∞ ────────────→ Gaussian (CLT)
-  Student-t(ν) ── ν→∞ ────────────→ Gaussian N(0,1)
-  Beta(α,β) ───── α,β→∞ ──────────→ Dirac(α/(α+β))
+  Gamma(\\alpha,\\beta) ---- \\alpha->\\infty -------------> Gaussian (CLT)
+  Poisson(\\lambda) ---- \\lambda->\\infty -------------> Gaussian (CLT)
+  Student-t(\\nu) -- \\nu->\\infty -------------> Gaussian N(0,1)
+  Beta(\\alpha,\\beta) ----- \\alpha,\\beta->\\infty -----------> Dirac(\\alpha/(\\alpha+\\beta))
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 4.2 Conjugate Pairs Table
@@ -808,9 +808,9 @@ LIMITING RELATIONSHIPS
 | Multinomial$(n, \mathbf{p})$ | Dirichlet$(\boldsymbol{\alpha})$ | Dirichlet$(\boldsymbol{\alpha} + \mathbf{c})$ | same as Categorical |
 | Poisson$(\lambda)$ | Gamma$(\alpha, \beta)$ | Gamma$(\alpha + \sum k_i, \beta + n)$ | $n$ observations |
 | Exponential$(\lambda)$ | Gamma$(\alpha, \beta)$ | Gamma$(\alpha + n, \beta + \sum x_i)$ | $n$ observations |
-| Gaussian$(μ, \sigma^2)$ (known $\sigma^2$) | $\mathcal{N}(\mu_0, \tau^2)$ | $\mathcal{N}(\mu_n, \tau_n^2)$ | Precision-weighted average |
+| Gaussian$(\\mu, \sigma^2)$ (known $\sigma^2$) | $\mathcal{N}(\mu_0, \tau^2)$ | $\mathcal{N}(\mu_n, \tau_n^2)$ | Precision-weighted average |
 
-Full derivations in §7 (Conjugate Priors).
+Full derivations in Section7 (Conjugate Priors).
 
 ---
 
@@ -863,7 +863,7 @@ The $k$-th derivative of the MGF at zero is the $k$-th raw moment.
 
 Note: the Beta MGF does not have a simple closed form; the Dirichlet and Categorical are typically characterised by their probability generating functions or characteristic functions instead.
 
-> → _Full treatment of MGF applications and cumulants: [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md)_
+> -> _Full treatment of MGF applications and cumulants: [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md)_
 
 ---
 
@@ -877,10 +877,10 @@ A distribution belongs to the exponential family if its PDF (or PMF) can be writ
 $$p(x; \boldsymbol{\eta}) = h(x) \exp\!\bigl(\boldsymbol{\eta}^\top T(x) - A(\boldsymbol{\eta})\bigr)$$
 
 where:
-- $\boldsymbol{\eta} \in \mathbb{R}^k$ — **natural parameters** (the parameterisation used in optimisation)
-- $T(x) \in \mathbb{R}^k$ — **sufficient statistics** (captures all information about $\boldsymbol{\eta}$ in the data)
-- $A(\boldsymbol{\eta}) = \log \int h(x)\exp(\boldsymbol{\eta}^\top T(x))\,dx$ — **log-partition function** (normalisation constant in log space)
-- $h(x)$ — **base measure** (does not depend on $\boldsymbol{\eta}$)
+- $\boldsymbol{\eta} \in \mathbb{R}^k$ - **natural parameters** (the parameterisation used in optimisation)
+- $T(x) \in \mathbb{R}^k$ - **sufficient statistics** (captures all information about $\boldsymbol{\eta}$ in the data)
+- $A(\boldsymbol{\eta}) = \log \int h(x)\exp(\boldsymbol{\eta}^\top T(x))\,dx$ - **log-partition function** (normalisation constant in log space)
+- $h(x)$ - **base measure** (does not depend on $\boldsymbol{\eta}$)
 
 The canonical form separates the "shape" of the distribution ($h$ and $T$) from the parameterisation ($\boldsymbol{\eta}$ and $A$).
 
@@ -899,7 +899,7 @@ The canonical form separates the "shape" of the distribution ($h$ and $T$) from 
 
 ### 6.3 The Log-Partition Function
 
-The log-partition function $A(\boldsymbol{\eta})$ is **convex** (always, by Hölder's inequality). Its derivatives generate the cumulants:
+The log-partition function $A(\boldsymbol{\eta})$ is **convex** (always, by Holder's inequality). Its derivatives generate the cumulants:
 
 $$\nabla_{\boldsymbol{\eta}} A(\boldsymbol{\eta}) = \mathbb{E}_{p_{\boldsymbol{\eta}}}[T(X)]$$
 $$\nabla_{\boldsymbol{\eta}}^2 A(\boldsymbol{\eta}) = \operatorname{Cov}_{p_{\boldsymbol{\eta}}}[T(X)]$$
@@ -908,9 +908,9 @@ $$\nabla_{\boldsymbol{\eta}}^2 A(\boldsymbol{\eta}) = \operatorname{Cov}_{p_{\bo
 $$\frac{\partial A}{\partial \eta_j} = \frac{\int T_j(x) h(x)e^{\boldsymbol{\eta}^\top T(x)}\,dx}{\int h(x)e^{\boldsymbol{\eta}^\top T(x)}\,dx} = \mathbb{E}[T_j(X)]$$
 The second derivative similarly gives the covariance. $\square$
 
-**Consequence:** Computing moments of any exponential family member reduces to differentiating $A(\boldsymbol{\eta})$ — a single convex function. This is an extraordinary computational shortcut.
+**Consequence:** Computing moments of any exponential family member reduces to differentiating $A(\boldsymbol{\eta})$ - a single convex function. This is an extraordinary computational shortcut.
 
-**Example — Poisson:** $A(\eta) = e^\eta$. So $\mathbb{E}[X] = A'(\eta) = e^\eta = \lambda$ and $\operatorname{Var}(X) = A''(\eta) = e^\eta = \lambda$ — confirming the Poisson mean-equals-variance property directly from the log-partition function.
+**Example - Poisson:** $A(\eta) = e^\eta$. So $\mathbb{E}[X] = A'(\eta) = e^\eta = \lambda$ and $\operatorname{Var}(X) = A''(\eta) = e^\eta = \lambda$ - confirming the Poisson mean-equals-variance property directly from the log-partition function.
 
 ### 6.4 Sufficient Statistics
 
@@ -949,13 +949,13 @@ The logsumexp operation $\log\sum_k e^{z_k}$ is the log-partition function $A(\b
 **MLE for exponential families:** The MLE of $\boldsymbol{\eta}$ satisfies:
 $$\nabla A(\hat{\boldsymbol{\eta}}) = \frac{1}{n}\sum_{i=1}^n T(x^{(i)})$$
 
-meaning the expected sufficient statistics under the model equal the empirical sufficient statistics — a **moment matching** condition.
+meaning the expected sufficient statistics under the model equal the empirical sufficient statistics - a **moment matching** condition.
 
 ---
 
 ## 7. Conjugate Priors in Bayesian Inference
 
-Bayesian inference requires computing the posterior $p(\boldsymbol{\theta} \mid \mathbf{x}) \propto p(\mathbf{x} \mid \boldsymbol{\theta}) p(\boldsymbol{\theta})$. For most priors, this requires numerical integration. **Conjugate priors** are the special priors for which the posterior stays in the same family — making inference analytic.
+Bayesian inference requires computing the posterior $p(\boldsymbol{\theta} \mid \mathbf{x}) \propto p(\mathbf{x} \mid \boldsymbol{\theta}) p(\boldsymbol{\theta})$. For most priors, this requires numerical integration. **Conjugate priors** are the special priors for which the posterior stays in the same family - making inference analytic.
 
 ### 7.1 Conjugacy Definition
 
@@ -978,7 +978,7 @@ The hyperparameters update simply: $\boldsymbol{\chi} \to \boldsymbol{\chi} + \s
 **Posterior:**
 $$p(p \mid \mathbf{x}) \propto p^{\alpha+k-1}(1-p)^{\beta+n-k-1} \implies p \mid \mathbf{x} \sim \text{Beta}(\alpha+k, \beta+n-k)$$
 
-**Pseudocounts interpretation:** The prior Beta$(\alpha, \beta)$ encodes $\alpha - 1$ prior successes and $\beta - 1$ prior failures. After seeing $k$ successes in $n$ trials, the posterior is Beta$(\alpha + k, \beta + n - k)$ — simply adding counts.
+**Pseudocounts interpretation:** The prior Beta$(\alpha, \beta)$ encodes $\alpha - 1$ prior successes and $\beta - 1$ prior failures. After seeing $k$ successes in $n$ trials, the posterior is Beta$(\alpha + k, \beta + n - k)$ - simply adding counts.
 
 **Posterior mean:**
 $$\mathbb{E}[p \mid \mathbf{x}] = \frac{\alpha + k}{\alpha + \beta + n}$$
@@ -999,7 +999,7 @@ where $\mathbf{c} = (c_1, \ldots, c_K)$ are the observed category counts ($c_k =
 
 **Posterior mean:** $\mathbb{E}[p_k \mid \mathbf{x}] = (\alpha_k + c_k)/(\alpha_0 + n)$.
 
-**Add-one (Laplace) smoothing:** Setting $\boldsymbol{\alpha} = \mathbf{1}$ (uniform Dirichlet prior) gives the Laplace smoothed estimate $\hat{p}_k = (c_k + 1)/(n + K)$ — the standard technique for avoiding zero probabilities in language model unigrams.
+**Add-one (Laplace) smoothing:** Setting $\boldsymbol{\alpha} = \mathbf{1}$ (uniform Dirichlet prior) gives the Laplace smoothed estimate $\hat{p}_k = (c_k + 1)/(n + K)$ - the standard technique for avoiding zero probabilities in language model unigrams.
 
 **For LDA:** Each document $d$ has topic proportions $\boldsymbol{\theta}_d \sim \text{Dir}(\boldsymbol{\alpha})$. Each topic $k$ has word distribution $\boldsymbol{\phi}_k \sim \text{Dir}(\boldsymbol{\beta})$. Words are drawn as $w \sim \operatorname{Cat}(\boldsymbol{\phi}_{z_d})$ where $z_d \sim \operatorname{Cat}(\boldsymbol{\theta}_d)$.
 
@@ -1010,7 +1010,7 @@ where $\mathbf{c} = (c_1, \ldots, c_K)$ are the observed category counts ($c_k =
 **Posterior:**
 $$\lambda \mid \mathbf{x} \sim \Gamma\!\left(\alpha + \sum_{i=1}^n x_i, \; \beta + n\right)$$
 
-**Posterior mean:** $(\alpha + \sum x_i)/(\beta + n)$ — shrinkage between prior mean $\alpha/\beta$ and MLE $\bar{x}$.
+**Posterior mean:** $(\alpha + \sum x_i)/(\beta + n)$ - shrinkage between prior mean $\alpha/\beta$ and MLE $\bar{x}$.
 
 **Interpretations:** The prior Gamma$(\alpha, \beta)$ encodes "$\alpha$ events observed over $\beta$ prior time units." After observing $\sum x_i$ events in $n$ new time units, the posterior is Gamma$(\alpha + \sum x_i, \beta + n)$.
 
@@ -1040,9 +1040,9 @@ Every forward pass of a language model computes:
 2. Token probabilities $\mathbf{p} = \operatorname{softmax}(\mathbf{z}/\tau)$ at temperature $\tau$
 3. Next token $x_t \sim \operatorname{Cat}(\mathbf{p})$
 
-The cross-entropy training loss is $-\log p_{x_t} = -z_{x_t}/\tau + \log\sum_k e^{z_k/\tau}$, which is exactly $-\eta_{x_t} + A(\boldsymbol{\eta}/\tau)$ — the NLL of a Categorical exponential family member.
+The cross-entropy training loss is $-\log p_{x_t} = -z_{x_t}/\tau + \log\sum_k e^{z_k/\tau}$, which is exactly $-\eta_{x_t} + A(\boldsymbol{\eta}/\tau)$ - the NLL of a Categorical exponential family member.
 
-**Perplexity:** $\operatorname{PPL} = \exp\!\left(-\frac{1}{T}\sum_{t=1}^T \log p(x_t \mid x_{<t})\right) = \exp(H(p, \hat{p}))$ — the exponentiated cross-entropy, measuring the effective vocabulary size.
+**Perplexity:** $\operatorname{PPL} = \exp\!\left(-\frac{1}{T}\sum_{t=1}^T \log p(x_t \mid x_{<t})\right) = \exp(H(p, \hat{p}))$ - the exponentiated cross-entropy, measuring the effective vocabulary size.
 
 ### 8.2 VAEs: Gaussian Reparameterisation and KL Term
 
@@ -1078,7 +1078,7 @@ A Beta prior on the preference probability $p = \sigma(r_A - r_B)$ regularises t
 The forward process adds Gaussian noise over $T$ steps:
 $$q(x_t \mid x_{t-1}) = \mathcal{N}(x_t; \sqrt{1-\beta_t}\, x_{t-1}, \beta_t I)$$
 
-Using the Gaussian stability under sums (§3.2), the marginal at step $t$ is:
+Using the Gaussian stability under sums (Section3.2), the marginal at step $t$ is:
 $$q(x_t \mid x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t}\, x_0, (1-\bar{\alpha}_t) I), \quad \bar{\alpha}_t = \prod_{s=1}^t (1-\beta_s)$$
 
 The reverse process $p_\theta(x_{t-1} \mid x_t)$ is also Gaussian (for small $\beta_t$), with mean predicted by the neural network.
@@ -1086,9 +1086,9 @@ The reverse process $p_\theta(x_{t-1} \mid x_t)$ is also Gaussian (for small $\b
 ### 8.6 Topic Models (LDA)
 
 Latent Dirichlet Allocation uses three distributions from this section:
-1. $\boldsymbol{\theta}_d \sim \text{Dir}(\boldsymbol{\alpha})$ — topic proportions per document (Dirichlet)
-2. $z_{dn} \sim \operatorname{Cat}(\boldsymbol{\theta}_d)$ — topic assignment per word (Categorical)
-3. $w_{dn} \sim \operatorname{Cat}(\boldsymbol{\phi}_{z_{dn}})$ — word given topic (Categorical with Dirichlet prior $\boldsymbol{\phi}_k \sim \text{Dir}(\boldsymbol{\beta})$)
+1. $\boldsymbol{\theta}_d \sim \text{Dir}(\boldsymbol{\alpha})$ - topic proportions per document (Dirichlet)
+2. $z_{dn} \sim \operatorname{Cat}(\boldsymbol{\theta}_d)$ - topic assignment per word (Categorical)
+3. $w_{dn} \sim \operatorname{Cat}(\boldsymbol{\phi}_{z_{dn}})$ - word given topic (Categorical with Dirichlet prior $\boldsymbol{\phi}_k \sim \text{Dir}(\boldsymbol{\beta})$)
 
 The full joint is:
 $$p(\mathbf{W}, \mathbf{Z}, \boldsymbol{\Theta}, \boldsymbol{\Phi}) = \prod_k \text{Dir}(\boldsymbol{\phi}_k;\boldsymbol{\beta}) \prod_d \text{Dir}(\boldsymbol{\theta}_d;\boldsymbol{\alpha}) \prod_{dn} \operatorname{Cat}(z_{dn};\boldsymbol{\theta}_d) \operatorname{Cat}(w_{dn};\boldsymbol{\phi}_{z_{dn}})$$
@@ -1110,7 +1110,7 @@ Inference uses collapsed Gibbs sampling (Dirichlet-Categorical conjugacy allows 
 | 7 | Applying Student-$t$ formulas when $\nu \leq 2$ | Variance is undefined for $\nu \leq 2$; mean undefined for $\nu \leq 1$ | Always check $\nu$ before using moment formulas; for $\nu = 1$ (Cauchy), variance is $\infty$ |
 | 8 | Treating Exponential$(\lambda)$ rate and scale interchangeably | Some sources use rate $\lambda$ (mean $= 1/\lambda$); others use scale $\theta = 1/\lambda$ (mean $= \theta$) | Verify convention: SciPy `stats.expon(scale=theta)` uses scale; PyTorch `Exponential(rate=lambda)` uses rate |
 | 9 | Using Normal approximation to Binomial when $np < 5$ or $n(1-p) < 5$ | CLT kicks in slowly in the tails; approximation is poor for extreme $p$ | Use exact Binomial PMF or Poisson approximation |
-| 10 | Claiming exponential family membership for Student-$t$ | The Student-$t$ is NOT in the exponential family (its normalising constant depends on $\nu$ in a non-exponential way) | Student-$t$ is a scale mixture of Gaussians — handle separately |
+| 10 | Claiming exponential family membership for Student-$t$ | The Student-$t$ is NOT in the exponential family (its normalising constant depends on $\nu$ in a non-exponential way) | Student-$t$ is a scale mixture of Gaussians - handle separately |
 | 11 | Confusing natural parameters with mean parameters | The Gaussian natural parameters are $(\mu/\sigma^2, -1/2\sigma^2)$, not $(\mu, \sigma^2)$ | Distinguish mean parameterisation (human-readable) from natural parameterisation (for exponential family theory) |
 | 12 | Using the Beta posterior mean instead of mode for MAP estimation | Posterior mean $= (\alpha+k)/(\alpha+\beta+n)$; MAP (mode) $= (\alpha+k-1)/(\alpha+\beta+n-2)$ | For decisions, use posterior mode (MAP) or the full posterior, not mean by default |
 
@@ -1118,7 +1118,7 @@ Inference uses collapsed Gibbs sampling (Dirichlet-Categorical conjugacy allows 
 
 ## 10. Exercises
 
-**Exercise 1 ★ — PMF and Moments**
+**Exercise 1 * - PMF and Moments**
 
 A biased die has faces weighted so that the probability of face $k$ is proportional to $k$ for $k = 1, 2, 3, 4, 5, 6$.
 
@@ -1127,7 +1127,7 @@ A biased die has faces weighted so that the probability of face $k$ is proportio
 (c) Find $P(X \geq 4)$.
 (d) Is this distribution in the exponential family? Identify $T(x)$, $\eta$, and $A(\eta)$ if so.
 
-**Exercise 2 ★ — Poisson Limit**
+**Exercise 2 * - Poisson Limit**
 
 A social media post receives clicks at a rate of $\lambda = 0.8$ per minute. Model the number of clicks in a 10-minute window.
 
@@ -1136,7 +1136,7 @@ A social media post receives clicks at a rate of $\lambda = 0.8$ per minute. Mod
 (c) What property of the Poisson means that clicks in disjoint time windows are independent?
 (d) If two different posts receive $\lambda_1 = 1.2$ and $\lambda_2 = 0.5$ clicks/minute, what is the distribution of the total clicks per minute? Prove it using MGFs.
 
-**Exercise 3 ★ — Gaussian Properties**
+**Exercise 3 * - Gaussian Properties**
 
 Let $X \sim \mathcal{N}(3, 4)$ (mean 3, variance 4).
 
@@ -1146,7 +1146,7 @@ Let $X \sim \mathcal{N}(3, 4)$ (mean 3, variance 4).
 (d) If $X_1, X_2 \overset{\text{iid}}{\sim} \mathcal{N}(3,4)$, find the distribution of $S = X_1 + X_2$.
 (e) Verify numerically that the MGF formula gives the correct mean and variance for $X$.
 
-**Exercise 4 ★★ — Beta-Binomial Conjugate Update**
+**Exercise 4 ** - Beta-Binomial Conjugate Update**
 
 You are estimating the click-through rate $p$ of a button. Your prior belief is Beta$(2, 8)$.
 
@@ -1156,14 +1156,14 @@ You are estimating the click-through rate $p$ of a button. Your prior belief is 
 (d) After how many additional clicks (keeping total impressions fixed at 100) would the posterior mean exceed $0.20$?
 (e) Plot the prior, likelihood (rescaled), and posterior as a function of $p$ (implement in Python).
 
-**Exercise 5 ★★ — Exponential Family Identification**
+**Exercise 5 ** - Exponential Family Identification**
 
 (a) Show that the Geometric$(p)$ distribution belongs to the exponential family. Identify $\eta$, $T(x)$, $A(\eta)$, and $h(x)$.
 (b) For the Geometric, compute $\mathbb{E}[X]$ by differentiating $A(\eta)$.
 (c) Show that the Negative Binomial$(r, p)$ distribution also belongs to the exponential family.
-(d) The uniform distribution $\mathcal{U}(0, b)$ with unknown $b$ — does it belong to the exponential family? Explain.
+(d) The uniform distribution $\mathcal{U}(0, b)$ with unknown $b$ - does it belong to the exponential family? Explain.
 
-**Exercise 6 ★★ — Dirichlet-Categorical Posterior**
+**Exercise 6 ** - Dirichlet-Categorical Posterior**
 
 A language model assigns log-probabilities to tokens. You use a symmetric Dirichlet$(0.1)$ prior over a vocabulary of size $K = 5$ (simplified).
 
@@ -1172,14 +1172,14 @@ A language model assigns log-probabilities to tokens. You use a symmetric Dirich
 (c) Compute the posterior mean probability for each token.
 (d) Compare with the Laplace-smoothed MLE estimate. Show they are equal when $\alpha_k = 1$.
 
-**Exercise 7 ★★★ — Softmax as Exponential Family**
+**Exercise 7 *** - Softmax as Exponential Family**
 
 (a) Derive the softmax function from the Categorical exponential family canonical form. Show that the log-partition function $A(\boldsymbol{\eta}) = \log\sum_k e^{\eta_k}$ leads to $\mathbb{E}[X_k] = e^{\eta_k}/\sum_j e^{\eta_j} = \operatorname{softmax}(\boldsymbol{\eta})_k$.
 (b) Implement `log_softmax(z)` in a numerically stable way (subtract max before exponentiating). Verify it equals `log(softmax(z))` but is more numerically stable for large logits.
 (c) The gradient of the cross-entropy loss $\mathcal{L} = -\sum_k y_k \log p_k$ with respect to logits $\mathbf{z}$ is $\mathbf{p} - \mathbf{y}$ where $\mathbf{p} = \operatorname{softmax}(\mathbf{z})$. Derive this result.
 (d) Show that temperature scaling $p_k \propto e^{z_k/\tau}$ is equivalent to scaling the natural parameters, and explain why $\tau \to 0$ gives argmax and $\tau \to \infty$ gives uniform.
 
-**Exercise 8 ★★★ — Gaussian VAE KL Term**
+**Exercise 8 *** - Gaussian VAE KL Term**
 
 The VAE training objective requires:
 $$D_{\mathrm{KL}}\!\left(\mathcal{N}(\boldsymbol{\mu}, \operatorname{diag}(\boldsymbol{\sigma}^2)) \;\Big\|\; \mathcal{N}(\mathbf{0}, I)\right)$$
@@ -1212,55 +1212,55 @@ $$D_{\mathrm{KL}}\!\left(\mathcal{N}(\boldsymbol{\mu}, \operatorname{diag}(\bold
 
 This section forms the vocabulary layer of probability theory. You can now think about every probabilistic model in terms of its component distributions: a Gaussian prior, a Categorical likelihood, a Dirichlet hyperprior. Without this vocabulary, reading a VAE paper or an LDA paper is like trying to read chemistry without knowing the periodic table.
 
-**Looking backward:** The CDF, PDF, and PMF definitions from [§01](../01-Introduction-and-Random-Variables/notes.md) gave the framework; this section fills it with concrete instances. The axioms guaranteed consistency; the named distributions give tractability. Every distribution here satisfies all the axioms of §01 — the Bernoulli is the simplest, the Dirichlet the most complex, but all obey the same rules.
+**Looking backward:** The CDF, PDF, and PMF definitions from [Section01](../01-Introduction-and-Random-Variables/notes.md) gave the framework; this section fills it with concrete instances. The axioms guaranteed consistency; the named distributions give tractability. Every distribution here satisfies all the axioms of Section01 - the Bernoulli is the simplest, the Dirichlet the most complex, but all obey the same rules.
 
 **Looking forward:**
-- [§03 Joint Distributions](../03-Joint-Distributions/notes.md) extends to multiple random variables — the multivariate Gaussian, joint densities, marginalisation, and the chain rule of probability.
-- [§04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) derives the moments stated here from first principles, introduces the full LOTUS theorem, and develops MGFs as analytical tools.
-- [§05 Concentration Inequalities](../05-Concentration-Inequalities/notes.md) bounds how far the distributions here can deviate from their means.
-- [§06 Stochastic Processes](../06-Stochastic-Processes/notes.md) proves the CLT — the theorem that explains why the Gaussian is the limiting distribution for so many of the relationships in §4.
+- [Section03 Joint Distributions](../03-Joint-Distributions/notes.md) extends to multiple random variables - the multivariate Gaussian, joint densities, marginalisation, and the chain rule of probability.
+- [Section04 Expectation and Moments](../04-Expectation-and-Moments/notes.md) derives the moments stated here from first principles, introduces the full LOTUS theorem, and develops MGFs as analytical tools.
+- [Section05 Concentration Inequalities](../05-Concentration-Inequalities/notes.md) bounds how far the distributions here can deviate from their means.
+- [Section06 Stochastic Processes](../06-Stochastic-Processes/notes.md) proves the CLT - the theorem that explains why the Gaussian is the limiting distribution for so many of the relationships in Section4.
 
 ```
 POSITION IN CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  §06/01 Introduction and Random Variables
-      ↓  (foundations: axioms, CDF, PDF, Bernoulli/Uniform preview)
-  ► §06/02 Common Distributions ◄  ← YOU ARE HERE
-      ↓  (full vocabulary: all named distributions, MGFs, exp family)
-  §06/03 Joint Distributions
-      ↓  (multivariate: joint PDF, marginals, multivariate Gaussian)
-  §06/04 Expectation and Moments
-      ↓  (derivations: LOTUS, covariance matrix, MGF applications)
-  §06/05 Concentration Inequalities
-      ↓  (bounds: Markov, Chebyshev, Hoeffding, PAC learning)
-  §06/06 Stochastic Processes
-      ↓  (CLT: proves the Gaussian limit relationships of §4)
-  §06/07 Markov Chains
+  Section06/01 Introduction and Random Variables
+      v  (foundations: axioms, CDF, PDF, Bernoulli/Uniform preview)
+  > Section06/02 Common Distributions <  <- YOU ARE HERE
+      v  (full vocabulary: all named distributions, MGFs, exp family)
+  Section06/03 Joint Distributions
+      v  (multivariate: joint PDF, marginals, multivariate Gaussian)
+  Section06/04 Expectation and Moments
+      v  (derivations: LOTUS, covariance matrix, MGF applications)
+  Section06/05 Concentration Inequalities
+      v  (bounds: Markov, Chebyshev, Hoeffding, PAC learning)
+  Section06/06 Stochastic Processes
+      v  (CLT: proves the Gaussian limit relationships of Section4)
+  Section06/07 Markov Chains
       (MCMC: uses conjugacy and Gaussian proposals)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The distributions in this section are not a list to memorise — they are a language to think in. When a practitioner says "the model is overconfident," they mean the predicted Categorical is too peaked. When they say "use a stronger prior," they mean increase $\alpha_0$ in the Dirichlet. When they say "the KL term is too large," they mean the approximate Gaussian posterior is far from the standard normal prior. Every one of these statements refers to a specific distribution from this section.
+The distributions in this section are not a list to memorise - they are a language to think in. When a practitioner says "the model is overconfident," they mean the predicted Categorical is too peaked. When they say "use a stronger prior," they mean increase $\alpha_0$ in the Dirichlet. When they say "the KL term is too large," they mean the approximate Gaussian posterior is far from the standard normal prior. Every one of these statements refers to a specific distribution from this section.
 
-[← Back to Probability Theory](../README.md) | [Next: Joint Distributions →](../03-Joint-Distributions/notes.md)
+[<- Back to Probability Theory](../README.md) | [Next: Joint Distributions ->](../03-Joint-Distributions/notes.md)
 
 ---
 
 ## Appendix A: Detailed Distribution Reference Cards
 
-### A.1 Bernoulli Distribution — Full Reference
+### A.1 Bernoulli Distribution - Full Reference
 
 ```
 BERNOULLI(p) REFERENCE CARD
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  PMF:     P(X=x) = p^x (1-p)^(1-x),   x ∈ {0, 1}
+  PMF:     P(X=x) = p^x (1-p)^(1-x),   x \\in {0, 1}
 
   CDF:     F(x) = 0          x < 0
-                  1 - p      0 ≤ x < 1
-                  1          x ≥ 1
+                  1 - p      0 \\leq x < 1
+                  1          x \\geq 1
 
   Mean:    p
   Var:     p(1-p)              [max at p=0.5]
@@ -1269,76 +1269,76 @@ BERNOULLI(p) REFERENCE CARD
 
   MGF:     M(t) = 1 - p + pe^t
 
-  Natural param:  η = log(p/(1-p))  [logit]
-  Inverse link:   p = σ(η) = 1/(1+e^{-η})  [sigmoid]
+  Natural param:  \\eta = log(p/(1-p))  [logit]
+  Inverse link:   p = \\sigma(\\eta) = 1/(1+e^{-\\eta})  [sigmoid]
 
   ML role:  Binary labels, dropout, stochastic depth, RLHF preferences
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-### A.2 Gaussian Distribution — Full Reference
+### A.2 Gaussian Distribution - Full Reference
 
 ```
-GAUSSIAN N(μ, σ²) REFERENCE CARD
-════════════════════════════════════════════════════════════════════════
+GAUSSIAN N(\\mu, \\sigma^2) REFERENCE CARD
+========================================================================
 
-  PDF:    f(x) = (1/σ√(2π)) exp(-(x-μ)²/2σ²)
-  CDF:    F(x) = Φ((x-μ)/σ)   where Φ = standard normal CDF
+  PDF:    f(x) = (1/\\sigma\\sqrt(2\\pi)) exp(-(x-\\mu)^2/2\\sigma^2)
+  CDF:    F(x) = \\Phi((x-\\mu)/\\sigma)   where \\Phi = standard normal CDF
 
-  Mean:       μ
-  Variance:   σ²
-  Mode:       μ (unique)
-  Median:     μ (by symmetry)
-  Entropy:    ½ log(2πeσ²)   [maximum for fixed mean/var]
+  Mean:       \\mu
+  Variance:   \\sigma^2
+  Mode:       \\mu (unique)
+  Median:     \\mu (by symmetry)
+  Entropy:    1/2 log(2\\pie\\sigma^2)   [maximum for fixed mean/var]
 
-  MGF:    M(t) = exp(μt + σ²t²/2)
-  CGF:    K(t) = μt + σ²t²/2   [cumulants: κ₁=μ, κ₂=σ², κ_k=0 for k≥3]
+  MGF:    M(t) = exp(\\mut + \\sigma^2t^2/2)
+  CGF:    K(t) = \\mut + \\sigma^2t^2/2   [cumulants: \\kappa_1=\\mu, \\kappa_2=\\sigma^2, \\kappa_k=0 for k\\geq3]
 
-  Standard:   Z = (X - μ)/σ ~ N(0, 1)
+  Standard:   Z = (X - \\mu)/\\sigma ~ N(0, 1)
 
   Key quantiles (standard normal):
-    Φ(1.282) = 0.90,  Φ(1.645) = 0.95,  Φ(1.960) = 0.975
-    Φ(2.326) = 0.99,  Φ(2.576) = 0.995, Φ(3.090) = 0.999
+    \\Phi(1.282) = 0.90,  \\Phi(1.645) = 0.95,  \\Phi(1.960) = 0.975
+    \\Phi(2.326) = 0.99,  \\Phi(2.576) = 0.995, \\Phi(3.090) = 0.999
 
-  68-95-99.7: P(|Z| ≤ 1) ≈ 0.683, P(|Z| ≤ 2) ≈ 0.954, P(|Z| ≤ 3) ≈ 0.997
+  68-95-99.7: P(|Z| \\leq 1) \\approx 0.683, P(|Z| \\leq 2) \\approx 0.954, P(|Z| \\leq 3) \\approx 0.997
 
-  Natural params: η₁ = μ/σ², η₂ = -1/(2σ²)
-  Suff stats:    T(x) = (x, x²)
+  Natural params: \\eta_1 = \\mu/\\sigma^2, \\eta_2 = -1/(2\\sigma^2)
+  Suff stats:    T(x) = (x, x^2)
 
   ML role:  Weight init, VAE prior/posterior, GP, diffusion noise, batch norm
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-### A.3 Beta Distribution — Full Reference
+### A.3 Beta Distribution - Full Reference
 
 ```
-BETA(α, β) REFERENCE CARD
-════════════════════════════════════════════════════════════════════════
+BETA(\\alpha, \\beta) REFERENCE CARD
+========================================================================
 
-  PDF:    f(x) = x^(α-1)(1-x)^(β-1) / B(α,β),   x ∈ (0, 1)
-          B(α,β) = Γ(α)Γ(β)/Γ(α+β)
+  PDF:    f(x) = x^(\\alpha-1)(1-x)^(\\beta-1) / B(\\alpha,\\beta),   x \\in (0, 1)
+          B(\\alpha,\\beta) = \\Gamma(\\alpha)\\Gamma(\\beta)/\\Gamma(\\alpha+\\beta)
 
-  Mean:   α/(α+β)
-  Var:    αβ / [(α+β)²(α+β+1)]
-  Mode:   (α-1)/(α+β-2)   for α,β > 1
+  Mean:   \\alpha/(\\alpha+\\beta)
+  Var:    \\alpha\\beta / [(\\alpha+\\beta)^2(\\alpha+\\beta+1)]
+  Mode:   (\\alpha-1)/(\\alpha+\\beta-2)   for \\alpha,\\beta > 1
 
   Shape patterns:
-    α<1, β<1        → U-shaped (bimodal at 0 and 1)
-    α=β=1           → Uniform(0,1)
-    α=β>1           → Symmetric bell
-    α>β             → Skewed toward 1
-    α<β             → Skewed toward 0
-    α,β → ∞, ratio  → Concentrates at mode
+    \\alpha<1, \\beta<1        -> U-shaped (bimodal at 0 and 1)
+    \\alpha=\\beta=1           -> Uniform(0,1)
+    \\alpha=\\beta>1           -> Symmetric bell
+    \\alpha>\\beta             -> Skewed toward 1
+    \\alpha<\\beta             -> Skewed toward 0
+    \\alpha,\\beta -> \\infty, ratio  -> Concentrates at mode
 
   Conjugate prior for: Bernoulli, Binomial
-  Posterior update:    Beta(α, β) + k successes, n-k failures
-                       → Beta(α+k, β+n-k)
+  Posterior update:    Beta(\\alpha, \\beta) + k successes, n-k failures
+                       -> Beta(\\alpha+k, \\beta+n-k)
 
   ML role:  CTR estimation, RLHF preference priors, Beta-VAE
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -1426,16 +1426,16 @@ This gives exact categorical samples and enables the **Gumbel-softmax** differen
 
 ### D.1 What Makes a Tail Heavy?
 
-The Gaussian tail decays as $e^{-x^2/2}$ — **super-exponentially fast**. Distributions with tails decaying slower than any exponential are called **heavy-tailed**.
+The Gaussian tail decays as $e^{-x^2/2}$ - **super-exponentially fast**. Distributions with tails decaying slower than any exponential are called **heavy-tailed**.
 
 **Pareto distribution (power law):** $P(X > x) = (x_m/x)^\alpha$ for $x > x_m$. Tail decays as $x^{-\alpha}$.
 - $\alpha > 2$: finite variance
 - $1 < \alpha \leq 2$: finite mean, infinite variance
 - $0 < \alpha \leq 1$: infinite mean
 
-**Student-$t_\nu$:** $P(X > x) \sim x^{-\nu}$ for large $x$ — polynomial tail with exponent $\nu$.
+**Student-$t_\nu$:** $P(X > x) \sim x^{-\nu}$ for large $x$ - polynomial tail with exponent $\nu$.
 
-**Cauchy ($t_1$):** Variance infinite, mean undefined. The average of $n$ i.i.d. Cauchy variables is still Cauchy — the CLT fails completely.
+**Cauchy ($t_1$):** Variance infinite, mean undefined. The average of $n$ i.i.d. Cauchy variables is still Cauchy - the CLT fails completely.
 
 ### D.2 Heavy Tails in ML
 
@@ -1453,11 +1453,11 @@ The Gaussian tail decays as $e^{-x^2/2}$ — **super-exponentially fast**. Distr
 
 $$M_X(t) = \sum_{k=0}^\infty e^{tk} \cdot \frac{\lambda^k e^{-\lambda}}{k!} = e^{-\lambda} \sum_{k=0}^\infty \frac{(\lambda e^t)^k}{k!} = e^{-\lambda} \cdot e^{\lambda e^t} = e^{\lambda(e^t-1)}$$
 
-Checking moments: $M'(t) = \lambda e^t M(t)$. At $t=0$: $M'(0) = \lambda \cdot 1 = \lambda = \mathbb{E}[X]$. ✓
+Checking moments: $M'(t) = \lambda e^t M(t)$. At $t=0$: $M'(0) = \lambda \cdot 1 = \lambda = \mathbb{E}[X]$. [ok]
 
 $M''(t) = \lambda e^t M(t) + (\lambda e^t)^2 M(t)$. At $t=0$: $M''(0) = \lambda + \lambda^2 = \mathbb{E}[X^2]$.
 
-$\operatorname{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2 = (\lambda + \lambda^2) - \lambda^2 = \lambda$. ✓
+$\operatorname{Var}(X) = \mathbb{E}[X^2] - (\mathbb{E}[X])^2 = (\lambda + \lambda^2) - \lambda^2 = \lambda$. [ok]
 
 ### E.2 Gaussian MGF Derivation (Complete)
 
@@ -1496,7 +1496,7 @@ This is $\Gamma(\alpha+S, \beta+n)$. $\square$
 
 ---
 
-## Appendix F: Exponential Family — Additional Members
+## Appendix F: Exponential Family - Additional Members
 
 ### F.1 Negative Binomial as Exponential Family
 
@@ -1553,10 +1553,10 @@ When fitting a distribution to data, use this diagnostic checklist:
 
 | Check | Tool | Implication |
 |---|---|---|
-| Are values integers ≥ 0? | — | Consider discrete (Poisson, NB, Geometric) |
-| Are values in (0,1)? | — | Beta or transformed Gaussian |
-| Are values on a simplex? | — | Dirichlet |
-| Is variance ≈ mean? | Dispersion test | Poisson (if yes), NB (if var > mean) |
+| Are values integers \\geq 0? | - | Consider discrete (Poisson, NB, Geometric) |
+| Are values in (0,1)? | - | Beta or transformed Gaussian |
+| Are values on a simplex? | - | Dirichlet |
+| Is variance \\approx mean? | Dispersion test | Poisson (if yes), NB (if var > mean) |
 | Is distribution symmetric? | Skewness test | Gaussian, $t$, symmetric Beta |
 | Are tails heavier than Gaussian? | Kurtosis, QQ-plot | Student-$t$, Laplace |
 | Does a QQ-plot follow the diagonal? | `scipy.stats.probplot` | Good fit to reference distribution |
@@ -1620,41 +1620,41 @@ Under conjugate priors, the **posterior mean** often provides a better estimator
 | Categorical | $c_k/n$ | $(\alpha_k+c_k)/(\alpha_0+n)$ |
 | Poisson | $\bar{x}$ | $(\alpha+\sum x_i)/(\beta+n)$ |
 
-The posterior mean shrinks the MLE toward the prior mean — a form of regularisation that prevents overfitting to small samples.
+The posterior mean shrinks the MLE toward the prior mean - a form of regularisation that prevents overfitting to small samples.
 
 ---
 
-## Appendix J: Relationships Between Distributions — Extended
+## Appendix J: Relationships Between Distributions - Extended
 
 ### J.1 The Exponential Family as a Unifying Framework
 
 ```
 ALL MEMBERS OF THE EXPONENTIAL FAMILY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   One-parameter families:
-    Bernoulli(p)     — natural param: log(p/(1-p))
-    Poisson(λ)       — natural param: log(λ)
-    Exponential(λ)   — natural param: -λ
-    Geometric(p)     — natural param: log(1-p)
+    Bernoulli(p)     - natural param: log(p/(1-p))
+    Poisson(\\lambda)       - natural param: log(\\lambda)
+    Exponential(\\lambda)   - natural param: -\\lambda
+    Geometric(p)     - natural param: log(1-p)
 
   Two-parameter families:
-    Gaussian(μ,σ²)   — natural params: (μ/σ², -1/2σ²)
-    Gamma(α,β)       — natural params: (α-1, -β)
-    Beta(α,β)        — natural params: (α-1, β-1)
-    NegBin(r,p)      — natural param: log(p)  [r fixed]
+    Gaussian(\\mu,\\sigma^2)   - natural params: (\\mu/\\sigma^2, -1/2\\sigma^2)
+    Gamma(\\alpha,\\beta)       - natural params: (\\alpha-1, -\\beta)
+    Beta(\\alpha,\\beta)        - natural params: (\\alpha-1, \\beta-1)
+    NegBin(r,p)      - natural param: log(p)  [r fixed]
 
   K-parameter families:
-    Categorical(p)   — natural params: (log p_k/p_K)_{k<K}
-    Multinomial(n,p) — same as Categorical  [n fixed]
-    Dirichlet(α)     — natural params: (α_k - 1)_{k=1}^K
+    Categorical(p)   - natural params: (log p_k/p_K)_{k<K}
+    Multinomial(n,p) - same as Categorical  [n fixed]
+    Dirichlet(\\alpha)     - natural params: (\\alpha_k - 1)_{k=1}^K
 
   NOT exponential family:
-    Student-t(ν)     — tail behavior is not exponential
-    Cauchy            — same
-    Pareto            — support depends on parameter
+    Student-t(\\nu)     - tail behavior is not exponential
+    Cauchy            - same
+    Pareto            - support depends on parameter
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### J.2 Scale Mixtures of Gaussians
@@ -1668,7 +1668,7 @@ Several heavy-tailed distributions arise as **variance mixtures** of Gaussians: 
 | $V \sim \text{Exponential}(\lambda^2/2)$ | Laplace$(0, 1/\lambda)$ |
 | $V \sim \text{Levy}(\mu, c)$ | $\alpha$-stable distribution |
 
-**For AI:** The variance mixture representation of Student-$t$ enables efficient Gibbs sampling — alternating between sampling $X \mid V \sim \mathcal{N}$ and $V \mid X \sim \text{InvGamma}$. This technique underlies many robust Bayesian regression algorithms.
+**For AI:** The variance mixture representation of Student-$t$ enables efficient Gibbs sampling - alternating between sampling $X \mid V \sim \mathcal{N}$ and $V \mid X \sim \text{InvGamma}$. This technique underlies many robust Bayesian regression algorithms.
 
 ### J.3 Normalising Flows: Transforming Distributions
 
@@ -1682,7 +1682,7 @@ $$p_Y(y) = p_X(g^{-1}(y)) \cdot \left|\frac{d}{dy}g^{-1}(y)\right|$$
 - Start with $Z \sim \mathcal{N}(0,1)$, apply CDF and then categorical rounding: get Gaussian copula
 - Compose $K$ invertible transforms: get a **normalising flow** with complex target distribution
 
-> → _Full treatment: [§03 Joint Distributions](../03-Joint-Distributions/notes.md) (change-of-variables formula)_
+> -> _Full treatment: [Section03 Joint Distributions](../03-Joint-Distributions/notes.md) (change-of-variables formula)_
 
 ---
 
@@ -1761,7 +1761,7 @@ The **principle of maximum entropy** states: among all distributions satisfying 
 | Support $\{0,1\}$, fixed mean $p$ | Bernoulli$(p)$ |
 | Support $\Delta^{K-1}$, fixed mean $\boldsymbol{\mu}$ | Dirichlet (with matching moments) |
 
-**Proof sketch for Gaussian:** Maximise $H[p] = -\int p(x)\log p(x)\,dx$ subject to $\int p(x)\,dx = 1$, $\int x\,p(x)\,dx = \mu$, and $\int (x-\mu)^2 p(x)\,dx = \sigma^2$. Using Lagrange multipliers (§05/04 of Chapter 5), the optimal density satisfies $\log p(x) = \lambda_0 + \lambda_1 x + \lambda_2(x-\mu)^2$, which is the Gaussian form.
+**Proof sketch for Gaussian:** Maximise $H[p] = -\int p(x)\log p(x)\,dx$ subject to $\int p(x)\,dx = 1$, $\int x\,p(x)\,dx = \mu$, and $\int (x-\mu)^2 p(x)\,dx = \sigma^2$. Using Lagrange multipliers (Section05/04 of Chapter 5), the optimal density satisfies $\log p(x) = \lambda_0 + \lambda_1 x + \lambda_2(x-\mu)^2$, which is the Gaussian form.
 
 ### L.2 KL Divergences Between Common Distributions
 
@@ -1796,7 +1796,7 @@ $$H(\text{Uniform}(a,b)) = \log(b-a)$$
 For continuous distributions on $\mathbb{R}$ with fixed variance $\sigma^2$:
 $$H(\text{Gaussian}) \geq H(\text{Laplace}) \geq H(\text{Logistic}) \geq \cdots$$
 
-The Gaussian maximises entropy, making it the distribution that "knows least" given the mean and variance constraints — which is exactly why it appears in CLT results and maximum entropy arguments.
+The Gaussian maximises entropy, making it the distribution that "knows least" given the mean and variance constraints - which is exactly why it appears in CLT results and maximum entropy arguments.
 
 ---
 
@@ -1849,7 +1849,7 @@ d = Normal(loc=torch.tensor(0.0), scale=torch.tensor(1.0))
 
 # Common methods
 d.sample((5,))          # draw 5 samples
-d.log_prob(x)           # log p(x) — used in loss functions
+d.log_prob(x)           # log p(x) - used in loss functions
 d.cdf(x)               # F(x)
 d.icdf(q)              # F^{-1}(q)
 d.entropy()            # H(X)
@@ -1933,7 +1933,7 @@ $$\hat{\lambda}_{\text{Bayes}} = \frac{\alpha + \sum x_i}{\beta + n}$$
 **Gaussian with Gaussian prior** (known $\sigma^2$):
 $$\hat{\mu}_{\text{Bayes}} = \frac{\sigma^2 \mu_0 / \sigma_0^2 + n\bar{x}}{n + \sigma^2/\sigma_0^2}$$
 
-As $n \to \infty$, all Bayesian estimators converge to MLE — the data overwhelms the prior.
+As $n \to \infty$, all Bayesian estimators converge to MLE - the data overwhelms the prior.
 
 ---
 
@@ -1970,17 +1970,17 @@ $$P(X \geq (1+\delta)\lambda) \leq \left(\frac{e^\delta}{(1+\delta)^{1+\delta}}\
 
 For $X \sim \text{Exp}(\lambda)$: $P(X > t) = e^{-\lambda t}$ exactly (no approximation needed).
 
-> **Forward reference:** Concentration inequalities (Markov, Chebyshev, Hoeffding, Bernstein) are developed fully in [§6.5 Concentration Inequalities](../05-Concentration-Inequalities/notes.md).
+> **Forward reference:** Concentration inequalities (Markov, Chebyshev, Hoeffding, Bernstein) are developed fully in [Section6.5 Concentration Inequalities](../05-Concentration-Inequalities/notes.md).
 
 ---
 
-## Appendix P: Worked Example — Distribution Selection in Practice
+## Appendix P: Worked Example - Distribution Selection in Practice
 
 **Problem:** A recommendation system logs how many times each user clicks on recommended items in a session. You observe counts $x_1, \ldots, x_n$ and want to model the distribution.
 
-**Step 1: Check support.** Counts take values $\{0, 1, 2, \ldots\}$ → discrete, non-negative integer. Eliminates all continuous distributions.
+**Step 1: Check support.** Counts take values $\{0, 1, 2, \ldots\}$ -> discrete, non-negative integer. Eliminates all continuous distributions.
 
-**Step 2: Check bounds.** No natural upper bound → Geometric or Poisson. (If sessions had fixed length $N$, Binomial would apply.)
+**Step 2: Check bounds.** No natural upper bound -> Geometric or Poisson. (If sessions had fixed length $N$, Binomial would apply.)
 
 **Step 3: Check variance-mean relationship.**
 - Poisson: $\text{Var} = \mu$
@@ -1997,4 +1997,4 @@ Compute sample mean $\hat{\mu}$ and sample variance $\hat{s}^2$. If $\hat{s}^2 \
 
 ---
 
-_Last updated: 2026 — covers all distributions in §6.2 scope as defined in the Chapter README._
+_Last updated: 2026 - covers all distributions in Section6.2 scope as defined in the Chapter README._

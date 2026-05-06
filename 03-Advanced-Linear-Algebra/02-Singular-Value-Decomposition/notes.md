@@ -1,16 +1,16 @@
-[← Back to Advanced Linear Algebra](../README.md) | [Next: Principal Component Analysis →](../03-Principal-Component-Analysis/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [Next: Principal Component Analysis ->](../03-Principal-Component-Analysis/notes.md)
 
 ---
 
 # Singular Value Decomposition
 
-> _"Every matrix tells a story of rotation, scaling, and rotation again — the SVD reads that story in full."_
+> _"Every matrix tells a story of rotation, scaling, and rotation again - the SVD reads that story in full."_
 
 ## Overview
 
-The Singular Value Decomposition (SVD) is the most universally applicable matrix factorisation in all of applied mathematics. Given any matrix $A \in \mathbb{R}^{m \times n}$ — rectangular, rank-deficient, ill-conditioned, whatever — the SVD expresses it as $A = U\Sigma V^\top$: a rotation in the input space ($V^\top$), a coordinate-wise scaling ($\Sigma$), and a rotation in the output space ($U$). The scaling factors $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$ are the **singular values**; they completely determine the linear map's geometry. Unlike the eigendecomposition, which requires a square matrix and may involve complex numbers, the SVD always exists, always produces real non-negative singular values, and works for matrices of any shape.
+The Singular Value Decomposition (SVD) is the most universally applicable matrix factorisation in all of applied mathematics. Given any matrix $A \in \mathbb{R}^{m \times n}$ - rectangular, rank-deficient, ill-conditioned, whatever - the SVD expresses it as $A = U\Sigma V^\top$: a rotation in the input space ($V^\top$), a coordinate-wise scaling ($\Sigma$), and a rotation in the output space ($U$). The scaling factors $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$ are the **singular values**; they completely determine the linear map's geometry. Unlike the eigendecomposition, which requires a square matrix and may involve complex numbers, the SVD always exists, always produces real non-negative singular values, and works for matrices of any shape.
 
-For AI practitioners in 2026, the SVD is inescapable. Low-Rank Adaptation (LoRA) fine-tunes billion-parameter language models by constraining weight updates to a low-rank subspace — the dominant singular subspace of the gradient matrix. DeepSeek's Multi-Head Latent Attention (MLA) compresses key-value caches by projecting them through a low-rank bottleneck. The Eckart-Young theorem guarantees that the rank-$k$ SVD truncation is the best possible rank-$k$ approximation, which is why SVD underlies recommender systems, image compression, latent semantic analysis, and the pseudoinverse. WeightWatcher diagnoses model quality by examining the singular value spectrum of weight matrices: healthy trained networks have heavy-tailed spectra; undertrained or overtrained networks do not. Every time you compute a spectral norm, solve a least-squares problem, or talk about the "effective rank" of a weight matrix, you are using the SVD.
+For AI practitioners in 2026, the SVD is inescapable. Low-Rank Adaptation (LoRA) fine-tunes billion-parameter language models by constraining weight updates to a low-rank subspace - the dominant singular subspace of the gradient matrix. DeepSeek's Multi-Head Latent Attention (MLA) compresses key-value caches by projecting them through a low-rank bottleneck. The Eckart-Young theorem guarantees that the rank-$k$ SVD truncation is the best possible rank-$k$ approximation, which is why SVD underlies recommender systems, image compression, latent semantic analysis, and the pseudoinverse. WeightWatcher diagnoses model quality by examining the singular value spectrum of weight matrices: healthy trained networks have heavy-tailed spectra; undertrained or overtrained networks do not. Every time you compute a spectral norm, solve a least-squares problem, or talk about the "effective rank" of a weight matrix, you are using the SVD.
 
 This section develops the SVD from first principles, proves the Eckart-Young theorem, connects SVD to eigenvalues and the four fundamental subspaces, and builds every major AI application from scratch.
 
@@ -100,23 +100,23 @@ After completing this section, you will:
 
 ### 1.1 What SVD Is
 
-A matrix $A \in \mathbb{R}^{m \times n}$ represents a linear map from $\mathbb{R}^n$ to $\mathbb{R}^m$. That map can be arbitrarily complex — it can rotate, stretch, shrink, and project. The SVD breaks this complexity into three primitives that are each individually simple:
+A matrix $A \in \mathbb{R}^{m \times n}$ represents a linear map from $\mathbb{R}^n$ to $\mathbb{R}^m$. That map can be arbitrarily complex - it can rotate, stretch, shrink, and project. The SVD breaks this complexity into three primitives that are each individually simple:
 
 $$A = U \Sigma V^\top$$
 
-- **$V^\top$: rotation/reflection in the input space $\mathbb{R}^n$**. $V$ is orthogonal ($V^\top V = I_n$), so $V^\top$ is a rigid transformation that does not change lengths or angles — it just changes the orientation of the coordinate axes.
+- **$V^\top$: rotation/reflection in the input space $\mathbb{R}^n$**. $V$ is orthogonal ($V^\top V = I_n$), so $V^\top$ is a rigid transformation that does not change lengths or angles - it just changes the orientation of the coordinate axes.
 - **$\Sigma$: scaling along coordinate axes**. $\Sigma$ is an $m \times n$ diagonal-like matrix with non-negative entries $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$ on the diagonal. It stretches or shrinks each axis independently. If $m \neq n$, it also changes the dimension.
 - **$U$: rotation/reflection in the output space $\mathbb{R}^m$**. $U$ is orthogonal ($UU^\top = I_m$), another rigid transformation.
 
-The sequence $V^\top \to \Sigma \to U$ is the "rotate → scale → rotate" story of the matrix. The first rotation aligns the input coordinates to the special axes (the **right singular vectors** $\mathbf{v}_i$, columns of $V$). Then each axis is scaled by $\sigma_i$. Then the result is rotated to the output coordinate system via $U$, whose columns $\mathbf{u}_i$ are the **left singular vectors**.
+The sequence $V^\top \to \Sigma \to U$ is the "rotate -> scale -> rotate" story of the matrix. The first rotation aligns the input coordinates to the special axes (the **right singular vectors** $\mathbf{v}_i$, columns of $V$). Then each axis is scaled by $\sigma_i$. Then the result is rotated to the output coordinate system via $U$, whose columns $\mathbf{u}_i$ are the **left singular vectors**.
 
 This decomposition exists for every real (or complex) matrix, regardless of shape, rank, or conditioning. The singular values $\sigma_i$ are unique (though the vectors $\mathbf{u}_i, \mathbf{v}_i$ have sign ambiguity and are non-unique when singular values repeat). This universality is what distinguishes the SVD from the eigendecomposition, which only applies to square matrices and can fail (defective matrices) or become complex.
 
-**For AI:** When you apply a linear layer $W \in \mathbb{R}^{d_{out} \times d_{in}}$ to an input $\mathbf{x}$, you are implicitly performing $W\mathbf{x} = U\Sigma V^\top \mathbf{x}$. The right singular vectors $\mathbf{v}_i$ are the "input features" the layer responds to; the singular values $\sigma_i$ are how strongly each feature is amplified; the left singular vectors $\mathbf{u}_i$ are the "output features" it writes to. LoRA exploits this by constraining $\Delta W = BA$ where $B \in \mathbb{R}^{d_{out} \times r}$, $A \in \mathbb{R}^{r \times d_{in}}$ — a rank-$r$ update that modifies only the dominant $r$ singular directions.
+**For AI:** When you apply a linear layer $W \in \mathbb{R}^{d_{out} \times d_{in}}$ to an input $\mathbf{x}$, you are implicitly performing $W\mathbf{x} = U\Sigma V^\top \mathbf{x}$. The right singular vectors $\mathbf{v}_i$ are the "input features" the layer responds to; the singular values $\sigma_i$ are how strongly each feature is amplified; the left singular vectors $\mathbf{u}_i$ are the "output features" it writes to. LoRA exploits this by constraining $\Delta W = BA$ where $B \in \mathbb{R}^{d_{out} \times r}$, $A \in \mathbb{R}^{r \times d_{in}}$ - a rank-$r$ update that modifies only the dominant $r$ singular directions.
 
 ### 1.2 The Geometric Picture
 
-The clearest geometric picture of the SVD comes from watching what $A$ does to the unit sphere $S^{n-1} = \{\mathbf{x} \in \mathbb{R}^n : \|\mathbf{x}\| = 1\}$. Apply $A$ to every point on the unit sphere. The result is an ellipsoid in $\mathbb{R}^m$. This is not obvious — it is a theorem — but it follows directly from the SVD:
+The clearest geometric picture of the SVD comes from watching what $A$ does to the unit sphere $S^{n-1} = \{\mathbf{x} \in \mathbb{R}^n : \|\mathbf{x}\| = 1\}$. Apply $A$ to every point on the unit sphere. The result is an ellipsoid in $\mathbb{R}^m$. This is not obvious - it is a theorem - but it follows directly from the SVD:
 
 $$A(S^{n-1}) = U\Sigma V^\top(S^{n-1}) = U\Sigma(S^{n-1}) = U(\text{axis-aligned ellipsoid}) = \text{ellipsoid}$$
 
@@ -128,39 +128,39 @@ Step by step:
 The **singular values** $\sigma_i$ are the semi-axis lengths of the output ellipsoid. The **right singular vectors** $\mathbf{v}_i$ are the directions in the input space that map to the semi-axes of the ellipsoid. The **left singular vectors** $\mathbf{u}_i$ are the directions of the ellipsoid's semi-axes in the output space.
 
 ```
-GEOMETRIC ACTION OF A ∈ ℝ^(m×n)
-════════════════════════════════════════════════════════════════════════
+GEOMETRIC ACTION OF A \in \mathbb{R}^(m\timesn)
+========================================================================
 
-  Input space ℝⁿ               Output space ℝᵐ
+  Input space \mathbb{R}^n               Output space \mathbb{R}^m
 
-      v₂                            u₂
-       ↑                             ↑
-       │  Unit sphere                │
-       │    ·                        │   σ₂·u₂
-       │  ·   ·       V^T          · │ ·
-       │ ·     ·  ──────────►    ·   │   ·       A = U Σ V^T
-       │  ·   ·                ·     │     ·
-       │    ·               ─────────────────── u₁ →
-  ─────┼────────► v₁       ·         σ₁      ·
-       │                     ·               ·
-       │                       ·           ·
-       │                         · · · · ·
-       │                        (ellipse)
-       │                  semi-axes = singular values
+      v_2                            u_2
+       up                             up
+       |  Unit sphere                |
+       |    *                        |   \sigma_2*u_2
+       |  *   *       V^T          * | *
+       | *     *  ---------->    *   |   *       A = U \Sigma V^T
+       |  *   *                *     |     *
+       |    *               ------------------- u_1 ->
+  -----+--------> v_1       *         \sigma_1      *
+       |                     *               *
+       |                       *           *
+       |                         * * * * *
+       |                        (ellipse)
+       |                  semi-axes = singular values
 
   Right singular vectors v_i    Left singular vectors u_i
   = natural input axes          = natural output axes
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-For a $2 \times 2$ matrix with $\sigma_1 > \sigma_2 > 0$: the unit circle maps to an ellipse with semi-axes $\sigma_1$ and $\sigma_2$. The direction $\mathbf{v}_1$ is the input direction that gets stretched the most (by $\sigma_1$); $\mathbf{v}_2$ is the direction stretched least (by $\sigma_2$). If $\sigma_2 = 0$, the map collapses one direction to zero — the matrix is rank-1 and maps every vector onto a line.
+For a $2 \times 2$ matrix with $\sigma_1 > \sigma_2 > 0$: the unit circle maps to an ellipse with semi-axes $\sigma_1$ and $\sigma_2$. The direction $\mathbf{v}_1$ is the input direction that gets stretched the most (by $\sigma_1$); $\mathbf{v}_2$ is the direction stretched least (by $\sigma_2$). If $\sigma_2 = 0$, the map collapses one direction to zero - the matrix is rank-1 and maps every vector onto a line.
 
 ### 1.3 Why SVD Is the Most Important Decomposition in AI
 
-The SVD is not just an abstract factorisation — it is the foundational tool for understanding, compressing, and controlling linear maps in neural networks. Here are the core connections:
+The SVD is not just an abstract factorisation - it is the foundational tool for understanding, compressing, and controlling linear maps in neural networks. Here are the core connections:
 
-**Low-rank approximation (LoRA, DoRA, MLA).** Every weight matrix in a neural network is a linear map. After training, weight update matrices $\Delta W$ tend to have low effective rank — most of the "learning signal" lives in a few singular directions. LoRA exploits this: instead of fine-tuning all of $W$, it learns $\Delta W = BA$ with $r \ll d$. The SVD is used to initialise $B$ and $A$ from the dominant singular subspace of $\Delta W$, or to analyse which singular directions are being adapted. DoRA (Weight-Decomposed Low-Rank Adaptation) further decomposes $W = \|W\|_c \cdot W/\|W\|_c$ and adapts direction (via low-rank) and magnitude (via scalar) separately. DeepSeek's MLA uses low-rank projections of key-value matrices to compress the KV cache, reducing memory from $O(n \cdot d_{kv})$ to $O(n \cdot r)$ with $r \ll d_{kv}$.
+**Low-rank approximation (LoRA, DoRA, MLA).** Every weight matrix in a neural network is a linear map. After training, weight update matrices $\Delta W$ tend to have low effective rank - most of the "learning signal" lives in a few singular directions. LoRA exploits this: instead of fine-tuning all of $W$, it learns $\Delta W = BA$ with $r \ll d$. The SVD is used to initialise $B$ and $A$ from the dominant singular subspace of $\Delta W$, or to analyse which singular directions are being adapted. DoRA (Weight-Decomposed Low-Rank Adaptation) further decomposes $W = \|W\|_c \cdot W/\|W\|_c$ and adapts direction (via low-rank) and magnitude (via scalar) separately. DeepSeek's MLA uses low-rank projections of key-value matrices to compress the KV cache, reducing memory from $O(n \cdot d_{kv})$ to $O(n \cdot r)$ with $r \ll d_{kv}$.
 
 **Spectral normalisation.** The spectral norm of a weight matrix $\|W\|_2 = \sigma_{\max}(W)$ is the largest singular value. Spectral normalisation (Miyato et al. 2018) divides each weight matrix by its spectral norm, enforcing a Lipschitz-1 constraint on each layer. This stabilises GAN training. The spectral norm is computed via power iteration (equivalent to computing the top singular vector pair) and is $O(mn)$ per forward pass rather than $O(mn\min(m,n))$ for the full SVD.
 
@@ -168,7 +168,7 @@ The SVD is not just an abstract factorisation — it is the foundational tool fo
 
 **Matrix compression and efficiency.** Images, attention matrices, embedding tables, and gradient matrices all have approximate low-rank structure. The Eckart-Young theorem guarantees the SVD gives the best rank-$k$ approximation. Randomised SVD (Halko et al. 2011) computes this in $O(mnk)$ time rather than $O(mn\min(m,n))$, making it practical for million-dimensional problems.
 
-**Understanding model geometry.** The singular value spectrum of a weight matrix reveals its "information geometry": a flat spectrum (all $\sigma_i$ equal) means the layer treats all directions equally; a steep spectrum means the layer has discovered dominant directions. WeightWatcher (Martin and Mahoney, 2019–2026) quantifies model quality by fitting power-law distributions to singular value spectra: well-trained models have $\sigma_i \sim i^{-\alpha}$ with $\alpha \in [2, 4]$; undertrained models have flat spectra; overtrained models have spike/bulk structure.
+**Understanding model geometry.** The singular value spectrum of a weight matrix reveals its "information geometry": a flat spectrum (all $\sigma_i$ equal) means the layer treats all directions equally; a steep spectrum means the layer has discovered dominant directions. WeightWatcher (Martin and Mahoney, 2019-2026) quantifies model quality by fitting power-law distributions to singular value spectra: well-trained models have $\sigma_i \sim i^{-\alpha}$ with $\alpha \in [2, 4]$; undertrained models have flat spectra; overtrained models have spike/bulk structure.
 
 ### 1.4 SVD vs Eigendecomposition
 
@@ -185,7 +185,7 @@ Students often confuse SVD and eigendecomposition. Here is a precise comparison:
 | **Computation cost** | $O(n^3)$ | $O(mn\min(m,n))$ |
 | **Geometric meaning** | Fixed points of the map | Extreme stretching directions |
 
-The key insight: **singular values and eigenvalues are generally different quantities**. For a matrix $A$, the eigenvalues of $A$ are not the same as the singular values of $A$ (unless $A$ is symmetric PSD). The singular values of $A$ are the square roots of the eigenvalues of $A^\top A$ (which is always symmetric PSD). For example, the rotation matrix $R_\theta$ has eigenvalues $e^{\pm i\theta}$ (complex, magnitude 1) but singular values $\sigma_1 = \sigma_2 = 1$ (all equal — a rotation is an isometry).
+The key insight: **singular values and eigenvalues are generally different quantities**. For a matrix $A$, the eigenvalues of $A$ are not the same as the singular values of $A$ (unless $A$ is symmetric PSD). The singular values of $A$ are the square roots of the eigenvalues of $A^\top A$ (which is always symmetric PSD). For example, the rotation matrix $R_\theta$ has eigenvalues $e^{\pm i\theta}$ (complex, magnitude 1) but singular values $\sigma_1 = \sigma_2 = 1$ (all equal - a rotation is an isometry).
 
 ### 1.5 Historical Timeline
 
@@ -197,12 +197,12 @@ The key insight: **singular values and eigenvalues are generally different quant
 | 1936 | Eckart & Young | Proved the best low-rank approximation theorem; connected SVD to statistics |
 | 1965 | Golub & Reinsch | Practical stable algorithm: bidiagonalisation + implicit QR shift; still in use today |
 | 1976 | Lanczos bidiag. | Krylov subspace method for large sparse matrices; precursor to ARPACK |
-| 1992 | Berry et al. | Latent Semantic Analysis (LSA) — SVD of term-document matrices for information retrieval |
-| 2000 | Cai, Candès | Matrix completion theory; nuclear norm minimisation as convex relaxation of low-rank |
+| 1992 | Berry et al. | Latent Semantic Analysis (LSA) - SVD of term-document matrices for information retrieval |
+| 2000 | Cai, Candes | Matrix completion theory; nuclear norm minimisation as convex relaxation of low-rank |
 | 2009 | Koren et al. | Winning Netflix Prize solution used SVD-based matrix factorisation |
-| 2011 | Halko, Martinsson, Tropp | Randomised SVD — near-linear-time algorithms for large matrices |
-| 2017–26 | LoRA era | Hu et al. (LoRA 2021), Liu et al. (DoRA 2024), DeepSeek (MLA 2024) — low-rank SVD in LLMs |
-| 2019–26 | Martin & Mahoney | WeightWatcher — power-law singular value spectra as model quality metrics |
+| 2011 | Halko, Martinsson, Tropp | Randomised SVD - near-linear-time algorithms for large matrices |
+| 2017-26 | LoRA era | Hu et al. (LoRA 2021), Liu et al. (DoRA 2024), DeepSeek (MLA 2024) - low-rank SVD in LLMs |
+| 2019-26 | Martin & Mahoney | WeightWatcher - power-law singular value spectra as model quality metrics |
 
 ---
 
@@ -271,27 +271,27 @@ For an $m \times n$ matrix with $m > n$ and rank $r \leq n$, there are three com
 
 ```
 FULL SVD vs THIN SVD vs TRUNCATED SVD  (m > n, rank r)
-════════════════════════════════════════════════════════════════
+================================================================
 
 FULL:
-  A    =    U      ×     Σ      ×    V^T
-(m×n)    (m×m)       (m×n)       (n×n)
+  A    =    U      \times     \Sigma      \times    V^T
+(m\timesn)    (m\timesm)       (m\timesn)       (n\timesn)
          [all m      [n nonzero   [all n
           columns]    rows]        columns]
 
 THIN (economy):
-  A    =    Û      ×    Σ̂      ×    V^T
-(m×n)    (m×n)       (n×n)       (n×n)
+  A    =    U      \times    \Sigma      \times    V^T
+(m\timesn)    (m\timesn)       (n\timesn)       (n\timesn)
          [first n   [square      [all n
           columns]   diagonal]    columns]
 
 TRUNCATED (rank-k):
-  A_k  =   Û_k    ×    Σ̂_k    ×   V_k^T
-(m×n)    (m×k)       (k×k)       (k×n)
+  A_k  =   U_k    \times    \Sigma_k    \times   V_k^T
+(m\timesn)    (m\timesk)       (k\timesk)       (k\timesn)
          [first k   [top-k       [first k
           columns]   diagonal]    columns]
 
-════════════════════════════════════════════════════════════════
+================================================================
 ```
 
 **Full SVD** is the complete factorisation; $U$ and $V$ are square orthogonal matrices. Storage: $O(m^2 + mn + n^2)$.
@@ -359,20 +359,20 @@ The key advantage: bidiagonalisation works directly on $A$ without forming $A^\t
 For large matrices where only the top-$k$ singular values/vectors are needed, the randomised SVD (Halko, Martinsson, Tropp 2011) offers a dramatic speedup:
 
 **Algorithm:**
-1. **Sketch:** Draw $\Omega \in \mathbb{R}^{n \times (k+p)}$ with i.i.d. Gaussian entries ($p$ = oversampling, typically 5–10).
+1. **Sketch:** Draw $\Omega \in \mathbb{R}^{n \times (k+p)}$ with i.i.d. Gaussian entries ($p$ = oversampling, typically 5-10).
 2. **Range sketch:** Compute $Y = A\Omega \in \mathbb{R}^{m \times (k+p)}$.
 3. **Orthogonalise:** QR decompose $Y = QR$; $Q \in \mathbb{R}^{m \times (k+p)}$ captures the range of $A$.
 4. **Project:** Compute $B = Q^\top A \in \mathbb{R}^{(k+p) \times n}$ (small matrix).
 5. **SVD of small matrix:** Compute $B = \hat{U}\Sigma V^\top$ exactly.
 6. **Recover:** $U = Q\hat{U}$. Return $(U[:, :k], \Sigma[:k,:k], V[:, :k])$.
 
-**Cost:** $O(mnk)$ — linear in the matrix size! Compare to $O(mn\min(m,n))$ for full SVD.
+**Cost:** $O(mnk)$ - linear in the matrix size! Compare to $O(mn\min(m,n))$ for full SVD.
 
 **Error bound:** With oversampling $p \geq 5$, the approximation error is:
 $$\|A - A_k^{\text{rand}}\|_2 \leq \left(1 + 11\sqrt{(k+p)n}\right) \sigma_{k+1}(A)$$
 with high probability. In practice the error is much closer to $\sigma_{k+1}$.
 
-**Power iteration improvement:** Replace $Y = A\Omega$ with $Y = (AA^\top)^q A\Omega$ for small $q$ (1–3 power iteration steps). This dramatically sharpens the approximation for matrices with slowly decaying singular values, at cost $O(qmnk)$.
+**Power iteration improvement:** Replace $Y = A\Omega$ with $Y = (AA^\top)^q A\Omega$ for small $q$ (1-3 power iteration steps). This dramatically sharpens the approximation for matrices with slowly decaying singular values, at cost $O(qmnk)$.
 
 **For AI:** `sklearn.utils.extmath.randomized_svd(A, n_components=k, n_iter=2)` implements this. It's what `TruncatedSVD` uses for large sparse document matrices. PyTorch's `torch.svd_lowrank` uses randomised SVD for LoRA-related computations.
 
@@ -384,7 +384,7 @@ For very large sparse matrices (e.g., $A \in \mathbb{R}^{10^6 \times 10^6}$ with
 $$\beta_{j+1}\mathbf{u}_{j+1} = A\mathbf{v}_j - \alpha_j\mathbf{u}_j$$
 $$\gamma_{j+1}\mathbf{v}_{j+1} = A^\top\mathbf{u}_{j+1} - \beta_{j+1}\mathbf{v}_j$$
 
-After $k$ steps, this builds a bidiagonal matrix $B_k$ whose singular values approximate the largest (and sometimes smallest) singular values of $A$. Only matrix-vector products $A\mathbf{x}$ and $A^\top\mathbf{y}$ are needed — no explicit matrix storage.
+After $k$ steps, this builds a bidiagonal matrix $B_k$ whose singular values approximate the largest (and sometimes smallest) singular values of $A$. Only matrix-vector products $A\mathbf{x}$ and $A^\top\mathbf{y}$ are needed - no explicit matrix storage.
 
 This is implemented in `scipy.sparse.linalg.svds` and is what makes SVD feasible for web-scale matrices (e.g., the Netflix prize data had $\sim 10^8$ entries).
 
@@ -400,17 +400,17 @@ This is implemented in `scipy.sparse.linalg.svds` and is what makes SVD feasible
 
 ```
 NUMERICAL SVD PITFALLS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   A has condition kappa:    A^T A has condition kappa^2
 
   kappa(A) = 1e7  =>  kappa(A^T A) = 1e14   (only 2 correct digits
                                                in last eigenvalue!)
 
-  SAFE:   U, s, Vt = np.linalg.svd(A)         ← O(mn min(m,n))
-  RISKY:  eigs = np.linalg.eigh(A.T @ A)      ← avoidable precision loss
+  SAFE:   U, s, Vt = np.linalg.svd(A)         <- O(mn min(m,n))
+  RISKY:  eigs = np.linalg.eigh(A.T @ A)      <- avoidable precision loss
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -427,7 +427,7 @@ The three most important matrix norms all have elegant expressions in terms of s
 | **Frobenius norm** $\|A\|_F$ | $\sqrt{\sum_{i,j}A_{ij}^2}$ | $\sqrt{\sum_i \sigma_i^2}$ | Weight decay regularisation |
 | **Nuclear norm** $\|A\|_*$ | $\sum_i \sigma_i$ | $\sum_i \sigma_i$ | Low-rank regularisation; matrix completion |
 
-**Spectral norm $\|A\|_2 = \sigma_1$:** This is the operator norm — the maximum factor by which $A$ can amplify a vector. For a neural network layer $W$, $\|W\|_2 = \sigma_1(W)$ is the Lipschitz constant. Spectral normalisation $W \to W/\sigma_1(W)$ enforces $\|W\|_2 = 1$.
+**Spectral norm $\|A\|_2 = \sigma_1$:** This is the operator norm - the maximum factor by which $A$ can amplify a vector. For a neural network layer $W$, $\|W\|_2 = \sigma_1(W)$ is the Lipschitz constant. Spectral normalisation $W \to W/\sigma_1(W)$ enforces $\|W\|_2 = 1$.
 
 **Frobenius norm $\|A\|_F = \sqrt{\sum_i \sigma_i^2}$:** This is the matrix version of the Euclidean norm. Note $\|A\|_F^2 = \text{tr}(A^\top A) = \sum_i \sigma_i^2$. L2 weight decay minimises $\|W\|_F^2$, which in SVD terms means penalising all singular values equally.
 
@@ -439,7 +439,7 @@ $$\|A\|_2 \leq \|A\|_* \leq \sqrt{r}\|A\|_F$$
 
 ### 4.2 The Eckart-Young Theorem
 
-This is one of the most important theorems in applied mathematics — it justifies every low-rank approximation method in machine learning.
+This is one of the most important theorems in applied mathematics - it justifies every low-rank approximation method in machine learning.
 
 **Theorem (Eckart-Young, 1936).** Let $A = U\Sigma V^\top$ be the SVD with singular values $\sigma_1 \geq \cdots \geq \sigma_r > 0$. Define the rank-$k$ truncation:
 $$A_k = \sum_{i=1}^k \sigma_i \mathbf{u}_i \mathbf{v}_i^\top = U_k \Sigma_k V_k^\top$$
@@ -482,7 +482,7 @@ where $\Sigma^+ \in \mathbb{R}^{n \times m}$ replaces each nonzero $\sigma_i$ wi
 **Ridge regression / Tikhonov regularisation:** Adding $\lambda\|\mathbf{x}\|_2^2$ to the objective gives:
 $$\hat{\mathbf{x}}_\lambda = (A^\top A + \lambda I)^{-1}A^\top\mathbf{b} = V(\Sigma^\top\Sigma + \lambda I)^{-1}\Sigma^\top U^\top \mathbf{b} = \sum_{i=1}^r \frac{\sigma_i}{\sigma_i^2 + \lambda} (\mathbf{u}_i^\top \mathbf{b}) \mathbf{v}_i$$
 
-Each singular component is attenuated by factor $\sigma_i^2/(\sigma_i^2 + \lambda)$ — components with $\sigma_i \gg \sqrt{\lambda}$ are kept, components with $\sigma_i \ll \sqrt{\lambda}$ are suppressed. This is **spectral shrinkage** or Tikhonov regularisation.
+Each singular component is attenuated by factor $\sigma_i^2/(\sigma_i^2 + \lambda)$ - components with $\sigma_i \gg \sqrt{\lambda}$ are kept, components with $\sigma_i \ll \sqrt{\lambda}$ are suppressed. This is **spectral shrinkage** or Tikhonov regularisation.
 
 ### 4.4 SVD and Rank
 
@@ -510,7 +510,7 @@ A well-conditioned matrix has $\kappa(A) \approx 1$; a nearly singular matrix ha
 
 **For AI:** The condition number of the Gram matrix $X^\top X$ (or the Hessian $H = \nabla^2\mathcal{L}$) governs gradient descent convergence: $\kappa(H) = \lambda_{\max}/\lambda_{\min} = \sigma_{\max}^2/\sigma_{\min}^2$ for symmetric PSD matrices. Feature normalisation (standardisation, batch norm, layer norm) reduces $\kappa(X^\top X)$, accelerating convergence.
 
-**Preconditioning:** For linear systems $A\mathbf{x} = \mathbf{b}$, a preconditioner $P \approx A$ transforms the system to $P^{-1}A\mathbf{x} = P^{-1}\mathbf{b}$ with smaller $\kappa(P^{-1}A)$. K-FAC (Kronecker-Factored Approximate Curvature) is a natural gradient method that preconditioning by the Fisher information matrix — equivalent to using a block-diagonal approximation to the Hessian.
+**Preconditioning:** For linear systems $A\mathbf{x} = \mathbf{b}$, a preconditioner $P \approx A$ transforms the system to $P^{-1}A\mathbf{x} = P^{-1}\mathbf{b}$ with smaller $\kappa(P^{-1}A)$. K-FAC (Kronecker-Factored Approximate Curvature) is a natural gradient method that preconditioning by the Fisher information matrix - equivalent to using a block-diagonal approximation to the Hessian.
 
 ### 4.6 The Procrustes Problem
 
@@ -524,7 +524,7 @@ The **orthogonal Procrustes problem** asks: given matrices $A, B \in \mathbb{R}^
 - **Shape alignment:** Procrustes is used in protein structure alignment, morphometric analysis.
 - **Domain adaptation:** Aligning word vector spaces across languages (cross-lingual transfer) uses Procrustes.
 - **RetNet / linear attention:** Some position encoding methods use orthogonal transformations computed via Procrustes.
-- **Gradient alignment:** The Procrustes problem appears in task arithmetic — finding the optimal rotation to align task vectors.
+- **Gradient alignment:** The Procrustes problem appears in task arithmetic - finding the optimal rotation to align task vectors.
 
 ---
 
@@ -540,20 +540,20 @@ Each term $\sigma_i \mathbf{u}_i \mathbf{v}_i^\top$ is a rank-1 matrix (outer pr
 
 ```
 RANK-1 DECOMPOSITION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  A  =  σ₁ · u₁v₁ᵀ  +  σ₂ · u₂v₂ᵀ  +  ···  +  σᵣ · uᵣvᵣᵀ
-        ─────────────   ─────────────          ─────────────
+  A  =  \sigma_1 * u_1v_1^T  +  \sigma_2 * u_2v_2^T  +  ***  +  \sigma^r * u^rv^r^T
+        -------------   -------------          -------------
          rank-1 term      rank-1 term            rank-1 term
          (dominant)       (less important)       (least important)
 
-  Truncating at rank k: discard σ_{k+1},...,σ_r terms
-  Error: ‖A - A_k‖_F = √(σ_{k+1}² + ··· + σ_r²)
+  Truncating at rank k: discard \sigma_{k+1},...,\sigma_r terms
+  Error: ||A - A_k||_F = \sqrt(\sigma_{k+1}^2 + *** + \sigma_r^2)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**For AI — matrix as a sum of "features":** Each rank-1 term $\sigma_i \mathbf{u}_i\mathbf{v}_i^\top$ is an "atom" — a pattern in the output ($\mathbf{u}_i$) correlated with a pattern in the input ($\mathbf{v}_i$), with strength $\sigma_i$. In a trained weight matrix $W$:
+**For AI - matrix as a sum of "features":** Each rank-1 term $\sigma_i \mathbf{u}_i\mathbf{v}_i^\top$ is an "atom" - a pattern in the output ($\mathbf{u}_i$) correlated with a pattern in the input ($\mathbf{v}_i$), with strength $\sigma_i$. In a trained weight matrix $W$:
 - The top singular direction ($\sigma_1, \mathbf{u}_1, \mathbf{v}_1$) is the most amplified input-output feature pair.
 - Lower singular directions correspond to less important, often noisier associations.
 - LoRA's $\Delta W = BA$ with $B \in \mathbb{R}^{d\times r}$, $A \in \mathbb{R}^{r\times k}$ is equivalent to adding $r$ rank-1 terms to $W$.
@@ -599,7 +599,7 @@ Only $A$ and $B$ are trained (with $A$ initialised from a Gaussian and $B$ initi
 
 **MLA (DeepSeek 2024)** compresses the KV cache by factoring the projection matrices: $W_K = W_C^{DK} W_C^{UK}$ where $W_C^{DK} \in \mathbb{R}^{d_h \times c}$ compresses to a latent dimension $c \ll d_h$. This is exactly the rank-$c$ SVD structure applied to the key/value projections.
 
-**Parameters saved by LoRA:** Instead of $dk$ parameters for $\Delta W$, LoRA uses $(d + k)r$ parameters. For $d = k = 4096$ and $r = 8$: full is $16.7M$ parameters, LoRA is $65K$ — a $256\times$ reduction.
+**Parameters saved by LoRA:** Instead of $dk$ parameters for $\Delta W$, LoRA uses $(d + k)r$ parameters. For $d = k = 4096$ and $r = 8$: full is $16.7M$ parameters, LoRA is $65K$ - a $256\times$ reduction.
 
 ### 6.2 Recommender Systems
 
@@ -625,9 +625,9 @@ The rank-$k$ SVD $X \approx U_k\Sigma_k V_k^\top$ gives:
 - $V_k \in \mathbb{R}^{|D| \times k}$: document embeddings
 - $\Sigma_k$: importance of each latent dimension
 
-Words that co-occur in similar documents get nearby embeddings. This is one of the first distributed word representations — a precursor to word2vec and GloVe.
+Words that co-occur in similar documents get nearby embeddings. This is one of the first distributed word representations - a precursor to word2vec and GloVe.
 
-**Connection to GloVe:** GloVe (Pennington et al. 2014) can be interpreted as a shifted version of LSA. The GloVe model minimises the Frobenius norm between the log pointwise mutual information (PPMI) matrix and its low-rank factorisation — structurally an SVD with a different weighting function.
+**Connection to GloVe:** GloVe (Pennington et al. 2014) can be interpreted as a shifted version of LSA. The GloVe model minimises the Frobenius norm between the log pointwise mutual information (PPMI) matrix and its low-rank factorisation - structurally an SVD with a different weighting function.
 
 **Modern transformer word embeddings** are not directly SVD, but the embedding table $E \in \mathbb{R}^{|V| \times d}$ can be analysed via SVD. Well-trained embeddings typically have a steep singular value spectrum (dominant directions = common syntactic/semantic features; tail = noise).
 
@@ -638,7 +638,7 @@ $$I \approx I_k = \sum_{i=1}^k \sigma_i \mathbf{u}_i\mathbf{v}_i^\top$$
 
 Storage: $k(m + n + 1)$ numbers vs $mn$ for the full image. Compression ratio: $mn / [k(m+n+1)]$.
 
-For a $512 \times 512$ image with $k = 50$: original stores $262K$ numbers, compressed stores $51K$ — a $5\times$ compression. JPEG achieves better compression ratios than SVD at the same quality because it exploits block structure and human visual system properties, but SVD compression is mathematically optimal in the $\ell^2$ sense.
+For a $512 \times 512$ image with $k = 50$: original stores $262K$ numbers, compressed stores $51K$ - a $5\times$ compression. JPEG achieves better compression ratios than SVD at the same quality because it exploits block structure and human visual system properties, but SVD compression is mathematically optimal in the $\ell^2$ sense.
 
 **Colour images:** Apply SVD independently to each channel (R, G, B), or decompose the matrix of RGB triples. In practice, the colour channels are correlated and the singular value spectra of different channels are similar.
 
@@ -647,7 +647,7 @@ For a $512 \times 512$ image with $k = 50$: original stores $262K$ numbers, comp
 **Overdetermined systems (linear regression):** Given $X \in \mathbb{R}^{n \times d}$ (data, $n \gg d$) and $\mathbf{y} \in \mathbb{R}^n$, the least-squares problem $\min_{\boldsymbol{\beta}} \|X\boldsymbol{\beta} - \mathbf{y}\|_2$ has solution:
 $$\hat{\boldsymbol{\beta}} = X^+\mathbf{y} = V\Sigma^+U^\top\mathbf{y} = \sum_{i=1}^r \frac{\mathbf{u}_i^\top\mathbf{y}}{\sigma_i}\mathbf{v}_i$$
 
-Each component $(\mathbf{u}_i^\top\mathbf{y})/\sigma_i$ is the projection of $\mathbf{y}$ onto the $i$-th left singular vector, divided by the singular value. If $\sigma_i$ is very small (ill-conditioned), this component is amplified enormously — catastrophic if $\mathbf{u}_i^\top\mathbf{y}$ contains noise.
+Each component $(\mathbf{u}_i^\top\mathbf{y})/\sigma_i$ is the projection of $\mathbf{y}$ onto the $i$-th left singular vector, divided by the singular value. If $\sigma_i$ is very small (ill-conditioned), this component is amplified enormously - catastrophic if $\mathbf{u}_i^\top\mathbf{y}$ contains noise.
 
 **Ridge regression shrinkage:** The regularised solution is:
 $$\hat{\boldsymbol{\beta}}_\lambda = \sum_{i=1}^r \frac{\sigma_i}{\sigma_i^2 + \lambda} (\mathbf{u}_i^\top\mathbf{y})\mathbf{v}_i$$
@@ -686,7 +686,7 @@ with $\alpha \in [2, 4]$ for high-quality models. This is predicted by **random 
 
 The attention weight matrix $A = \text{softmax}(QK^\top/\sqrt{d_k}) \in \mathbb{R}^{n \times n}$ (for sequence length $n$) has interesting SVD structure in trained transformers:
 
-**Low-rank structure of attention:** Trained attention matrices are approximately low-rank — most of the attention pattern is captured by a few singular vectors. This has been observed empirically across multiple model families. The effective rank is roughly $O(\log n)$ for induction heads and $O(1)$ for copying heads.
+**Low-rank structure of attention:** Trained attention matrices are approximately low-rank - most of the attention pattern is captured by a few singular vectors. This has been observed empirically across multiple model families. The effective rank is roughly $O(\log n)$ for induction heads and $O(1)$ for copying heads.
 
 **SVD-based attention compression:** Several works approximate the attention computation using truncated SVD of $Q$ and $K$: write $Q = U_Q\Sigma_Q V_Q^\top$, $K = U_K\Sigma_K V_K^\top$, then $QK^\top = U_Q\Sigma_Q(V_Q^\top V_K)\Sigma_K U_K^\top$. If the middle factor $V_Q^\top V_K$ has low rank, the computation is cheaper.
 
@@ -720,7 +720,7 @@ For tensors (multi-dimensional arrays) $\mathcal{A} \in \mathbb{R}^{n_1 \times n
 
 **Tucker Decomposition:** $\mathcal{A} \approx \mathcal{G} \times_1 U_1 \times_2 U_2 \cdots \times_d U_d$ where $\mathcal{G} \in \mathbb{R}^{r_1 \times r_2 \times \cdots \times r_d}$ is the core tensor and $U_k \in \mathbb{R}^{n_k \times r_k}$ are orthogonal factor matrices. The **Higher-Order SVD (HOSVD)** computes each $U_k$ as the SVD of the mode-$k$ unfolding of $\mathcal{A}$.
 
-**CP Decomposition (CANDECOMP/PARAFAC):** $\mathcal{A} \approx \sum_{r=1}^R \mathbf{a}_r^{(1)} \otimes \mathbf{a}_r^{(2)} \otimes \cdots \otimes \mathbf{a}_r^{(d)}$ — a sum of rank-1 tensors. Unlike matrix SVD, tensor rank is NP-hard to compute in general, and the best rank-$R$ approximation may not exist (unlike Eckart-Young for matrices).
+**CP Decomposition (CANDECOMP/PARAFAC):** $\mathcal{A} \approx \sum_{r=1}^R \mathbf{a}_r^{(1)} \otimes \mathbf{a}_r^{(2)} \otimes \cdots \otimes \mathbf{a}_r^{(d)}$ - a sum of rank-1 tensors. Unlike matrix SVD, tensor rank is NP-hard to compute in general, and the best rank-$R$ approximation may not exist (unlike Eckart-Young for matrices).
 
 **For AI:** Tucker decomposition is used to compress convolutional layers (a 4D weight tensor). MobileNet-style depthwise separable convolutions are an approximate Tucker decomposition. Tensor train (TT) decomposition is used for compressing embedding tables and attention weight matrices in extreme low-resource settings.
 
@@ -755,15 +755,15 @@ For LoRA initialisation from a checkpoint, the typical workflow is:
 | 5 | Using full SVD when thin SVD suffices | Full SVD computes $U \in \mathbb{R}^{m\times m}$ including $m - r$ unnecessary columns that don't contribute | Use `np.linalg.svd(A, full_matrices=False)` for the thin SVD |
 | 6 | Claiming rank from nonzero singular values in finite precision | Every matrix in float64 has all $\sigma_i > 0$ due to rounding | Use `np.linalg.matrix_rank(A)` with appropriate tolerance $\tau = \epsilon_{\text{mach}} \cdot \sigma_1 \cdot \max(m,n)$ |
 | 7 | Applying LoRA to all layers equally | Not all layers have equally low-rank updates; key/query projections often need higher rank than MLP layers | Use `loftq`-style analysis to allocate rank $r_l$ per layer based on $\hat{\alpha}$ of each layer's update |
-| 8 | Confusing nuclear norm with Frobenius norm | $\|A\|_* = \sum\sigma_i$ vs $\|A\|_F = \sqrt{\sum\sigma_i^2}$; minimising nuclear norm promotes sparsity in singular values (low rank), not in the matrix entries | Choose norm based on goal: low rank → nuclear norm; small magnitude → Frobenius norm |
+| 8 | Confusing nuclear norm with Frobenius norm | $\|A\|_* = \sum\sigma_i$ vs $\|A\|_F = \sqrt{\sum\sigma_i^2}$; minimising nuclear norm promotes sparsity in singular values (low rank), not in the matrix entries | Choose norm based on goal: low rank -> nuclear norm; small magnitude -> Frobenius norm |
 | 9 | Thinking pseudoinverse solves all linear systems stably | $A^+$ amplifies small singular value components; for noisy $\mathbf{b}$, the component $(\mathbf{u}_i^\top\mathbf{b})/\sigma_i$ is huge when $\sigma_i \approx 0$ | Use ridge regression ($\lambda > 0$) or truncate singular values below a threshold |
-| 10 | Using `scipy.linalg.svd` instead of `numpy.linalg.svd` interchangeably | `scipy.linalg.svd` returns `(U, s, Vh)` while `numpy.linalg.svd` returns `(U, s, Vh)` — same convention, but scipy offers more options; be consistent | Pick one and note that `Vh` is already $V^\top$, not $V$ |
+| 10 | Using `scipy.linalg.svd` instead of `numpy.linalg.svd` interchangeably | `scipy.linalg.svd` returns `(U, s, Vh)` while `numpy.linalg.svd` returns `(U, s, Vh)` - same convention, but scipy offers more options; be consistent | Pick one and note that `Vh` is already $V^\top$, not $V$ |
 
 ---
 
 ## 9. Exercises
 
-**Exercise 1 ★ — SVD by Hand (2×2)**
+**Exercise 1 * - SVD by Hand (2\times2)**
 
 Compute the SVD of $A = \begin{pmatrix}3 & 1\\1 & 3\end{pmatrix}$ by hand:
 (a) Form $A^\top A$ and find its eigenvalues and eigenvectors.
@@ -772,7 +772,7 @@ Compute the SVD of $A = \begin{pmatrix}3 & 1\\1 & 3\end{pmatrix}$ by hand:
 (d) Write out $U$, $\Sigma$, $V$ and verify $U\Sigma V^\top = A$.
 (e) What are the semi-axes of the ellipse $A$ maps the unit circle to?
 
-**Exercise 2 ★ — Four Fundamental Subspaces via SVD**
+**Exercise 2 * - Four Fundamental Subspaces via SVD**
 
 Given $A = \begin{pmatrix}1&2&3\\4&5&6\\7&8&9\end{pmatrix}$ (rank 2):
 (a) Compute the thin SVD.
@@ -780,7 +780,7 @@ Given $A = \begin{pmatrix}1&2&3\\4&5&6\\7&8&9\end{pmatrix}$ (rank 2):
 (c) Verify your null space basis by showing $A\mathbf{v} = \mathbf{0}$.
 (d) Verify the column space basis by expressing $A$'s columns as linear combinations.
 
-**Exercise 3 ★★ — Eckart-Young Reconstruction Error**
+**Exercise 3 ** - Eckart-Young Reconstruction Error**
 
 For the $5\times5$ matrix $A$ with singular values $[10, 5, 3, 1, 0.1]$:
 (a) Implement `truncated_svd(A, k)` that returns the rank-$k$ approximation $A_k$.
@@ -789,7 +789,7 @@ For the $5\times5$ matrix $A$ with singular values $[10, 5, 3, 1, 0.1]$:
 (d) Verify the Eckart-Young bound: $\|A - A_k\|_2 = \sigma_{k+1}$.
 (e) What is the minimum rank needed to retain 95% of the Frobenius norm of $A$?
 
-**Exercise 4 ★★ — Moore-Penrose Pseudoinverse**
+**Exercise 4 ** - Moore-Penrose Pseudoinverse**
 
 Implement `pseudoinverse(A, tol=1e-10)` using the SVD:
 (a) Compute the thin SVD $A = U\Sigma V^\top$.
@@ -798,7 +798,7 @@ Implement `pseudoinverse(A, tol=1e-10)` using the SVD:
 (d) Verify the four Moore-Penrose conditions for a random $4\times3$ matrix.
 (e) Use your pseudoinverse to solve the overdetermined system $A\mathbf{x} = \mathbf{b}$ and verify it gives the minimum-norm least-squares solution.
 
-**Exercise 5 ★★ — Condition Number and Least Squares Stability**
+**Exercise 5 ** - Condition Number and Least Squares Stability**
 
 (a) Generate an ill-conditioned matrix $A \in \mathbb{R}^{10\times5}$ with singular values $[100, 50, 10, 1, 0.001]$ using random $U, V$.
 (b) Set $\mathbf{b} = A\mathbf{x}^* + 0.01\boldsymbol{\epsilon}$ (add small noise $\boldsymbol{\epsilon}$).
@@ -806,7 +806,7 @@ Implement `pseudoinverse(A, tol=1e-10)` using the SVD:
 (d) Compare errors $\|\hat{\mathbf{x}} - \mathbf{x}^*\|$ for both methods.
 (e) Repeat with ridge regression for $\lambda \in [10^{-6}, 10^2]$ and plot the trade-off between fit and regularisation.
 
-**Exercise 6 ★★★ — Randomised SVD**
+**Exercise 6 *** - Randomised SVD**
 
 Implement `randomized_svd(A, k, n_oversampling=5, n_iter=2)`:
 (a) Generate Gaussian sketch matrix $\Omega \in \mathbb{R}^{n\times(k+p)}$.
@@ -815,7 +815,7 @@ Implement `randomized_svd(A, k, n_oversampling=5, n_iter=2)`:
 (d) Project and compute small SVD.
 (e) Compare your implementation against `np.linalg.svd` and `sklearn.utils.extmath.randomized_svd` on a $500\times300$ matrix. Report relative Frobenius error vs rank.
 
-**Exercise 7 ★★★ — LoRA-Style Low-Rank Adapter**
+**Exercise 7 *** - LoRA-Style Low-Rank Adapter**
 
 Simulate LoRA fine-tuning:
 (a) Create a "pre-trained" weight matrix $W_0 \in \mathbb{R}^{64\times32}$ (random Gaussian).
@@ -824,7 +824,7 @@ Simulate LoRA fine-tuning:
 (d) Compute the relative approximation error for $r = 1, 2, 4, 8, 16$.
 (e) Show that $r = 4$ recovers $\Delta W^*$ almost exactly (since it's rank-4) while $r < 4$ introduces error. Plot the Eckart-Young error bound.
 
-**Exercise 8 ★★★ — Image Compression via SVD**
+**Exercise 8 *** - Image Compression via SVD**
 
 (a) Load or generate a grayscale "image" matrix $I \in \mathbb{R}^{128\times128}$ (use a structured synthetic image with edges and gradients).
 (b) Implement `svd_compress(I, k)` that returns the rank-$k$ approximation.
@@ -855,9 +855,9 @@ Simulate LoRA fine-tuning:
 
 ## 11. Conceptual Bridge
 
-**Where we came from:** Section 03-01 (Eigenvalues and Eigenvectors) gave us the tools to decompose square matrices into invariant directions and scaling factors. But eigendecomposition is limited: it requires square matrices, may involve complex numbers, and fails for defective matrices. The SVD generalises this to any matrix by abandoning the requirement that input and output live in the same space. Instead of eigenvectors — directions that map to themselves — we have singular vectors: optimal input and output directions paired by the matrix's stretching action.
+**Where we came from:** Section 03-01 (Eigenvalues and Eigenvectors) gave us the tools to decompose square matrices into invariant directions and scaling factors. But eigendecomposition is limited: it requires square matrices, may involve complex numbers, and fails for defective matrices. The SVD generalises this to any matrix by abandoning the requirement that input and output live in the same space. Instead of eigenvectors - directions that map to themselves - we have singular vectors: optimal input and output directions paired by the matrix's stretching action.
 
-**Where we are going:** Section 03-03 (Principal Component Analysis) is, in its essence, the SVD of the centred data matrix. PCA finds the principal axes of data variation by computing the SVD of $\tilde{X} \in \mathbb{R}^{n \times d}$; the right singular vectors are the principal components, and the singular values (scaled) are the standard deviations in each principal direction. Everything you have learned about the SVD — Eckart-Young, pseudoinverse, truncation — applies directly to PCA.
+**Where we are going:** Section 03-03 (Principal Component Analysis) is, in its essence, the SVD of the centred data matrix. PCA finds the principal axes of data variation by computing the SVD of $\tilde{X} \in \mathbb{R}^{n \times d}$; the right singular vectors are the principal components, and the singular values (scaled) are the standard deviations in each principal direction. Everything you have learned about the SVD - Eckart-Young, pseudoinverse, truncation - applies directly to PCA.
 
 **The SVD as a unifying lens:** The SVD connects to every major topic in the rest of this curriculum:
 - **Matrix norms** (Section 03-06): spectral, Frobenius, and nuclear norms are all functions of singular values.
@@ -866,30 +866,30 @@ Simulate LoRA fine-tuning:
 - **Probability** (Chapter 06): the covariance matrix $\Sigma = X^\top X / n$ has SVD directly related to the SVD of $X$; Mahalanobis distance uses $\Sigma^{-1/2} = V\Lambda^{-1/2}V^\top$.
 
 ```
-CONCEPTUAL MAP — SVD IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+CONCEPTUAL MAP - SVD IN THE CURRICULUM
+========================================================================
 
   Eigenvalues &      Singular Value       Principal Component
-  Eigenvectors  ──►  Decomposition   ──►  Analysis
-  (03-01)            (03-02) ◄HERE        (03-03)
-                          │
-           ┌──────────────┼──────────────────────────────┐
-           │              │                              │
-           ▼              ▼                              ▼
+  Eigenvectors  -->  Decomposition   -->  Analysis
+  (03-01)            (03-02) <HERE        (03-03)
+                          |
+           +--------------+------------------------------+
+           |              |                              |
+           v              v                              v
        Matrix          Least Squares              AI Applications
-       Norms           & Pseudoinverse            ─────────────────
+       Norms           & Pseudoinverse            -----------------
        (03-06)         (everywhere)               LoRA / DoRA / MLA
                                                   WeightWatcher
                                                   Recommender Sys.
                                                   Image Compression
                                                   Spectral Norm GAN
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-**The single most important insight about SVD:** Every matrix is the composition of three simple operations — rotate, scale, rotate. The singular values tell you how much the matrix stretches space in its principal directions; the singular vectors tell you which directions those are. Understanding this decomposition is understanding every linear operation in every neural network, every data compression, and every least-squares problem in machine learning.
+**The single most important insight about SVD:** Every matrix is the composition of three simple operations - rotate, scale, rotate. The singular values tell you how much the matrix stretches space in its principal directions; the singular vectors tell you which directions those are. Understanding this decomposition is understanding every linear operation in every neural network, every data compression, and every least-squares problem in machine learning.
 
 
 ---
 
-[← Back to Advanced Linear Algebra](../README.md) | [← Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md) | [PCA →](../03-Principal-Component-Analysis/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md) | [PCA ->](../03-Principal-Component-Analysis/notes.md)

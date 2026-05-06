@@ -1,38 +1,38 @@
-[← Back to Calculus Fundamentals](../README.md) | [Next Chapter: Multivariate Calculus →](../../05-Multivariate-Calculus/README.md)
+[<- Back to Calculus Fundamentals](../README.md) | [Next Chapter: Multivariate Calculus ->](../../05-Multivariate-Calculus/README.md)
 
 ---
 
 # Series and Sequences
 
-> _"The series $1 + \frac{1}{2} + \frac{1}{4} + \frac{1}{8} + \cdots = 2$ may seem paradoxical — an infinite number of terms summing to a finite value. But this is exactly the miracle that makes calculus possible."_
-> — Augustin-Louis Cauchy, on the foundations of analysis
+> _"The series $1 + \frac{1}{2} + \frac{1}{4} + \frac{1}{8} + \cdots = 2$ may seem paradoxical - an infinite number of terms summing to a finite value. But this is exactly the miracle that makes calculus possible."_
+> - Augustin-Louis Cauchy, on the foundations of analysis
 
 ## Overview
 
-Sequences and series are the mathematics of infinity made tractable. A sequence is an ordered list without end; a series is the sum of such a list. The central question — *does an infinite process converge to something finite?* — is one of the deepest and most practically consequential questions in mathematics.
+Sequences and series are the mathematics of infinity made tractable. A sequence is an ordered list without end; a series is the sum of such a list. The central question - *does an infinite process converge to something finite?* - is one of the deepest and most practically consequential questions in mathematics.
 
-For machine learning, this is not abstract. Every gradient descent trajectory is a sequence of parameter vectors. Every optimizer update rule is derived via Taylor series truncation. Every attention mechanism approximation exploits the Taylor expansion of the exponential function. Every positional encoding scheme (RoPE, ALiBi, sinusoidal) draws on Fourier series theory. The Laplace approximation — used in Bayesian deep learning — is a quadratic Taylor expansion of the log-posterior. Understanding why these approximations work, when they fail, and how accurate they are requires the theory in this section.
+For machine learning, this is not abstract. Every gradient descent trajectory is a sequence of parameter vectors. Every optimizer update rule is derived via Taylor series truncation. Every attention mechanism approximation exploits the Taylor expansion of the exponential function. Every positional encoding scheme (RoPE, ALiBi, sinusoidal) draws on Fourier series theory. The Laplace approximation - used in Bayesian deep learning - is a quadratic Taylor expansion of the log-posterior. Understanding why these approximations work, when they fail, and how accurate they are requires the theory in this section.
 
 This section builds from sequences through convergence tests through power series to Taylor series, culminating in concrete ML applications with rigorous error analysis.
 
 ## Prerequisites
 
-- **Limits and continuity** — [§04/01](../01-Limits-and-Continuity/notes.md): ε-δ definition, limit laws, continuity
-- **Derivatives** — [§04/02](../02-Derivatives-and-Differentiation/notes.md): differentiation rules, higher-order derivatives
-- **Integration** — [§04/03](../03-Integration/notes.md): definite integrals, improper integrals, p-integral test
+- **Limits and continuity** - [04/01](../01-Limits-and-Continuity/notes.md): epsilon-delta definition, limit laws, continuity
+- **Derivatives** - [04/02](../02-Derivatives-and-Differentiation/notes.md): differentiation rules, higher-order derivatives
+- **Integration** - [04/03](../03-Integration/notes.md): definite integrals, improper integrals, p-integral test
 
 ## Companion Notebooks
 
 | Notebook | Description |
 |---|---|
 | [theory.ipynb](theory.ipynb) | Interactive: convergence visualization, partial sums, Taylor approximation error, ML applications |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from geometric series to linear attention approximations |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from geometric series to linear attention approximations |
 
 ## Learning Objectives
 
 After completing this section, you will be able to:
 
-1. **Define** a sequence formally and determine convergence using the ε-N definition
+1. **Define** a sequence formally and determine convergence using the epsilon-N definition
 2. **State and prove** the Monotone Convergence Theorem for sequences
 3. **Determine convergence** of infinite series using all standard tests
 4. **Distinguish** absolute from conditional convergence and explain the rearrangement theorem
@@ -53,7 +53,7 @@ After completing this section, you will be able to:
   - [1.3 Why Series Are Central to AI](#13-why-series-are-central-to-ai)
 - [2. Sequences](#2-sequences)
   - [2.1 Formal Definition](#21-formal-definition)
-  - [2.2 Convergence: ε-N Definition](#22-convergence-ε-n-definition)
+  - [2.2 Convergence: epsilon-N Definition](#22-convergence-epsilon-n-definition)
   - [2.3 Bounded and Monotone Sequences](#23-bounded-and-monotone-sequences)
   - [2.4 Subsequences and Bolzano-Weierstrass](#24-subsequences-and-bolzano-weierstrass)
   - [2.5 Important Sequences in ML](#25-important-sequences-in-ml)
@@ -116,30 +116,30 @@ After completing this section, you will be able to:
 
 A **sequence** is a function from the natural numbers to the real numbers: an infinite, ordered list $a_1, a_2, a_3, \ldots$ The key question is always: *where does this list go?* Does it home in on a specific value, grow without bound, or oscillate forever?
 
-A **series** adds up all the terms: $\sum_{n=1}^\infty a_n = a_1 + a_2 + a_3 + \cdots$ This is more subtle. An infinite sum might converge to a finite value — or it might grow forever. The sum $1 + \frac{1}{2} + \frac{1}{4} + \cdots = 2$ converges. The sum $1 + \frac{1}{2} + \frac{1}{3} + \cdots$ — the harmonic series — diverges to infinity, even though each term goes to zero. This counterintuitive behavior is why convergence tests exist.
+A **series** adds up all the terms: $\sum_{n=1}^\infty a_n = a_1 + a_2 + a_3 + \cdots$ This is more subtle. An infinite sum might converge to a finite value - or it might grow forever. The sum $1 + \frac{1}{2} + \frac{1}{4} + \cdots = 2$ converges. The sum $1 + \frac{1}{2} + \frac{1}{3} + \cdots$ - the harmonic series - diverges to infinity, even though each term goes to zero. This counterintuitive behavior is why convergence tests exist.
 
 ```
-SEQUENCES vs. SERIES — VISUAL INTUITION
-════════════════════════════════════════════════════════════════════════
+SEQUENCES vs. SERIES - VISUAL INTUITION
 
-  SEQUENCE {aₙ}: where do the terms go?
-  ─────────────────────────────────────
-  aₙ = 1/n:   1, 1/2, 1/3, 1/4, ...  →  0      (converges)
-  aₙ = n:     1,   2,   3,   4, ...  →  ∞      (diverges)
-  aₙ = (-1)ⁿ: -1,  1, -1,  1, ...   →  ?      (oscillates, diverges)
 
-  SERIES Σaₙ: where does the cumulative sum go?
-  ─────────────────────────────────────────────
-  Σ (1/2)ⁿ:  1/2 + 1/4 + 1/8 + ...  →  1      (converges, geometric)
-  Σ 1/n:     1 + 1/2 + 1/3 + ...    →  ∞      (diverges! harmonic)
-  Σ 1/n²:    1 + 1/4 + 1/9 + ...    → π²/6    (converges, Basel problem)
+  SEQUENCE {a}: where do the terms go?
+  
+  a = 1/n:   1, 1/2, 1/3, 1/4, ...  ->  0      (converges)
+  a = n:     1,   2,   3,   4, ...  ->  infinity      (diverges)
+  a = (-1): -1,  1, -1,  1, ...   ->  ?      (oscillates, diverges)
 
-  Key insight: aₙ → 0 is NECESSARY but NOT SUFFICIENT for Σaₙ to converge.
+  SERIES Sigmaa: where does the cumulative sum go?
+  
+  Sigma (1/2):  1/2 + 1/4 + 1/8 + ...  ->  1      (converges, geometric)
+  Sigma 1/n:     1 + 1/2 + 1/3 + ...    ->  infinity      (diverges! harmonic)
+  Sigma 1/n^2:    1 + 1/4 + 1/9 + ...    -> pi^2/6    (converges, Basel problem)
 
-════════════════════════════════════════════════════════════════════════
+  Key insight: a -> 0 is NECESSARY but NOT SUFFICIENT for Sigmaa to converge.
+
+
 ```
 
-The fundamental distinction between sequences and series is that sequences ask about the terms themselves; series ask about the cumulative totals. A sequence can converge to zero while its series diverges — the harmonic series is the canonical example.
+The fundamental distinction between sequences and series is that sequences ask about the terms themselves; series ask about the cumulative totals. A sequence can converge to zero while its series diverges - the harmonic series is the canonical example.
 
 ### 1.2 Historical Context
 
@@ -162,18 +162,18 @@ The key conceptual revolution was Cauchy's insistence on rigor. Before him, math
 
 ### 1.3 Why Series Are Central to AI
 
-Series appear throughout modern machine learning — often hidden in plain sight:
+Series appear throughout modern machine learning - often hidden in plain sight:
 
 | ML Context | Series Connection |
 |-----------|-------------------|
-| **Softmax function** | $\text{softmax}(\mathbf{x}/T)_i = e^{x_i/T}/\sum_j e^{x_j/T}$ — the denominator is a sum over all classes; as $T \to 0$, only the max survives (argmax); as $T \to \infty$, uniform distribution (Taylor expansion of $e^x \approx 1+x$ dominates) |
+| **Softmax function** | $\text{softmax}(\mathbf{x}/T)_i = e^{x_i/T}/\sum_j e^{x_j/T}$ - the denominator is a sum over all classes; as $T \to 0$, only the max survives (argmax); as $T \to \infty$, uniform distribution (Taylor expansion of $e^x \approx 1+x$ dominates) |
 | **Linear attention** | Approximates $\exp(qk^\top) \approx 1 + qk^\top$ (first-order Taylor) to reduce complexity from $O(n^2)$ to $O(n)$ |
 | **GELU activation** | Defined via error function, approximated by Taylor-Hermite expansion |
 | **Adam optimizer** | Bias correction $\hat{m}_t = m_t/(1-\beta^t)$ uses geometric series $\sum \beta^k$; step size derivation uses Taylor expansion |
-| **Positional encodings** | Sinusoidal (original Transformer), RoPE — both are Fourier series evaluated at discrete positions |
+| **Positional encodings** | Sinusoidal (original Transformer), RoPE - both are Fourier series evaluated at discrete positions |
 | **Laplace approximation** | Quadratic Taylor expansion of $\log p(\theta|\mathcal{D})$ around the MAP estimate $\hat\theta$ |
 | **Neural ODEs** | Euler method is first-order Taylor; higher-order Runge-Kutta methods use more Taylor terms |
-| **Residual networks** | $\text{ResNet}(x) = x + F(x) \approx e^F(x)$ — the skip connections are the partial sums of a Taylor series for the exponential of the network function |
+| **Residual networks** | $\text{ResNet}(x) = x + F(x) \approx e^F(x)$ - the skip connections are the partial sums of a Taylor series for the exponential of the network function |
 
 
 ---
@@ -184,12 +184,12 @@ Series appear throughout modern machine learning — often hidden in plain sight
 
 **Definition**: A **sequence** is a function $a: \mathbb{N} \to \mathbb{R}$. We write the sequence as $(a_n)_{n=1}^\infty$ or $\{a_n\}$, where $a_n = a(n)$ is the $n$-th term.
 
-This formal view — sequence as function — is the right way to think about it. Everything we know about functions (domain, range, composition) applies to sequences.
+This formal view - sequence as function - is the right way to think about it. Everything we know about functions (domain, range, composition) applies to sequences.
 
 **Examples**:
-- $a_n = \frac{1}{n}$: terms $1, \frac{1}{2}, \frac{1}{3}, \frac{1}{4}, \ldots$ — decreasing, converges to $0$
-- $a_n = (-1)^n$: terms $-1, 1, -1, 1, \ldots$ — oscillates, does not converge
-- $a_n = \left(1 + \frac{1}{n}\right)^n$: terms $2, 2.25, 2.370\ldots, 2.441\ldots$ — converges to $e$
+- $a_n = \frac{1}{n}$: terms $1, \frac{1}{2}, \frac{1}{3}, \frac{1}{4}, \ldots$ - decreasing, converges to $0$
+- $a_n = (-1)^n$: terms $-1, 1, -1, 1, \ldots$ - oscillates, does not converge
+- $a_n = \left(1 + \frac{1}{n}\right)^n$: terms $2, 2.25, 2.370\ldots, 2.441\ldots$ - converges to $e$
 - $a_n = \frac{n!}{n^n}$: terms decrease rapidly to $0$ (Stirling: $n! \approx \sqrt{2\pi n}(n/e)^n$)
 - $a_n = r^n$ for $|r| < 1$: geometric decay, converges to $0$
 
@@ -197,14 +197,14 @@ This formal view — sequence as function — is the right way to think about it
 - $a_n = \frac{1}{n - 5}$ for $n = 5$: undefined at $n=5$; need to restrict domain to $n > 5$
 - $a_n = \sin(n)$: well-defined for all $n \in \mathbb{N}$, but its limit behavior is subtle (it doesn't converge)
 
-### 2.2 Convergence: ε-N Definition
+### 2.2 Convergence: epsilon-N Definition
 
 **Definition**: A sequence $(a_n)$ **converges** to the limit $L \in \mathbb{R}$ if for every $\epsilon > 0$ there exists $N \in \mathbb{N}$ such that for all $n > N$:
 $$|a_n - L| < \epsilon$$
 
 We write $\lim_{n\to\infty} a_n = L$ or $a_n \to L$. If no such $L$ exists, the sequence **diverges**.
 
-**Reading the definition**: For any desired accuracy $\epsilon$ (no matter how small), there is a threshold $N$ beyond which every term is within $\epsilon$ of $L$. The threshold $N$ may depend on $\epsilon$ — tighter accuracy requires waiting longer.
+**Reading the definition**: For any desired accuracy $\epsilon$ (no matter how small), there is a threshold $N$ beyond which every term is within $\epsilon$ of $L$. The threshold $N$ may depend on $\epsilon$ - tighter accuracy requires waiting longer.
 
 **Worked example**: Prove $\lim_{n\to\infty} \frac{1}{n} = 0$.
 
@@ -231,7 +231,7 @@ Therefore $\frac{1}{n} \to 0$. $\square$
 - **Monotone increasing** if $a_{n+1} \ge a_n$ for all $n$ (strictly increasing if $>$)
 - **Monotone decreasing** if $a_{n+1} \le a_n$ for all $n$
 
-**Theorem (Monotone Convergence Theorem — MCT for sequences)**: Every bounded monotone sequence converges.
+**Theorem (Monotone Convergence Theorem - MCT for sequences)**: Every bounded monotone sequence converges.
 
 *More precisely*: If $(a_n)$ is monotone increasing and bounded above, then $a_n \to \sup\{a_n : n \in \mathbb{N}\}$.
 
@@ -241,7 +241,7 @@ Therefore $\frac{1}{n} \to 0$. $\square$
 
 **Example**: $a_n = (1 + 1/n)^n$ is increasing and bounded above by $3$ (provable by AM-GM). Therefore it converges. Its limit is defined to be $e \approx 2.71828$.
 
-**For ML**: Gradient descent sequences $(θ_t)$ are not monotone in parameter space, but the **loss sequence** $(L(θ_t))$ is often bounded below (losses are non-negative) and may be monotone decreasing. The MCT guarantees loss convergence for many convex problems.
+**For ML**: Gradient descent sequences $(theta_t)$ are not monotone in parameter space, but the **loss sequence** $(L(theta_t))$ is often bounded below (losses are non-negative) and may be monotone decreasing. The MCT guarantees loss convergence for many convex problems.
 
 ### 2.4 Subsequences and Bolzano-Weierstrass
 
@@ -253,39 +253,39 @@ Therefore $\frac{1}{n} \to 0$. $\square$
 
 **Theorem (Bolzano-Weierstrass)**: Every bounded sequence has a convergent subsequence.
 
-*Proof idea (bisection)*: Let $(a_n)$ be bounded in $[m, M]$. Bisect the interval into $[m, \frac{m+M}{2}]$ and $[\frac{m+M}{2}, M]$. At least one half contains infinitely many terms — pick that half and pick any term in it as $a_{n_1}$. Repeat: bisect the chosen half, pick the half with infinitely many terms, pick $a_{n_2}$ from it (with $n_2 > n_1$). The resulting intervals have lengths $\frac{M-m}{2^k} \to 0$, so the chosen terms form a Cauchy sequence and hence converge. $\square$
+*Proof idea (bisection)*: Let $(a_n)$ be bounded in $[m, M]$. Bisect the interval into $[m, \frac{m+M}{2}]$ and $[\frac{m+M}{2}, M]$. At least one half contains infinitely many terms - pick that half and pick any term in it as $a_{n_1}$. Repeat: bisect the chosen half, pick the half with infinitely many terms, pick $a_{n_2}$ from it (with $n_2 > n_1$). The resulting intervals have lengths $\frac{M-m}{2^k} \to 0$, so the chosen terms form a Cauchy sequence and hence converge. $\square$
 
-**For ML**: Bolzano-Weierstrass underlies the proof that compact sets in $\mathbb{R}^n$ always contain convergent subsequences — which is why SGD on compact parameter spaces always has convergent subsequences (though full convergence requires additional conditions).
+**For ML**: Bolzano-Weierstrass underlies the proof that compact sets in $\mathbb{R}^n$ always contain convergent subsequences - which is why SGD on compact parameter spaces always has convergent subsequences (though full convergence requires additional conditions).
 
 ### 2.5 Important Sequences in ML
 
 The following sequences appear constantly in machine learning. Understanding their convergence is practically important:
 
 ```
-ML SEQUENCES — CONVERGENCE ANALYSIS
-════════════════════════════════════════════════════════════════════════
+ML SEQUENCES - CONVERGENCE ANALYSIS
+
 
   Learning rate schedules:
-  ─────────────────────────────────────────────────────────────────
-  Step decay:    αₜ = α₀ · γ^⌊t/s⌋         geometric, → 0
-  Cosine:        αₜ = α₀/2 · (1 + cos(πt/T)) bounded, periodic
-  Warmup:        αₜ = t·α₀/T for t ≤ T      linear ramp, then decay
-  Polynomial:    αₜ = α₀/(1 + βt)^p         → 0 if p > 0
+  
+  Step decay:    alpha = alpha_0 * gamma^t/s         geometric, -> 0
+  Cosine:        alpha = alpha_0/2 * (1 + cos(pit/T)) bounded, periodic
+  Warmup:        alpha = t*alpha_0/T for t <= T      linear ramp, then decay
+  Polynomial:    alpha = alpha_0/(1 + betat)^p         -> 0 if p > 0
 
   Exponential moving average (EMA / Adam momentum):
-  ─────────────────────────────────────────────────────────────────
-  m_t = β·m_{t-1} + (1-β)·g_t
-      = (1-β) Σₖ₌₀^{t-1} β^k · g_{t-k}     geometric series weights!
-  As t → ∞: weights sum to 1 (geometric series identity)
-  Bias-corrected: m̂_t = m_t / (1 - βᵗ)    corrects for initial zero
+  
+  m_t = beta*m_{t-1} + (1-beta)*g_t
+      = (1-beta) Sigma_0^{t-1} beta^k * g_{t-k}     geometric series weights!
+  As t -> infinity: weights sum to 1 (geometric series identity)
+  Bias-corrected: m_t = m_t / (1 - beta)    corrects for initial zero
 
   Convergence of gradient norms in Adam:
-  ─────────────────────────────────────────────────────────────────
-  Required for convergence: Σ αₜ = ∞ (enough total movement)
-  And:                      Σ αₜ² < ∞ (steps shrink fast enough)
+  
+  Required for convergence: Sigma alpha = infinity (enough total movement)
+  And:                      Sigma alpha^2 < infinity (steps shrink fast enough)
   This is the Robbins-Monro condition from stochastic approximation.
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 **Exponential moving average as geometric series**: The Adam first moment $m_t = \beta m_{t-1} + (1-\beta)g_t$ unfolds to:
@@ -336,7 +336,7 @@ The last identity comes from differentiating $\sum r^n = \frac{1}{1-r}$ term-by-
 
 3. **Infinite-horizon value function**: $V^\pi(s) = \mathbb{E}[\sum_{t=0}^\infty \gamma^t r_t | s_0 = s]$, which is the Bellman equation's foundation.
 
-4. **Attention denominator as geometric series**: For scalar queries and keys with $q = k = c$ (constant), $\text{softmax}(c)_i = e^c/\sum_j e^c = 1/n$ — the denominator is a finite geometric-like sum.
+4. **Attention denominator as geometric series**: For scalar queries and keys with $q = k = c$ (constant), $\text{softmax}(c)_i = e^c/\sum_j e^c = 1/n$ - the denominator is a finite geometric-like sum.
 
 ### 3.3 The Harmonic Series Diverges
 
@@ -349,7 +349,7 @@ Each block contributes at least $\frac{1}{2}$. Adding infinitely many blocks of 
 
 **Why this matters**: The harmonic series illustrates that $a_n \to 0$ alone does not guarantee convergence. Every convergence test addresses this problem: it must establish convergence faster than harmonic decay.
 
-**The harmonic series in ML**: The divergence of $\sum 1/n$ is why the learning rate schedule $\alpha_t = \alpha_0/t$ satisfies the Robbins-Monro condition $\sum \alpha_t = \infty$ — it decreases slowly enough to ensure the optimizer explores sufficiently. The companion condition $\sum \alpha_t^2 < \infty$ holds since $\sum 1/t^2 < \infty$ (p-series with $p = 2 > 1$).
+**The harmonic series in ML**: The divergence of $\sum 1/n$ is why the learning rate schedule $\alpha_t = \alpha_0/t$ satisfies the Robbins-Monro condition $\sum \alpha_t = \infty$ - it decreases slowly enough to ensure the optimizer explores sufficiently. The companion condition $\sum \alpha_t^2 < \infty$ holds since $\sum 1/t^2 < \infty$ (p-series with $p = 2 > 1$).
 
 ### 3.4 p-Series
 
@@ -361,11 +361,11 @@ The **p-series** is $\sum_{n=1}^\infty \frac{1}{n^p}$ for $p > 0$.
 |-----|--------|-----|-----------|
 | $p = 1$ | Harmonic | $\infty$ | No |
 | $p = 2$ | $\sum 1/n^2$ | $\pi^2/6$ (Basel) | Yes |
-| $p = 3$ | $\sum 1/n^3$ | $\approx 1.202$ (Apéry) | Yes |
+| $p = 3$ | $\sum 1/n^3$ | $\approx 1.202$ (Apry) | Yes |
 | $p = 1/2$ | $\sum 1/\sqrt{n}$ | $\infty$ | No |
 | $p = 0.99$ | $\sum 1/n^{0.99}$ | $\infty$ | No (barely!) |
 
-*Proof*: By the integral test (proven in §4.2): $\sum_{n=1}^\infty \frac{1}{n^p}$ converges iff $\int_1^\infty \frac{1}{x^p}\,dx$ converges. This integral equals $\frac{x^{1-p}}{1-p}\Big|_1^\infty$ for $p \ne 1$. For $p > 1$: $x^{1-p} \to 0$ as $x \to \infty$, so the integral $= \frac{1}{p-1}$ (converges). For $p < 1$: $x^{1-p} \to \infty$, so the integral diverges. For $p = 1$: $\int_1^\infty \frac{1}{x}\,dx = \ln x\big|_1^\infty = \infty$. $\square$
+*Proof*: By the integral test (proven in 4.2): $\sum_{n=1}^\infty \frac{1}{n^p}$ converges iff $\int_1^\infty \frac{1}{x^p}\,dx$ converges. This integral equals $\frac{x^{1-p}}{1-p}\Big|_1^\infty$ for $p \ne 1$. For $p > 1$: $x^{1-p} \to 0$ as $x \to \infty$, so the integral $= \frac{1}{p-1}$ (converges). For $p < 1$: $x^{1-p} \to \infty$, so the integral diverges. For $p = 1$: $\int_1^\infty \frac{1}{x}\,dx = \ln x\big|_1^\infty = \infty$. $\square$
 
 ### 3.5 Telescoping Series
 
@@ -387,30 +387,30 @@ The fundamental challenge: given a series $\sum a_n$, does it converge? The conv
 
 ```
 CONVERGENCE TEST SELECTION GUIDE
-════════════════════════════════════════════════════════════════════════
 
-  aₙ → 0? → NO → DIVERGES (divergence test)
 
-  Is aₙ = f(n) with f decreasing, positive?
-    → Use INTEGRAL TEST: compare to ∫f(x)dx
+  a -> 0? -> NO -> DIVERGES (divergence test)
 
-  Is aₙ comparable to a known series bₙ?
-    → aₙ ≤ Cbₙ and Σbₙ converges → CONVERGES
-    → aₙ ≥ Cbₙ and Σbₙ diverges  → DIVERGES (comparison)
-    → lim aₙ/bₙ = L ∈ (0,∞) → same behavior (limit comparison)
+  Is a = f(n) with f decreasing, positive?
+    -> Use INTEGRAL TEST: compare to integralf(x)dx
 
-  Does aₙ involve factorials or exponentials?
-    → Try RATIO TEST: L = lim |aₙ₊₁/aₙ|
-       L < 1 → converges; L > 1 → diverges; L = 1 → inconclusive
+  Is a comparable to a known series b?
+    -> a <= Cb and Sigmab converges -> CONVERGES
+    -> a >= Cb and Sigmab diverges  -> DIVERGES (comparison)
+    -> lim a/b = L in (0,infinity) -> same behavior (limit comparison)
 
-  Does aₙ involve nᵗʰ powers?
-    → Try ROOT TEST: L = lim |aₙ|^{1/n}
-       L < 1 → converges; L > 1 → diverges; L = 1 → inconclusive
+  Does a involve factorials or exponentials?
+    -> Try RATIO TEST: L = lim |a_1/a|
+       L < 1 -> converges; L > 1 -> diverges; L = 1 -> inconclusive
+
+  Does a involve n powers?
+    -> Try ROOT TEST: L = lim |a|^{1/n}
+       L < 1 -> converges; L > 1 -> diverges; L = 1 -> inconclusive
 
   Does the series alternate signs?
-    → Try ALTERNATING SERIES TEST: aₙ decreasing, → 0 → converges
+    -> Try ALTERNATING SERIES TEST: a decreasing, -> 0 -> converges
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 4.1 Divergence Test
@@ -439,9 +439,9 @@ $$f(n) = \int_n^{n+1} f(n)\,dx \ge \int_n^{n+1} f(x)\,dx \ge \int_n^{n+1} f(n+1)
 Summing: $\sum_{n=1}^N f(n) \ge \int_1^{N+1} f(x)\,dx \ge \sum_{n=2}^{N+1} f(n)$. As $N \to \infty$, the partial sums and the integral bound each other, so both converge or both diverge. $\square$
 
 **Applications**:
-- p-series: $\int_1^\infty x^{-p}\,dx$ converges iff $p > 1$ → p-series converges iff $p > 1$
-- $\sum \frac{1}{n\ln n}$: $\int_2^\infty \frac{1}{x\ln x}\,dx = \ln(\ln x)\big|_2^\infty = \infty$ → diverges
-- $\sum \frac{1}{n(\ln n)^2}$: $\int_2^\infty \frac{1}{x(\ln x)^2}\,dx = \frac{-1}{\ln x}\big|_2^\infty = \frac{1}{\ln 2}$ → converges
+- p-series: $\int_1^\infty x^{-p}\,dx$ converges iff $p > 1$ -> p-series converges iff $p > 1$
+- $\sum \frac{1}{n\ln n}$: $\int_2^\infty \frac{1}{x\ln x}\,dx = \ln(\ln x)\big|_2^\infty = \infty$ -> diverges
+- $\sum \frac{1}{n(\ln n)^2}$: $\int_2^\infty \frac{1}{x(\ln x)^2}\,dx = \frac{-1}{\ln x}\big|_2^\infty = \frac{1}{\ln 2}$ -> converges
 
 **Error bound from integral test**: If the series converges,
 $$\int_{N+1}^\infty f(x)\,dx \le \sum_{n=N+1}^\infty a_n \le \int_N^\infty f(x)\,dx$$
@@ -476,8 +476,8 @@ This gives a computable bound on the tail error after $N$ terms.
 **Best for**: Factorials ($n!$), exponentials ($c^n$), or products involving $n$.
 
 **Examples**:
-- $\sum \frac{n!}{n^n}$: ratio $= \frac{(n+1)!/(n+1)^{n+1}}{n!/n^n} = \frac{(n+1)n^n}{(n+1)^{n+1}} = \frac{n^n}{(n+1)^n} = \left(\frac{n}{n+1}\right)^n \to e^{-1} < 1$ → converges
-- $\sum \frac{2^n}{n!}$: ratio $= \frac{2^{n+1}/(n+1)!}{2^n/n!} = \frac{2}{n+1} \to 0 < 1$ → converges
+- $\sum \frac{n!}{n^n}$: ratio $= \frac{(n+1)!/(n+1)^{n+1}}{n!/n^n} = \frac{(n+1)n^n}{(n+1)^{n+1}} = \frac{n^n}{(n+1)^n} = \left(\frac{n}{n+1}\right)^n \to e^{-1} < 1$ -> converges
+- $\sum \frac{2^n}{n!}$: ratio $= \frac{2^{n+1}/(n+1)!}{2^n/n!} = \frac{2}{n+1} \to 0 < 1$ -> converges
 
 ### 4.5 Root Test
 
@@ -486,11 +486,11 @@ This gives a computable bound on the tail error after $N$ terms.
 - If $L > 1$: **diverges**
 - If $L = 1$: **inconclusive**
 
-*Proof*: Same structure as ratio test — if $L < 1$, eventually $|a_n|^{1/n} \le r < 1$, so $|a_n| \le r^n$, a convergent geometric series. $\square$
+*Proof*: Same structure as ratio test - if $L < 1$, eventually $|a_n|^{1/n} \le r < 1$, so $|a_n| \le r^n$, a convergent geometric series. $\square$
 
 **Best for**: Terms of the form $f(n)^n$.
 
-**Example**: $\sum \left(\frac{n}{2n+1}\right)^n$: root test gives $L = \lim \frac{n}{2n+1} = \frac{1}{2} < 1$ → converges.
+**Example**: $\sum \left(\frac{n}{2n+1}\right)^n$: root test gives $L = \lim \frac{n}{2n+1} = \frac{1}{2} < 1$ -> converges.
 
 **Relationship to ratio test**: If the ratio test limit exists, the root test limit also exists and equals the same value. The root test is stronger (applicable when ratio test fails), but harder to compute.
 
@@ -511,7 +511,7 @@ Then $\sum (-1)^{n+1} b_n$ converges.
 
 **Key example**: The alternating harmonic series $\sum_{n=1}^\infty \frac{(-1)^{n+1}}{n} = 1 - \frac{1}{2} + \frac{1}{3} - \frac{1}{4} + \cdots = \ln 2$.
 
-This is **conditionally convergent** — it converges but $\sum |1/n| = \infty$ (harmonic series diverges).
+This is **conditionally convergent** - it converges but $\sum |1/n| = \infty$ (harmonic series diverges).
 
 ### 4.7 Absolute vs. Conditional Convergence
 
@@ -525,7 +525,7 @@ This is **conditionally convergent** — it converges but $\sum |1/n| = \infty$ 
 
 **Riemann Rearrangement Theorem**: If $\sum a_n$ is conditionally convergent, then for any $L \in \mathbb{R}$ (or $\pm\infty$), there exists a rearrangement of the terms that converges to $L$.
 
-This shocking result means: the value of a conditionally convergent series depends on the order of summation! This is not a curiosity — it has direct implications for:
+This shocking result means: the value of a conditionally convergent series depends on the order of summation! This is not a curiosity - it has direct implications for:
 - **Stochastic gradient descent**: the order in which mini-batches are processed affects the path (though not the limit for convergent algorithms)
 - **Floating-point summation**: the order of floating-point additions affects the accumulated rounding error
 
@@ -577,21 +577,21 @@ $\sum_{n=0}^\infty \frac{x^n}{n!}$: ratio $= \frac{|x|^{n+1}/(n+1)!}{|x|^n/n!} =
 
 $\sum_{n=0}^\infty n! \cdot x^n$: ratio $= (n+1)|x| \to \infty$ unless $x = 0$. So $R = 0$.
 
-$\sum_{n=1}^\infty \frac{x^n}{n}$: ratio $\to |x|$, so $R = 1$. Interval: $(-1, 1)$ — check endpoints separately.
+$\sum_{n=1}^\infty \frac{x^n}{n}$: ratio $\to |x|$, so $R = 1$. Interval: $(-1, 1)$ - check endpoints separately.
 
 ### 5.3 Behavior at Endpoints
 
 The ratio test is inconclusive at $|x - a| = R$ (endpoints). Endpoints must be checked individually using series convergence tests.
 
 **Example**: $\sum_{n=1}^\infty \frac{x^n}{n}$ has $R = 1$.
-- At $x = 1$: $\sum \frac{1}{n}$ — harmonic series, **diverges**
-- At $x = -1$: $\sum \frac{(-1)^n}{n}$ — alternating harmonic series, **converges** (to $-\ln 2$)
+- At $x = 1$: $\sum \frac{1}{n}$ - harmonic series, **diverges**
+- At $x = -1$: $\sum \frac{(-1)^n}{n}$ - alternating harmonic series, **converges** (to $-\ln 2$)
 
 So the interval of convergence is $[-1, 1)$.
 
 **Example**: $\sum_{n=1}^\infty \frac{x^n}{n^2}$ has $R = 1$.
-- At $x = 1$: $\sum \frac{1}{n^2}$ — p-series with $p=2$, **converges**
-- At $x = -1$: $\sum \frac{(-1)^n}{n^2}$ — absolutely convergent (compare to $\sum 1/n^2$), **converges**
+- At $x = 1$: $\sum \frac{1}{n^2}$ - p-series with $p=2$, **converges**
+- At $x = -1$: $\sum \frac{(-1)^n}{n^2}$ - absolutely convergent (compare to $\sum 1/n^2$), **converges**
 
 Interval of convergence: $[-1, 1]$ (closed).
 
@@ -607,7 +607,7 @@ Both operations preserve the radius of convergence (though endpoint behavior may
 
 *Why this works*: Inside the interval of convergence, power series converge **uniformly** (see Appendix B), which allows interchange of limit and derivative/integral. This is the key technical condition.
 
-**Application — deriving new series from known ones**:
+**Application - deriving new series from known ones**:
 
 From $\frac{1}{1-x} = \sum_{n=0}^\infty x^n$ (geometric series, $|x| < 1$):
 
@@ -635,36 +635,36 @@ $$c_n = \frac{f^{(n)}(a)}{n!}$$
 
 ### 6.1 Deriving the Taylor Series Formula
 
-The question: given a smooth function $f$, can we represent it as a power series near a point $a$? If so, the coefficients must be $c_n = f^{(n)}(a)/n!$ (by §5.5). This leads to:
+The question: given a smooth function $f$, can we represent it as a power series near a point $a$? If so, the coefficients must be $c_n = f^{(n)}(a)/n!$ (by 5.5). This leads to:
 
 **Definition (Taylor Series)**: The **Taylor series** of $f$ at $x = a$ is:
 $$f(x) \stackrel{?}{=} \sum_{n=0}^\infty \frac{f^{(n)}(a)}{n!}(x-a)^n = f(a) + f'(a)(x-a) + \frac{f''(a)}{2!}(x-a)^2 + \cdots$$
 
-The question mark is crucial: even if $f$ has derivatives of all orders, the Taylor series may not converge to $f$. The conditions for equality are given in §6.4.
+The question mark is crucial: even if $f$ has derivatives of all orders, the Taylor series may not converge to $f$. The conditions for equality are given in 6.4.
 
 **Intuition via polynomial fitting**: The $n$-th Taylor polynomial $T_n(x)$ is the unique polynomial of degree $\le n$ that matches $f$ and its first $n$ derivatives at $x = a$:
 $$T_n(a) = f(a), \quad T_n'(a) = f'(a), \quad \ldots, \quad T_n^{(n)}(a) = f^{(n)}(a)$$
 
-As $n \to \infty$, we hope $T_n(x) \to f(x)$ — this is the convergence question.
+As $n \to \infty$, we hope $T_n(x) \to f(x)$ - this is the convergence question.
 
 ```
 TAYLOR POLYNOMIAL APPROXIMATION
-════════════════════════════════════════════════════════════════════════
+
 
   f(x) = sin(x) at a = 0:
 
-  T₁(x) = x                        (tangent line)
-  T₃(x) = x - x³/6                 (cubic approximation)
-  T₅(x) = x - x³/6 + x⁵/120       (quintic approximation)
-  T₇(x) = x - x³/6 + x⁵/120 - x⁷/5040
+  T_1(x) = x                        (tangent line)
+  T_3(x) = x - x^3/6                 (cubic approximation)
+  T_5(x) = x - x^3/6 + x^5/120       (quintic approximation)
+  T_7(x) = x - x^3/6 + x^5/120 - x^7/5040
 
-  Error |sin(x) - T₅(x)| at x = 0.1: ≈ 2.6 × 10⁻¹¹  (tiny!)
-  Error |sin(x) - T₅(x)| at x = 2.0: ≈ 4.6 × 10⁻³   (small but visible)
-  Error |sin(x) - T₅(x)| at x = π:   ≈ 1.9 × 10⁻¹   (large near π!)
+  Error |sin(x) - T_5(x)| at x = 0.1: ~= 2.6 x 10^1^1  (tiny!)
+  Error |sin(x) - T_5(x)| at x = 2.0: ~= 4.6 x 10^3   (small but visible)
+  Error |sin(x) - T_5(x)| at x = pi:   ~= 1.9 x 10^1   (large near pi!)
 
   The polynomial is most accurate near x = 0 (the expansion point).
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 6.2 Standard Maclaurin Series
@@ -679,7 +679,7 @@ The most important Maclaurin series (Taylor series at $a = 0$):
 
 **Cosine**: $\cos x = \sum_{n=0}^\infty \frac{(-1)^n x^{2n}}{(2n)!} = 1 - \frac{x^2}{2} + \frac{x^4}{24} - \cdots$, $R = \infty$
 
-*Note*: $\sin$ has only odd powers; $\cos$ has only even powers — reflecting their symmetry properties.
+*Note*: $\sin$ has only odd powers; $\cos$ has only even powers - reflecting their symmetry properties.
 
 **Natural logarithm**: $\ln(1+x) = \sum_{n=1}^\infty \frac{(-1)^{n+1}x^n}{n} = x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$, $R = 1$
 
@@ -691,7 +691,7 @@ where $\binom{\alpha}{n} = \frac{\alpha(\alpha-1)\cdots(\alpha-n+1)}{n!}$ are ge
 
 **Arctangent**: $\arctan x = \sum_{n=0}^\infty \frac{(-1)^n x^{2n+1}}{2n+1} = x - \frac{x^3}{3} + \frac{x^5}{5} - \cdots$, $R = 1$
 
-*Interesting consequence*: At $x=1$: $\pi/4 = 1 - 1/3 + 1/5 - \cdots$ (Leibniz formula for $\pi$ — converges very slowly).
+*Interesting consequence*: At $x=1$: $\pi/4 = 1 - 1/3 + 1/5 - \cdots$ (Leibniz formula for $\pi$ - converges very slowly).
 
 ### 6.3 Lagrange Remainder and Error Bounds
 
@@ -724,11 +724,11 @@ A function is **analytic** at $a$ if its Taylor series at $a$ converges to $f(x)
 **However**: A function can be infinitely differentiable (smooth) without being analytic. The classic example:
 $$f(x) = \begin{cases} e^{-1/x^2} & x \ne 0 \\ 0 & x = 0 \end{cases}$$
 
-This function has $f^{(n)}(0) = 0$ for all $n$, so its Taylor series is the zero series — which does NOT converge to $f$ (except at $x = 0$).
+This function has $f^{(n)}(0) = 0$ for all $n$, so its Taylor series is the zero series - which does NOT converge to $f$ (except at $x = 0$).
 
 **For ML functions**: All standard activation functions and loss functions are analytic on their domains. The Taylor series of $\sigma(x) = 1/(1+e^{-x})$, $\text{ReLU}(x)$, and $\text{GELU}(x)$ converge to the function on appropriate intervals.
 
-**Domain of convergence**: For $\ln(1+x)$, the Taylor series has $R = 1$ — it converges in $(-1, 1]$ but not at $x = -1$ or for $|x| > 1$. Computing $\ln(1 + x)$ for large $x$ via truncated Taylor series will give wrong results. This is why implementations use the formula $\ln(1 + e^x) \approx x + e^{-x}$ for large $x$ (log-sum-exp trick).
+**Domain of convergence**: For $\ln(1+x)$, the Taylor series has $R = 1$ - it converges in $(-1, 1]$ but not at $x = -1$ or for $|x| > 1$. Computing $\ln(1 + x)$ for large $x$ via truncated Taylor series will give wrong results. This is why implementations use the formula $\ln(1 + e^x) \approx x + e^{-x}$ for large $x$ (log-sum-exp trick).
 
 ### 6.5 Algebraic Manipulation of Taylor Series
 
@@ -745,10 +745,10 @@ $$\left(\sum_{n=0}^\infty a_n x^n\right)\left(\sum_{n=0}^\infty b_n x^n\right) =
 
 Collect terms by power of $x$.
 
-**Example — softmax Taylor expansion**: Near $T = \infty$ (high temperature), $e^{x_i/T} \approx 1 + x_i/T + \frac{1}{2}(x_i/T)^2 + \cdots$. To first order:
+**Example - softmax Taylor expansion**: Near $T = \infty$ (high temperature), $e^{x_i/T} \approx 1 + x_i/T + \frac{1}{2}(x_i/T)^2 + \cdots$. To first order:
 $$\text{softmax}(x/T)_i \approx \frac{1 + x_i/T}{\sum_j (1 + x_j/T)} = \frac{1 + x_i/T}{n + \bar{x}/T}$$
 
-As $T \to \infty$, this $\to 1/n$ (uniform). The correction term $x_i/T$ shows that even at high temperature, the softmax is not exactly uniform — it favors larger $x_i$ by $O(1/T)$.
+As $T \to \infty$, this $\to 1/n$ (uniform). The correction term $x_i/T$ shows that even at high temperature, the softmax is not exactly uniform - it favors larger $x_i$ by $O(1/T)$.
 
 
 ---
@@ -770,7 +770,7 @@ $$\text{softmax}(x/T)_i \approx \frac{1 + x_i/T}{n + \bar{x}/T} \to \frac{1}{n}$
 
 The distribution becomes uniform. This is used in **knowledge distillation** (Hinton 2015): training the student on soft targets with high temperature captures the "dark knowledge" in the teacher's probability distribution.
 
-**Series representation of the denominator**: For the standard softmax, $Z = \sum_j e^{x_j}$ is the partition function — a finite sum but in theory for continuous distributions it becomes a genuine integral or series.
+**Series representation of the denominator**: For the standard softmax, $Z = \sum_j e^{x_j}$ is the partition function - a finite sum but in theory for continuous distributions it becomes a genuine integral or series.
 
 ### 7.2 GELU via Hermite Polynomials
 
@@ -789,7 +789,7 @@ Near $x = 0$: $\text{erf}(x) \approx \frac{2x}{\sqrt\pi} - \frac{2x^3}{3\sqrt\pi
 
 So: $\text{GELU}(x) \approx x \cdot \frac{1}{2}\left(1 + \frac{2x}{\sqrt\pi}\right) = \frac{x}{2} + \frac{x^2}{\sqrt\pi}$ near $x = 0$.
 
-**Connection to Hermite polynomials**: The derivatives of GELU at 0 involve Hermite polynomials $H_n$ — the orthogonal polynomials with respect to the Gaussian weight $e^{-x^2/2}$. This connection explains why GELU interacts well with Gaussian-distributed inputs.
+**Connection to Hermite polynomials**: The derivatives of GELU at 0 involve Hermite polynomials $H_n$ - the orthogonal polynomials with respect to the Gaussian weight $e^{-x^2/2}$. This connection explains why GELU interacts well with Gaussian-distributed inputs.
 
 ### 7.3 Optimizer Update Rules as Taylor Approximations
 
@@ -798,7 +798,7 @@ $$\mathcal{L}(\theta + \delta) \approx \mathcal{L}(\theta) + \nabla\mathcal{L}^\
 
 Minimizing over $\delta$: $\delta^* = -H^{-1}\nabla\mathcal{L}$ (Newton step). This is exact for quadratic losses.
 
-**SGD** discards the Hessian ($H \approx I/\alpha$): $\delta = -\alpha \nabla\mathcal{L}$ — first-order Taylor only.
+**SGD** discards the Hessian ($H \approx I/\alpha$): $\delta = -\alpha \nabla\mathcal{L}$ - first-order Taylor only.
 
 **Adam's bias correction via geometric series**:
 
@@ -824,7 +824,7 @@ $$\text{LinearAttn}(q_i) = \frac{\sum_j \phi(q_i)^\top\phi(k_j) v_j}{\sum_j \phi
 
 The sums $\sum_j \phi(k_j)v_j^\top$ and $\sum_j \phi(k_j)$ can be computed once in $O(nd)$, reducing complexity to $O(n)$.
 
-**Error of first-order approximation**: By Taylor's theorem, $|e^x - (1+x)| \le \frac{x^2}{2}e^{|x|}$. For $x = q^\top k/\sqrt{d}$ small (as when $q, k$ have small norm), the error is $O(1/d)$ — small in high dimension.
+**Error of first-order approximation**: By Taylor's theorem, $|e^x - (1+x)| \le \frac{x^2}{2}e^{|x|}$. For $x = q^\top k/\sqrt{d}$ small (as when $q, k$ have small norm), the error is $O(1/d)$ - small in high dimension.
 
 **Higher-order approximations** use $e^x \approx 1 + x + x^2/2$, giving **Performer-style** random feature approximations via the polynomial kernel $1 + q^\top k + (q^\top k)^2/2$.
 
@@ -855,7 +855,7 @@ $$\log p(\theta|\mathcal{D}) \approx \log p(\hat\theta|\mathcal{D}) - \frac{1}{2
 where $H = -\nabla^2 \log p(\hat\theta|\mathcal{D})$ (negative Hessian at MAP). The second-order Taylor expansion gives:
 $$p(\theta|\mathcal{D}) \approx \mathcal{N}(\hat\theta,\, H^{-1})$$
 
-This is the **Laplace approximation** — a Gaussian centered at MAP with covariance equal to the inverse of the negative log-posterior Hessian.
+This is the **Laplace approximation** - a Gaussian centered at MAP with covariance equal to the inverse of the negative log-posterior Hessian.
 
 **Where Taylor truncation is valid**: The approximation is accurate when the log-posterior is nearly quadratic near $\hat\theta$, i.e., when the third-order remainder $O(|\theta - \hat\theta|^3)$ is small. This holds when the posterior is concentrated (many data points, by Bernstein-von Mises theorem).
 
@@ -869,14 +869,14 @@ This is the **Laplace approximation** — a Gaussian centered at MAP with covari
 
 ## 8. Fourier Series (Preview)
 
-> **Scope note**: The full theory of Fourier series — convergence theorems, Parseval's identity, Fourier transform, and their ML applications — belongs in a dedicated treatment. Here we give the essential concepts needed to understand positional encodings and frequency decomposition in transformers.
+> **Scope note**: The full theory of Fourier series - convergence theorems, Parseval's identity, Fourier transform, and their ML applications - belongs in a dedicated treatment. Here we give the essential concepts needed to understand positional encodings and frequency decomposition in transformers.
 
 ### 8.1 Periodic Functions as Trigonometric Series
 
 A **Fourier series** represents a periodic function $f$ with period $2\pi$ as an infinite sum of sines and cosines:
 $$f(x) = \frac{a_0}{2} + \sum_{n=1}^\infty \left(a_n \cos(nx) + b_n \sin(nx)\right)$$
 
-Unlike Taylor series (which expand around a single point using polynomials), Fourier series use **global basis functions** — sine and cosine waves of different frequencies — to represent the function over its entire period.
+Unlike Taylor series (which expand around a single point using polynomials), Fourier series use **global basis functions** - sine and cosine waves of different frequencies - to represent the function over its entire period.
 
 **The key difference from Taylor series**:
 
@@ -891,7 +891,7 @@ Unlike Taylor series (which expand around a single point using polynomials), Fou
 **Key property**: The derivative of a Fourier series is obtained by differentiating term-by-term:
 $$f'(x) = \sum_{n=1}^\infty n(-a_n \sin(nx) + b_n \cos(nx))$$
 
-Differentiation multiplies each frequency-$n$ component by $n$ — high-frequency components dominate the derivative.
+Differentiation multiplies each frequency-$n$ component by $n$ - high-frequency components dominate the derivative.
 
 ### 8.2 Orthogonality and Fourier Coefficients
 
@@ -903,12 +903,12 @@ $$\frac{1}{\pi}\int_{-\pi}^\pi \sin(mx)\sin(nx)\,dx = \begin{cases} 0 & m \ne n 
 
 $$\frac{1}{\pi}\int_{-\pi}^\pi \cos(mx)\sin(nx)\,dx = 0 \quad \text{for all } m, n$$
 
-These orthogonality relations are provable using the integration formulas for products of sines and cosines (from §03-Integration).
+These orthogonality relations are provable using the integration formulas for products of sines and cosines (from 03-Integration).
 
 **Deriving the Fourier coefficients**: Multiply both sides of the Fourier series by $\cos(nx)$ and integrate over $[-\pi, \pi]$. All terms vanish by orthogonality except the $a_n$ term:
 $$a_n = \frac{1}{\pi}\int_{-\pi}^\pi f(x)\cos(nx)\,dx, \qquad b_n = \frac{1}{\pi}\int_{-\pi}^\pi f(x)\sin(nx)\,dx$$
 
-These are exactly the **projection coefficients** of $f$ onto the orthogonal basis $\{\cos(nx), \sin(nx)\}$ — the Fourier series is the best $L^2$ approximation of $f$ in the sinusoidal basis.
+These are exactly the **projection coefficients** of $f$ onto the orthogonal basis $\{\cos(nx), \sin(nx)\}$ - the Fourier series is the best $L^2$ approximation of $f$ in the sinusoidal basis.
 
 **Complex form**: Using Euler's formula $e^{inx} = \cos(nx) + i\sin(nx)$:
 $$f(x) = \sum_{n=-\infty}^\infty \hat{f}(n)\,e^{inx}, \qquad \hat{f}(n) = \frac{1}{2\pi}\int_{-\pi}^\pi f(x)e^{-inx}\,dx$$
@@ -922,12 +922,12 @@ $$PE_{p,2k} = \sin\left(\frac{p}{10000^{2k/d}}\right), \qquad PE_{p,2k+1} = \cos
 
 This is a Fourier-like encoding: position $p$ is represented by a superposition of sinusoids at $d/2$ different frequencies $\omega_k = 1/10000^{2k/d}$.
 
-**Why sinusoidal?** Any relative shift in position corresponds to a linear transformation of the encoding vector — provable because the Fourier basis diagonalizes the shift operator. This allows the attention mechanism to learn relative positions.
+**Why sinusoidal?** Any relative shift in position corresponds to a linear transformation of the encoding vector - provable because the Fourier basis diagonalizes the shift operator. This allows the attention mechanism to learn relative positions.
 
 **Rotary Position Embeddings (RoPE)** (Su et al., 2021, used in LLaMA, GPT-NeoX) rotate the query and key vectors in the complex plane by angle $m\theta_k$ at position $m$:
 $$q_m = q \cdot e^{im\theta}, \qquad k_n = k \cdot e^{in\theta}$$
 
-The dot product $q_m^\top k_n = \text{Re}(q e^{im\theta} \cdot (k e^{in\theta})^*) = q^\top k \cos((m-n)\theta)$ depends only on $m-n$ (relative position). This is the Fourier multiplication theorem: convolution in position space ↔ pointwise multiplication in frequency space.
+The dot product $q_m^\top k_n = \text{Re}(q e^{im\theta} \cdot (k e^{in\theta})^*) = q^\top k \cos((m-n)\theta)$ depends only on $m-n$ (relative position). This is the Fourier multiplication theorem: convolution in position space <-> pointwise multiplication in frequency space.
 
 > _Full Fourier theory: Fourier transform, Parseval's theorem, Gibbs phenomenon, and non-periodic functions are treated in the Probability chapter (characteristic functions) and an advanced analysis appendix._
 
@@ -939,12 +939,12 @@ The dot product $q_m^\top k_n = \text{Re}(q e^{im\theta} \cdot (k e^{in\theta})^
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|---------------|-----|
 | 1 | Concluding convergence from $a_n \to 0$ | Necessary but not sufficient: harmonic series has $1/n \to 0$ but diverges | Use a proper convergence test (ratio, comparison, integral) |
-| 2 | Using ratio test when ratio $= 1$ | L = 1 is the inconclusive case: works for p-series, where the ratio always → 1 | Switch to integral test or comparison test |
+| 2 | Using ratio test when ratio $= 1$ | L = 1 is the inconclusive case: works for p-series, where the ratio always -> 1 | Switch to integral test or comparison test |
 | 3 | Forgetting to check endpoints separately | Ratio/root tests are strict inequalities: they say nothing at $|x-a| = R$ | Always test each endpoint using other convergence tests |
 | 4 | Rearranging conditionally convergent series | Riemann's theorem: rearrangement can change the sum to any value | Only rearrange absolutely convergent series freely |
 | 5 | Applying a Taylor series outside its radius of convergence | The series may diverge or converge to the wrong value | Check $|x - a| < R$ before using the series approximation |
 | 6 | Confusing the Taylor series existing with converging to $f$ | A smooth function may have a Taylor series that doesn't equal $f$ (e.g., $e^{-1/x^2}$) | Check analyticity; use Lagrange remainder to bound error |
-| 7 | Differentiating a power series and changing the radius of convergence | Radius is preserved under differentiation/integration — endpoints can change | Re-check endpoints only; radius stays the same |
+| 7 | Differentiating a power series and changing the radius of convergence | Radius is preserved under differentiation/integration - endpoints can change | Re-check endpoints only; radius stays the same |
 | 8 | Treating $\sum (-1)^n/n$ as the negative of $\sum 1/n$ | The alternating series converges to $-\ln 2$; the non-alternating diverges entirely | Absolute and conditional convergence are fundamentally different |
 | 9 | Applying the integral test to non-monotone functions | The test requires $f$ to be eventually decreasing and positive | Verify monotonicity; if $f$ is not monotone, use comparison instead |
 | 10 | Assuming $\sum a_n$ and $\sum b_n$ both diverge implies $\sum (a_n + b_n)$ diverges | Both can diverge while their sum converges: $a_n = 1/n$, $b_n = -1/n$ | Convergence of sums is NOT additive for divergent series |
@@ -955,14 +955,14 @@ The dot product $q_m^\top k_n = \text{Re}(q e^{im\theta} \cdot (k e^{in\theta})^
 
 ## 10. Exercises
 
-**Exercise 1** ★ — Geometric Series
+**Exercise 1**  - Geometric Series
 Compute the sum of each geometric series or state that it diverges:
 (a) $\sum_{n=0}^\infty \left(\frac{2}{3}\right)^n$
 (b) $\sum_{n=2}^\infty \left(\frac{3}{2}\right)^n$
 (c) $\sum_{n=0}^\infty \frac{(-1)^n}{4^n}$
 (d) In reinforcement learning, the discounted return is $G_0 = \sum_{t=0}^\infty \gamma^t r$ where $r = 1$ (constant reward) and $\gamma = 0.95$. Compute $G_0$.
 
-**Exercise 2** ★ — Convergence Tests
+**Exercise 2**  - Convergence Tests
 Determine whether each series converges or diverges. State which test you use:
 (a) $\sum_{n=1}^\infty \frac{1}{\sqrt{n^3}}$
 (b) $\sum_{n=1}^\infty \frac{n}{e^n}$
@@ -970,38 +970,38 @@ Determine whether each series converges or diverges. State which test you use:
 (d) $\sum_{n=1}^\infty \frac{n!}{2^n}$
 (e) $\sum_{n=2}^\infty \frac{1}{n \ln n}$
 
-**Exercise 3** ★ — Radius of Convergence
+**Exercise 3**  - Radius of Convergence
 Find the radius of convergence $R$ and the interval of convergence (including endpoint checks) for each power series:
 (a) $\sum_{n=0}^\infty \frac{x^n}{3^n}$
 (b) $\sum_{n=1}^\infty \frac{(-1)^n x^n}{n}$
 (c) $\sum_{n=0}^\infty n! \cdot x^n$
 (d) $\sum_{n=0}^\infty \frac{(x-2)^n}{n^2 + 1}$
 
-**Exercise 4** ★★ — Taylor Series Derivation
+**Exercise 4**  - Taylor Series Derivation
 (a) Derive the Maclaurin series for $f(x) = e^{-x}$ from scratch (compute coefficients via $c_n = f^{(n)}(0)/n!$).
 (b) Use the series for $e^x$ to derive the series for $e^{x^2}$.
 (c) Using integration of the series for $e^{-t^2}$ from 0 to $x$, express $\int_0^x e^{-t^2}\,dt$ as a power series.
 (d) How many terms are needed to approximate $\int_0^{0.5} e^{-t^2}\,dt$ to within $10^{-8}$?
 
-**Exercise 5** ★★ — Lagrange Remainder and Error Bounds
+**Exercise 5**  - Lagrange Remainder and Error Bounds
 (a) Find the 4th-order Taylor polynomial for $f(x) = \ln(1+x)$ at $a = 0$.
 (b) Use the Lagrange remainder to bound $|f(0.2) - T_4(0.2)|$.
 (c) Compute the actual error and verify your bound holds.
 (d) How many terms of the Taylor series for $\ln(1+x)$ are needed to compute $\ln(1.1)$ to 10 decimal places?
 
-**Exercise 6** ★★ — GELU Taylor Analysis
+**Exercise 6**  - GELU Taylor Analysis
 (a) Show that $\text{erf}(x) = \frac{2}{\sqrt{\pi}}\sum_{n=0}^\infty \frac{(-1)^n x^{2n+1}}{n!(2n+1)}$ by integrating $e^{-t^2}$ term-by-term.
 (b) Write out the first 4 terms of the GELU series: $\text{GELU}(x) = x \cdot \frac{1}{2}(1 + \text{erf}(x/\sqrt{2}))$.
 (c) Compare the GELU Taylor approximation to $T_3(x) = x$ (ReLU-like) and $T_5(x)$ for $x \in [-2, 2]$.
 (d) At what $|x|$ does the 5th-order approximation exceed 1% relative error?
 
-**Exercise 7** ★★★ — Linear Attention Approximation
+**Exercise 7**  - Linear Attention Approximation
 (a) Show that $e^{q^\top k} \approx 1 + q^\top k$ to first order, and bound the error $|e^{q^\top k} - (1 + q^\top k)|$ in terms of $|q^\top k|$.
 (b) If queries and keys are unit vectors in $\mathbb{R}^d$ (so $|q^\top k| \le 1$), bound the maximum first-order approximation error.
 (c) Write the standard attention formula and show how the linear approximation reduces complexity from $O(n^2 d)$ to $O(n d^2)$.
 (d) Would using the second-order approximation $e^x \approx 1 + x + x^2/2$ improve accuracy? What is the trade-off?
 
-**Exercise 8** ★★★ — Geometric Series in Adam
+**Exercise 8**  - Geometric Series in Adam
 (a) Show that the Adam first moment $m_t = (1-\beta)\sum_{k=0}^{t-1}\beta^k g_{t-k}$ (for $m_0 = 0$) satisfies the recurrence $m_t = \beta m_{t-1} + (1-\beta) g_t$.
 (b) Compute $\mathbb{E}[m_t]$ assuming all gradients have the same mean $\mu$ (i.e., $\mathbb{E}[g_k] = \mu$). Show it equals $(1-\beta^t)\mu$.
 (c) Why is the bias correction $\hat{m}_t = m_t/(1-\beta^t)$ needed in early training ($t$ small)?
@@ -1020,9 +1020,9 @@ Find the radius of convergence $R$ and the interval of convergence (including en
 | **Lagrange remainder** | Quantifying approximation error in linearized attention | Guarantees in approximation papers |
 | **Power series / radius of convergence** | Convergence radius of optimizer iterates; spectral radius | Convergence theory for RNNs, ResNets |
 | **Maclaurin series for $e^x$** | Deriving the exponential map on Lie groups (rotation matrices in equivariant networks) | SE(3)-equivariant networks, FrameDiff |
-| **Log-sum-exp stability** | Numerically stable softmax in all transformer implementations | PyTorch, JAX — used in every attention block |
+| **Log-sum-exp stability** | Numerically stable softmax in all transformer implementations | PyTorch, JAX - used in every attention block |
 | **Fourier series / sinusoidal PE** | Position encoding in original Transformer; period-length encoding | Vaswani et al. 2017; long-context models |
-| **RoPE (Rotary PE)** | Relative position encoding in LLaMA, GPT-NeoX, Falcon | Most open-source LLMs ≥ 2023 |
+| **RoPE (Rotary PE)** | Relative position encoding in LLaMA, GPT-NeoX, Falcon | Most open-source LLMs >= 2023 |
 | **Laplace approximation** | Bayesian uncertainty quantification for LLMs | Laplace-Redux; PostHoc Laplace for safety |
 | **Alternating series (MCMC)** | Controlling numerical error in annealed importance sampling | Bayesian inference; diffusion model likelihoods |
 | **$e^{i\theta} = \cos\theta + i\sin\theta$** | Complex rotations in RoPE; frequency analysis of loss landscapes | Mechanistic interpretability of sinusoidal features |
@@ -1032,39 +1032,39 @@ Find the radius of convergence $R$ and the interval of convergence (including en
 
 ## Conceptual Bridge
 
-**Where you came from**: This section is the culmination of single-variable calculus. Limits (§04/01) are the foundation — sequence convergence IS a limit. Derivatives (§04/02) provide the Taylor coefficients $f^{(n)}(a)/n!$. Integration (§04/03) allows deriving new power series from old ones via term-by-term integration. Every idea in this section rests on the three preceding sections.
+**Where you came from**: This section is the culmination of single-variable calculus. Limits (04/01) are the foundation - sequence convergence IS a limit. Derivatives (04/02) provide the Taylor coefficients $f^{(n)}(a)/n!$. Integration (04/03) allows deriving new power series from old ones via term-by-term integration. Every idea in this section rests on the three preceding sections.
 
 **What this unlocks forward**: Series are the bridge from single-variable to infinite-dimensional mathematics:
 
-- **→ §05 Multivariate Calculus**: The multivariable Taylor theorem uses the same structure: $f(\mathbf{x}+\mathbf{h}) = f(\mathbf{x}) + \nabla f^\top \mathbf{h} + \frac{1}{2}\mathbf{h}^\top H \mathbf{h} + \cdots$ where $H$ is the Hessian matrix. Every gradient descent convergence proof uses the second-order Taylor expansion.
+- **-> 05 Multivariate Calculus**: The multivariable Taylor theorem uses the same structure: $f(\mathbf{x}+\mathbf{h}) = f(\mathbf{x}) + \nabla f^\top \mathbf{h} + \frac{1}{2}\mathbf{h}^\top H \mathbf{h} + \cdots$ where $H$ is the Hessian matrix. Every gradient descent convergence proof uses the second-order Taylor expansion.
 
-- **→ §06 Probability and Statistics**: Generating functions $G(x) = \sum p_n x^n$ encode probability distributions as power series. Characteristic functions $\phi(t) = \mathbb{E}[e^{itX}]$ are Fourier transforms of probability densities. The cumulant generating function $K(t) = \log\mathbb{E}[e^{tX}]$ has Taylor coefficients equal to the cumulants (mean, variance, skewness, kurtosis).
+- **-> 06 Probability and Statistics**: Generating functions $G(x) = \sum p_n x^n$ encode probability distributions as power series. Characteristic functions $\phi(t) = \mathbb{E}[e^{itX}]$ are Fourier transforms of probability densities. The cumulant generating function $K(t) = \log\mathbb{E}[e^{tX}]$ has Taylor coefficients equal to the cumulants (mean, variance, skewness, kurtosis).
 
-- **→ Functional Analysis** (advanced): Functions in $L^2[a,b]$ can be expanded in any orthonormal basis (Legendre polynomials, Fourier series, wavelets). This is the infinite-dimensional generalization of expressing a vector in an orthonormal basis. Neural networks implicitly learn such basis decompositions.
+- **-> Functional Analysis** (advanced): Functions in $L^2[a,b]$ can be expanded in any orthonormal basis (Legendre polynomials, Fourier series, wavelets). This is the infinite-dimensional generalization of expressing a vector in an orthonormal basis. Neural networks implicitly learn such basis decompositions.
 
 ```
 POSITION IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
 
-  §04/01 Limits ──→ ε-N convergence used in §04/04 sequence theory
-  §04/02 Derivatives ──→ Taylor coefficients f⁽ⁿ⁾(a)/n! in §04/04
-  §04/03 Integration ──→ term-by-term integration; integral test
-         ↓
-  §04/04 SERIES AND SEQUENCES  ← YOU ARE HERE
-         │
-         ├──→ §05 Multivariable Taylor theorem
-         │         (gradient descent convergence)
-         │
-         ├──→ §06 Probability: generating functions,
-         │         characteristic functions, CLT proof
-         │
-         └──→ Advanced: Fourier analysis, functional
+
+  04/01 Limits -> epsilon-N convergence used in 04/04 sequence theory
+  04/02 Derivatives -> Taylor coefficients f(a)/n! in 04/04
+  04/03 Integration -> term-by-term integration; integral test
+         
+  04/04 SERIES AND SEQUENCES  <- YOU ARE HERE
+         
+         -> 05 Multivariable Taylor theorem
+                  (gradient descent convergence)
+         
+         -> 06 Probability: generating functions,
+                  characteristic functions, CLT proof
+         
+         -> Advanced: Fourier analysis, functional
                    analysis, spectral methods in ML
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-The single most important takeaway: **Taylor series and the geometric series are not just abstract tools — they are the mathematical engine behind every major optimization algorithm and attention approximation in modern AI.** Every time a researcher writes $e^x \approx 1 + x$, they are using the first-order Maclaurin approximation with a remainder bounded by the Lagrange error formula.
+The single most important takeaway: **Taylor series and the geometric series are not just abstract tools - they are the mathematical engine behind every major optimization algorithm and attention approximation in modern AI.** Every time a researcher writes $e^x \approx 1 + x$, they are using the first-order Maclaurin approximation with a remainder bounded by the Lagrange error formula.
 
 
 ---
@@ -1141,20 +1141,20 @@ Uniform convergence is stronger: the same $N$ works for ALL $x$ simultaneously.
 
 ```
 POINTWISE vs. UNIFORM CONVERGENCE
-════════════════════════════════════════════════════════════════════════
 
-  fₙ(x) = xⁿ on [0,1]:
-  ─────────────────────────────────────────────────────────────────
-  At x = 0.5: (0.5)ⁿ → 0  (converges)
-  At x = 1.0: 1ⁿ = 1 → 1  (converges)
-  Pointwise limit: f(x) = 0 for x ∈ [0,1), f(1) = 1
 
-  But: sup_{x∈[0,1]} |xⁿ - f(x)| = sup_{x∈[0,1)} xⁿ = 1 for all n
-  → NOT uniformly convergent on [0,1]
+  f(x) = x on [0,1]:
+  
+  At x = 0.5: (0.5) -> 0  (converges)
+  At x = 1.0: 1 = 1 -> 1  (converges)
+  Pointwise limit: f(x) = 0 for x in [0,1), f(1) = 1
 
-  On [0, 0.9]: sup xⁿ = 0.9ⁿ → 0 → uniformly convergent here.
+  But: sup_{xin[0,1]} |x - f(x)| = sup_{xin[0,1)} x = 1 for all n
+  -> NOT uniformly convergent on [0,1]
 
-════════════════════════════════════════════════════════════════════════
+  On [0, 0.9]: sup x = 0.9 -> 0 -> uniformly convergent here.
+
+
 ```
 
 ### B.2 Why Uniform Convergence Enables Term-by-Term Operations
@@ -1172,12 +1172,12 @@ These theorems are exactly what justify **term-by-term differentiation and integ
 Without uniform convergence, swapping limits and integrals leads to errors:
 
 **Example**: $f_n(x) = n x e^{-nx}$ on $[0,1]$.
-- Pointwise: $f_n(x) \to 0$ for all $x \ge 0$ (compute via L'Hôpital or squeeze)
+- Pointwise: $f_n(x) \to 0$ for all $x \ge 0$ (compute via L'Hpital or squeeze)
 - But: $\int_0^1 f_n(x)\,dx = 1 - e^{-n} \to 1 \ne \int_0^1 0\,dx = 0$
 
 The limit and integral don't commute! Convergence is NOT uniform ($\sup_x f_n(x) = 1/e$ for all $n$).
 
-**For ML**: This is why convergence arguments for neural network training must be careful about the order of limits. The Dominated Convergence Theorem (from integration theory, §03/Appendix O) provides the right condition under which limits and integrals commute.
+**For ML**: This is why convergence arguments for neural network training must be careful about the order of limits. The Dominated Convergence Theorem (from integration theory, 03/Appendix O) provides the right condition under which limits and integrals commute.
 
 
 ---
@@ -1208,7 +1208,7 @@ This is the mathematical foundation of **RoPE (Rotary Position Embeddings)**:
 In RoPE, each attention head dimension pair $(q_{2k}, q_{2k+1})$ is treated as a complex number $q_{2k} + i q_{2k+1}$. Multiplying by $e^{im\theta_k}$ (rotation by position $m$ times frequency $\theta_k$) encodes position:
 $$\tilde{q}_m = q \cdot e^{im\theta} \implies \tilde{q}_m^\top \tilde{k}_n = \text{Re}[q\bar{k} e^{i(m-n)\theta}]$$
 
-The inner product depends only on the relative position $m-n$ — the rotation encodes position via complex multiplication, making it equivariant to sequence shifts.
+The inner product depends only on the relative position $m-n$ - the rotation encodes position via complex multiplication, making it equivariant to sequence shifts.
 
 ### C.3 Hyperbolic Functions
 
@@ -1256,16 +1256,16 @@ The Taylor coefficients encode the moments: $M_X^{(n)}(0) = \mathbb{E}[X^n]$.
 **For Gaussian $X \sim \mathcal{N}(\mu, \sigma^2)$**: $M_X(t) = e^{\mu t + \sigma^2 t^2/2}$. This gives:
 - $M'(0) = \mu$ (mean)
 - $M''(0) = \mu^2 + \sigma^2$ (second moment)
-- Variance: $M''(0) - (M'(0))^2 = \sigma^2$ ✓
+- Variance: $M''(0) - (M'(0))^2 = \sigma^2$ 
 
-**Cumulant generating function**: $K_X(t) = \log M_X(t) = \mu t + \frac{\sigma^2}{2}t^2$ for Gaussian. Taylor coefficients of $K_X$ are the **cumulants**: $\kappa_1 = \mu$ (mean), $\kappa_2 = \sigma^2$ (variance), $\kappa_3$ (skewness), $\kappa_4$ (excess kurtosis). For Gaussian, $\kappa_n = 0$ for $n \ge 3$ — a Gaussian is completely characterized by its first two cumulants. This is why many normality tests check higher cumulants.
+**Cumulant generating function**: $K_X(t) = \log M_X(t) = \mu t + \frac{\sigma^2}{2}t^2$ for Gaussian. Taylor coefficients of $K_X$ are the **cumulants**: $\kappa_1 = \mu$ (mean), $\kappa_2 = \sigma^2$ (variance), $\kappa_3$ (skewness), $\kappa_4$ (excess kurtosis). For Gaussian, $\kappa_n = 0$ for $n \ge 3$ - a Gaussian is completely characterized by its first two cumulants. This is why many normality tests check higher cumulants.
 
 
 ---
 
 ## Appendix E: Multivariable Taylor (Preview)
 
-> **Forward reference**: Full treatment in [§05 Multivariate Calculus](../../05-Multivariate-Calculus/README.md).
+> **Forward reference**: Full treatment in [05 Multivariate Calculus](../../05-Multivariate-Calculus/README.md).
 
 The Taylor series extends naturally to functions $f: \mathbb{R}^n \to \mathbb{R}$. Expanding around $\mathbf{a}$:
 
@@ -1274,14 +1274,14 @@ $$f(\mathbf{x}) = f(\mathbf{a}) + \nabla f(\mathbf{a})^\top(\mathbf{x}-\mathbf{a
 where $\nabla f(\mathbf{a})$ is the gradient vector and $H(\mathbf{a})$ is the Hessian matrix.
 
 **Reading the terms**:
-- **0th order**: $f(\mathbf{a})$ — the function value at the expansion point
-- **1st order**: $\nabla f^\top \delta$ — the linear (gradient) term; this is the basis of SGD
-- **2nd order**: $\frac{1}{2}\delta^\top H\delta$ — the curvature term; this is why quadratic forms appear in optimization
+- **0th order**: $f(\mathbf{a})$ - the function value at the expansion point
+- **1st order**: $\nabla f^\top \delta$ - the linear (gradient) term; this is the basis of SGD
+- **2nd order**: $\frac{1}{2}\delta^\top H\delta$ - the curvature term; this is why quadratic forms appear in optimization
 
 **Gradient descent as first-order Taylor**: Setting $\mathbf{x} = \mathbf{a} - \alpha\nabla f(\mathbf{a})$ in the 1st-order expansion:
 $$f(\mathbf{a} - \alpha\nabla f) \approx f(\mathbf{a}) - \alpha\|\nabla f(\mathbf{a})\|^2$$
 
-The loss decreases by $\alpha\|\nabla f\|^2$ per step — valid when $\alpha$ is small enough that the linear approximation holds. The "right" $\alpha$ is determined by the second-order term.
+The loss decreases by $\alpha\|\nabla f\|^2$ per step - valid when $\alpha$ is small enough that the linear approximation holds. The "right" $\alpha$ is determined by the second-order term.
 
 **Newton's method as second-order Taylor**: Minimize the 2nd-order Taylor model exactly:
 $$\delta^* = -H^{-1}\nabla f, \qquad f(\mathbf{a} + \delta^*) \approx f(\mathbf{a}) - \frac{1}{2}\nabla f^\top H^{-1}\nabla f$$
@@ -1298,15 +1298,15 @@ For a quadratic $f$, Newton's method is exact in one step. This is why L-BFGS an
 For a function $f$ with Fourier series $f(x) = a_0/2 + \sum(a_n\cos nx + b_n\sin nx)$:
 $$\frac{1}{\pi}\int_{-\pi}^\pi |f(x)|^2\,dx = \frac{a_0^2}{2} + \sum_{n=1}^\infty (a_n^2 + b_n^2)$$
 
-**Interpretation**: The $L^2$ norm squared of $f$ equals the sum of squared Fourier coefficients. This is an infinite-dimensional **Pythagorean theorem** — the orthonormal basis $\{1/\sqrt{2}, \cos nx, \sin nx\}$ satisfies the same relationship as a standard orthonormal basis in $\mathbb{R}^n$.
+**Interpretation**: The $L^2$ norm squared of $f$ equals the sum of squared Fourier coefficients. This is an infinite-dimensional **Pythagorean theorem** - the orthonormal basis $\{1/\sqrt{2}, \cos nx, \sin nx\}$ satisfies the same relationship as a standard orthonormal basis in $\mathbb{R}^n$.
 
-**For ML**: In the theory of neural networks as function approximators, the Fourier perspective shows that learning high-frequency functions requires exponentially more training data (the "spectral bias" of neural networks — they learn low frequencies first).
+**For ML**: In the theory of neural networks as function approximators, the Fourier perspective shows that learning high-frequency functions requires exponentially more training data (the "spectral bias" of neural networks - they learn low frequencies first).
 
 ### F.2 Gibbs Phenomenon
 
 For a discontinuous function (like a square wave), the Fourier partial sum $S_N(x)$ overshoots near the discontinuity by approximately $8.9\% = \frac{1}{\pi}\int_0^\pi \frac{\sin t}{t}\,dt - 1$ of the jump, regardless of $N$.
 
-This **Gibbs phenomenon** does not disappear as $N \to \infty$ — it is an intrinsic property of Fourier series near discontinuities. The partial sum does converge to the function's average at the discontinuity.
+This **Gibbs phenomenon** does not disappear as $N \to \infty$ - it is an intrinsic property of Fourier series near discontinuities. The partial sum does converge to the function's average at the discontinuity.
 
 **For ML**: Neural networks trained on discontinuous target functions (e.g., step functions, indicator functions) exhibit analogous ringing artifacts near edges. Regularization and smooth activations mitigate this.
 
@@ -1315,9 +1315,9 @@ This **Gibbs phenomenon** does not disappear as $N \to \infty$ — it is an intr
 **Theorem (Riesz-Fischer)**: Every square-integrable function $f \in L^2[-\pi,\pi]$ equals the limit of its Fourier partial sums in $L^2$ norm:
 $$\left\|f - S_N\right\|_{L^2} = \left(\int_{-\pi}^\pi |f(x) - S_N(x)|^2\,dx\right)^{1/2} \to 0$$
 
-However, pointwise convergence is more subtle — Carleson's theorem (1966) states that the Fourier series of any $L^2$ function converges pointwise almost everywhere, but this is a very deep result.
+However, pointwise convergence is more subtle - Carleson's theorem (1966) states that the Fourier series of any $L^2$ function converges pointwise almost everywhere, but this is a very deep result.
 
-**The $L^2$ convergence** is sufficient for ML applications — it means the Fourier approximation is the best $L^2$ approximation of the function in the sinusoidal basis, analogous to how the truncated SVD is the best low-rank approximation (Eckart-Young theorem).
+**The $L^2$ convergence** is sufficient for ML applications - it means the Fourier approximation is the best $L^2$ approximation of the function in the sinusoidal basis, analogous to how the truncated SVD is the best low-rank approximation (Eckart-Young theorem).
 
 
 ---
@@ -1419,7 +1419,7 @@ $$S \approx \frac{2^p S(h/2) - S(h)}{2^p - 1}$$
 
 **Example**: Trapezoidal rule has error $O(h^2)$. Richardson extrapolation on two trapezoidal estimates gives Simpson's rule ($O(h^4)$). Repeated extrapolation gives **Romberg integration** with $O(h^{2k})$ accuracy.
 
-For series, Richardson extrapolation can accelerate convergence of slowly converging sequences — a technique used in numerical analysis for computing $\pi$, $e$, and other constants.
+For series, Richardson extrapolation can accelerate convergence of slowly converging sequences - a technique used in numerical analysis for computing $\pi$, $e$, and other constants.
 
 
 ---
@@ -1437,14 +1437,14 @@ For series, Richardson extrapolation can accelerate convergence of slowly conver
 | **Infinite series** | $\sum_{n=1}^\infty a_n = \lim_{N\to\infty} \sum_{n=1}^N a_n$ |
 | **Absolutely convergent** | $\sum |a_n| < \infty$ |
 | **Conditionally convergent** | $\sum a_n$ converges but $\sum |a_n| = \infty$ |
-| **Power series** | $\sum c_n (x-a)^n$ — a series whose terms are polynomial monomials |
+| **Power series** | $\sum c_n (x-a)^n$ - a series whose terms are polynomial monomials |
 | **Radius of convergence** | Largest $R$ such that $\sum c_n x^n$ converges absolutely for $|x| < R$ |
-| **Taylor series** | $\sum \frac{f^{(n)}(a)}{n!}(x-a)^n$ — power series coefficients from derivatives |
+| **Taylor series** | $\sum \frac{f^{(n)}(a)}{n!}(x-a)^n$ - power series coefficients from derivatives |
 | **Maclaurin series** | Taylor series at $a = 0$ |
 | **Analytic function** | Function that equals its Taylor series in a neighborhood of each point |
-| **Uniform convergence** | $\sup_x |f_n(x) - f(x)| \to 0$ — convergence rate independent of $x$ |
+| **Uniform convergence** | $\sup_x |f_n(x) - f(x)| \to 0$ - convergence rate independent of $x$ |
 | **Fourier series** | Expansion of a periodic function in the sinusoidal basis |
-| **Lagrange remainder** | $R_n(x) = \frac{f^{(n+1)}(c)}{(n+1)!}(x-a)^{n+1}$ — exact error in Taylor approximation |
+| **Lagrange remainder** | $R_n(x) = \frac{f^{(n+1)}(c)}{(n+1)!}(x-a)^{n+1}$ - exact error in Taylor approximation |
 
 ### I.2 Standard Series Table
 
@@ -1467,22 +1467,22 @@ For series, Richardson extrapolation can accelerate convergence of slowly conver
 
 | Test | Best For | Condition for Convergence | Condition for Divergence | Inconclusive |
 |------|---------|--------------------------|-------------------------|--------------|
-| Divergence | Any | — | $a_n \not\to 0$ | $a_n \to 0$ |
-| Geometric | $\sum r^n$ | $|r| < 1$ | $|r| \ge 1$ | — |
-| p-series | $\sum 1/n^p$ | $p > 1$ | $p \le 1$ | — |
+| Divergence | Any | - | $a_n \not\to 0$ | $a_n \to 0$ |
+| Geometric | $\sum r^n$ | $|r| < 1$ | $|r| \ge 1$ | - |
+| p-series | $\sum 1/n^p$ | $p > 1$ | $p \le 1$ | - |
 | Integral | Decreasing positive $f(n)$ | $\int f\,dx < \infty$ | $\int f\,dx = \infty$ | $f$ not monotone |
-| Comparison | $0 \le a_n \le b_n$ | $\sum b_n$ converges | $\sum a_n$ diverges | — |
-| Limit Comparison | $a_n, b_n > 0$ | $L \in (0,\infty)$ → same | same | $L = 0$ or $\infty$ |
+| Comparison | $0 \le a_n \le b_n$ | $\sum b_n$ converges | $\sum a_n$ diverges | - |
+| Limit Comparison | $a_n, b_n > 0$ | $L \in (0,\infty)$ -> same | same | $L = 0$ or $\infty$ |
 | Ratio | Factorials, exponentials | $L < 1$ | $L > 1$ | $L = 1$ |
 | Root | $n$-th powers $(f(n))^n$ | $L < 1$ | $L > 1$ | $L = 1$ |
-| Alternating | $\sum(-1)^n b_n$ | $b_n \ge 0$ decreasing, $\to 0$ | — | $b_n$ not decreasing |
+| Alternating | $\sum(-1)^n b_n$ | $b_n \ge 0$ decreasing, $\to 0$ | - | $b_n$ not decreasing |
 
 ### I.4 Self-Assessment Checklist
 
 After completing this section:
 
 **Sequences**
-- [ ] Can give ε-N proof that $1/n \to 0$
+- [ ] Can give epsilon-N proof that $1/n \to 0$
 - [ ] Can state and use Monotone Convergence Theorem
 - [ ] Can explain Bolzano-Weierstrass and its ML relevance
 
@@ -1512,7 +1512,7 @@ After completing this section:
 
 ## Appendix J: Worked Solutions to Selected Exercises
 
-### J.1 Exercise 1 — Geometric Series
+### J.1 Exercise 1 - Geometric Series
 
 **(a)** $\sum_{n=0}^\infty (2/3)^n$: geometric series with $a=1$, $r = 2/3$. Since $|r| = 2/3 < 1$:
 $$\sum_{n=0}^\infty (2/3)^n = \frac{1}{1-2/3} = \frac{1}{1/3} = 3$$
@@ -1524,7 +1524,7 @@ $$\frac{1}{1-(-1/4)} = \frac{1}{5/4} = \frac{4}{5}$$
 
 **(d)** $G_0 = \sum_{t=0}^\infty 0.95^t \cdot 1 = \frac{1}{1-0.95} = \frac{1}{0.05} = 20$.
 
-### J.2 Exercise 3 — Radius of Convergence
+### J.2 Exercise 3 - Radius of Convergence
 
 **(a)** $\sum (x/3)^n$: geometric series with ratio $x/3$. Converges when $|x/3| < 1$, i.e., $|x| < 3$. So $R = 3$.
 - At $x = 3$: $\sum 1^n = \sum 1$ diverges.
@@ -1532,8 +1532,8 @@ $$\frac{1}{1-(-1/4)} = \frac{1}{5/4} = \frac{4}{5}$$
 - Interval of convergence: $(-3, 3)$.
 
 **(b)** $\sum (-1)^n x^n / n$: ratio test: $|a_{n+1}/a_n| = \frac{n|x|}{n+1} \to |x|$. So $R = 1$.
-- At $x = 1$: $\sum (-1)^n/n$ — alternating harmonic, converges to $-\ln 2$.
-- At $x = -1$: $\sum (-1)^n(-1)^n/n = \sum 1/n$ — harmonic, diverges.
+- At $x = 1$: $\sum (-1)^n/n$ - alternating harmonic, converges to $-\ln 2$.
+- At $x = -1$: $\sum (-1)^n(-1)^n/n = \sum 1/n$ - harmonic, diverges.
 - Interval of convergence: $(-1, 1]$.
 
 **(c)** $\sum n! x^n$: ratio $= (n+1)|x| \to \infty$ for any $x \ne 0$. So $R = 0$; converges only at $x = 0$.
@@ -1543,7 +1543,7 @@ $$\frac{1}{1-(-1/4)} = \frac{1}{5/4} = \frac{4}{5}$$
 - At $x = 1$ ($x-2 = -1$): $\sum (-1)^n/(n^2+1)$ converges absolutely.
 - Interval of convergence: $[1, 3]$.
 
-### J.3 Exercise 5 — Lagrange Remainder
+### J.3 Exercise 5 - Lagrange Remainder
 
 **(a)** $\ln(1+x)$: derivatives at $a=0$:
 - $f(x) = \ln(1+x)$, $f(0) = 0$
@@ -1557,7 +1557,7 @@ $$T_4(x) = x - \frac{x^2}{2} + \frac{x^3}{3} - \frac{x^4}{4}$$
 **(b)** At $x = 0.2$: $f^{(5)}(x) = 24/(1+x)^5$. On $[0, 0.2]$: $|f^{(5)}| \le 24/(1+0)^5 = 24$. So:
 $$|R_4(0.2)| \le \frac{24}{5!}(0.2)^5 = \frac{24}{120} \cdot 0.00032 = 0.2 \times 0.00032 = 6.4 \times 10^{-5}$$
 
-**(c)** True: $\ln(1.2) \approx 0.182322$. $T_4(0.2) = 0.2 - 0.02 + 0.002667 - 0.0004 = 0.182267$. Error $\approx 5.5 \times 10^{-5}$ ✓ (less than our bound).
+**(c)** True: $\ln(1.2) \approx 0.182322$. $T_4(0.2) = 0.2 - 0.02 + 0.002667 - 0.0004 = 0.182267$. Error $\approx 5.5 \times 10^{-5}$  (less than our bound).
 
 **(d)** Need $|R_n(0.1)| \le \frac{1}{n+1}(0.1)^{n+1} \le 10^{-10}$. For $n = 8$: $\frac{1}{9}(0.1)^9 \approx 1.1 \times 10^{-10}$. So **9 terms** suffice.
 
@@ -1585,14 +1585,14 @@ $$-\sum_{n=1}^\infty \frac{1}{n^2}$$
 
 Equating: $-\sum 1/n^2 = -\pi^2/6$, so $\sum_{n=1}^\infty \frac{1}{n^2} = \frac{\pi^2}{6}$.
 
-This approach — identifying a function by its zeros and comparing Taylor series — is now a standard technique in complex analysis. Euler's original argument was made rigorous by Weierstrass's factorization theorem (1876).
+This approach - identifying a function by its zeros and comparing Taylor series - is now a standard technique in complex analysis. Euler's original argument was made rigorous by Weierstrass's factorization theorem (1876).
 
 ### K.2 Ramanujan's Enigmatic Formulas
 
-Srinivasa Ramanujan (1887–1920) discovered series identities that seemed impossible:
+Srinivasa Ramanujan (1887-1920) discovered series identities that seemed impossible:
 $$\frac{1}{\pi} = \frac{2\sqrt{2}}{9801}\sum_{n=0}^\infty \frac{(4n)!}{(n!)^4} \cdot \frac{26390n + 1103}{396^{4n}}$$
 
-This series was discovered empirically and later proven using the theory of elliptic integrals and modular forms. It converges incredibly fast — each term adds about 8 decimal digits to $\pi$.
+This series was discovered empirically and later proven using the theory of elliptic integrals and modular forms. It converges incredibly fast - each term adds about 8 decimal digits to $\pi$.
 
 **Modern use**: The **Chudnovsky algorithm** (1988), based on a Ramanujan-like formula, is used for computing $\pi$ to trillions of digits and is implemented in the `mpmath` Python library.
 
@@ -1629,11 +1629,11 @@ Intuitively: the terms get arbitrarily close to each other as $n \to \infty$.
 
 This is the formal statement of the fact that $\mathbb{R}$ has "no gaps". It is what distinguishes $\mathbb{R}$ from $\mathbb{Q}$: the sequence $3, 3.1, 3.14, 3.141, \ldots$ (rational approximations to $\pi$) is Cauchy in $\mathbb{Q}$ but does not converge in $\mathbb{Q}$ (since $\pi \notin \mathbb{Q}$). It does converge in $\mathbb{R}$.
 
-**For ML**: Gradient descent sequences are sometimes analyzed as Cauchy sequences — if parameter updates become arbitrarily small, the sequence is Cauchy in the complete space $\mathbb{R}^d$ and therefore converges (to some local minimum or saddle point).
+**For ML**: Gradient descent sequences are sometimes analyzed as Cauchy sequences - if parameter updates become arbitrarily small, the sequence is Cauchy in the complete space $\mathbb{R}^d$ and therefore converges (to some local minimum or saddle point).
 
 ### L.2 Absolute Convergence and Rearrangements
 
-**Theorem (Absolute convergence → any rearrangement converges to same sum)**: If $\sum a_n$ converges absolutely to $S$, then any rearrangement $\sum a_{\sigma(n)}$ also converges to $S$.
+**Theorem (Absolute convergence -> any rearrangement converges to same sum)**: If $\sum a_n$ converges absolutely to $S$, then any rearrangement $\sum a_{\sigma(n)}$ also converges to $S$.
 
 *Proof sketch*: For any $\epsilon > 0$, choose $N$ so that $\sum_{n>N}|a_n| < \epsilon/2$. Any rearrangement that keeps the first $N$ terms (in possibly different order) agrees with the original sum to within $\epsilon$. $\square$
 
@@ -1645,7 +1645,7 @@ This is the formal statement of the fact that $\mathbb{R}$ has "no gaps". It is 
 
 A rearrangement (two positives, one negative): $1 + 1/3 - 1/2 + 1/5 + 1/7 - 1/4 + \cdots = \frac{3}{2}\ln 2$.
 
-This is not a curiosity — it shows that the value of a conditionally convergent series is an artifact of the order of summation.
+This is not a curiosity - it shows that the value of a conditionally convergent series is an artifact of the order of summation.
 
 ### L.3 Power Series at the Boundary: Abel's Theorem
 
@@ -1663,7 +1663,7 @@ This justifies the formula $\ln 2 = 1 - 1/2 + 1/3 - 1/4 + \cdots$ from the power
 
 Sometimes a divergent series can be assigned a meaningful sum via a **summability method**:
 
-**Cesàro summability**: $\lim_{N\to\infty} \frac{1}{N}\sum_{n=1}^N S_n = L$. The series $1 - 1 + 1 - 1 + \cdots$ has partial sums $1, 0, 1, 0, \ldots$ with average $\to 1/2$. So it is Cesàro summable to $1/2$.
+**Cesro summability**: $\lim_{N\to\infty} \frac{1}{N}\sum_{n=1}^N S_n = L$. The series $1 - 1 + 1 - 1 + \cdots$ has partial sums $1, 0, 1, 0, \ldots$ with average $\to 1/2$. So it is Cesro summable to $1/2$.
 
 **Abel summability**: $\lim_{x\to 1^-} \sum a_n x^n = L$. For $\sum (-1)^n$: $\sum (-x)^n = 1/(1+x) \to 1/2$ as $x \to 1^-$. Abel sum $= 1/2$.
 
@@ -1672,7 +1672,7 @@ Sometimes a divergent series can be assigned a meaningful sum via a **summabilit
 
 ---
 
-## Appendix M: Worked Examples — Taylor Series Applications
+## Appendix M: Worked Examples - Taylor Series Applications
 
 ### M.1 Computing $e$ to High Precision
 
@@ -1694,9 +1694,9 @@ $$\left|\frac{1}{n!(2n+1)}\right| < 10^{-10} \implies n \ge 9$$
 
 So 10 terms give: $1 - 1/3 + 1/10 - 1/42 + 1/216 - 1/1320 + 1/9360 - 1/75600 + 1/685440 - 1/6894720 \approx 0.7468241328$
 
-True value: $\frac{\sqrt\pi}{2}\text{erf}(1) \approx 0.7468241329$. ✓
+True value: $\frac{\sqrt\pi}{2}\text{erf}(1) \approx 0.7468241329$. 
 
-### M.3 L'Hôpital's Rule via Taylor Series
+### M.3 L'Hpital's Rule via Taylor Series
 
 Limits of the form $0/0$ are often cleaner via Taylor series:
 
@@ -1706,7 +1706,7 @@ $$\lim_{x\to 0}\frac{e^x - 1 - x}{x^2} = \lim_{x\to 0}\frac{x^2/2 + O(x^3)}{x^2}
 
 $$\lim_{x\to 0}\frac{1-\cos x}{x^2} = \lim_{x\to 0}\frac{x^2/2 - x^4/24 + \cdots}{x^2} = \frac{1}{2}$$
 
-The Taylor series approach reveals the **rate of vanishing** explicitly — it shows not just that the limit exists but also the leading behavior, which L'Hôpital's rule alone does not.
+The Taylor series approach reveals the **rate of vanishing** explicitly - it shows not just that the limit exists but also the leading behavior, which L'Hpital's rule alone does not.
 
 **For ML**: This technique is used to analyze the behavior of loss functions near saddle points and to derive learning rate bounds from second-order Taylor expansions.
 
@@ -1723,7 +1723,7 @@ Numerically: $e^{-2} \approx 0.135$, $e^{-1} \approx 0.368$, $e^0 = 1$. Sum $\ap
 
 $\text{LSE}(x) \approx 1002.408$. Softmax values: $e^{x_i - \text{LSE}(x)} = e^{-0.408}, e^{0.592-1.0}, e^{0-0.408}$.
 
-The Taylor connection: $\text{LSE}(x) = m + \ln(1 + \sum_{i \ne i^*} e^{x_i - m}) \approx m + \sum_{i \ne i^*} e^{x_i - m}$ (first-order Taylor of $\ln(1+\epsilon)$ for small $\epsilon$) — valid when the max logit dominates by a large margin.
+The Taylor connection: $\text{LSE}(x) = m + \ln(1 + \sum_{i \ne i^*} e^{x_i - m}) \approx m + \sum_{i \ne i^*} e^{x_i - m}$ (first-order Taylor of $\ln(1+\epsilon)$ for small $\epsilon$) - valid when the max logit dominates by a large margin.
 
 
 ---
@@ -1764,9 +1764,9 @@ Many iterative algorithms in ML produce sequences converging to a fixed point. T
 
 **Banach Fixed-Point Theorem (Contraction Mapping)**: If $T: X \to X$ is a contraction on a complete metric space (i.e., $d(Tx, Ty) \le q \cdot d(x,y)$ for $q < 1$), then $T$ has a unique fixed point $x^* = Tx^*$, and the iteration $x_{n+1} = Tx_n$ converges to $x^*$ with geometric rate $q^n$.
 
-**Application — Bellman equations**: The Bellman backup operator $T$ in reinforcement learning satisfies $\|TV - TW\|_\infty \le \gamma\|V - W\|_\infty$ with contraction rate $\gamma < 1$. By Banach's theorem, the value iteration $V_{n+1} = TV_n$ converges to the unique optimal value function $V^*$.
+**Application - Bellman equations**: The Bellman backup operator $T$ in reinforcement learning satisfies $\|TV - TW\|_\infty \le \gamma\|V - W\|_\infty$ with contraction rate $\gamma < 1$. By Banach's theorem, the value iteration $V_{n+1} = TV_n$ converges to the unique optimal value function $V^*$.
 
-The convergence rate $\gamma^n$ is itself a geometric series — each policy evaluation step reduces the error by factor $\gamma$.
+The convergence rate $\gamma^n$ is itself a geometric series - each policy evaluation step reduces the error by factor $\gamma$.
 
 ### N.4 Matrix Exponential and Lie Groups
 
@@ -1846,44 +1846,44 @@ After completing this entire section, you should be able to:
 
 ## Appendix P: Connections to Adjacent Sections
 
-### P.1 ← §04/01 Limits and Continuity
+### P.1 <- 04/01 Limits and Continuity
 
-The entire theory of sequences is the theory of limits restricted to integer inputs. Every result about sequence convergence is a special case of the limit definition from §01:
+The entire theory of sequences is the theory of limits restricted to integer inputs. Every result about sequence convergence is a special case of the limit definition from 01:
 
-- $\lim_{n\to\infty} a_n = L$ is the ε-δ limit with $x \to \infty$ and $\delta$ replaced by $N$
-- The Squeeze Theorem for sequences is the Squeeze Theorem from §01 restricted to integers
-- Continuous functions preserve sequence limits: $a_n \to L \implies f(a_n) \to f(L)$ — this is the sequential characterization of continuity from §01
+- $\lim_{n\to\infty} a_n = L$ is the epsilon-delta limit with $x \to \infty$ and $\delta$ replaced by $N$
+- The Squeeze Theorem for sequences is the Squeeze Theorem from 01 restricted to integers
+- Continuous functions preserve sequence limits: $a_n \to L \implies f(a_n) \to f(L)$ - this is the sequential characterization of continuity from 01
 
 **Formal link**: A function $f: \mathbb{R} \to \mathbb{R}$ is continuous at $a$ if and only if for every sequence $x_n \to a$, we have $f(x_n) \to f(a)$. This makes sequences a fundamental tool for studying continuous functions.
 
-### P.2 ← §04/02 Derivatives and Differentiation
+### P.2 <- 04/02 Derivatives and Differentiation
 
 Taylor series are the direct children of differentiation:
 
 - The $n$-th Taylor coefficient is $f^{(n)}(a)/n!$, requiring $n$ derivatives at $a$
 - The Lagrange remainder involves the $(n+1)$-th derivative
-- L'Hôpital's rule (for $0/0$ limits) is superseded by Taylor series analysis, which gives the limit value AND the rate of approach
-- The derivative of a power series is a power series (via term-by-term differentiation) — justified by uniform convergence
+- L'Hpital's rule (for $0/0$ limits) is superseded by Taylor series analysis, which gives the limit value AND the rate of approach
+- The derivative of a power series is a power series (via term-by-term differentiation) - justified by uniform convergence
 
-### P.3 ← §04/03 Integration
+### P.3 <- 04/03 Integration
 
 Integration provides two key tools for series theory:
 
-1. **Integral test**: $\sum a_n$ converges iff $\int f\,dx$ converges — directly using the improper integrals from §03
-2. **Term-by-term integration**: $\int \sum c_n x^n\,dx = \sum c_n x^{n+1}/(n+1)$ — used to derive $\ln(1+x)$ from $1/(1+x)$ and $\arctan x$ from $1/(1+x^2)$
+1. **Integral test**: $\sum a_n$ converges iff $\int f\,dx$ converges - directly using the improper integrals from 03
+2. **Term-by-term integration**: $\int \sum c_n x^n\,dx = \sum c_n x^{n+1}/(n+1)$ - used to derive $\ln(1+x)$ from $1/(1+x)$ and $\arctan x$ from $1/(1+x^2)$
 
 The connection is deep: both integration and summation are instances of the same "linear functional on functions" idea from functional analysis.
 
-### P.4 → §05 Multivariate Calculus
+### P.4 -> 05 Multivariate Calculus
 
 The multivariable Taylor theorem (the most important formula in optimization theory) is the direct extension of the univariate Taylor series:
 $$f(\mathbf{x} + \mathbf{h}) = f(\mathbf{x}) + \nabla f(\mathbf{x})^\top \mathbf{h} + \frac{1}{2}\mathbf{h}^\top H(\mathbf{x})\mathbf{h} + O(\|\mathbf{h}\|^3)$$
 
 Every gradient descent convergence proof, every Newton method derivation, and every trust region method is an application of this formula. The radius of convergence concept extends to a "trust region" around the expansion point.
 
-→ *Full treatment: [§05 Multivariate Calculus](../../05-Multivariate-Calculus/README.md)*
+-> *Full treatment: [05 Multivariate Calculus](../../05-Multivariate-Calculus/README.md)*
 
-### P.5 → §06 Probability and Statistics
+### P.5 -> 06 Probability and Statistics
 
 Generating functions, characteristic functions, and moment generating functions are all power series / Fourier transforms in disguise:
 
@@ -1893,7 +1893,7 @@ Generating functions, characteristic functions, and moment generating functions 
 
 The Central Limit Theorem proof via characteristic functions uses Taylor expansion of $\log\phi_X(t)$ and the fact that the Gaussian characteristic function is $e^{-t^2/2}$.
 
-→ *Full treatment: [§06 Probability and Statistics](../../06-Probability-and-Statistics/README.md)*
+-> *Full treatment: [06 Probability and Statistics](../../06-Probability-and-Statistics/README.md)*
 
 
 ---
@@ -1924,7 +1924,7 @@ Determine convergence of $\sum_{n=1}^\infty \frac{(-3)^n}{n^2 \cdot 2^n}$.
 
 Ratio test: $\frac{(3/2)^{n+1}/(n+1)^2}{(3/2)^n/n^2} = \frac{3}{2} \cdot \frac{n^2}{(n+1)^2} \to \frac{3}{2} > 1$.
 
-So $\sum (3/2)^n/n^2$ diverges. Since the series diverges absolutely, check conditional convergence: alternating series test needs $b_n = (3/2)^n/n^2 \to 0$? No — $(3/2)^n \to \infty$. So $b_n \to \infty$, violating the necessary condition. The series **diverges**.
+So $\sum (3/2)^n/n^2$ diverges. Since the series diverges absolutely, check conditional convergence: alternating series test needs $b_n = (3/2)^n/n^2 \to 0$? No - $(3/2)^n \to \infty$. So $b_n \to \infty$, violating the necessary condition. The series **diverges**.
 
 ### Q.3 Full Taylor Expansion of $\arctan(x)$
 
@@ -1954,7 +1954,7 @@ Every floating-point number is represented with finite precision. When computing
 1. **Truncation error**: stopping at $N$ terms instead of $\infty$. Bounded by Lagrange remainder.
 2. **Rounding error**: each term $c_n x^n$ is rounded to nearest float. Accumulates with $N$ terms.
 
-The optimal $N$ balances these — adding more terms reduces truncation error but eventually increases rounding error. For `float64` with $\epsilon_{\text{mach}} \approx 10^{-16}$:
+The optimal $N$ balances these - adding more terms reduces truncation error but eventually increases rounding error. For `float64` with $\epsilon_{\text{mach}} \approx 10^{-16}$:
 
 **Optimal $N$ for $e^x$ near $x=0$**: truncation error $\approx |x|^{N+1}/(N+1)!$; rounding error $\approx N\epsilon_{\text{mach}} e^{|x|}$. Set equal: $N! \approx |x|^N / (N\epsilon_{\text{mach}})$. For $|x| = 1$: optimal $N \approx 17$ (matches the 17 significant digits of float64).
 
@@ -1976,7 +1976,7 @@ def kahan_sum(values):
     return s
 ```
 
-This reduces error to $O(\varepsilon)$ regardless of $n$. Libraries like NumPy use **pairwise summation** (divide-and-conquer), achieving $O(\varepsilon \log n)$ error — a good balance.
+This reduces error to $O(\varepsilon)$ regardless of $n$. Libraries like NumPy use **pairwise summation** (divide-and-conquer), achieving $O(\varepsilon \log n)$ error - a good balance.
 
 **For ML**: In mixed-precision training (float16 weights, float32 accumulation), the summation algorithm in the optimizer matters. Kahan summation in the gradient accumulation step significantly reduces precision loss.
 
@@ -2001,23 +2001,23 @@ The transformed series converges much faster. This is used in high-precision com
 
 For an ML practitioner who needs only the most practically relevant material:
 
-1. **§1.3**: Why series matter for AI (overview table)
-2. **§3.2**: Geometric series (Adam bias correction, discounted rewards)
-3. **§4.4**: Ratio test (to understand radius of convergence)
-4. **§5.2**: Radius of convergence (when to trust a Taylor approximation)
-5. **§6.1–6.3**: Taylor series derivation and Lagrange error bounds
-6. **§7.1–7.6**: All ML applications in full
-7. **§8.3**: RoPE and positional encodings
+1. **1.3**: Why series matter for AI (overview table)
+2. **3.2**: Geometric series (Adam bias correction, discounted rewards)
+3. **4.4**: Ratio test (to understand radius of convergence)
+4. **5.2**: Radius of convergence (when to trust a Taylor approximation)
+5. **6.1-6.3**: Taylor series derivation and Lagrange error bounds
+6. **7.1-7.6**: All ML applications in full
+7. **8.3**: RoPE and positional encodings
 
 ### S.2 Theoretical Deep Dive
 
 For a reader interested in rigorous analysis:
 
-1. **§2.2**: ε-N definition of sequence convergence (in full)
-2. **§2.3**: Monotone Convergence Theorem (proof)
-3. **§4**: All convergence tests (with proofs in Appendix A)
-4. **§5**: Power series theory, radius of convergence, uniform convergence (App. B)
-5. **§6.4**: When does the Taylor series converge to $f$? (Analytic functions)
+1. **2.2**: epsilon-N definition of sequence convergence (in full)
+2. **2.3**: Monotone Convergence Theorem (proof)
+3. **4**: All convergence tests (with proofs in Appendix A)
+4. **5**: Power series theory, radius of convergence, uniform convergence (App. B)
+5. **6.4**: When does the Taylor series converge to $f$? (Analytic functions)
 6. **Appendix L**: Cauchy sequences, Riemann rearrangement, Abel's theorem
 7. **Appendix N**: Zeta function, spectral bias, Banach fixed-point theorem
 
@@ -2025,15 +2025,15 @@ For a reader interested in rigorous analysis:
 
 | Section | Requires |
 |---------|---------|
-| §2 Sequences | §04/01 Limits (ε-δ definition) |
-| §3 Infinite Series | §2 (convergence of sequences) |
-| §4 Convergence Tests | §3.1 (partial sums), §04/03 Integration (integral test) |
-| §5 Power Series | §4 (convergence tests), especially ratio test |
-| §6 Taylor Series | §04/02 Derivatives (all orders), §5 (power series) |
-| §7 ML Applications | §6 (Taylor series), §04/03 (integration) |
-| §8 Fourier Preview | §04/03 (integration, orthogonality integrals) |
-| Appendix B | §5 (uniform convergence motivation) |
+| 2 Sequences | 04/01 Limits (epsilon-delta definition) |
+| 3 Infinite Series | 2 (convergence of sequences) |
+| 4 Convergence Tests | 3.1 (partial sums), 04/03 Integration (integral test) |
+| 5 Power Series | 4 (convergence tests), especially ratio test |
+| 6 Taylor Series | 04/02 Derivatives (all orders), 5 (power series) |
+| 7 ML Applications | 6 (Taylor series), 04/03 (integration) |
+| 8 Fourier Preview | 04/03 (integration, orthogonality integrals) |
+| Appendix B | 5 (uniform convergence motivation) |
 | Appendix C | Complex numbers (basic) |
-| Appendix D | §6 (generating functions), §04/03 probability |
-| Appendix N | §6 (Taylor), §04/01 (limits), some complex analysis |
+| Appendix D | 6 (generating functions), 04/03 probability |
+| Appendix N | 6 (Taylor), 04/01 (limits), some complex analysis |
 

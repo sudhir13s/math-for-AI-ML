@@ -1,16 +1,16 @@
-[← Back to Mathematical Foundations](../README.md) | [Next: Einstein Summation and Index Notation →](../05-Einstein-Summation-and-Index-Notation/notes.md)
+[<- Back to Mathematical Foundations](../README.md) | [Next: Einstein Summation and Index Notation ->](../05-Einstein-Summation-and-Index-Notation/notes.md)
 
 ---
 
 # Summation and Product Notation
 
-> _"Summation and product notation are the syntax of quantitative AI reasoning — the grammar in which every loss function, every gradient, every attention score, and every probability distribution is expressed. Fluency with Σ and Π is the difference between reading ML papers as fluid prose and decoding them symbol by symbol."_
+> _"Summation and product notation are the syntax of quantitative AI reasoning - the grammar in which every loss function, every gradient, every attention score, and every probability distribution is expressed. Fluency with \Sigma and \Pi is the difference between reading ML papers as fluid prose and decoding them symbol by symbol."_
 
 ## Overview
 
-Summation notation (Σ) and product notation (Π) are compact symbolic languages for expressing repeated addition and multiplication over collections of terms. They are not merely abbreviations — they are precise mathematical objects with well-defined rules for manipulation, interchange, and transformation.
+Summation notation (\Sigma) and product notation (\Pi) are compact symbolic languages for expressing repeated addition and multiplication over collections of terms. They are not merely abbreviations - they are precise mathematical objects with well-defined rules for manipulation, interchange, and transformation.
 
-For AI and LLMs specifically, virtually every formula you will encounter is written in Σ or Π notation: loss functions, gradients, attention scores, probability distributions, normalisation constants, perplexity, entropy, KL divergence, matrix multiplication. Without mastery of these notations, every formula requires line-by-line decoding; with it, mathematical expressions read like natural language.
+For AI and LLMs specifically, virtually every formula you will encounter is written in \Sigma or \Pi notation: loss functions, gradients, attention scores, probability distributions, normalisation constants, perplexity, entropy, KL divergence, matrix multiplication. Without mastery of these notations, every formula requires line-by-line decoding; with it, mathematical expressions read like natural language.
 
 This chapter covers summation and product notation from first principles through to the specific patterns that appear in modern transformer-based AI systems. Every concept is grounded in how it appears in real machine learning computation.
 
@@ -32,7 +32,7 @@ This chapter covers summation and product notation from first principles through
 
 After completing this section, you will:
 
-- Read and write summation (Σ) and product (Π) notation fluently in any ML context
+- Read and write summation (\Sigma) and product (\Pi) notation fluently in any ML context
 - Apply all algebraic properties: linearity, splitting, reindexing, interchange, telescoping
 - Derive closed-form results for arithmetic, geometric, and power series
 - Convert between products and sums using logarithms (the foundation of log-likelihood)
@@ -59,13 +59,13 @@ After completing this section, you will:
     - [1.4 The Index as a Variable](#14-the-index-as-a-variable)
     - [1.5 Historical Timeline](#15-historical-timeline)
     - [1.6 The Relationship to Integration](#16-the-relationship-to-integration)
-  - [2. Summation Notation — Formal Definitions](#2-summation-notation--formal-definitions)
+  - [2. Summation Notation - Formal Definitions](#2-summation-notation--formal-definitions)
     - [2.1 Basic Definition](#21-basic-definition)
     - [2.2 Formal Definition via Recursion](#22-formal-definition-via-recursion)
     - [2.3 Index Set Notation](#23-index-set-notation)
     - [2.4 Multiple Indices](#24-multiple-indices)
     - [2.5 Sigma Notation Conventions](#25-sigma-notation-conventions)
-  - [3. Product Notation — Formal Definitions](#3-product-notation--formal-definitions)
+  - [3. Product Notation - Formal Definitions](#3-product-notation--formal-definitions)
     - [3.1 Basic Definition](#31-basic-definition)
     - [3.2 Why Empty Product = 1 and Empty Sum = 0](#32-why-empty-product--1-and-empty-sum--0)
     - [3.3 Factorial as Product Notation](#33-factorial-as-product-notation)
@@ -145,7 +145,7 @@ After completing this section, you will:
 
 ### 1.1 What Is Summation and Product Notation?
 
-Summation notation (Σ) and product notation (Π) are compact symbolic languages for expressing repeated addition and multiplication over collections of terms. They are the mathematical equivalent of a `for` loop — but with algebraic structure that allows formal manipulation.
+Summation notation (\Sigma) and product notation (\Pi) are compact symbolic languages for expressing repeated addition and multiplication over collections of terms. They are the mathematical equivalent of a `for` loop - but with algebraic structure that allows formal manipulation.
 
 Without them, writing the loss over a million training examples requires a million terms. With them, one line:
 
@@ -153,7 +153,7 @@ $$L = -\frac{1}{N} \sum_{i=1}^{N} \log P_\theta(y_i \mid x_i)$$
 
 This single expression encodes: "for each of the $N$ training examples, compute the log-probability of the correct label $y_i$ given input $x_i$ under model parameters $\theta$, negate, and average."
 
-They are not merely abbreviations — they are precise mathematical objects with well-defined rules for manipulation, interchange, and transformation. You can:
+They are not merely abbreviations - they are precise mathematical objects with well-defined rules for manipulation, interchange, and transformation. You can:
 
 - **Split** a sum into parts: $\sum_{i=1}^{100} f(i) = \sum_{i=1}^{50} f(i) + \sum_{i=51}^{100} f(i)$
 - **Factor out** constants: $\sum_{i=1}^{n} c \cdot f(i) = c \cdot \sum_{i=1}^{n} f(i)$
@@ -161,23 +161,23 @@ They are not merely abbreviations — they are precise mathematical objects with
 - **Convert** products to sums: $\log \prod_i f(i) = \sum_i \log f(i)$
 - **Telescope**: $\sum_{i=1}^{n}(f(i+1) - f(i)) = f(n+1) - f(1)$
 
-For AI, fluency with Σ and Π is non-negotiable. Virtually every formula in machine learning is written in summation or product notation — loss functions, gradients, attention scores, probability distributions, normalisation constants. The researcher who reads these fluently thinks in terms of structure; the one who doesn't decodes symbol by symbol and loses the forest for the trees.
+For AI, fluency with \Sigma and \Pi is non-negotiable. Virtually every formula in machine learning is written in summation or product notation - loss functions, gradients, attention scores, probability distributions, normalisation constants. The researcher who reads these fluently thinks in terms of structure; the one who doesn't decodes symbol by symbol and loses the forest for the trees.
 
 ```
 THE NOTATION AS A COMPRESSION TOOL
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 Without notation (N = 5):
-L = -(1/5)(log P(y₁|x₁) + log P(y₂|x₂) + log P(y₃|x₃) + log P(y₄|x₄) + log P(y₅|x₅))
+L = -(1/5)(log P(y_1|x_1) + log P(y_2|x_2) + log P(y_3|x_3) + log P(y_4|x_4) + log P(y_5|x_5))
 
 With notation (N = anything):
-L = -(1/N) ∑ᵢ₌₁ᴺ log P(yᵢ|xᵢ)
+L = -(1/N) \sum^i_=_1^N log P(y^i|x^i)
 
-The notation doesn't just save space — it reveals structure:
-  • The 1/N shows it's an average
-  • The log shows we're in log-probability space
-  • The ∑ shows we're aggregating over examples
-  • The index i shows which variable changes
+The notation doesn't just save space - it reveals structure:
+  - The 1/N shows it's an average
+  - The log shows we're in log-probability space
+  - The \sum shows we're aggregating over examples
+  - The index i shows which variable changes
 ```
 
 ### 1.2 Why This Notation Exists
@@ -186,9 +186,9 @@ The development of summation notation was driven by several fundamental needs:
 
 **Human working memory is finite.** Writing out 10,000 individual terms is impossible and obscures structure. A mathematician needs to reason about _patterns_ in sums, not individual terms. Compact notation makes patterns visible.
 
-**Notation reveals structure.** Consider $\sum_{i=1}^{n} i^2$. This immediately communicates "sum of squares from 1 to $n$" — the pattern is evident in a way that $1 + 4 + 9 + 16 + \ldots$ only suggests. The reader can immediately ask: does this have a closed form? Is it $O(n^3)$? How does it relate to $\int_0^n x^2 \, dx$?
+**Notation reveals structure.** Consider $\sum_{i=1}^{n} i^2$. This immediately communicates "sum of squares from 1 to $n$" - the pattern is evident in a way that $1 + 4 + 9 + 16 + \ldots$ only suggests. The reader can immediately ask: does this have a closed form? Is it $O(n^3)$? How does it relate to $\int_0^n x^2 \, dx$?
 
-**Enables algebraic manipulation.** Once expressed in Σ/Π notation, sums can be split, combined, reindexed, bounded, and transformed using precise algebraic rules. This is how mathematicians _prove things_ about sums, not by expanding and hand-checking.
+**Enables algebraic manipulation.** Once expressed in \Sigma/\Pi notation, sums can be split, combined, reindexed, bounded, and transformed using precise algebraic rules. This is how mathematicians _prove things_ about sums, not by expanding and hand-checking.
 
 **Generalises naturally.** The same notation scales from finite sums to infinite series to integrals:
 
@@ -196,7 +196,7 @@ $$\sum_{i=1}^{n} f(i) \quad \longrightarrow \quad \sum_{i=1}^{\infty} f(i) \quad
 
 Same conceptual framework, deeper mathematics.
 
-**Historical necessity.** As mathematics moved from specific numerical examples to general theorems about arbitrary $n$, notation had to scale. Gauss couldn't write "$1 + 2 + 3 + \ldots + 100 = 5050$" for every value — he needed $\sum_{i=1}^{n} i = n(n+1)/2$.
+**Historical necessity.** As mathematics moved from specific numerical examples to general theorems about arbitrary $n$, notation had to scale. Gauss couldn't write "$1 + 2 + 3 + \ldots + 100 = 5050$" for every value - he needed $\sum_{i=1}^{n} i = n(n+1)/2$.
 
 ### 1.3 Where These Appear in AI
 
@@ -212,7 +212,7 @@ This is the categorical cross-entropy loss: a double sum over training examples 
 
 $$P(v \mid x) = \frac{\exp(z_v)}{\sum_{v' \in V} \exp(z_{v'})}$$
 
-The denominator is a sum over the entire vocabulary — the partition function that ensures probabilities sum to 1.
+The denominator is a sum over the entire vocabulary - the partition function that ensures probabilities sum to 1.
 
 **Attention mechanism (weighted sum):**
 
@@ -230,7 +230,7 @@ The fundamental operation in attention: a sum of $d_k$ products.
 
 $$(AB)_{ij} = \sum_{k=1}^{d} A_{ik} B_{kj}$$
 
-Every linear layer, every projection, every attention computation involves matrix multiplication — which is itself a collection of sums.
+Every linear layer, every projection, every attention computation involves matrix multiplication - which is itself a collection of sums.
 
 **Perplexity (product converted to sum via log):**
 
@@ -242,7 +242,7 @@ The standard evaluation metric for language models: an exponentiated average of 
 
 $$P(\text{sequence}) = \prod_{i=1}^{n} P(t_i \mid t_1, \ldots, t_{i-1})$$
 
-The chain rule of probability applied to a sequence — a product of conditional probabilities.
+The chain rule of probability applied to a sequence - a product of conditional probabilities.
 
 **Joint probability of independent events (product):**
 
@@ -260,9 +260,9 @@ $$\text{Cost} = \sum_{(a,b)} \text{count}(a,b) \cdot \text{merge\_cost}(a,b)$$
 
 ### 1.4 The Index as a Variable
 
-The index variable (the $i$ in $\sum_i$) is a **bound variable** — it has no meaning outside the sum, just as the variable of integration has no meaning outside the integral.
+The index variable (the $i$ in $\sum_i$) is a **bound variable** - it has no meaning outside the sum, just as the variable of integration has no meaning outside the integral.
 
-$$\sum_{i=1}^{n} i^2 = \sum_{j=1}^{n} j^2 = \sum_{k=1}^{n} k^2 = \sum_{\text{🐱}=1}^{n} \text{🐱}^2$$
+$$\sum_{i=1}^{n} i^2 = \sum_{j=1}^{n} j^2 = \sum_{k=1}^{n} k^2 = \sum_{\text{}=1}^{n} \text{}^2$$
 
 All four expressions are identical. The name of the index does not matter. This is called **alpha-equivalence**: renaming bound variables preserves meaning. It is the same principle in:
 
@@ -275,13 +275,13 @@ All four expressions are identical. The name of the index does not matter. This 
 
 $$\sum_i \alpha_{ij} \neq \sum_j \alpha_{ij}$$
 
-The left side sums over the first index (rows), producing a result that still depends on $j$. The right side sums over the second index (columns), producing a result that depends on $i$. In attention: $\sum_j \alpha_{ij} = 1$ (attention weights for query $i$ sum to 1), but $\sum_i \alpha_{ij}$ gives the total attention received by key position $j$ — a completely different quantity.
+The left side sums over the first index (rows), producing a result that still depends on $j$. The right side sums over the second index (columns), producing a result that depends on $i$. In attention: $\sum_j \alpha_{ij} = 1$ (attention weights for query $i$ sum to 1), but $\sum_i \alpha_{ij}$ gives the total attention received by key position $j$ - a completely different quantity.
 
 ### 1.5 Historical Timeline
 
 ```
 HISTORICAL DEVELOPMENT OF SUMMATION NOTATION
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
 ~1800 BCE  Egypt/Babylon    Arithmetic series computed via specific examples;
                             no general notation; "add these five numbers"
@@ -289,30 +289,30 @@ HISTORICAL DEVELOPMENT OF SUMMATION NOTATION
 ~250 BCE   Archimedes       Summation of geometric series; area under parabola
                             via method of exhaustion; still no compact notation
 
-1593       Viète            Introduced systematic symbolic algebra; first use
+1593       Viete            Introduced systematic symbolic algebra; first use
                             of letters for unknowns; paved way for notation
 
-1675       Leibniz          Introduced ∫ as elongated S for "summa" (sum);
+1675       Leibniz          Introduced \int as elongated S for "summa" (sum);
                             integration conceived as continuous summation
 
-18th c.    Euler            Introduced Σ (capital sigma) for discrete summation;
+18th c.    Euler            Introduced \Sigma (capital sigma) for discrete summation;
                             standardised the notation we use today; wrote
-                            ∑ₙ₌₁^∞ 1/n² = π²/6 (Basel problem, 1735)
+                            \sum_n_=_1^\infty 1/n^2 = \pi^2/6 (Basel problem, 1735)
 
-1777–1855  Gauss            Master of summation manipulation; derived closed
+1777-1855  Gauss            Master of summation manipulation; derived closed
                             forms for many classical sums; the "prince of
                             mathematicians" famously summed 1+2+...+100 as a child
 
 1821       Cauchy           Rigorous theory of series convergence; defined when
-                            infinite sums are valid; ε-δ framework
+                            infinite sums are valid; \epsilon-\delta framework
 
-1854       Riemann          Riemann sum → integral; summation as the formal
+1854       Riemann          Riemann sum -> integral; summation as the formal
                             foundation of integration theory
 
 1916       Einstein         Einstein summation convention: repeated indices
                             imply summation; revolutionised tensor notation
 
-20th c.    Standard         Σ and Π become universal mathematical notation;
+20th c.    Standard         \Sigma and \Pi become universal mathematical notation;
                             every textbook, every paper
 
 2016+      Modern ML        Every NeurIPS/ICML/ICLR paper assumes fluency;
@@ -321,32 +321,32 @@ HISTORICAL DEVELOPMENT OF SUMMATION NOTATION
 
 ### 1.6 The Relationship to Integration
 
-The connection between summation and integration is not merely an analogy — it is a deep mathematical fact. The Riemann integral is _defined_ as a limit of sums:
+The connection between summation and integration is not merely an analogy - it is a deep mathematical fact. The Riemann integral is _defined_ as a limit of sums:
 
 $$\int_a^b f(x) \, dx = \lim_{n \to \infty} \sum_{i=1}^{n} f(x_i^*) \Delta x$$
 
 where $\Delta x = (b-a)/n$ and $x_i^*$ is a sample point in the $i$-th subinterval.
 
 ```
-DISCRETE ←→ CONTINUOUS CORRESPONDENCE
-═══════════════════════════════════════════════════════════════════════
+DISCRETE <--> CONTINUOUS CORRESPONDENCE
+=======================================================================
 
 SUMMATION                          INTEGRATION
-──────────                         ───────────
-∑ᵢ₌₁ⁿ f(i)               →       ∫₁ⁿ f(x) dx
+----------                         -----------
+\sum^i_=_1^n f(i)               ->       \int_1^n f(x) dx
 
-Index i ∈ {1, 2, ..., n}   →      x ∈ [1, n]  (continuous variable)
-Step size = 1               →      Infinitesimal dx
-∑ → ∫ as step → 0                 (Riemann sum definition)
+Index i \in {1, 2, ..., n}   ->      x \in [1, n]  (continuous variable)
+Step size = 1               ->      Infinitesimal dx
+\sum -> \int as step -> 0                 (Riemann sum definition)
 
-∏ᵢ₌₁ⁿ f(i)               →       exp(∫₁ⁿ ln f(x) dx)
-Discrete product            →      Continuous product (via log)
+\prod^i_=_1^n f(i)               ->       exp(\int_1^n ln f(x) dx)
+Discrete product            ->      Continuous product (via log)
 
-∑ᵢ f(i)·P(i)              →       ∫ f(x)·p(x) dx
-Discrete expectation        →      Continuous expectation
+\sum^i f(i)*P(i)              ->       \int f(x)*p(x) dx
+Discrete expectation        ->      Continuous expectation
 
-−∑ᵢ pᵢ log pᵢ             →       −∫ p(x) log p(x) dx
-Discrete entropy            →      Differential entropy
+-\sum^i p^i log p^i             ->       -\int p(x) log p(x) dx
+Discrete entropy            ->      Differential entropy
 ```
 
 This bridge matters for AI because many derivations convert between sums and integrals:
@@ -357,7 +357,7 @@ This bridge matters for AI because many derivations convert between sums and int
 
 ---
 
-## 2. Summation Notation — Formal Definitions
+## 2. Summation Notation - Formal Definitions
 
 ### 2.1 Basic Definition
 
@@ -377,11 +377,11 @@ The components of this notation are:
 
 **Number of terms:** $n - m + 1$ (when $n \geq m$).
 
-**Empty sum convention:** If $n < m$, the sum has no terms. By convention, the value of an empty sum is **0** — the additive identity:
+**Empty sum convention:** If $n < m$, the sum has no terms. By convention, the value of an empty sum is **0** - the additive identity:
 
 $$\sum_{i=5}^{3} f(i) = 0 \qquad (\text{empty sum; } 3 < 5)$$
 
-This convention is not arbitrary; it is the _only_ value consistent with the algebraic properties of summation (see §3.2).
+This convention is not arbitrary; it is the _only_ value consistent with the algebraic properties of summation (see 3.2).
 
 **Concrete examples:**
 
@@ -411,7 +411,7 @@ The recursion unfolds exactly like a `for` loop:
 
 ```python
 def sigma(f, m, n):
-    """Recursive definition of ∑ᵢ₌ₘⁿ f(i)"""
+    """Recursive definition of \sum^i_=_m^n f(i)"""
     if n < m:
         return 0          # Empty sum = additive identity
     return sigma(f, m, n-1) + f(n)  # Recursive step
@@ -459,7 +459,7 @@ $$\sum_{i=1}^{2} \sum_{j=1}^{3} ij = \sum_{i=1}^{2} (i \cdot 1 + i \cdot 2 + i \
 
 $$\sum_{b=1}^{B} \sum_{i=1}^{n} \sum_{j=1}^{n} \alpha_{b,i,j} \qquad \text{(sum over batch, query position, key position)}$$
 
-**AI example — matrix multiplication as double sum:**
+**AI example - matrix multiplication as double sum:**
 
 Computing all entries of $C = AB$ where $A \in \mathbb{R}^{m \times d}$, $B \in \mathbb{R}^{d \times n}$:
 
@@ -503,7 +503,7 @@ This appears in attention: $\text{Attn}_i = \sum_j \alpha_{ij} \mathbf{V}_j$ is 
 
 ---
 
-## 3. Product Notation — Formal Definitions
+## 3. Product Notation - Formal Definitions
 
 ### 3.1 Basic Definition
 
@@ -523,7 +523,7 @@ The components are identical to summation notation but with $\Pi$ (capital Greek
 
 **Number of factors:** $n - m + 1$ (same counting as summation).
 
-**Empty product convention:** If $n < m$, the product has no factors. By convention, the value of an empty product is **1** — the multiplicative identity:
+**Empty product convention:** If $n < m$, the product has no factors. By convention, the value of an empty product is **1** - the multiplicative identity:
 
 $$\prod_{i=5}^{3} f(i) = 1 \qquad (\text{empty product; } 3 < 5)$$
 
@@ -543,19 +543,19 @@ $$\prod_{i=1}^{n} \frac{1}{P(t_i | \text{context})} = \frac{1}{P(t_1|\text{ctx})
 
 ### 3.2 Why Empty Product = 1 and Empty Sum = 0
 
-These conventions are not arbitrary — they are the **only values** consistent with the algebraic rules:
+These conventions are not arbitrary - they are the **only values** consistent with the algebraic rules:
 
 **Additive identity argument.** The identity for addition is 0: $a + 0 = a$. An empty sum contributes no terms, so it must equal the additive identity:
 
 $$\sum_{\emptyset} = 0$$
 
-**Consistency check:** The recursive definition gives $\sum_{i=1}^{1} f(i) = \sum_{i=1}^{0} f(i) + f(1) = 0 + f(1) = f(1)$. If the empty sum were anything other than 0, this would fail. ✓
+**Consistency check:** The recursive definition gives $\sum_{i=1}^{1} f(i) = \sum_{i=1}^{0} f(i) + f(1) = 0 + f(1) = f(1)$. If the empty sum were anything other than 0, this would fail. OK
 
 **Multiplicative identity argument.** The identity for multiplication is 1: $a \cdot 1 = a$. An empty product contributes no factors, so it must equal the multiplicative identity:
 
 $$\prod_{\emptyset} = 1$$
 
-**Consistency check:** The recursive definition gives $\prod_{i=1}^{1} f(i) = \prod_{i=1}^{0} f(i) \cdot f(1) = 1 \cdot f(1) = f(1)$. ✓
+**Consistency check:** The recursive definition gives $\prod_{i=1}^{1} f(i) = \prod_{i=1}^{0} f(i) \cdot f(1) = 1 \cdot f(1) = f(1)$. OK
 
 **Factorial consistency.** The factorial $n! = \prod_{i=1}^{n} i$ must satisfy $0! = 1$:
 
@@ -564,17 +564,17 @@ $$0! = \prod_{i=1}^{0} i = 1 \qquad (\text{empty product convention})$$
 This is also consistent with $\Gamma(1) = 1$, the combinatorial identity $\binom{n}{0} = \frac{n!}{0! \cdot n!} = 1$, and the Taylor series $e^x = \sum_{n=0}^{\infty} \frac{x^n}{n!}$ (which needs $0! = 1$ for the $n = 0$ term to be $x^0/0! = 1$).
 
 ```
-IDENTITY ELEMENTS — THE PATTERN
-═══════════════════════════════════════════════════════════════════════
+IDENTITY ELEMENTS - THE PATTERN
+=======================================================================
 
 Operation      Identity     Empty Result     Why
-─────────      ────────     ────────────     ───
-Addition       0            ∑∅ = 0           Adding nothing = 0
-Multiplication 1            ∏∅ = 1           Multiplying nothing = 1
-Union          ∅            ⋃∅ = ∅           Unioning nothing = empty set
-Intersection   Universal    ⋂∅ = U           Intersecting nothing = everything
-Logical AND    True         ∧∅ = True        No conditions to fail
-Logical OR     False        ∨∅ = False       No conditions to satisfy
+---------      --------     ------------     ---
+Addition       0            \sum\emptyset = 0           Adding nothing = 0
+Multiplication 1            \prod\emptyset = 1           Multiplying nothing = 1
+Union          \emptyset            \cup\emptyset = \emptyset           Unioning nothing = empty set
+Intersection   Universal    \cap\emptyset = U           Intersecting nothing = everything
+Logical AND    True         \wedge\emptyset = True        No conditions to fail
+Logical OR     False        \vee\emptyset = False       No conditions to satisfy
 ```
 
 ### 3.3 Factorial as Product Notation
@@ -592,7 +592,7 @@ with the convention $0! = 1$ (empty product).
 | 1   | 1           | 1              | 2         | 1     |
 | 5   | 120         | 3,125          | 32        | 25    |
 | 10  | 3,628,800   | 10,000,000,000 | 1,024     | 100   |
-| 20  | 2.43 × 10¹⁸ | 1.05 × 10²⁶    | 1,048,576 | 400   |
+| 20  | 2.43 \times 10^1^8 | 1.05 \times 10^2^6    | 1,048,576 | 400   |
 
 For large $n$, Stirling's approximation gives:
 
@@ -632,10 +632,10 @@ This conversion from $\Pi$ to $\Sigma$ via logarithm is one of the most importan
 
 ```
 THE PRODUCT-TO-SUM CONVERSION VIA LOGARITHM
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
                     log
-    ∏ᵢ P(tᵢ|ctx) ────────→ ∑ᵢ log P(tᵢ|ctx)
+    \prod^i P(t^i|ctx) ---------> \sum^i log P(t^i|ctx)
 
     Product of           Sum of
     probabilities        log-probabilities
@@ -646,16 +646,16 @@ THE PRODUCT-TO-SUM CONVERSION VIA LOGARITHM
     Hard to              Easy to
     differentiate        differentiate
 
-    ← ─ ─ ─ ─ exp ─ ─ ─ ─ ←
+    <- - - - - exp - - - - <-
 
-    exp(∑ᵢ log Pᵢ) = ∏ᵢ Pᵢ     (inverse transformation)
+    exp(\sum^i log P^i) = \prod^i P^i     (inverse transformation)
 ```
 
 ---
 
 ## 4. Algebraic Properties of Summation
 
-These properties are the tools for manipulating sums — the algebraic rules that allow you to simplify, decompose, and transform summation expressions.
+These properties are the tools for manipulating sums - the algebraic rules that allow you to simplify, decompose, and transform summation expressions.
 
 ### 4.1 Linearity of Summation
 
@@ -679,7 +679,7 @@ $$\sum_{i=1}^{n} \bigl(\alpha f(i) + \beta g(i)\bigr) = \alpha \sum_{i=1}^{n} f(
 
 $$\nabla_\theta \sum_{i=1}^{N} L(\theta, x_i) = \sum_{i=1}^{N} \nabla_\theta L(\theta, x_i)$$
 
-The gradient of a sum equals the sum of gradients. This is why mini-batch gradient descent works: You can compute per-example gradients independently and then sum them. It is also why gradient accumulation works: you can split a large batch into smaller sub-batches, compute gradients for each, and sum them — the result is identical to computing the gradient of the full batch.
+The gradient of a sum equals the sum of gradients. This is why mini-batch gradient descent works: You can compute per-example gradients independently and then sum them. It is also why gradient accumulation works: you can split a large batch into smaller sub-batches, compute gradients for each, and sum them - the result is identical to computing the gradient of the full batch.
 
 **Warning:** The constant $c$ must **not** depend on the summation index $i$. If $c$ depends on $i$, it cannot be factored out:
 
@@ -691,13 +691,13 @@ $$\sum_{i=1}^{n} c = n \cdot c$$
 
 The sum of $n$ copies of a constant $c$ equals $n$ times $c$. This follows from linearity: $\sum_{i=1}^{n} c = c \cdot \sum_{i=1}^{n} 1 = c \cdot n$.
 
-**Special case:** $\sum_{i=1}^{n} 1 = n$ — a useful identity for counting.
+**Special case:** $\sum_{i=1}^{n} 1 = n$ - a useful identity for counting.
 
 **AI applications:**
 
-- **Normalisation check:** $\sum_{v=1}^{|V|} P(v) = 1$ — all probabilities must sum to 1. If $P$ is uniform over $|V|$ tokens, then $P(v) = 1/|V|$ and $\sum_v P(v) = |V| \cdot (1/|V|) = 1$. ✓
-- **Batch average:** $\sum_{i=1}^{N} (1/N) = 1$ — confirms that $(1/N) \sum_i f(i)$ is a proper average.
-- **Attention conservation:** $\sum_j \alpha_{ij} = 1$ for softmax attention weights — each query's weights sum to 1.
+- **Normalisation check:** $\sum_{v=1}^{|V|} P(v) = 1$ - all probabilities must sum to 1. If $P$ is uniform over $|V|$ tokens, then $P(v) = 1/|V|$ and $\sum_v P(v) = |V| \cdot (1/|V|) = 1$. OK
+- **Batch average:** $\sum_{i=1}^{N} (1/N) = 1$ - confirms that $(1/N) \sum_i f(i)$ is a proper average.
+- **Attention conservation:** $\sum_j \alpha_{ij} = 1$ for softmax attention weights - each query's weights sum to 1.
 
 ### 4.3 Splitting and Combining Sums
 
@@ -769,7 +769,7 @@ $$= -f(1) + \cancel{f(2)} - \cancel{f(2)} + \cancel{f(3)} - \cancel{f(3)} + \ldo
 
 $$\sum_{i=1}^{n} \bigl(g(i) - g(i-1)\bigr) = g(n) - g(0)$$
 
-**Example — partial fractions:** Show that $\sum_{i=1}^{n} \frac{1}{i(i+1)} = \frac{n}{n+1}$:
+**Example - partial fractions:** Show that $\sum_{i=1}^{n} \frac{1}{i(i+1)} = \frac{n}{n+1}$:
 
 $$\frac{1}{i(i+1)} = \frac{1}{i} - \frac{1}{i+1}$$
 
@@ -791,18 +791,18 @@ $$\sum_{i=1}^{m} \sum_{j=1}^{n} f(i,j) = \sum_{j=1}^{n} \sum_{i=1}^{m} f(i,j)$$
 
 ```
 SUMMING A MATRIX: ROW-FIRST vs COLUMN-FIRST
-═══════════════════════════════════════════════════════════════════════
+=======================================================================
 
-    j=1  j=2  j=3          Row-first (∑ᵢ ∑ⱼ):
-   ┌────┬────┬────┐         Row 1: a₁₁ + a₁₂ + a₁₃ = R₁
-i=1│ a₁₁│ a₁₂│ a₁₃│        Row 2: a₂₁ + a₂₂ + a₂₃ = R₂
-   ├────┼────┼────┤         Total: R₁ + R₂
-i=2│ a₂₁│ a₂₂│ a₂₃│
-   └────┴────┴────┘        Column-first (∑ⱼ ∑ᵢ):
-                             Col 1: a₁₁ + a₂₁ = C₁
-                             Col 2: a₁₂ + a₂₂ = C₂
-                             Col 3: a₁₃ + a₂₃ = C₃
-                             Total: C₁ + C₂ + C₃
+    j=1  j=2  j=3          Row-first (\sum^i \sumj):
+   +----+----+----+         Row 1: a_1_1 + a_1_2 + a_1_3 = R_1
+i=1| a_1_1| a_1_2| a_1_3|        Row 2: a_2_1 + a_2_2 + a_2_3 = R_2
+   +----+----+----+         Total: R_1 + R_2
+i=2| a_2_1| a_2_2| a_2_3|
+   +----+----+----+        Column-first (\sumj \sum^i):
+                             Col 1: a_1_1 + a_2_1 = C_1
+                             Col 2: a_1_2 + a_2_2 = C_2
+                             Col 3: a_1_3 + a_2_3 = C_3
+                             Total: C_1 + C_2 + C_3
 
 Both give the same total: all 6 elements summed.
 ```
@@ -814,7 +814,7 @@ Both give the same total: all 6 elements summed.
 **AI applications:**
 
 - **Linearity of expectation:** $\mathbb{E}\left[\sum_i X_i\right] = \sum_i \mathbb{E}[X_i]$. This is interchange of summation and expectation (which is itself a sum/integral).
-- **Multi-head attention:** $\sum_h \sum_i \equiv \sum_i \sum_h$ — compute attention for all heads first then sum, or compute per-position then sum over heads; same result.
+- **Multi-head attention:** $\sum_h \sum_i \equiv \sum_i \sum_h$ - compute attention for all heads first then sum, or compute per-position then sum over heads; same result.
 - **Batch-feature decomposition:** When computing gradients, you can sum over the batch dimension first or the feature dimension first; the order doesn't matter for finite sums.
 
 ---
@@ -843,15 +843,15 @@ Multiplying $n$ copies of constant $c$ equals $c$ to the $n$-th power.
 
 **Special cases:**
 
-- $\prod_{i=1}^{n} 2 = 2^n$ — binary growth
-- $\prod_{i=1}^{n} (1/2) = (1/2)^n = 2^{-n}$ — exponential decay
-- $\prod_{i=1}^{n} (-1) = (-1)^n$ — alternating sign
+- $\prod_{i=1}^{n} 2 = 2^n$ - binary growth
+- $\prod_{i=1}^{n} (1/2) = (1/2)^n = 2^{-n}$ - exponential decay
+- $\prod_{i=1}^{n} (-1) = (-1)^n$ - alternating sign
 
 **AI application:** If a model assigns uniform probability $1/|V|$ to each token in a sequence of length $n$:
 
 $$P(\text{sequence}) = \prod_{i=1}^{n} \frac{1}{|V|} = \frac{1}{|V|^n}$$
 
-With vocabulary size $|V| = 50{,}000$ and $n = 100$ tokens, the probability is $(1/50{,}000)^{100} \approx 10^{-470}$ — far below any floating-point representation, which is exactly why we use log-probabilities.
+With vocabulary size $|V| = 50{,}000$ and $n = 100$ tokens, the probability is $(1/50{,}000)^{100} \approx 10^{-470}$ - far below any floating-point representation, which is exactly why we use log-probabilities.
 
 ### 5.3 Product of a Product (Nested Products)
 
@@ -875,7 +875,7 @@ $$\prod_{i=1}^{n} \bigl(f(i) + g(i)\bigr) \neq \prod_{i=1}^{n} f(i) + \prod_{i=1
 
 **Counterexample:** $(a + b)(c + d) = ac + ad + bc + bd \neq ac + bd$.
 
-This is a common source of errors. While multiplying the product distributes cleanly, adding inside a product creates cross-terms — the result expands into $2^n$ terms in general.
+This is a common source of errors. While multiplying the product distributes cleanly, adding inside a product creates cross-terms - the result expands into $2^n$ terms in general.
 
 ### 5.5 Logarithm Converts Product to Sum
 
@@ -938,7 +938,7 @@ $$\sum_{i=1}^{n} (2i - 1) = n^2$$
 
 Proof: $\sum_{i=1}^{n} (2i - 1) = 2 \sum_{i=1}^{n} i - \sum_{i=1}^{n} 1 = 2 \cdot \frac{n(n+1)}{2} - n = n^2 + n - n = n^2$.
 
-**AI relevance:** The number of pairwise interactions in full self-attention over $n$ tokens is $\sum_{i=1}^{n} n = n^2$ (each of $n$ queries attends to $n$ keys), giving $O(n^2)$ attention complexity. More precisely, causal attention has $\sum_{i=1}^{n} i = n(n+1)/2$ interactions — still $O(n^2)$ but roughly half.
+**AI relevance:** The number of pairwise interactions in full self-attention over $n$ tokens is $\sum_{i=1}^{n} n = n^2$ (each of $n$ queries attends to $n$ keys), giving $O(n^2)$ attention complexity. More precisely, causal attention has $\sum_{i=1}^{n} i = n(n+1)/2$ interactions - still $O(n^2)$ but roughly half.
 
 ### 6.2 Sum of Squares
 
@@ -956,7 +956,7 @@ $$3\sum i^2 = n^3 + 3 \cdot \frac{n(n+1)}{2} - n = n^3 + \frac{3n^2 + 3n}{2} - n
 
 $$\sum i^2 = \frac{n(n+1)(2n+1)}{6}$$
 
-**AI relevance:** Squared norms $\|\mathbf{x}\|^2 = \sum_i x_i^2$ appear everywhere — L2 regularisation, variance calculations, gradient norms. While $\sum_i i^2$ specifically appears in complexity analysis, the sum-of-squares pattern is ubiquitous.
+**AI relevance:** Squared norms $\|\mathbf{x}\|^2 = \sum_i x_i^2$ appear everywhere - L2 regularisation, variance calculations, gradient norms. While $\sum_i i^2$ specifically appears in complexity analysis, the sum-of-squares pattern is ubiquitous.
 
 ### 6.3 Sum of Cubes
 
@@ -966,17 +966,17 @@ A remarkable identity: **the sum of cubes equals the square of the sum of the fi
 
 | $n$ | $\sum i^3$            | $(\sum i)^2$ | Equal? |
 | --- | --------------------- | ------------ | ------ |
-| 1   | 1                     | 1² = 1       | ✓      |
-| 2   | 1 + 8 = 9             | 3² = 9       | ✓      |
-| 3   | 1 + 8 + 27 = 36       | 6² = 36      | ✓      |
-| 4   | 1 + 8 + 27 + 64 = 100 | 10² = 100    | ✓      |
+| 1   | 1                     | 1^2 = 1       | OK      |
+| 2   | 1 + 8 = 9             | 3^2 = 9       | OK      |
+| 3   | 1 + 8 + 27 = 36       | 6^2 = 36      | OK      |
+| 4   | 1 + 8 + 27 + 64 = 100 | 10^2 = 100    | OK      |
 
-**Proof by induction:** Base case $n = 1$: $1^3 = 1 = (1 \cdot 2/2)^2 = 1$. ✓  
+**Proof by induction:** Base case $n = 1$: $1^3 = 1 = (1 \cdot 2/2)^2 = 1$. OK  
 Inductive step: assume $\sum_{i=1}^{k} i^3 = (k(k+1)/2)^2$. Then:
 
 $$\sum_{i=1}^{k+1} i^3 = \frac{k^2(k+1)^2}{4} + (k+1)^3 = (k+1)^2 \left(\frac{k^2}{4} + k + 1\right) = (k+1)^2 \cdot \frac{(k+2)^2}{4}$$
 
-which equals $((k+1)(k+2)/2)^2$. ✓
+which equals $((k+1)(k+2)/2)^2$. OK
 
 ### 6.4 Geometric Series (Finite)
 
@@ -998,7 +998,7 @@ $$S = \frac{1 - r^n}{1 - r}$$
 **AI relevance:**
 
 - **ALiBi (Attention with Linear Biases):** Uses geometric-like decay in attention: positions further away receive exponentially decreasing attention bias.
-- **Exponential moving averages:** In Adam optimizer, $\hat{m}_t = (1 - \beta_1) \sum_{i=0}^{t-1} \beta_1^i g_{t-i}$ — the weights form a geometric series summing to $\frac{1 - \beta_1^t}{1 - \beta_1}$.
+- **Exponential moving averages:** In Adam optimizer, $\hat{m}_t = (1 - \beta_1) \sum_{i=0}^{t-1} \beta_1^i g_{t-i}$ - the weights form a geometric series summing to $\frac{1 - \beta_1^t}{1 - \beta_1}$.
 - **Discounted rewards in RL:** $\sum_{t=0}^{T} \gamma^t r_t$ where $\gamma < 1$ is the discount factor.
 
 ### 6.5 Geometric Series (Infinite)
@@ -1024,7 +1024,7 @@ These are obtained by differentiating $\sum r^i = \frac{1}{1 - r}$ with respect 
 
 ### 6.6 Exponential and Taylor Series
 
-Many functions used in AI are defined by their Taylor (power) series — which are infinite sums:
+Many functions used in AI are defined by their Taylor (power) series - which are infinite sums:
 
 **Exponential function:**
 
@@ -1050,7 +1050,7 @@ where $\binom{\alpha}{n} = \frac{\alpha(\alpha-1)\cdots(\alpha - n + 1)}{n!}$ (g
 
 **AI relevance:**
 
-- **Softmax** uses $\exp(z)$; its Taylor series explains why $\exp(z) \approx 1 + z$ for small $z$ — helpful for linearised attention approximations (e.g., Performers).
+- **Softmax** uses $\exp(z)$; its Taylor series explains why $\exp(z) \approx 1 + z$ for small $z$ - helpful for linearised attention approximations (e.g., Performers).
 - **Log-sum-exp trick** uses $\ln()$; understanding its series expansion helps with numerical stability analysis.
 - **Positional encodings** in transformers use $\sin()$ and $\cos()$; their series representations explain periodicity and frequency properties.
 - **GELU activation:** $\text{GELU}(x) = x \Phi(x)$ where $\Phi$ involves the error function, which has a Taylor series expansion.
@@ -1082,13 +1082,13 @@ The Riemann zeta function $\zeta(p) = \sum_{n=1}^{\infty} \frac{1}{n^p}$ unifies
 - **Zipf's law:** Word frequency in natural language follows $\text{freq}(r) \propto 1/r$ where $r$ is the rank. The total frequency is proportional to $H_{|V|}$, a harmonic number.
 - **BPE merge counts** follow approximately Zipfian distributions; analysis involves harmonic numbers.
 - **Complexity analysis:** $\sum_{i=1}^{n} 1/i = O(\log n)$; this appears in analyses of algorithm running times and expected values of random processes.
-- **Coupon collector problem:** Expected number of samples to see all $n$ items is $n H_n \approx n \ln n$ — relevant for coverage analysis in data sampling.
+- **Coupon collector problem:** Expected number of samples to see all $n$ items is $n H_n \approx n \ln n$ - relevant for coverage analysis in data sampling.
 
 ---
 
 ## 7. Summation Bounds and Estimation
 
-In both theoretical analysis and practical AI engineering, we rarely need the **exact** value of a sum. Instead, we need **tight bounds** — upper and lower estimates that tell us how a sum grows. This section equips you with the main bounding techniques.
+In both theoretical analysis and practical AI engineering, we rarely need the **exact** value of a sum. Instead, we need **tight bounds** - upper and lower estimates that tell us how a sum grows. This section equips you with the main bounding techniques.
 
 ### 7.1 Comparison Test
 
@@ -1100,7 +1100,7 @@ $$
 
 **Why it matters:** This is the workhorse for bounding sums whose exact evaluation is intractable.
 
-**Worked example — bounding softmax tail:**
+**Worked example - bounding softmax tail:**
 
 Suppose attention logits satisfy $z_i \leq z_{\max} - \delta_i$ where $\delta_i \geq c \cdot i$ for tokens sorted by relevance. Then:
 
@@ -1108,15 +1108,15 @@ $$
 \sum_{i=k}^{n} e^{z_i} \leq \sum_{i=k}^{n} e^{z_{\max} - ci} = e^{z_{\max}} \sum_{i=k}^{n} e^{-ci} \leq e^{z_{\max}} \cdot \frac{e^{-ck}}{1 - e^{-c}}
 $$
 
-This shows that the tail of the softmax distribution decays exponentially — justifying **sparse attention** approximations that ignore low-scoring tokens.
+This shows that the tail of the softmax distribution decays exponentially - justifying **sparse attention** approximations that ignore low-scoring tokens.
 
 **General pattern:**
 
 ```
-To bound ∑ f(i):
-  1. Find a simpler g(i) with f(i) ≤ g(i) for all i     (upper bound)
-  2. Find a simpler h(i) with h(i) ≤ f(i) for all i     (lower bound)
-  3. Evaluate ∑ g(i) and ∑ h(i) using known formulas
+To bound \sum f(i):
+  1. Find a simpler g(i) with f(i) \leq g(i) for all i     (upper bound)
+  2. Find a simpler h(i) with h(i) \leq f(i) for all i     (lower bound)
+  3. Evaluate \sum g(i) and \sum h(i) using known formulas
 ```
 
 ### 7.2 Integral Test
@@ -1128,18 +1128,18 @@ $$
 $$
 
 ```
-  f(x) │
-       │█
-       │█░█
-       │█░█░█
-       │█░█░█░░░
-       │█░█░█░░░░░░
-       └──┴──┴──┴──┴──── i
+  f(x) |
+       |#
+       |# #
+       |# # #
+       |# # #   
+       |# # #      
+       +--+--+--+--+---- i
         1  2  3  4  5
 
-  █ = f(i) rectangles (left sum = upper bound)
+  # = f(i) rectangles (left sum = upper bound)
   The curve f(x) passes through the tops of the bars
-  ░ = gap between rectangle and curve
+    = gap between rectangle and curve
   Integral = area under curve (between the bounds)
 ```
 
@@ -1157,7 +1157,7 @@ $$
 
 Summing from $i = 1$ to $n-1$ for the right inequality, and from $i = 1$ to $n$ for the left, yields the result.
 
-**AI example — harmonic sum bounds:**
+**AI example - harmonic sum bounds:**
 
 With $f(x) = 1/x$:
 
@@ -1165,7 +1165,7 @@ $$
 \ln(n+1) \leq H_n \leq 1 + \ln n
 $$
 
-This gives us $H_n = \ln n + \gamma + O(1/n)$ where $\gamma \approx 0.5772$ is the Euler–Mascheroni constant.
+This gives us $H_n = \ln n + \gamma + O(1/n)$ where $\gamma \approx 0.5772$ is the Euler-Mascheroni constant.
 
 **Application:** Bounding the expected number of unique tokens seen after $m$ samples from a vocabulary of size $V$:
 
@@ -1175,7 +1175,7 @@ $$
 
 The integral test helps bound partial sums that arise in the coverage analysis.
 
-### 7.3 Cauchy–Schwarz and Triangle Inequality for Sums
+### 7.3 Cauchy-Schwarz and Triangle Inequality for Sums
 
 **Triangle inequality for sums:**
 
@@ -1189,7 +1189,7 @@ $$
 \left\| \sum_{i=1}^{B} \nabla_\theta \mathcal{L}_i \right\| \leq \sum_{i=1}^{B} \left\| \nabla_\theta \mathcal{L}_i \right\|
 $$
 
-**Cauchy–Schwarz inequality for sums:**
+**Cauchy-Schwarz inequality for sums:**
 
 $$
 \left( \sum_{i=1}^{n} a_i b_i \right)^2 \leq \left( \sum_{i=1}^{n} a_i^2 \right) \left( \sum_{i=1}^{n} b_i^2 \right)
@@ -1217,8 +1217,8 @@ which gives the result.
 | -------------------------- | ------------------------ | ---------------------------------- |
 | Cosine similarity          | $\|\cos \theta\| \leq 1$ | Validates similarity metric range  |
 | Gradient clipping analysis | Triangle inequality      | Bounds effect of clip on sum       |
-| Attention weight analysis  | Cauchy–Schwarz           | Bounds QK dot product magnitude    |
-| Variance decomposition     | Cauchy–Schwarz           | Jensen-like bounds on expectations |
+| Attention weight analysis  | Cauchy-Schwarz           | Bounds QK dot product magnitude    |
+| Variance decomposition     | Cauchy-Schwarz           | Jensen-like bounds on expectations |
 
 ### 7.4 Stirling's Approximation
 
@@ -1256,7 +1256,7 @@ The approximation improves rapidly: relative error $\sim 1/(12n)$.
 
 **AI relevance:**
 
-- **Combinatorial arguments:** The number of permutations of $n$ tokens is $n!$; Stirling tells us $\log_2(n!) \approx n \log_2 n$ bits to represent a permutation — relevant for **sorting networks** used in differentiable sorting.
+- **Combinatorial arguments:** The number of permutations of $n$ tokens is $n!$; Stirling tells us $\log_2(n!) \approx n \log_2 n$ bits to represent a permutation - relevant for **sorting networks** used in differentiable sorting.
 - **Log-likelihood of multinomial:** $\ln \binom{n}{k_1, \ldots, k_V} = \ln n! - \sum_{v} \ln k_v!$; Stirling converts this to entropy: $\approx n H(p)$ where $p_v = k_v/n$.
 - **Capacity arguments:** Channel capacity and model capacity bounds often use $\ln \binom{n}{k} \approx n H(k/n)$.
 
@@ -1270,7 +1270,7 @@ When exact sums are intractable, we characterise their **growth rate**:
 | $\Omega(g(n))$ | Lower bounded by $c \cdot g(n)$ | $\sum_{i=1}^{n} i = \Omega(n^2)$ | At least          |
 | $\Theta(g(n))$ | Tightly bounded                 | $\sum_{i=1}^{n} i = \Theta(n^2)$ | Exactly this rate |
 | $o(g(n))$      | Dominated by $g(n)$             | $\sum_{i=1}^{n} 1/i = o(n)$      | Strictly less     |
-| $\sim$         | Asymptotically equal            | $H_n \sim \ln n$                 | Ratio → 1         |
+| $\sim$         | Asymptotically equal            | $H_n \sim \ln n$                 | Ratio -> 1         |
 
 **Key asymptotic results for common sums:**
 
@@ -1292,7 +1292,7 @@ $$
 | -------------------------------- | ------------------------ | --------------------- | --------------------------------------- |
 | Self-attention (full)            | $\sum_{i=1}^{n} n = n^2$ | $\Theta(n^2)$         | Quadratic in sequence length            |
 | Self-attention (sparse, top-$k$) | $\sum_{i=1}^{n} k$       | $\Theta(nk)$          | Linear if $k = O(1)$                    |
-| Batch gradient                   | $\sum_{i=1}^{B} O(p)$    | $\Theta(Bp)$          | Linear in batch × params                |
+| Batch gradient                   | $\sum_{i=1}^{B} O(p)$    | $\Theta(Bp)$          | Linear in batch \times params                |
 | Transformer layer                | $O(n^2 d + n d^2)$       | depends on $n$ vs $d$ | $n < d$: $O(nd^2)$; $n > d$: $O(n^2 d)$ |
 | Vocabulary projection            | $\sum_{v=1}^{V} d$       | $\Theta(Vd)$          | Bottleneck for large vocab              |
 
@@ -1310,23 +1310,23 @@ $$
 \text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}
 $$
 
-The denominator $Z = \sum_{j=1}^{K} e^{z_j}$ is the **partition function** — a term borrowed from statistical mechanics.
+The denominator $Z = \sum_{j=1}^{K} e^{z_j}$ is the **partition function** - a term borrowed from statistical mechanics.
 
 **Anatomy of softmax:**
 
 ```
   Input logits:     z = [2.0,  1.0,  0.5,  -1.0]
-                         │      │      │      │
-  Exponentiate:    eᶻ = [7.39, 2.72, 1.65,  0.37]
-                         │      │      │      │
+                         |      |      |      |
+  Exponentiate:    ez = [7.39, 2.72, 1.65,  0.37]
+                         |      |      |      |
   Partition sum:   Z  = 7.39 + 2.72 + 1.65 + 0.37 = 12.13
-                         │      │      │      │
+                         |      |      |      |
   Normalise:       p  = [0.61, 0.22, 0.14,  0.03]
-                         │      │      │      │
-  Verify:         ∑p  = 0.61 + 0.22 + 0.14 + 0.03 = 1.00  ✓
+                         |      |      |      |
+  Verify:         \sump  = 0.61 + 0.22 + 0.14 + 0.03 = 1.00  OK
 ```
 
-**Numerical stability — the log-sum-exp trick:**
+**Numerical stability - the log-sum-exp trick:**
 
 Direct computation overflows for large logits. The standard trick:
 
@@ -1344,21 +1344,21 @@ $$
 \frac{\partial \log Z}{\partial z_i} = \frac{e^{z_i}}{Z} = \text{softmax}(z)_i = p_i
 $$
 
-Higher derivatives give **cumulants** of the distribution — the second derivative gives the variance.
+Higher derivatives give **cumulants** of the distribution - the second derivative gives the variance.
 
 **Where partition functions appear in AI:**
 
 | Context                        | Partition Function                           | Size                     |
 | ------------------------------ | -------------------------------------------- | ------------------------ |
 | Classification (softmax)       | $\sum_{c=1}^{C} e^{z_c}$                     | num_classes              |
-| Language modelling             | $\sum_{v=1}^{V} e^{z_v}$                     | vocab_size (~50K–100K)   |
+| Language modelling             | $\sum_{v=1}^{V} e^{z_v}$                     | vocab_size (~50K-100K)   |
 | Contrastive learning (InfoNCE) | $\sum_{j=1}^{N} e^{\text{sim}(q, k_j)/\tau}$ | num_negatives            |
 | Energy-based models            | $\int e^{-E(x)} dx$                          | Intractable (continuous) |
 | CRF layer (NER)                | $\sum_{\text{all paths}} e^{s(\text{path})}$ | Exponential (use DP)     |
 
 ### 8.2 Cross-Entropy Loss as Summation
 
-Cross-entropy loss is a double summation — over the batch and over classes:
+Cross-entropy loss is a double summation - over the batch and over classes:
 
 $$
 \mathcal{L} = -\frac{1}{B} \sum_{i=1}^{B} \sum_{c=1}^{C} y_{ic} \log \hat{y}_{ic}
@@ -1384,7 +1384,7 @@ $$
 \frac{\partial \mathcal{L}}{\partial z_k} = \hat{y}_k - y_k = p_k - \mathbb{1}[k = c^*]
 $$
 
-This is the remarkably clean result that makes softmax + cross-entropy so popular: the gradient is simply **(predicted probability − target probability)** for each class.
+This is the remarkably clean result that makes softmax + cross-entropy so popular: the gradient is simply **(predicted probability - target probability)** for each class.
 
 **Label smoothing variant:**
 
@@ -1394,7 +1394,7 @@ $$
 \mathcal{L}_{\text{smooth}} = -\sum_{c=1}^{C} y_c^{\text{smooth}} \log \hat{y}_c = (1-\epsilon)\mathcal{L}_{\text{CE}} + \epsilon \cdot \frac{1}{C} H_{\text{uniform}}(\hat{y})
 $$
 
-The extra term $\frac{\epsilon}{C} \sum_c (-\log \hat{y}_c)$ encourages the model to keep non-target probabilities from collapsing to zero — acting as a **regulariser on confidence**.
+The extra term $\frac{\epsilon}{C} \sum_c (-\log \hat{y}_c)$ encourages the model to keep non-target probabilities from collapsing to zero - acting as a **regulariser on confidence**.
 
 ### 8.3 Attention as Weighted Sum
 
@@ -1413,18 +1413,18 @@ $$
 **The full computation graph:**
 
 ```
-  Q_i ──┐
-        ├── Q_i · K_j / √d_k ──→ softmax over j ──→ α_ij
-  K_j ──┘                                              │
-                                                        ├── ∑_j α_ij · V_j ──→ output_i
-  V_j ─────────────────────────────────────────────────┘
+  Q_i --+
+        +-- Q_i * K_j / \sqrtd_k ---> softmax over j ---> \alpha_ij
+  K_j --+                                              |
+                                                        +-- \sum_j \alpha_ij * V_j ---> output_i
+  V_j -------------------------------------------------+
 ```
 
 **Three sums in attention:**
 
-1. **Dot product:** $Q_i \cdot K_j = \sum_{d=1}^{d_k} Q_{i,d} \cdot K_{j,d}$ — sum over the head dimension
-2. **Softmax normaliser:** $Z_i = \sum_{j=1}^{n} \exp(Q_i \cdot K_j / \sqrt{d_k})$ — sum over keys
-3. **Weighted value:** $o_i = \sum_{j=1}^{n} \alpha_{ij} V_j$ — sum over values
+1. **Dot product:** $Q_i \cdot K_j = \sum_{d=1}^{d_k} Q_{i,d} \cdot K_{j,d}$ - sum over the head dimension
+2. **Softmax normaliser:** $Z_i = \sum_{j=1}^{n} \exp(Q_i \cdot K_j / \sqrt{d_k})$ - sum over keys
+3. **Weighted value:** $o_i = \sum_{j=1}^{n} \alpha_{ij} V_j$ - sum over values
 
 **Multi-head attention adds a fourth sum:**
 
@@ -1440,7 +1440,7 @@ $$
 | ---------------------------------------------- | -------------------------------- | ------------------------- |
 | QK^T                                           | $n \times d_k \times n$ per head | $O(n^2 d_k)$              |
 | Softmax                                        | Per row of $n$ values            | $O(n^2)$                  |
-| Attention × V                                  | $n \times n \times d_v$ per head | $O(n^2 d_v)$              |
+| Attention \times V                                  | $n \times n \times d_v$ per head | $O(n^2 d_v)$              |
 | All heads                                      | Multiply by $h$                  | $O(h \cdot n^2 d_k)$      |
 | Total (since $h \cdot d_k = d_{\text{model}}$) |                                  | $O(n^2 d_{\text{model}})$ |
 
@@ -1486,20 +1486,20 @@ $$
 \nabla_\theta \mathcal{L} = \frac{1}{B} \sum_{i=1}^{B} \nabla_\theta \ell(f_\theta(x_i), y_i)
 $$
 
-**Key insight:** The gradient is linear in the summation — each sample contributes independently. This enables:
+**Key insight:** The gradient is linear in the summation - each sample contributes independently. This enables:
 
 1. **Data parallelism:** Compute per-sample gradients on different GPUs, then sum (all-reduce).
 2. **Gradient accumulation:** Sum gradients over micro-batches before updating weights.
-3. **Per-sample gradient clipping** (DP-SGD): Clip $\|\nabla_\theta \ell_i\|$ before averaging — required for differential privacy.
+3. **Per-sample gradient clipping** (DP-SGD): Clip $\|\nabla_\theta \ell_i\|$ before averaging - required for differential privacy.
 
 **Gradient accumulation pattern:**
 
 ```
-  Micro-batch 1:  g₁ = ∇L(θ; B₁)     ─┐
-  Micro-batch 2:  g₂ = ∇L(θ; B₂)     ─┤
-  Micro-batch 3:  g₃ = ∇L(θ; B₃)     ─┼──→  g = (g₁ + g₂ + g₃ + g₄) / 4
-  Micro-batch 4:  g₄ = ∇L(θ; B₄)     ─┘
-                                              θ ← θ - η · g
+  Micro-batch 1:  g_1 = \nablaL(\theta; B_1)     -+
+  Micro-batch 2:  g_2 = \nablaL(\theta; B_2)     -+
+  Micro-batch 3:  g_3 = \nablaL(\theta; B_3)     -+--->  g = (g_1 + g_2 + g_3 + g_4) / 4
+  Micro-batch 4:  g_4 = \nablaL(\theta; B_4)     -+
+                                              \theta <- \theta - \eta * g
 ```
 
 Effective batch size = $\sum_{k=1}^{A} |B_k|$ where $A$ is the number of accumulation steps.
@@ -1510,7 +1510,7 @@ $$
 \text{Var}\left[\frac{1}{B} \sum_{i=1}^{B} g_i\right] = \frac{1}{B^2} \sum_{i=1}^{B} \text{Var}[g_i] = \frac{\sigma^2}{B}
 $$
 
-(assuming i.i.d. samples). Doubling the batch size halves the gradient variance — but has **diminishing returns** on convergence speed (linear speedup only up to a critical batch size).
+(assuming i.i.d. samples). Doubling the batch size halves the gradient variance - but has **diminishing returns** on convergence speed (linear speedup only up to a critical batch size).
 
 ### 8.6 Perplexity as Geometric Mean
 
@@ -1563,20 +1563,20 @@ $$
 
 **Components as summation:**
 
-- **Outer sum $\sum_{t \in q}$:** Iterates over unique query terms — typically 3–10 terms.
+- **Outer sum $\sum_{t \in q}$:** Iterates over unique query terms - typically 3-10 terms.
 - **IDF (Inverse Document Frequency):** $\text{IDF}(t) = \log \frac{N - n_t + 0.5}{n_t + 0.5}$ where $N$ = total documents, $n_t$ = documents containing term $t$.
-- **TF saturation:** The fraction $\frac{f(t,d)(k_1+1)}{f(t,d) + k_1(\ldots)}$ saturates — repeated occurrences have diminishing returns.
+- **TF saturation:** The fraction $\frac{f(t,d)(k_1+1)}{f(t,d) + k_1(\ldots)}$ saturates - repeated occurrences have diminishing returns.
 
 **Why BM25 is a pure summation pattern:**
 
 ```
   Score = 0
   For each query term t:
-      Score += IDF(t) × TF_saturation(t, d)
-             ────────   ──────────────────
+      Score += IDF(t) \times TF_saturation(t, d)
+             --------   ------------------
              weight     adjusted count
 
-  This is a weighted sum: ∑ wₜ · sₜ
+  This is a weighted sum: \sum w_t * s_t
 ```
 
 **Modern hybrid retrieval** combines BM25 with dense retrieval:
@@ -1585,7 +1585,7 @@ $$
 \text{score}(q, d) = \alpha \cdot \text{BM25}(q, d) + (1 - \alpha) \cdot \text{sim}_{\text{dense}}(q, d)
 $$
 
-Both components are summations. The dense similarity is a dot product $\sum_i q_i d_i$, and BM25 is a weighted sum over terms. The hybrid score is itself a weighted sum — sums all the way down.
+Both components are summations. The dense similarity is a dot product $\sum_i q_i d_i$, and BM25 is a weighted sum over terms. The hybrid score is itself a weighted sum - sums all the way down.
 
 ---
 
@@ -1668,11 +1668,11 @@ A double sum $\sum_{i=1}^{m} \sum_{j=1}^{n} a_{ij}$ sums all entries of an $m \t
 ```
   Row-major (outer=i, inner=j):     Column-major (outer=j, inner=i):
 
-  ┌──────────────────┐              ┌──────────────────┐
-  │ →  →  →  →  →  → │  row 1      │ ↓  ↓  ↓  ↓  ↓  ↓ │
-  │ →  →  →  →  →  → │  row 2      │ ↓  ↓  ↓  ↓  ↓  ↓ │
-  │ →  →  →  →  →  → │  row 3      │ ↓  ↓  ↓  ↓  ↓  ↓ │
-  └──────────────────┘              └──────────────────┘
+  +------------------+              +------------------+
+  | ->  ->  ->  ->  ->  -> |  row 1      | down  down  down  down  down  down |
+  | ->  ->  ->  ->  ->  -> |  row 2      | down  down  down  down  down  down |
+  | ->  ->  ->  ->  ->  -> |  row 3      | down  down  down  down  down  down |
+  +------------------+              +------------------+
 
   Process each row left-to-right,    Process each column top-to-bottom,
   then move to next row.             then move to next column.
@@ -1697,7 +1697,7 @@ $$
 
 **Off-diagonals:** $\sum_{i} a_{i, i+k}$ sums the $k$-th super-diagonal (for $k > 0$) or sub-diagonal (for $k < 0$).
 
-**AI connection — relative position in attention:**
+**AI connection - relative position in attention:**
 
 In relative positional encodings (e.g., ALiBi, RoPE), the attention bias depends on $|i - j|$:
 
@@ -1705,7 +1705,7 @@ $$
 \text{score}_{ij} = Q_i \cdot K_j + b(|i - j|)
 $$
 
-The bias matrix $B$ where $B_{ij} = b(|i - j|)$ is a **Toeplitz matrix** — constant along each diagonal. Summing along diagonals gives the total contribution of each relative distance.
+The bias matrix $B$ where $B_{ij} = b(|i - j|)$ is a **Toeplitz matrix** - constant along each diagonal. Summing along diagonals gives the total contribution of each relative distance.
 
 ### 10.3 Upper and Lower Triangular Sums
 
@@ -1721,17 +1721,17 @@ $$
 
 ```
   Upper triangular:         Lower triangular (causal):
-  ┌─ ─ ─ ─ ─ ─ ─┐          ┌─ ─ ─ ─ ─ ─ ─┐
-  │ ■ ■ ■ ■ ■ ■ │          │ ■ · · · · · │
-  │ · ■ ■ ■ ■ ■ │          │ ■ ■ · · · · │
-  │ · · ■ ■ ■ ■ │          │ ■ ■ ■ · · · │
-  │ · · · ■ ■ ■ │          │ ■ ■ ■ ■ · · │
-  │ · · · · ■ ■ │          │ ■ ■ ■ ■ ■ · │
-  │ · · · · · ■ │          │ ■ ■ ■ ■ ■ ■ │
-  └─ ─ ─ ─ ─ ─ ─┘          └─ ─ ─ ─ ─ ─ ─┘
+  +- - - - - - -+          +- - - - - - -+
+  | # # # # # # |          | # * * * * * |
+  | * # # # # # |          | # # * * * * |
+  | * * # # # # |          | # # # * * * |
+  | * * * # # # |          | # # # # * * |
+  | * * * * # # |          | # # # # # * |
+  | * * * * * # |          | # # # # # # |
+  +- - - - - - -+          +- - - - - - -+
 
-  ■ = included in sum       Used in causal (autoregressive)
-  · = excluded               attention masks
+  # = included in sum       Used in causal (autoregressive)
+  * = excluded               attention masks
 ```
 
 **Causal attention** uses lower-triangular masking:
@@ -1754,7 +1754,7 @@ $$
 \sum_{i=1}^{m} \sum_{j=1}^{n} a_{ij} = \sum_{j=1}^{n} \sum_{i=1}^{m} a_{ij}
 $$
 
-**Triangular region — changing bounds:**
+**Triangular region - changing bounds:**
 
 $$
 \sum_{i=1}^{n} \sum_{j=i}^{n} a_{ij} = \sum_{j=1}^{n} \sum_{i=1}^{j} a_{ij}
@@ -1764,17 +1764,17 @@ $$
 
 ```
   Original:                    Swapped:
-  (fix i, vary j≥i)           (fix j, vary i≤j)
+  (fix i, vary j\geqi)           (fix j, vary i\leqj)
 
-  j →                         j →
+  j ->                         j ->
   1 2 3 4                     1 2 3 4
-  ┌─────────                  ┌─────────
-i=1│ ■ ■ ■ ■              i=1│ ■ ■ ■ ■
-i=2│   ■ ■ ■              i=2│   ■ ■ ■
-i=3│     ■ ■              i=3│     ■ ■
-i=4│       ■              i=4│       ■
+  +---------                  +---------
+i=1| # # # #              i=1| # # # #
+i=2|   # # #              i=2|   # # #
+i=3|     # #              i=3|     # #
+i=4|       #              i=4|       #
 
-  Same set of (i,j) pairs — just visited in different order!
+  Same set of (i,j) pairs - just visited in different order!
 ```
 
 **General rule for dependent limits:**
@@ -1785,7 +1785,7 @@ $$
 
 where $S(j) = \{i \in [a,b] : f(i) \leq j \leq g(i)\}$.
 
-**AI application — expectation of loss over data and weights:**
+**AI application - expectation of loss over data and weights:**
 
 In Bayesian deep learning, we often need to interchange an expectation over parameters and a sum over data:
 
@@ -1803,20 +1803,20 @@ $$
 \left(\sum_{i=0}^{\infty} a_i\right) \left(\sum_{j=0}^{\infty} b_j\right) = \sum_{n=0}^{\infty} c_n \quad \text{where } c_n = \sum_{k=0}^{n} a_k b_{n-k}
 $$
 
-The inner sum $c_n = \sum_{k=0}^{n} a_k b_{n-k}$ is a **convolution** — the same operation that defines conv layers in CNNs.
+The inner sum $c_n = \sum_{k=0}^{n} a_k b_{n-k}$ is a **convolution** - the same operation that defines conv layers in CNNs.
 
 **Connection to convolution:**
 
 ```
   1D discrete convolution:
 
-  a = [a₀, a₁, a₂, a₃]     (filter/kernel)
-  b = [b₀, b₁, b₂, b₃, b₄] (input signal)
+  a = [a_0, a_1, a_2, a_3]     (filter/kernel)
+  b = [b_0, b_1, b_2, b_3, b_4] (input signal)
 
-  (a * b)_n = ∑_k a_k · b_{n-k}
+  (a * b)_n = \sum_k a_k * b_{n-k}
 
-  This is exactly the Cauchy product — the coefficient of x^n
-  in the polynomial product A(x)·B(x)
+  This is exactly the Cauchy product - the coefficient of x^n
+  in the polynomial product A(x)*B(x)
 ```
 
 **Mertens' theorem:** If $\sum a_i$ converges absolutely and $\sum b_j$ converges, then the Cauchy product converges to the product of the sums. This guarantees that polynomial multiplication "works" for convergent power series.
@@ -1825,7 +1825,7 @@ The inner sum $c_n = \sum_{k=0}^{n} a_k b_{n-k}$ is a **convolution** — the sa
 
 - **1D convolution** in CNNs/WaveNet is a finite Cauchy product.
 - **Polynomial multiplication** via FFT: the Cauchy product of two length-$n$ sequences can be computed in $O(n \log n)$ using FFT, rather than $O(n^2)$ directly.
-- **Generating functions** in combinatorics: if $A(x)$ and $B(x)$ are generating functions, their product $A(x) B(x)$ has coefficients given by the Cauchy product — used in counting arguments for data structures.
+- **Generating functions** in combinatorics: if $A(x)$ and $B(x)$ are generating functions, their product $A(x) B(x)$ has coefficients given by the Cauchy product - used in counting arguments for data structures.
 
 ### 10.6 Vandermonde's Identity and Convolution
 
@@ -1839,7 +1839,7 @@ $$
 
 **Connection to generating functions:**
 
-$(1+x)^m (1+x)^n = (1+x)^{m+n}$. Comparing coefficients of $x^r$ on both sides gives Vandermonde's identity — the coefficient on the left is the Cauchy product of binomial coefficients.
+$(1+x)^m (1+x)^n = (1+x)^{m+n}$. Comparing coefficients of $x^r$ on both sides gives Vandermonde's identity - the coefficient on the left is the Cauchy product of binomial coefficients.
 
 **AI relevance:**
 
@@ -1873,7 +1873,7 @@ The technique is useful when:
 
 Under these conditions, Abel's summation shows the original sum converges (**Dirichlet's test**).
 
-**AI application — convergence of weighted gradient sums:**
+**AI application - convergence of weighted gradient sums:**
 
 In exponentially weighted moving averages (used in Adam, EMA models):
 
@@ -1887,7 +1887,7 @@ Abel's summation helps analyse the properties of this weighted sum, particularly
 
 ## 11. Convergence of Infinite Series
 
-Infinite sums — series — appear throughout AI: Taylor expansions for activation functions, geometric series for discounted rewards, power series for matrix functions. Understanding **when** an infinite sum converges (has a finite value) is essential for both theoretical proofs and numerical stability.
+Infinite sums - series - appear throughout AI: Taylor expansions for activation functions, geometric series for discounted rewards, power series for matrix functions. Understanding **when** an infinite sum converges (has a finite value) is essential for both theoretical proofs and numerical stability.
 
 ### 11.1 Partial Sums and the Definition of Convergence
 
@@ -1902,26 +1902,26 @@ The series **converges** if this limit exists and is finite; otherwise it **dive
 **Three types of behavior:**
 
 ```
-  Converges (e.g., ∑ 1/2ⁿ):        Diverges to ∞ (e.g., ∑ 1/n):
+  Converges (e.g., \sum 1/2^n):        Diverges to \infty (e.g., \sum 1/n):
 
-  S_N │        ────────── S=2       S_N │              ╱
-      │      ╱                          │            ╱
-      │    ╱                            │          ╱
-      │  ╱                              │        ╱
-      │╱                                │      ╱
-      └──────────────── N               │    ╱
-                                        │  ╱
-  Partial sums approach a limit         │╱
-                                        └──────────────── N
+  S_N |        ---------- S=2       S_N |              /
+      |      /                          |            /
+      |    /                            |          /
+      |  /                              |        /
+      |/                                |      /
+      +---------------- N               |    /
+                                        |  /
+  Partial sums approach a limit         |/
+                                        +---------------- N
                                         Partial sums grow without bound
 
-  Oscillates/Diverges (e.g., ∑ (-1)ⁿ):
+  Oscillates/Diverges (e.g., \sum (-1)^n):
 
-  S_N │    ·       ·       ·
-      │  1 ──┐  1 ──┐  1 ──
-      │      │      │
-      │  0 ──┘  0 ──┘  0 ──
-      └──────────────── N
+  S_N |    *       *       *
+      |  1 --+  1 --+  1 --
+      |      |      |
+      |  0 --+  0 --+  0 --
+      +---------------- N
   Partial sums bounce between 0 and 1
 ```
 
@@ -1941,12 +1941,12 @@ If $\sum a_n$ converges, then $\lim_{n \to \infty} a_n = 0$.
 
 **Key theorem:** Absolute convergence implies convergence. (The converse is false.)
 
-**Example:** The alternating harmonic series $\sum_{n=1}^{\infty} \frac{(-1)^{n+1}}{n} = \ln 2$ converges conditionally — it converges, but $\sum 1/n$ diverges.
+**Example:** The alternating harmonic series $\sum_{n=1}^{\infty} \frac{(-1)^{n+1}}{n} = \ln 2$ converges conditionally - it converges, but $\sum 1/n$ diverges.
 
 **Why absolute convergence matters in AI:**
 
-- Absolutely convergent series can be **rearranged** in any order without changing the sum. Conditionally convergent series cannot (Riemann's rearrangement theorem — you can rearrange a conditionally convergent series to converge to any value!).
-- **Parallel computation** of sums (across GPUs) implicitly rearranges terms. If the series is only conditionally convergent, different summation orders give different results — a source of **numerical non-determinism**.
+- Absolutely convergent series can be **rearranged** in any order without changing the sum. Conditionally convergent series cannot (Riemann's rearrangement theorem - you can rearrange a conditionally convergent series to converge to any value!).
+- **Parallel computation** of sums (across GPUs) implicitly rearranges terms. If the series is only conditionally convergent, different summation orders give different results - a source of **numerical non-determinism**.
 - Most sums in AI (loss over data, gradient components) involve non-negative terms, so convergence is always absolute.
 
 ### 11.3 Convergence Tests Summary
@@ -1972,7 +1972,7 @@ $$
 - $L > 1$: Divergent. The terms grow.
 - $L = 1$: **Inconclusive**. Need another test.
 
-**AI example — convergence of Taylor series for $e^x$:**
+**AI example - convergence of Taylor series for $e^x$:**
 
 $$
 e^x = \sum_{n=0}^{\infty} \frac{x^n}{n!}, \quad \frac{a_{n+1}}{a_n} = \frac{|x|}{n+1} \to 0 \text{ as } n \to \infty
@@ -2003,10 +2003,10 @@ The series converges absolutely for $|x - a| < R$ and diverges for $|x - a| > R$
 
 **Why radius of convergence matters:**
 
-- The Taylor approximation of $\tanh$ is only valid for $|x| < \pi/2$ — outside this range, the polynomial approximation diverges wildly. This matters for **hardware implementations** that approximate activation functions with polynomials.
-- The $\ln(1+x)$ series only converges for $|x| \leq 1$ — so `log1p(x)` is numerically implemented differently for large $x$.
+- The Taylor approximation of $\tanh$ is only valid for $|x| < \pi/2$ - outside this range, the polynomial approximation diverges wildly. This matters for **hardware implementations** that approximate activation functions with polynomials.
+- The $\ln(1+x)$ series only converges for $|x| \leq 1$ - so `log1p(x)` is numerically implemented differently for large $x$.
 
-### 11.5 Convergence of Training — An Analogy
+### 11.5 Convergence of Training - An Analogy
 
 While not an infinite series in the mathematical sense, training a neural network produces a sequence of losses $\{\mathcal{L}_t\}_{t=0}^{\infty}$ that we hope converges.
 
@@ -2037,13 +2037,13 @@ $$
 \eta_{\text{crit}} = \frac{2}{\lambda_{\max}}
 $$
 
-Beyond this, training diverges — exactly like a geometric series with $|r| > 1$.
+Beyond this, training diverges - exactly like a geometric series with $|r| > 1$.
 
 ---
 
 ## 12. Summation in Probability and Statistics
 
-Summation is the **language of probability theory** for discrete random variables. Every key concept — expectation, variance, entropy — is defined as a sum.
+Summation is the **language of probability theory** for discrete random variables. Every key concept - expectation, variance, entropy - is defined as a sum.
 
 ### 12.1 Expectation as Weighted Sum
 
@@ -2064,13 +2064,13 @@ $$
 ```
   Expectation = weighted average
 
-  Values:      x₁     x₂     x₃     x₄
-  Probabilities: p₁     p₂     p₃     p₄
-                  │       │       │       │
-                  ▼       ▼       ▼       ▼
-  E[X] = ────── x₁p₁ + x₂p₂ + x₃p₃ + x₄p₄ ──────
+  Values:      x_1     x_2     x_3     x_4
+  Probabilities: p_1     p_2     p_3     p_4
+                  |       |       |       |
+                  v       v       v       v
+  E[X] = ------ x_1p_1 + x_2p_2 + x_3p_3 + x_4p_4 ------
 
-  Constraint: p₁ + p₂ + p₃ + p₄ = 1
+  Constraint: p_1 + p_2 + p_3 + p_4 = 1
 ```
 
 **Key properties (all following from linearity of summation):**
@@ -2082,7 +2082,7 @@ $$
 | Non-negativity | $X \geq 0 \Rightarrow E[X] \geq 0$ | Sum of non-negative terms               |
 | Indicator      | $E[\mathbb{1}_A] = P(A)$           | $\sum_{x \in A} p(x) = P(A)$            |
 
-**AI example — expected loss:**
+**AI example - expected loss:**
 
 The training objective $E_{(x,y) \sim \mathcal{D}}[\ell(f_\theta(x), y)]$ becomes, for a finite dataset:
 
@@ -2090,7 +2090,7 @@ $$
 \hat{E}[\ell] = \frac{1}{n} \sum_{i=1}^{n} \ell(f_\theta(x_i), y_i)
 $$
 
-This is the empirical mean — a sum with equal weights $1/n$ — that approximates the true expectation.
+This is the empirical mean - a sum with equal weights $1/n$ - that approximates the true expectation.
 
 ### 12.2 Variance and Higher Moments
 
@@ -2120,7 +2120,7 @@ $$
 
 For independent variables, covariances vanish: $\text{Var}(\sum X_i) = \sum \text{Var}(X_i)$.
 
-**AI application — gradient variance:**
+**AI application - gradient variance:**
 
 The variance of the stochastic gradient with batch size $B$:
 
@@ -2168,7 +2168,7 @@ $$
 E[X] = E[E[X \mid Y]] = \sum_y E[X \mid Y = y] P(Y = y)
 $$
 
-This is a **double summation** — the inner sum computes $E[X \mid Y = y]$ for each $y$, and the outer sum averages over $y$.
+This is a **double summation** - the inner sum computes $E[X \mid Y = y]$ for each $y$, and the outer sum averages over $y$.
 
 **Proof:**
 
@@ -2180,7 +2180,7 @@ $$
 = \sum_y \sum_x x \, P(X=x, Y=y) = \sum_x x \sum_y P(X=x, Y=y) = \sum_x x \, P(X=x) = E[X]
 $$
 
-**AI application — mixture models:**
+**AI application - mixture models:**
 
 For a Gaussian mixture model $p(x) = \sum_{k=1}^{K} \pi_k \mathcal{N}(x; \mu_k, \sigma_k^2)$:
 
@@ -2215,21 +2215,21 @@ $$
 ```
   Venn diagram (n=3):
 
-         A₁
-        ╱  ╲
-       ╱ +1 ╲
-      ╱  ╱─╲  ╲
-     │  │-1 │  │
-  A₂─── │+1│ ───A₃
-      ╲  ╲─╱  ╱
-       ╲ -1 ╱
-        ╲  ╱
+         A_1
+        /  \
+       / +1 \
+      /  /-\  \
+     |  |-1 |  |
+  A_2--- |+1| ---A_3
+      \  \-/  /
+       \ -1 /
+        \  /
 
   Each region counted: singles (+), pairs (-), triple (+)
   Alternating signs prevent over-counting
 ```
 
-**The sum has $2^n - 1$ terms** — exponential in the number of sets.
+**The sum has $2^n - 1$ terms** - exponential in the number of sets.
 
 **AI applications:**
 
@@ -2302,8 +2302,8 @@ $\sum_{x \in S}$                  % Index set notation
 | Matrix multiply  | $\sum_k A_{ik} B_{kj}$           | $A_{ik} B_{kj}$ | `A @ B`                    |
 | Weighted average | $\sum_i w_i x_i$                 | $w_i x_i$       | `np.average(x, weights=w)` |
 | Trace            | $\sum_i A_{ii}$                  | $A_{ii}$        | `np.trace(A)`              |
-| Batch mean       | $\frac{1}{B}\sum_{i=1}^{B} x_i$  | —               | `x.mean(dim=0)`            |
-| Softmax          | $\frac{e^{z_i}}{\sum_j e^{z_j}}$ | —               | `F.softmax(z, dim=-1)`     |
+| Batch mean       | $\frac{1}{B}\sum_{i=1}^{B} x_i$  | -               | `x.mean(dim=0)`            |
+| Softmax          | $\frac{e^{z_i}}{\sum_j e^{z_j}}$ | -               | `F.softmax(z, dim=-1)`     |
 
 ---
 
@@ -2321,14 +2321,14 @@ Summation notation is deceptively simple, but subtle errors can cause bugs in pr
 | 4   | **Distributing $\Pi$ over sums**        | $\prod(a_i + b_i) = \prod a_i + \prod b_i$         | Product distributes over factors, not addends | Wrong likelihood              |
 | 5   | **Swapping $\sum$ and non-linear $f$**  | $f(\sum a_i) = \sum f(a_i)$                        | Only true for linear $f$                      | Jensen's inequality violation |
 | 6   | **Forgetting empty cases**              | Assuming $n \geq 1$                                | Empty sum = 0, empty product = 1              | Edge case crashes             |
-| 7   | **Wrong $\Sigma$ ↔ $\Pi$ conversion**   | $\log \sum = \sum \log$                            | $\log \prod = \sum \log$, NOT $\log \sum$     | log-sum-exp vs sum-of-logs    |
+| 7   | **Wrong $\Sigma$ <-> $\Pi$ conversion**   | $\log \sum = \sum \log$                            | $\log \prod = \sum \log$, NOT $\log \sum$     | log-sum-exp vs sum-of-logs    |
 | 8   | **Index collision**                     | $\sum_i a_i \sum_i b_i$                            | $\sum_i a_i \sum_j b_j$                       | Ambiguous scope               |
 | 9   | **Telescoping failure**                 | Cancelling wrong terms                             | Write out the first few terms explicitly      | Wrong simplification          |
 | 10  | **Infinite sum truncation**             | Treating $\sum_{n=0}^{N}$ as $\sum_{n=0}^{\infty}$ | Bound the tail: $\sum_{n>N}$                  | Approximation error           |
 
 ### 14.2 Detailed Examples
 
-**Mistake 3 in detail — sum of products ≠ product of sums:**
+**Mistake 3 in detail - sum of products \neq product of sums:**
 
 $$
 \sum_{i=1}^{2} a_i b_i = a_1 b_1 + a_2 b_2
@@ -2346,7 +2346,7 @@ $$
 
 This is a **double sum** (outer product), not a single sum (dot product).
 
-**Mistake 5 in detail — Jensen's inequality:**
+**Mistake 5 in detail - Jensen's inequality:**
 
 For convex $f$: $f\left(\sum_i p_i x_i\right) \leq \sum_i p_i f(x_i)$ (where $\sum p_i = 1$, $p_i \geq 0$).
 
@@ -2364,25 +2364,25 @@ $$
 \log p(x) = \log \sum_z p(x,z) = \log \sum_z q(z) \frac{p(x,z)}{q(z)} \geq \sum_z q(z) \log \frac{p(x,z)}{q(z)} = \text{ELBO}
 $$
 
-**Mistake 7 in detail — log of sum vs sum of logs:**
+**Mistake 7 in detail - log of sum vs sum of logs:**
 
 ```
-  ╔══════════════════════════════════════════════════╗
-  ║  CRITICAL DISTINCTION:                           ║
-  ║                                                  ║
-  ║  log(∑ aᵢ)  ≠  ∑ log(aᵢ)     ← WRONG to swap   ║
-  ║                                                  ║
-  ║  log(∏ aᵢ)  =  ∑ log(aᵢ)     ← CORRECT          ║
-  ║                                                  ║
-  ║  Logs convert PRODUCTS to SUMS, not SUMS to SUMS ║
-  ╠══════════════════════════════════════════════════╣
-  ║  NLL loss = -log p(data)                         ║
-  ║          = -log ∏ p(xᵢ)     (for i.i.d. data)   ║
-  ║          = -∑ log p(xᵢ)     ← the log-sum trick ║
-  ║                                                  ║
-  ║  BUT:  -log ∑ p(xᵢ)  is DIFFERENT — this is     ║
-  ║        the log of a mixture, not a product.      ║
-  ╚══════════════════════════════════════════════════╝
+  +==================================================+
+  |  CRITICAL DISTINCTION:                           |
+  |                                                  |
+  |  log(\sum a^i)  \neq  \sum log(a^i)     <- WRONG to swap   |
+  |                                                  |
+  |  log(\prod a^i)  =  \sum log(a^i)     <- CORRECT          |
+  |                                                  |
+  |  Logs convert PRODUCTS to SUMS, not SUMS to SUMS |
+  +==================================================+
+  |  NLL loss = -log p(data)                         |
+  |          = -log \prod p(x^i)     (for i.i.d. data)   |
+  |          = -\sum log p(x^i)     <- the log-sum trick |
+  |                                                  |
+  |  BUT:  -log \sum p(x^i)  is DIFFERENT - this is     |
+  |        the log of a mixture, not a product.      |
+  +==================================================+
 ```
 
 ### 14.3 Numerical Pitfalls
@@ -2489,7 +2489,7 @@ $$
 
 ## 16. Why This Matters: The Summation Lens on AI
 
-Summation and product notation are not just mathematical conveniences — they are the **computational atoms** from which all of AI is built.
+Summation and product notation are not just mathematical conveniences - they are the **computational atoms** from which all of AI is built.
 
 ### The Impact Map
 
@@ -2509,23 +2509,23 @@ Summation and product notation are not just mathematical conveniences — they a
 ### The Three Skills This Section Builds
 
 ```
-  ┌─────────────────────────────────────────────────────┐
-  │           Fluency with Summation Notation            │
-  │                                                     │
-  │  1. READ:  Parse ∑ and ∏ expressions in papers      │
-  │            Identify index ranges and dummy vars      │
-  │            Recognise standard patterns               │
-  │                                                     │
-  │  2. MANIPULATE:  Apply algebraic properties          │
-  │                  Change summation order               │
-  │                  Use telescoping and cancellation     │
-  │                  Convert between ∑, ∏, and log       │
-  │                                                     │
-  │  3. CONNECT:  Map formulas to code                   │
-  │               Map code to formulas                   │
-  │               Estimate computational cost            │
-  │               Debug via mathematical reasoning       │
-  └─────────────────────────────────────────────────────┘
+  +-----------------------------------------------------+
+  |           Fluency with Summation Notation            |
+  |                                                     |
+  |  1. READ:  Parse \sum and \prod expressions in papers      |
+  |            Identify index ranges and dummy vars      |
+  |            Recognise standard patterns               |
+  |                                                     |
+  |  2. MANIPULATE:  Apply algebraic properties          |
+  |                  Change summation order               |
+  |                  Use telescoping and cancellation     |
+  |                  Convert between \sum, \prod, and log       |
+  |                                                     |
+  |  3. CONNECT:  Map formulas to code                   |
+  |               Map code to formulas                   |
+  |               Estimate computational cost            |
+  |               Debug via mathematical reasoning       |
+  +-----------------------------------------------------+
 ```
 
 ---
@@ -2533,56 +2533,56 @@ Summation and product notation are not just mathematical conveniences — they a
 ## Conceptual Bridge: From Summation to Einstein Summation and Index Notation
 
 ```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                      CONCEPTUAL BRIDGE                          │
-  │                                                                  │
-  │  This Section (04)              Next Section (05)                │
-  │  Summation & Products           Einstein Summation & Tensors     │
-  │                                                                  │
-  │  ∑ᵢ aᵢbᵢ          ──────→     aᵢbᵢ (implicit sum)             │
-  │  ∑ₖ AᵢₖBₖⱼ        ──────→     AᵢₖBₖⱼ (matrix multiply)       │
-  │  Scalar indices     ──────→     Tensor indices (rank ≥ 2)       │
-  │  Finite sums        ──────→     Tensor contraction              │
-  │  Index manipulation ──────→     Index gymnastics                 │
-  │  torch.sum()        ──────→     torch.einsum()                  │
-  │                                                                  │
-  │  Key transition:                                                 │
-  │  "Explicit sigma" → "Implicit contraction" → "Tensor networks"  │
-  │                                                                  │
-  │  You now have:                                                   │
-  │  ✓ Fluency with ∑ and ∏ notation                                │
-  │  ✓ Algebraic manipulation tools                                  │
-  │  ✓ Closed-form formulas for standard sums                       │
-  │  ✓ Convergence analysis for infinite series                     │
-  │  ✓ Recognition of AI summation patterns                         │
-  │                                                                  │
-  │  Next you'll learn:                                              │
-  │  → Einstein convention as shorthand for repeated-index sums      │
-  │  → Tensor rank, contraction, and index notation                  │
-  │  → Covariant vs contravariant indices                            │
-  │  → Advanced einsum patterns for multi-dimensional operations     │
-  │  → Tensor networks and their connection to neural architectures  │
-  └──────────────────────────────────────────────────────────────────┘
+  +------------------------------------------------------------------+
+  |                      CONCEPTUAL BRIDGE                          |
+  |                                                                  |
+  |  This Section (04)              Next Section (05)                |
+  |  Summation & Products           Einstein Summation & Tensors     |
+  |                                                                  |
+  |  \sum^i a^ib^i          ------->     a^ib^i (implicit sum)             |
+  |  \sum_k A^i_kB_kj        ------->     A^i_kB_kj (matrix multiply)       |
+  |  Scalar indices     ------->     Tensor indices (rank \geq 2)       |
+  |  Finite sums        ------->     Tensor contraction              |
+  |  Index manipulation ------->     Index gymnastics                 |
+  |  torch.sum()        ------->     torch.einsum()                  |
+  |                                                                  |
+  |  Key transition:                                                 |
+  |  "Explicit sigma" -> "Implicit contraction" -> "Tensor networks"  |
+  |                                                                  |
+  |  You now have:                                                   |
+  |  OK Fluency with \sum and \prod notation                                |
+  |  OK Algebraic manipulation tools                                  |
+  |  OK Closed-form formulas for standard sums                       |
+  |  OK Convergence analysis for infinite series                     |
+  |  OK Recognition of AI summation patterns                         |
+  |                                                                  |
+  |  Next you'll learn:                                              |
+  |  -> Einstein convention as shorthand for repeated-index sums      |
+  |  -> Tensor rank, contraction, and index notation                  |
+  |  -> Covariant vs contravariant indices                            |
+  |  -> Advanced einsum patterns for multi-dimensional operations     |
+  |  -> Tensor networks and their connection to neural architectures  |
+  +------------------------------------------------------------------+
 ```
 
 ---
 
 ## References and Further Reading
 
-1. **Knuth, D. E.** (1997). _The Art of Computer Programming, Vol. 1: Fundamental Algorithms_, 3rd ed. Addison-Wesley. — Definitive treatment of summation techniques (Chapter 1.2.3).
+1. **Knuth, D. E.** (1997). _The Art of Computer Programming, Vol. 1: Fundamental Algorithms_, 3rd ed. Addison-Wesley. - Definitive treatment of summation techniques (Chapter 1.2.3).
 
-2. **Graham, R. L., Knuth, D. E., & Patashnik, O.** (1994). _Concrete Mathematics_, 2nd ed. Addison-Wesley. — The best resource for summation methods, with hundreds of worked examples.
+2. **Graham, R. L., Knuth, D. E., & Patashnik, O.** (1994). _Concrete Mathematics_, 2nd ed. Addison-Wesley. - The best resource for summation methods, with hundreds of worked examples.
 
-3. **Goodfellow, I., Bengio, Y., & Courville, A.** (2016). _Deep Learning_. MIT Press. — See Chapter 2 for notation conventions and Chapter 3 for probability/information theory.
+3. **Goodfellow, I., Bengio, Y., & Courville, A.** (2016). _Deep Learning_. MIT Press. - See Chapter 2 for notation conventions and Chapter 3 for probability/information theory.
 
-4. **Vaswani, A., et al.** (2017). "Attention Is All You Need." _NeurIPS_. — The transformer paper that made $\sum \alpha_{ij} V_j$ the central operation in modern AI.
+4. **Vaswani, A., et al.** (2017). "Attention Is All You Need." _NeurIPS_. - The transformer paper that made $\sum \alpha_{ij} V_j$ the central operation in modern AI.
 
-5. **Einstein, A.** (1916). "Die Grundlage der allgemeinen Relativitätstheorie." _Annalen der Physik_. — Introduction of the summation convention.
+5. **Einstein, A.** (1916). "Die Grundlage der allgemeinen Relativitatstheorie." _Annalen der Physik_. - Introduction of the summation convention.
 
-6. **Apostol, T. M.** (1974). _Mathematical Analysis_, 2nd ed. Addison-Wesley. — Rigorous treatment of series convergence.
+6. **Apostol, T. M.** (1974). _Mathematical Analysis_, 2nd ed. Addison-Wesley. - Rigorous treatment of series convergence.
 
-7. **Robertson, S. E., & Zaragoza, H.** (2009). "The Probabilistic Relevance Framework: BM25 and Beyond." _Foundations and Trends in Information Retrieval_. — BM25 derivation and analysis.
+7. **Robertson, S. E., & Zaragoza, H.** (2009). "The Probabilistic Relevance Framework: BM25 and Beyond." _Foundations and Trends in Information Retrieval_. - BM25 derivation and analysis.
 
 ---
 
-_Navigation: [← 03 Functions and Mappings](../03-Functions-and-Mappings/notes.md) | [↑ Mathematical Foundations](../README.md) | [05 Einstein Summation and Index Notation →](../05-Einstein-Summation-and-Index-Notation/notes.md)_
+_Navigation: [<- 03 Functions and Mappings](../03-Functions-and-Mappings/notes.md) | [up Mathematical Foundations](../README.md) | [05 Einstein Summation and Index Notation ->](../05-Einstein-Summation-and-Index-Notation/notes.md)_

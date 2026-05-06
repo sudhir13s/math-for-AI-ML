@@ -1,34 +1,34 @@
-[← Back to Information Theory](../README.md) | [Next: KL Divergence →](../02-KL-Divergence/notes.md)
+[<- Back to Information Theory](../README.md) | [Next: KL Divergence ->](../02-KL-Divergence/notes.md)
 
 ---
 
 # Entropy
 
-> _"Information is the resolution of uncertainty."_ — Claude Shannon
+> _"Information is the resolution of uncertainty."_ - Claude Shannon
 
 ## Overview
 
-Entropy is the central quantity of information theory — a precise, mathematical measure of uncertainty, surprise, and information content. Introduced by Claude Shannon in his landmark 1948 paper *A Mathematical Theory of Communication*, entropy transformed our understanding of communication, computation, and inference. Where nineteenth-century thermodynamics defined entropy as a measure of physical disorder, Shannon showed that the same mathematical structure governs the information carried by any probabilistic source, from telegraph signals to protein sequences to transformer language models.
+Entropy is the central quantity of information theory - a precise, mathematical measure of uncertainty, surprise, and information content. Introduced by Claude Shannon in his landmark 1948 paper *A Mathematical Theory of Communication*, entropy transformed our understanding of communication, computation, and inference. Where nineteenth-century thermodynamics defined entropy as a measure of physical disorder, Shannon showed that the same mathematical structure governs the information carried by any probabilistic source, from telegraph signals to protein sequences to transformer language models.
 
 For machine learning practitioners, entropy is ubiquitous. The cross-entropy loss that trains every classifier is entropy in disguise. The perplexity that evaluates every language model is an entropy estimate. The information gain that splits every decision tree is an entropy difference. The soft policy entropy bonus in soft actor-critic prevents premature convergence. Entropy appears not as an abstract concept but as a concrete, computable quantity that governs the fundamental limits of compression, inference, and learning.
 
-This section builds entropy from first principles: self-information (§2), the Shannon entropy formula and its standard properties (§3), joint and conditional entropy with the chain rule (§4), the maximum entropy principle (§5), source coding and data compression (§6), entropy rates of stochastic processes including language models (§7), differential entropy for continuous variables (§8), and Rényi and Tsallis generalizations (§9). Every concept is developed mathematically and connected to its role in modern AI systems.
+This section builds entropy from first principles: self-information (Section 2), the Shannon entropy formula and its standard properties (Section 3), joint and conditional entropy with the chain rule (Section 4), the maximum entropy principle (Section 5), source coding and data compression (Section 6), entropy rates of stochastic processes including language models (Section 7), differential entropy for continuous variables (Section 8), and Renyi and Tsallis generalizations (Section 9). Every concept is developed mathematically and connected to its role in modern AI systems.
 
-**Scope note.** This section is the canonical home for entropy. The closely related quantities — KL divergence (§02), mutual information (§03), cross-entropy loss (§04), and Fisher information (§05) — each have their own dedicated sections in this chapter. Where they appear here, they appear as brief previews with forward references.
+**Scope note.** This section is the canonical home for entropy. The closely related quantities - KL divergence (Section 02), mutual information (Section 03), cross-entropy loss (Section 04), and Fisher information (Section 05) - each have their own dedicated sections in this chapter. Where they appear here, they appear as brief previews with forward references.
 
 ## Prerequisites
 
-- **Probability distributions** — PMFs, PDFs, expectations — [Chapter 6: Probability Theory](../../06-Probability-Theory/README.md)
-- **Logarithm rules** — $\log(ab) = \log a + \log b$, $\log(1/p) = -\log p$ — [Chapter 1](../../01-Mathematical-Foundations/README.md)
-- **Expected values** — $\mathbb{E}[f(X)] = \sum_x p(x) f(x)$ — [Chapter 6 §02](../../06-Probability-Theory/02-Random-Variables/notes.md)
-- **Jensen's inequality** — for convex $\phi$: $\phi(\mathbb{E}[X]) \le \mathbb{E}[\phi(X)]$ — [Chapter 8 §01](../../08-Optimization/01-Convex-Optimization/notes.md)
+- **Probability distributions** - PMFs, PDFs, expectations - [Chapter 6: Probability Theory](../../06-Probability-Theory/README.md)
+- **Logarithm rules** - $\log(ab) = \log a + \log b$, $\log(1/p) = -\log p$ - [Chapter 1](../../01-Mathematical-Foundations/README.md)
+- **Expected values** - $\mathbb{E}[f(X)] = \sum_x p(x) f(x)$ - [Chapter 6 Section 02](../../06-Probability-Theory/02-Random-Variables/notes.md)
+- **Jensen's inequality** - for convex $\phi$: $\phi(\mathbb{E}[X]) \le \mathbb{E}[\phi(X)]$ - [Chapter 8 Section 01](../../08-Optimization/01-Convex-Optimization/notes.md)
 
 ## Companion Notebooks
 
 | Notebook | Description |
 | --- | --- |
 | [theory.ipynb](theory.ipynb) | Interactive derivations: entropy computations, MaxEnt proofs, entropy rate of Markov chains, perplexity, differential entropy |
-| [exercises.ipynb](exercises.ipynb) | 8 graded exercises from binary entropy to MaxEnt RL entropy bonus |
+| [exercises.ipynb](exercises.ipynb) | 10 graded exercises from binary entropy to MaxEnt RL entropy bonus |
 
 ## Learning Objectives
 
@@ -42,7 +42,7 @@ After completing this section, you will:
 6. State Shannon's source coding theorem and construct a Huffman code for a given source
 7. Compute the entropy rate of a Markov chain and connect it to language model perplexity
 8. Define differential entropy $h(X)$, compute it for Gaussian and uniform distributions, and identify its key differences from discrete entropy
-9. Parametrize the Rényi entropy family $H_\alpha(X)$ and identify the limiting cases (Hartley, Shannon, min-entropy)
+9. Parametrize the Renyi entropy family $H_\alpha(X)$ and identify the limiting cases (Hartley, Shannon, min-entropy)
 10. Explain how entropy appears in decision trees, MaxEnt RL (SAC), confidence calibration, and LLM perplexity evaluation
 
 ---
@@ -88,8 +88,8 @@ After completing this section, you will:
   - [8.1 Definition and Subtleties](#81-definition-and-subtleties)
   - [8.2 Differential Entropy of Standard Distributions](#82-differential-entropy-of-standard-distributions)
   - [8.3 Maximum Differential Entropy: The Gaussian](#83-maximum-differential-entropy-the-gaussian)
-- [9. Rényi Entropy and Generalizations](#9-rényi-entropy-and-generalizations)
-  - [9.1 Rényi Entropy](#91-rényi-entropy)
+- [9. Renyi Entropy and Generalizations](#9-renyi-entropy-and-generalizations)
+  - [9.1 Renyi Entropy](#91-renyi-entropy)
   - [9.2 Min-Entropy and Security](#92-min-entropy-and-security)
   - [9.3 Tsallis Entropy](#93-tsallis-entropy)
 - [10. Applications in Machine Learning](#10-applications-in-machine-learning)
@@ -108,9 +108,9 @@ After completing this section, you will:
 
 ### 1.1 What Is Entropy?
 
-Imagine you are handed a message before reading it. How surprised will you be? If the message is from a source that always sends the same symbol — say, a machine that outputs `A` with probability 1 — you learn nothing; no surprise is possible. If the source sends `A` or `B` with equal probability $\frac{1}{2}$, you learn exactly one bit of information when the symbol arrives. If the source can send any of 256 characters with equal probability, you learn 8 bits per symbol.
+Imagine you are handed a message before reading it. How surprised will you be? If the message is from a source that always sends the same symbol - say, a machine that outputs `A` with probability 1 - you learn nothing; no surprise is possible. If the source sends `A` or `B` with equal probability $\frac{1}{2}$, you learn exactly one bit of information when the symbol arrives. If the source can send any of 256 characters with equal probability, you learn 8 bits per symbol.
 
-Entropy quantifies this intuition precisely. It is the **average amount of information** (or equivalently, the average surprise) produced by a probabilistic source. Rare events are more surprising than common ones — learning that a 1-in-a-million event occurred tells you far more than learning that a coin came up heads. The entropy of a distribution is the expected value of this surprise, averaged over all possible outcomes.
+Entropy quantifies this intuition precisely. It is the **average amount of information** (or equivalently, the average surprise) produced by a probabilistic source. Rare events are more surprising than common ones - learning that a 1-in-a-million event occurred tells you far more than learning that a coin came up heads. The entropy of a distribution is the expected value of this surprise, averaged over all possible outcomes.
 
 Three equivalent ways to think about entropy:
 
@@ -126,25 +126,25 @@ $$H(X) = -\sum_{x \in \mathcal{X}} p(x) \log p(x) = \mathbb{E}[-\log p(X)]$$
 
 The minus sign appears because $\log p(x) \le 0$ for $p(x) \in (0,1]$, and we want entropy to be non-negative.
 
-**Intuitive examples.** A fair coin: $H = \log 2 = 1$ bit. A biased coin ($p = 0.9$): $H \approx 0.469$ bits — less uncertainty because heads is much more likely. A fair 6-sided die: $H = \log_2 6 \approx 2.585$ bits. A fair deck of 52 cards: $H = \log_2 52 \approx 5.7$ bits.
+**Intuitive examples.** A fair coin: $H = \log 2 = 1$ bit. A biased coin ($p = 0.9$): $H \approx 0.469$ bits - less uncertainty because heads is much more likely. A fair 6-sided die: $H = \log_2 6 \approx 2.585$ bits. A fair deck of 52 cards: $H = \log_2 52 \approx 5.7$ bits.
 
 **The key insight for AI.** Language is a stochastic source. Each token in a sequence is drawn from a distribution over the vocabulary. The entropy of this distribution measures how uncertain (or creative) the language model is. A model that always predicts the next token with certainty has zero entropy and is not a useful language model. A model with moderate entropy is generating diverse, informative text.
 
 ### 1.2 Why Entropy Matters for AI
 
-Entropy is not merely a theoretical construct — it is load-bearing mathematics in the most common ML operations:
+Entropy is not merely a theoretical construct - it is load-bearing mathematics in the most common ML operations:
 
 **Cross-entropy loss.** The most common training objective in classification and language modeling is:
 
 $$\mathcal{L} = -\frac{1}{n}\sum_{i=1}^n \log p_{\boldsymbol{\theta}}(y^{(i)} \mid \mathbf{x}^{(i)})$$
 
-This is the empirical estimate of the cross-entropy $H(p_{\mathrm{data}}, p_{\boldsymbol{\theta}})$. Minimizing it minimizes the KL divergence from the data distribution to the model distribution. Every GPT, LLaMA, Claude, and Gemini model is trained by minimizing cross-entropy. The connection to entropy is developed fully in [§04 Cross-Entropy](../04-Cross-Entropy/notes.md).
+This is the empirical estimate of the cross-entropy $H(p_{\mathrm{data}}, p_{\boldsymbol{\theta}})$. Minimizing it minimizes the KL divergence from the data distribution to the model distribution. Every GPT, LLaMA, Claude, and Gemini model is trained by minimizing cross-entropy. The connection to entropy is developed fully in [Section 04 Cross-Entropy](../04-Cross-Entropy/notes.md).
 
 **Perplexity.** The standard metric for evaluating language models is:
 
 $$\operatorname{PPL} = \exp\!\left(-\frac{1}{T}\sum_{t=1}^T \log p(x_t \mid x_{<t})\right)$$
 
-This is $2^H$ (in nats, $e^H$) — the exponentiated per-token entropy of the model's predictions. A perplexity of 10 means the model is, on average, as uncertain as a uniform distribution over 10 tokens. Lower perplexity = lower entropy = better compression = better language model.
+This is $2^H$ (in nats, $e^H$) - the exponentiated per-token entropy of the model's predictions. A perplexity of 10 means the model is, on average, as uncertain as a uniform distribution over 10 tokens. Lower perplexity = lower entropy = better compression = better language model.
 
 **Decision trees.** The information gain criterion for splitting a node is:
 
@@ -160,16 +160,16 @@ This chooses the feature $X_j$ that maximally reduces the entropy of the target 
 
 ```
 HISTORY OF ENTROPY
-════════════════════════════════════════════════════════════════════════
+
 
   1865  Rudolf Clausius coins "entropy" for thermodynamics (disorder)
   1877  Ludwig Boltzmann: S = k log W (statistical mechanics)
   1929  Leo Szilard: information and thermodynamic entropy connected
-  1948  Claude Shannon: H(X) = -∑ p log p (information theory born)
+  1948  Claude Shannon: H(X) = -sum p log p (information theory born)
         "A Mathematical Theory of Communication", Bell System Tech. J.
   1951  Kullback & Leibler: KL divergence as entropy-relative measure
   1959  Peter Elias, David Huffman: optimal prefix codes
-  1961  Alfréd Rényi: generalized entropies H_α
+  1961  Alfred Renyi: generalized entropies H_alpha
   1976  Edwin Jaynes: MaxEnt as Bayesian inference framework
   1991  Thomas Cover & Joy Thomas: "Elements of Information Theory"
         (still the standard graduate textbook)
@@ -180,7 +180,7 @@ HISTORY OF ENTROPY
   2022+ LLM inference with speculative decoding; token entropy
         as early-exit signal; entropy-based uncertainty quantification
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 1.4 Units and the Base Question
@@ -195,13 +195,13 @@ The formula $H(X) = -\sum_x p(x) \log p(x)$ depends on the base of the logarithm
 
 **Which base does ML use?**
 
-- **Theory and proofs:** nats ($\ln$) — calculus is cleaner, no constant factors in derivatives
-- **Compression and coding theory:** bits ($\log_2$) — matches binary representation
+- **Theory and proofs:** nats ($\ln$) - calculus is cleaner, no constant factors in derivatives
+- **Compression and coding theory:** bits ($\log_2$) - matches binary representation
 - **Perplexity computation:** nats in code, reported as base-$e$ exponent, but "bits per token" uses base-2
 
 In this section, $\log$ denotes the natural logarithm unless otherwise specified. When working with bits, we write $\log_2$. The choice of base scales entropy by a constant factor and does not affect any mathematical property or ordering of distributions.
 
-**For AI:** PyTorch's `nn.CrossEntropyLoss` and `F.cross_entropy` use natural logarithm internally (bits are not relevant for gradient computation). Perplexity is reported as $e^{\bar{\ell}}$ where $\bar{\ell}$ is the average negative log-likelihood in nats. The distinction matters when comparing reported perplexity values across papers — verify whether they use $e$ or $2$ as the base.
+**For AI:** PyTorch's `nn.CrossEntropyLoss` and `F.cross_entropy` use natural logarithm internally (bits are not relevant for gradient computation). Perplexity is reported as $e^{\bar{\ell}}$ where $\bar{\ell}$ is the average negative log-likelihood in nats. The distinction matters when comparing reported perplexity values across papers - verify whether they use $e$ or $2$ as the base.
 
 ---
 
@@ -228,7 +228,7 @@ The third axiom forces the logarithm. If $f(p \cdot q) = f(p) + f(q)$ for all $p
 - Fair die, outcome 6: $I(6) = -\log_2(1/6) \approx 2.585$ bits
 - English letter 'e' (frequency $\approx 12.7\%$): $I(\text{e}) \approx 2.98$ bits
 - English letter 'z' (frequency $\approx 0.07\%$): $I(\text{z}) \approx 10.8$ bits
-- Token `" the"` in GPT (very common): low self-information, e.g. $\approx 2$–$4$ nats
+- Token `" the"` in GPT (very common): low self-information, e.g. $\approx 2$-$4$ nats
 - A rare technical token: high self-information
 
 **The surprise interpretation.** If your language model assigns probability $p = 0.001$ to the next token, and that token occurs, the model is "surprised" by $-\ln(0.001) \approx 6.9$ nats. If $p = 0.9$ and the token occurs, surprise is $-\ln(0.9) \approx 0.105$ nats. The negative log-likelihood of a prediction is literally how surprised the model is.
@@ -247,7 +247,7 @@ $$H(X) = \mathbb{E}[-\log p(X)] = \mathbb{E}[I(X)]$$
 
 This is a key identity: entropy is the **expected surprise** of the distribution. A high-entropy distribution is one where you are, on average, very surprised by outcomes. A low-entropy distribution is one where outcomes are mostly predictable.
 
-**The convention $0 \log 0 = 0$.** This is justified by continuity: $\lim_{p \to 0^+} p \log p = 0$. Outcomes with probability zero do not contribute to entropy, which makes sense — an impossible outcome carries infinite self-information, but it never occurs, so its contribution to the expected surprise is zero.
+**The convention $0 \log 0 = 0$.** This is justified by continuity: $\lim_{p \to 0^+} p \log p = 0$. Outcomes with probability zero do not contribute to entropy, which makes sense - an impossible outcome carries infinite self-information, but it never occurs, so its contribution to the expected surprise is zero.
 
 **Entropy depends only on $\mathbf{p}$.** $H(X)$ depends only on the probability vector $(p(x_1), \ldots, p(x_n))$, not on the actual values $x_1, \ldots, x_n$. Renaming outcomes does not change entropy.
 
@@ -260,8 +260,8 @@ This is a key identity: entropy is the **expected surprise** of the distribution
 $$H(X) = -p\log p - (1-p)\log(1-p) =: h(p)$$
 
 This is the **binary entropy function** $h(p)$. Key values:
-- $h(0) = h(1) = 0$ (deterministic — no uncertainty)
-- $h(1/2) = \log 2 = 1$ bit (maximum — fair coin)
+- $h(0) = h(1) = 0$ (deterministic - no uncertainty)
+- $h(1/2) = \log 2 = 1$ bit (maximum - fair coin)
 - $h(0.1) \approx 0.469$ bits; $h(0.01) \approx 0.081$ bits
 
 The function $h(p)$ is symmetric about $p = 1/2$, concave, and achieves its unique maximum at $p = 1/2$.
@@ -271,14 +271,14 @@ The function $h(p)$ is symmetric about $p = 1/2$, concave, and achieves its uniq
 $$H(X) = -\sum_{i=1}^n p_i \log p_i$$
 
 Special cases:
-- Uniform: $p_i = 1/n$ for all $i$ → $H = \log n$ (maximum)
-- Deterministic: $p_k = 1$ for some $k$ → $H = 0$ (minimum)
+- Uniform: $p_i = 1/n$ for all $i$ -> $H = \log n$ (maximum)
+- Deterministic: $p_k = 1$ for some $k$ -> $H = 0$ (minimum)
 
 **Geometric distribution.** Let $X \sim \operatorname{Geom}(p)$: $P(X=k) = (1-p)^{k-1}p$ for $k \ge 1$.
 
 $$H(X) = \frac{-(1-p)\log(1-p) - p\log p}{p} = \frac{h(p)}{p}$$
 
-For small $p$ (rare successes), $H \approx \frac{1}{p}(\log \frac{1}{p} - 1)$ → large entropy (many trials needed).
+For small $p$ (rare successes), $H \approx \frac{1}{p}(\log \frac{1}{p} - 1)$ -> large entropy (many trials needed).
 
 **Poisson distribution.** Let $X \sim \operatorname{Poisson}(\lambda)$. No closed form, but:
 
@@ -286,9 +286,9 @@ $$H(X) = \lambda(1 - \log \lambda) + e^{-\lambda}\sum_{k=0}^\infty \frac{\lambda
 
 For large $\lambda$: $H(X) \approx \frac{1}{2}\log(2\pi e\lambda)$.
 
-**Uniform distribution over $n$ elements.** $H = \log n$ — the unique distribution achieving the upper bound. This is one reason uniform distributions arise in MaxEnt problems.
+**Uniform distribution over $n$ elements.** $H = \log n$ - the unique distribution achieving the upper bound. This is one reason uniform distributions arise in MaxEnt problems.
 
-**For AI — Token Distribution Entropy.** In language model inference, each forward pass produces a categorical distribution over $|\mathcal{V}|$ vocabulary tokens (often $|\mathcal{V}| \approx 32{,}000$–$128{,}000$). The entropy of this output distribution is:
+**For AI - Token Distribution Entropy.** In language model inference, each forward pass produces a categorical distribution over $|\mathcal{V}|$ vocabulary tokens (often $|\mathcal{V}| \approx 32{,}000$-$128{,}000$). The entropy of this output distribution is:
 - Low when the model is confident (e.g., completing `"The capital of France is _"`)
 - High when the model is uncertain (e.g., completing `"The best approach to _"`)
 
@@ -296,13 +296,13 @@ Monitoring token entropy during inference is used for uncertainty quantification
 
 ### 2.4 Non-Examples and Edge Cases
 
-**Non-example 1: Entropy cannot be negative (for discrete distributions).** Since $p(x) \in [0,1]$ and $-\log p(x) \ge 0$, each term $-p(x)\log p(x) \ge 0$, so $H(X) \ge 0$ always. *(Differential entropy for continuous distributions can be negative — see §8.)*
+**Non-example 1: Entropy cannot be negative (for discrete distributions).** Since $p(x) \in [0,1]$ and $-\log p(x) \ge 0$, each term $-p(x)\log p(x) \ge 0$, so $H(X) \ge 0$ always. *(Differential entropy for continuous distributions can be negative - see Section 8.)*
 
 **Non-example 2: High-cardinality does not guarantee high entropy.** A distribution over $10^6$ outcomes with $p(x_1) = 0.9999$ and equal probability for the remaining outcomes has very low entropy despite having many possible values. Entropy measures the shape of the distribution, not just its support size.
 
-**Non-example 3: Equal entropy does not mean equal distributions.** Two distributions can have the same entropy but completely different shapes. For example, $\mathbf{p} = (0.5, 0.5)$ and $\mathbf{q} = (0.9, 0.05, 0.05)$ both have entropy $1$ bit, but they are very different distributions. *(To compare distributions, use KL divergence — see §02.)*
+**Non-example 3: Equal entropy does not mean equal distributions.** Two distributions can have the same entropy but completely different shapes. For example, $\mathbf{p} = (0.5, 0.5)$ and $\mathbf{q} = (0.9, 0.05, 0.05)$ both have entropy $1$ bit, but they are very different distributions. *(To compare distributions, use KL divergence - see Section 02.)*
 
-**Non-example 4: $H(X) = 0$ does not mean $X$ is constant.** It means $X$ is **almost surely constant** — i.e., some outcome has probability 1 and all others have probability 0. $H(X) = 0 \iff X$ is deterministic.
+**Non-example 4: $H(X) = 0$ does not mean $X$ is constant.** It means $X$ is **almost surely constant** - i.e., some outcome has probability 1 and all others have probability 0. $H(X) = 0 \iff X$ is deterministic.
 
 **Edge case: Infinite alphabet.** For countably infinite $\mathcal{X}$, $H(X)$ can be infinite. For example, $P(X = k) = c/k^2$ has finite entropy, while $P(X = k) \propto 1/k$ does not (harmonic series). In practice, vocabulary sizes are finite so this edge case does not arise in LLMs.
 
@@ -324,11 +324,11 @@ $$0 \le H(X) \le \log n$$
 
 $$D_{\mathrm{KL}}(p \| u) = \sum_x p(x)\log \frac{p(x)}{u(x)} = \log n - H(X) \ge 0$$
 
-The last inequality holds because KL divergence is always non-negative (proven in §02). Therefore $H(X) \le \log n$. Equality holds iff $p = u$, i.e., $X$ is uniform.
+The last inequality holds because KL divergence is always non-negative (proven in Section 02). Therefore $H(X) \le \log n$. Equality holds iff $p = u$, i.e., $X$ is uniform.
 
 **Implications for ML:**
 - A language model's output entropy over $|\mathcal{V}|$ tokens is bounded above by $\log |\mathcal{V}|$. A model outputting the uniform distribution has maximum entropy and zero confidence.
-- Entropy approaching $0$ means the model is becoming deterministic — either very confident (good) or overfit to a degenerate output (bad, e.g., mode collapse in generation).
+- Entropy approaching $0$ means the model is becoming deterministic - either very confident (good) or overfit to a degenerate output (bad, e.g., mode collapse in generation).
 
 ### 3.2 Concavity
 
@@ -344,7 +344,7 @@ Strict concavity: equality holds iff $\mathbf{p} = \mathbf{q}$.
 
 **Consequence: Mixing increases entropy.** If a mixture source outputs $X$ from distribution $p$ with probability $\lambda$ and from distribution $q$ with probability $1-\lambda$, the entropy of the mixture is at least as large as the weighted average of the individual entropies. Intuitively, mixing introduces additional uncertainty about which sub-source generated the output.
 
-**For ML:** The concavity of entropy means that the **maximum entropy distribution** over a convex constraint set is unique. This underpins the MaxEnt principle (§5). It also means that gradient-based optimization of entropy (as in SAC) is well-behaved — there is a unique maximum.
+**For ML:** The concavity of entropy means that the **maximum entropy distribution** over a convex constraint set is unique. This underpins the MaxEnt principle (Section 5). It also means that gradient-based optimization of entropy (as in SAC) is well-behaved - there is a unique maximum.
 
 ### 3.3 Subadditivity
 
@@ -362,7 +362,7 @@ Since $D_{\mathrm{KL}} \ge 0$, we have $H(X,Y) \le H(X) + H(Y)$. Equality holds 
 
 **Intuition.** The joint entropy is the total uncertainty about the pair $(X,Y)$. If $X$ and $Y$ share information (are dependent), then knowing $X$ reduces uncertainty about $Y$, so the total joint uncertainty is less than the sum of individual uncertainties.
 
-**The quantity $H(X) + H(Y) - H(X,Y) = I(X;Y)$** is the **mutual information** — the amount of information $X$ and $Y$ share. This is the subject of [§03 Mutual Information](../03-Mutual-Information/notes.md). Subadditivity is equivalent to $I(X;Y) \ge 0$.
+**The quantity $H(X) + H(Y) - H(X,Y) = I(X;Y)$** is the **mutual information** - the amount of information $X$ and $Y$ share. This is the subject of [Section 03 Mutual Information](../03-Mutual-Information/notes.md). Subadditivity is equivalent to $I(X;Y) \ge 0$.
 
 **For ML:** In multi-task learning, the subadditivity of entropy bounds how much information the combined tasks share. In representation learning (e.g., InfoNCE objectives in contrastive learning), maximizing mutual information between views is equivalent to reducing the gap in $H(X) + H(Y) - H(X,Y)$.
 
@@ -372,7 +372,7 @@ Since $D_{\mathrm{KL}} \ge 0$, we have $H(X,Y) \le H(X) + H(Y)$. Equality holds 
 
 **Proof.** A bijection preserves the probability values: $p_{f(X)}(y) = p_X(f^{-1}(y))$. Since entropy depends only on the multiset of probability values, it is unchanged.
 
-**Non-bijective case.** If $f$ is not injective (many-to-one), then $H(f(X)) \le H(X)$ — collapsing outcomes reduces entropy. This is the **data processing inequality** for functions of $X$: processing cannot increase entropy.
+**Non-bijective case.** If $f$ is not injective (many-to-one), then $H(f(X)) \le H(X)$ - collapsing outcomes reduces entropy. This is the **data processing inequality** for functions of $X$: processing cannot increase entropy.
 
 **For ML:** Lossless tokenization is a bijection on the original character sequence, so the entropy of the token-level distribution is determined by the character-level entropy plus the log of the average number of characters per token. This connects token-level perplexity to character-level perplexity.
 
@@ -386,7 +386,7 @@ The proof uses the fact that $-t \log t$ is continuous on $[0,1]$ (with value $0
 
 $$H(X \mid Y) \le h(p_e) + p_e \log(|\mathcal{X}| - 1)$$
 
-This bounds the conditional entropy (residual uncertainty) given the probability of error. Fano's inequality is a fundamental tool for proving converse channel capacity theorems, and it is covered in depth in [§03 Mutual Information](../03-Mutual-Information/notes.md).
+This bounds the conditional entropy (residual uncertainty) given the probability of error. Fano's inequality is a fundamental tool for proving converse channel capacity theorems, and it is covered in depth in [Section 03 Mutual Information](../03-Mutual-Information/notes.md).
 
 ---
 
@@ -401,10 +401,10 @@ $$H(X, Y) = -\sum_{x \in \mathcal{X}}\sum_{y \in \mathcal{Y}} p(x,y) \log p(x,y)
 Joint entropy measures the total uncertainty about the pair $(X,Y)$.
 
 **Properties:**
-- $H(X,Y) \ge \max(H(X), H(Y))$ — the joint entropy is at least as large as either marginal
-- $H(X,Y) \le H(X) + H(Y)$ — subadditivity (proven above)
+- $H(X,Y) \ge \max(H(X), H(Y))$ - the joint entropy is at least as large as either marginal
+- $H(X,Y) \le H(X) + H(Y)$ - subadditivity (proven above)
 - $H(X,Y) = H(X) + H(Y)$ iff $X \perp\!\!\!\perp Y$
-- $H(X,Y) = H(X)$ iff $Y = f(X)$ for some deterministic function $f$ — if $Y$ is determined by $X$, knowing $X$ gives you $Y$ for free
+- $H(X,Y) = H(X)$ iff $Y = f(X)$ for some deterministic function $f$ - if $Y$ is determined by $X$, knowing $X$ gives you $Y$ for free
 
 **Generalization.** For $n$ jointly distributed variables $X_1, \ldots, X_n$:
 
@@ -412,7 +412,7 @@ $$H(X_1, \ldots, X_n) = -\sum_{x_1, \ldots, x_n} p(x_1, \ldots, x_n) \log p(x_1,
 
 By subadditivity: $H(X_1, \ldots, X_n) \le \sum_{i=1}^n H(X_i)$ with equality iff all $X_i$ are mutually independent.
 
-**For AI:** In a language model with context $x_1, \ldots, x_{T-1}$, the joint entropy $H(x_1, \ldots, x_T)$ is the total information in a sequence of $T$ tokens. The entropy rate (§7) is $H(x_1,\ldots,x_T)/T$ per token — the per-token information content in the limit.
+**For AI:** In a language model with context $x_1, \ldots, x_{T-1}$, the joint entropy $H(x_1, \ldots, x_T)$ is the total information in a sequence of $T$ tokens. The entropy rate (Section 7) is $H(x_1,\ldots,x_T)/T$ per token - the per-token information content in the limit.
 
 ### 4.2 Conditional Entropy
 
@@ -420,7 +420,7 @@ By subadditivity: $H(X_1, \ldots, X_n) \le \sum_{i=1}^n H(X_i)$ with equality if
 
 $$H(X \mid Y) = \sum_{y \in \mathcal{Y}} p(y) H(X \mid Y = y) = -\sum_{x,y} p(x,y)\log p(x \mid y)$$
 
-This is the **expected entropy of $X$ after observing $Y$** — the residual uncertainty about $X$ that remains after knowing $Y$.
+This is the **expected entropy of $X$ after observing $Y$** - the residual uncertainty about $X$ that remains after knowing $Y$.
 
 **Key identity:**
 
@@ -432,14 +432,14 @@ $$= -\sum_{x,y}p(x,y)[\log p(x,y) - \log p(y)] = -\sum_{x,y}p(x,y)\log\frac{p(x,
 $$= -\sum_{x,y}p(x,y)\log p(x \mid y) = H(X \mid Y)$$
 
 **Properties:**
-- $0 \le H(X \mid Y) \le H(X)$ — conditioning never increases entropy
-- $H(X \mid Y) = H(X)$ iff $X \perp\!\!\!\perp Y$ — knowing $Y$ tells you nothing about $X$
-- $H(X \mid Y) = 0$ iff $X$ is a deterministic function of $Y$ — knowing $Y$ determines $X$ completely
-- $H(X \mid X) = 0$ — knowing $X$ eliminates all uncertainty about $X$
+- $0 \le H(X \mid Y) \le H(X)$ - conditioning never increases entropy
+- $H(X \mid Y) = H(X)$ iff $X \perp\!\!\!\perp Y$ - knowing $Y$ tells you nothing about $X$
+- $H(X \mid Y) = 0$ iff $X$ is a deterministic function of $Y$ - knowing $Y$ determines $X$ completely
+- $H(X \mid X) = 0$ - knowing $X$ eliminates all uncertainty about $X$
 
 **Important subtlety:** $H(X \mid Y) \ne H(X \mid Y = y)$ in general. The conditional entropy $H(X \mid Y)$ is an expectation over $y$; the quantity $H(X \mid Y = y)$ is the entropy of the conditional distribution $p(\cdot \mid Y=y)$ for a specific value $y$.
 
-**For AI — Next-Token Prediction:** In a language model, $H(x_t \mid x_1, \ldots, x_{t-1})$ is the conditional entropy of the $t$-th token given the context. This is exactly the per-token uncertainty that the model must compress. The average of this over $t$ is the entropy rate. The model's prediction $p_{\boldsymbol{\theta}}(x_t \mid x_{<t})$ attempts to approximate this conditional distribution.
+**For AI - Next-Token Prediction:** In a language model, $H(x_t \mid x_1, \ldots, x_{t-1})$ is the conditional entropy of the $t$-th token given the context. This is exactly the per-token uncertainty that the model must compress. The average of this over $t$ is the entropy rate. The model's prediction $p_{\boldsymbol{\theta}}(x_t \mid x_{<t})$ attempts to approximate this conditional distribution.
 
 ### 4.3 Chain Rule for Entropy
 
@@ -455,7 +455,7 @@ with the convention $H(X_1 \mid X_0) = H(X_1)$ (no conditioning for the first te
 - $n=2$: $H(X,Y) = H(X) + H(Y \mid X) = H(Y) + H(X \mid Y)$
 - i.i.d. case: all $X_i$ i.i.d., so $H(X_i \mid X_{<i}) = H(X_1)$ and $H(X_1,\ldots,X_n) = n \cdot H(X_1)$
 
-**For AI — Language Model Factorization:** Every autoregressive language model uses the chain rule for entropy (or rather, for probability via the chain rule of probability):
+**For AI - Language Model Factorization:** Every autoregressive language model uses the chain rule for entropy (or rather, for probability via the chain rule of probability):
 
 $$\log p(x_1, \ldots, x_T) = \sum_{t=1}^T \log p(x_t \mid x_1, \ldots, x_{t-1})$$
 
@@ -467,18 +467,18 @@ The relationships among entropy quantities can be visualized using a Venn diagra
 
 ```
 VENN DIAGRAM OF INFORMATION QUANTITIES
-════════════════════════════════════════════════════════════════════════
 
-  ┌──────────────────────────────────────────┐
-  │          H(X,Y)  (joint entropy)         │
-  │  ┌───────────────────┐                   │
-  │  │      H(X)         │                   │
-  │  │  ┌────────┬───────┤───────────────┐   │
-  │  │  │ H(X|Y) │ I(X;Y)│   H(Y|X)     │   │
-  │  │  │        │       │               │   │
-  │  └──┴────────┴───────┴───────────────┘   │
-  │             H(Y)                         │
-  └──────────────────────────────────────────┘
+
+  
+            H(X,Y)  (joint entropy)         
+                       
+          H(X)                            
+         
+       H(X|Y)  I(X;Y)   H(Y|X)        
+                                       
+       
+               H(Y)                         
+  
 
   H(X)     = H(X|Y) + I(X;Y)      [X's total entropy]
   H(Y)     = H(Y|X) + I(X;Y)      [Y's total entropy]
@@ -489,10 +489,10 @@ VENN DIAGRAM OF INFORMATION QUANTITIES
            = H(X) - H(X|Y)        [= reduction in uncertainty]
            = H(Y) - H(Y|X)        [symmetric]
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-The quantity $I(X;Y)$ in the overlap is the **mutual information** — the information shared between $X$ and $Y$. When $X \perp\!\!\!\perp Y$, the circles do not overlap: $I(X;Y) = 0$. This quantity is the subject of [§03 Mutual Information](../03-Mutual-Information/notes.md).
+The quantity $I(X;Y)$ in the overlap is the **mutual information** - the information shared between $X$ and $Y$. When $X \perp\!\!\!\perp Y$, the circles do not overlap: $I(X;Y) = 0$. This quantity is the subject of [Section 03 Mutual Information](../03-Mutual-Information/notes.md).
 
 ---
 
@@ -504,17 +504,17 @@ The **maximum entropy principle** (Jaynes, 1957) states:
 
 > Among all probability distributions consistent with given constraints (known information), choose the one with maximum entropy.
 
-The MaxEnt distribution is the "most uninformative" distribution given what you know — it makes no assumptions beyond the specified constraints. This is not a heuristic but a theorem: the MaxEnt distribution is the unique distribution consistent with the constraints that arises as the uniform distribution over microstate descriptions given macroscopic constraints (Jaynes' maximum entropy formalism).
+The MaxEnt distribution is the "most uninformative" distribution given what you know - it makes no assumptions beyond the specified constraints. This is not a heuristic but a theorem: the MaxEnt distribution is the unique distribution consistent with the constraints that arises as the uniform distribution over microstate descriptions given macroscopic constraints (Jaynes' maximum entropy formalism).
 
 **Why maximum entropy?**
 - Any distribution with lower entropy is implicitly asserting additional structure not in the constraints
 - The MaxEnt distribution is the unique one that is invariant under all symmetries of the constraint set
-- It minimizes the KL divergence from the uniform distribution (proof in §02)
+- It minimizes the KL divergence from the uniform distribution (proof in Section 02)
 
 **Examples of MaxEnt distributions:**
-- Constraint: $X \in \{1,\ldots,n\}$ → MaxEnt: uniform distribution $\operatorname{Uniform}\{1,\ldots,n\}$
-- Constraint: $X \ge 0$, $\mathbb{E}[X] = \mu$ → MaxEnt: exponential distribution $\operatorname{Exp}(1/\mu)$
-- Constraint: $\mathbb{E}[X] = \mu$, $\operatorname{Var}(X) = \sigma^2$ → MaxEnt: Gaussian $\mathcal{N}(\mu, \sigma^2)$
+- Constraint: $X \in \{1,\ldots,n\}$ -> MaxEnt: uniform distribution $\operatorname{Uniform}\{1,\ldots,n\}$
+- Constraint: $X \ge 0$, $\mathbb{E}[X] = \mu$ -> MaxEnt: exponential distribution $\operatorname{Exp}(1/\mu)$
+- Constraint: $\mathbb{E}[X] = \mu$, $\operatorname{Var}(X) = \sigma^2$ -> MaxEnt: Gaussian $\mathcal{N}(\mu, \sigma^2)$
 
 ### 5.2 MaxEnt Derivation via Lagrange Multipliers
 
@@ -540,13 +540,13 @@ where $Z(\boldsymbol{\lambda}) = \sum_x \exp(-\sum_k \lambda_k f_k(x))$ is the *
 
 $$\boxed{p^*(x) = \frac{1}{Z(\boldsymbol{\lambda})} \exp\!\left(-\sum_k \lambda_k f_k(x)\right)}$$
 
-**Worked example — Gaussian as MaxEnt.** Maximize $h(X)$ subject to $\mathbb{E}[X] = \mu$ and $\mathbb{E}[X^2] = \sigma^2 + \mu^2$. The constraints are $f_1(x) = x$ and $f_2(x) = x^2$. The MaxEnt distribution is:
+**Worked example - Gaussian as MaxEnt.** Maximize $h(X)$ subject to $\mathbb{E}[X] = \mu$ and $\mathbb{E}[X^2] = \sigma^2 + \mu^2$. The constraints are $f_1(x) = x$ and $f_2(x) = x^2$. The MaxEnt distribution is:
 
 $$p^*(x) \propto \exp(-\lambda_1 x - \lambda_2 x^2)$$
 
 Completing the square: $p^*(x) \propto \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$, which is exactly $\mathcal{N}(\mu, \sigma^2)$.
 
-**Worked example — Uniform as MaxEnt.** With no moment constraints (only normalization), the MaxEnt distribution is uniform: $p^*(x) = 1/n$. Any other distribution would assign higher probability to some outcomes than others, asserting structure not in the constraints.
+**Worked example - Uniform as MaxEnt.** With no moment constraints (only normalization), the MaxEnt distribution is uniform: $p^*(x) = 1/n$. Any other distribution would assign higher probability to some outcomes than others, asserting structure not in the constraints.
 
 ### 5.3 Exponential Family from MaxEnt
 
@@ -574,7 +574,7 @@ $$p_\tau(x) = \frac{e^{z_x / \tau}}{\sum_{x'} e^{z_{x'}/\tau}}$$
 
 is the MaxEnt distribution under fixed mean logit $\mathbb{E}[z_X] = \bar{z}$, where $\tau$ is the temperature. High $\tau \to 1$ (uniform, maximum entropy); low $\tau \to 0$ (argmax, minimum entropy). This is why temperature is the natural control knob for generation diversity.
 
-**MaxEnt language models.** Before neural LLMs, MaxEnt models were the dominant NLP approach. They model $p(y \mid \mathbf{x}) \propto \exp(\boldsymbol{\lambda}^\top \mathbf{f}(\mathbf{x}, y))$ where $\mathbf{f}$ is a feature vector. This is logistic regression with hand-crafted features — still the MaxEnt distribution given feature expectations.
+**MaxEnt language models.** Before neural LLMs, MaxEnt models were the dominant NLP approach. They model $p(y \mid \mathbf{x}) \propto \exp(\boldsymbol{\lambda}^\top \mathbf{f}(\mathbf{x}, y))$ where $\mathbf{f}$ is a feature vector. This is logistic regression with hand-crafted features - still the MaxEnt distribution given feature expectations.
 
 **Entropy regularization in optimization.** Adding $-\tau H(\mathbf{p})$ as a regularizer to an optimization problem (mirror descent, natural gradient) corresponds to constraining the solution to stay close to the MaxEnt (uniform) distribution. Softmax normalization in attention can be viewed as MaxEnt regularization of the attention weights.
 
@@ -598,7 +598,7 @@ $$\bar{L} < H_2(X) + 1$$
 
 The lower bound says: no code can do better than entropy. The upper bound says: entropy is achievable within 1 bit per symbol. The gap of 1 bit can be made arbitrarily small by coding blocks of $n$ symbols (achieving $H_2(X) + 1/n$ per symbol).
 
-**Proof of lower bound.** By **Kraft's inequality** (§6.2), any uniquely decodable code satisfies $\sum_x 2^{-l_x} \le 1$ where $l_x = |C(x)|$. Define $q(x) = 2^{-l_x} / Z$ as a probability distribution. Then:
+**Proof of lower bound.** By **Kraft's inequality** (Section 6.2), any uniquely decodable code satisfies $\sum_x 2^{-l_x} \le 1$ where $l_x = |C(x)|$. Define $q(x) = 2^{-l_x} / Z$ as a probability distribution. Then:
 
 $$\bar{L} - H_2(X) = \sum_x p(x)l_x + \sum_x p(x)\log_2 p(x)$$
 $$= \sum_x p(x)(-\log_2 2^{-l_x} + \log_2 p(x)) = \sum_x p(x)\log_2\frac{p(x)}{2^{-l_x}}$$
@@ -608,7 +608,7 @@ using $\log_2 Z \ge 0$ (since $Z \ge 1$ by Kraft's inequality for decodable code
 
 **Shannon code.** Assign code length $l_x = \lceil -\log_2 p(x) \rceil$. This achieves $l_x < -\log_2 p(x) + 1$, giving $\bar{L} < H_2(X) + 1$.
 
-**For AI:** Every neural network that outputs log-probabilities implicitly defines a code. The cross-entropy loss $-\log p_{\boldsymbol{\theta}}(y)$ is the code length of outcome $y$ under the model's code. Minimizing cross-entropy minimizes the expected code length — i.e., the model is learning to compress the data.
+**For AI:** Every neural network that outputs log-probabilities implicitly defines a code. The cross-entropy loss $-\log p_{\boldsymbol{\theta}}(y)$ is the code length of outcome $y$ under the model's code. Minimizing cross-entropy minimizes the expected code length - i.e., the model is learning to compress the data.
 
 ### 6.2 Prefix Codes and Kraft's Inequality
 
@@ -626,7 +626,7 @@ The inequality is tight for **complete** prefix codes (every binary string has a
 
 ### 6.3 Huffman Coding
 
-**Huffman's algorithm** (1952) constructs the optimal prefix code for a given distribution $p$ — the code that minimizes $\bar{L}$ exactly (over integer code lengths).
+**Huffman's algorithm** (1952) constructs the optimal prefix code for a given distribution $p$ - the code that minimizes $\bar{L}$ exactly (over integer code lengths).
 
 **Algorithm:**
 1. Create a leaf node for each symbol with weight $p(x)$
@@ -637,13 +637,13 @@ The inequality is tight for **complete** prefix codes (every binary string has a
 
 ```
 HUFFMAN CODE CONSTRUCTION
-════════════════════════════════════════════════════════════════════════
+
 
   Symbols:  A(0.5)  B(0.25)  C(0.125)  D(0.125)
 
-  Step 1: Combine C and D → CD(0.25)
-  Step 2: Combine B and CD → BCD(0.5)
-  Step 3: Combine A and BCD → root(1.0)
+  Step 1: Combine C and D -> CD(0.25)
+  Step 2: Combine B and CD -> BCD(0.5)
+  Step 3: Combine A and BCD -> root(1.0)
 
   Tree:          root(1.0)
                 /         \
@@ -656,10 +656,10 @@ HUFFMAN CODE CONSTRUCTION
 
   Codewords: A=0, B=10, C=110, D=111
 
-  Average length: 0.5×1 + 0.25×2 + 0.125×3 + 0.125×3 = 1.75 bits
+  Average length: 0.51 + 0.252 + 0.1253 + 0.1253 = 1.75 bits
   Entropy: H = 0.5log2+0.25log4+0.125log8+0.125log8 = 1.75 bits (exact!)
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 This distribution has $p(x) = 2^{-l_x}$ exactly (a dyadic distribution), so Huffman coding achieves the entropy exactly with no rounding loss.
@@ -670,7 +670,7 @@ This distribution has $p(x) = 2^{-l_x}$ exactly (a dyadic distribution), so Huff
 
 Modern LLM inference systems use **arithmetic coding** (and its approximation **range coding**) to losslessly compress the model's output token sequence to the model's predicted entropy per token.
 
-**Key idea.** Arithmetic coding encodes a sequence of symbols by narrowing an interval $[0,1)$ based on the predicted probabilities of each symbol. The final interval can be encoded in $H_2(x_1,\ldots,x_T) + 2$ bits — within 2 bits of the entropy of the sequence.
+**Key idea.** Arithmetic coding encodes a sequence of symbols by narrowing an interval $[0,1)$ based on the predicted probabilities of each symbol. The final interval can be encoded in $H_2(x_1,\ldots,x_T) + 2$ bits - within 2 bits of the entropy of the sequence.
 
 **Perplexity and compression.** A language model with perplexity $\operatorname{PPL}$ can compress text to approximately $\log_2 \operatorname{PPL}$ bits per token. A model with $\operatorname{PPL} = 10$ compresses to ~3.32 bits/token; with $\operatorname{PPL} = 3$ to ~1.58 bits/token. This is why perplexity is a measure of compression efficiency: lower perplexity = better compressor.
 
@@ -694,13 +694,13 @@ when the limit exists.
 
 $$\mathcal{H} = \lim_{n \to \infty} H(X_n \mid X_1, \ldots, X_{n-1})$$
 
-the conditional entropy of the next symbol given an infinitely long past. This limit exists and equals the previous one for stationary processes (by the AEP — Asymptotic Equipartition Property).
+the conditional entropy of the next symbol given an infinitely long past. This limit exists and equals the previous one for stationary processes (by the AEP - Asymptotic Equipartition Property).
 
-**For i.i.d. processes:** $\mathcal{H} = H(X_1)$ — each symbol contributes its full individual entropy.
+**For i.i.d. processes:** $\mathcal{H} = H(X_1)$ - each symbol contributes its full individual entropy.
 
-**For deterministic processes:** $\mathcal{H} = 0$ — once you know the rule, you can predict every future symbol.
+**For deterministic processes:** $\mathcal{H} = 0$ - once you know the rule, you can predict every future symbol.
 
-**For natural language:** The entropy rate of English is estimated at ~1–1.5 bits per character (Shannon estimated it at 0.6–1.3 bits/character through human prediction experiments). This is much less than $\log_2 26 \approx 4.7$ bits/character (uniform over letters), reflecting the strong statistical regularities in language.
+**For natural language:** The entropy rate of English is estimated at ~1-1.5 bits per character (Shannon estimated it at 0.6-1.3 bits/character through human prediction experiments). This is much less than $\log_2 26 \approx 4.7$ bits/character (uniform over letters), reflecting the strong statistical regularities in language.
 
 ### 7.2 Entropy Rate of Markov Chains
 
@@ -712,7 +712,7 @@ $$\boxed{\mathcal{H} = -\sum_{x \in \mathcal{X}} \mu_x \sum_{y \in \mathcal{X}} 
 
 $$H(X_2 \mid X_1) = -\sum_{x,y} p(x,y)\log p(y \mid x) = -\sum_x \mu_x \sum_y P_{xy}\log P_{xy}$$
 
-**Example — Bigram language model.** A bigram language model is a first-order Markov chain over the vocabulary $\mathcal{V}$. Its entropy rate is:
+**Example - Bigram language model.** A bigram language model is a first-order Markov chain over the vocabulary $\mathcal{V}$. Its entropy rate is:
 
 $$\mathcal{H}_{\text{bigram}} = -\sum_{w \in \mathcal{V}} \mu_w \sum_{w' \in \mathcal{V}} P_{ww'}\log P_{ww'}$$
 
@@ -727,7 +727,7 @@ $$\mathcal{H} = \frac{\beta \cdot h(\alpha) + \alpha \cdot h(\beta)}{\alpha+\bet
 where $h(p) = -p\log p - (1-p)\log(1-p)$ is the binary entropy function.
 
 When $\alpha = \beta = 1/2$ (memoryless): $\mathcal{H} = h(1/2) = 1$ bit (matches i.i.d.).  
-When $\alpha = \beta = 0.01$ (sticky): $\mathcal{H} \approx h(0.01) \approx 0.08$ bits — very predictable.
+When $\alpha = \beta = 0.01$ (sticky): $\mathcal{H} \approx h(0.01) \approx 0.08$ bits - very predictable.
 
 ### 7.3 Perplexity as Entropy Rate Estimate
 
@@ -741,7 +741,7 @@ $$\operatorname{PPL}(x_1,\ldots,x_T) = \exp\!\left(-\frac{1}{T}\sum_{t=1}^T \log
 
 $$-\frac{1}{T}\sum_{t=1}^T \log p_{\boldsymbol{\theta}}(x_t \mid x_{<t}) \xrightarrow{a.s.} \mathcal{H}(p_{\mathrm{true}}, p_{\boldsymbol{\theta}}) = \text{cross-entropy rate}$$
 
-If $p_{\boldsymbol{\theta}} = p_{\mathrm{true}}$ (perfect model), this equals the true entropy rate $\mathcal{H}$, so $\operatorname{PPL} = e^{\mathcal{H}}$ — a perfect model's perplexity equals the exponentiated entropy rate of the language.
+If $p_{\boldsymbol{\theta}} = p_{\mathrm{true}}$ (perfect model), this equals the true entropy rate $\mathcal{H}$, so $\operatorname{PPL} = e^{\mathcal{H}}$ - a perfect model's perplexity equals the exponentiated entropy rate of the language.
 
 **Interpretation table:**
 
@@ -752,8 +752,8 @@ If $p_{\boldsymbol{\theta}} = p_{\mathrm{true}}$ (perfect model), this equals th
 | $e^3 \approx 20$ | 4.3 bits | Moderate model |
 | $e^{\ln 32000} = 32000$ | 15 bits | Uniform distribution over 32k-token vocabulary; random model |
 
-**For AI — Benchmark context (2026):** State-of-the-art LLMs on standard benchmarks:
-- GPT-4, Claude 3.5+: WikiText-103 PPL $\sim 3$–$5$ (nats base)
+**For AI - Benchmark context (2026):** State-of-the-art LLMs on standard benchmarks:
+- GPT-4, Claude 3.5+: WikiText-103 PPL $\sim 3$-$5$ (nats base)
 - GPT-2 (1.5B): WikiText-103 PPL $\approx 18$ (bits base: $\log_2 18 \approx 4.2$ bits/token)
 - A random model over 50k vocabulary: PPL = 50,000
 
@@ -814,7 +814,7 @@ $$h(X) = 1 + \log(2b)$$
 
 $$h(X) = 1 - \log\lambda$$
 
-**For AI — VAE latent space.** The VAE (Variational Autoencoder) encodes inputs into a distribution $q_\phi(\mathbf{z} \mid \mathbf{x}) \approx \mathcal{N}(\boldsymbol{\mu}_\phi, \Sigma_\phi)$. The ELBO involves the differential entropy of this distribution:
+**For AI - VAE latent space.** The VAE (Variational Autoencoder) encodes inputs into a distribution $q_\phi(\mathbf{z} \mid \mathbf{x}) \approx \mathcal{N}(\boldsymbol{\mu}_\phi, \Sigma_\phi)$. The ELBO involves the differential entropy of this distribution:
 
 $$\mathcal{L}_{\text{ELBO}} = \mathbb{E}_{q_\phi}[\log p_\theta(\mathbf{x} \mid \mathbf{z})] - D_{\mathrm{KL}}(q_\phi(\mathbf{z} \mid \mathbf{x}) \| p(\mathbf{z}))$$
 
@@ -838,17 +838,17 @@ $$\mathbb{E}_p[-\log g(X)] = \frac{1}{2}\log(2\pi\sigma^2) + \frac{\mathbb{E}_p[
 
 Therefore $0 \le D_{\mathrm{KL}}(p \| g) = -h(p) + \frac{1}{2}\log(2\pi e\sigma^2)$, giving $h(p) \le \frac{1}{2}\log(2\pi e\sigma^2) = h(g)$.
 
-**Implication.** The Gaussian is the MaxEnt distribution for continuous variables with fixed variance. This justifies the Gaussian prior in Bayesian models: it encodes only the constraint on variance and makes no additional assumptions. It also explains why many natural phenomena follow Gaussian distributions — they are consistent with a variance constraint and maximal uncertainty otherwise.
+**Implication.** The Gaussian is the MaxEnt distribution for continuous variables with fixed variance. This justifies the Gaussian prior in Bayesian models: it encodes only the constraint on variance and makes no additional assumptions. It also explains why many natural phenomena follow Gaussian distributions - they are consistent with a variance constraint and maximal uncertainty otherwise.
 
 ---
 
-## 9. Rényi Entropy and Generalizations
+## 9. Renyi Entropy and Generalizations
 
-### 9.1 Rényi Entropy
+### 9.1 Renyi Entropy
 
-Shannon entropy is one member of a parametric family introduced by Alfréd Rényi in 1961.
+Shannon entropy is one member of a parametric family introduced by Alfred Renyi in 1961.
 
-**Definition (Rényi Entropy).** For $\alpha > 0$, $\alpha \ne 1$, the **Rényi entropy of order $\alpha$** is:
+**Definition (Renyi Entropy).** For $\alpha > 0$, $\alpha \ne 1$, the **Renyi entropy of order $\alpha$** is:
 
 $$H_\alpha(X) = \frac{1}{1-\alpha}\log\!\left(\sum_{x \in \mathcal{X}} p(x)^\alpha\right)$$
 
@@ -861,17 +861,17 @@ $$H_\alpha(X) = \frac{1}{1-\alpha}\log\!\left(\sum_{x \in \mathcal{X}} p(x)^\alp
 | $\alpha = 2$ | Collision entropy | $H_2 = -\log \sum_x p(x)^2 = -\log P(\text{collision})$ |
 | $\alpha \to \infty$ | Min-entropy | $H_\infty = -\log \max_x p(x)$ |
 
-**Ordering property.** Rényi entropy is a decreasing function of $\alpha$:
+**Ordering property.** Renyi entropy is a decreasing function of $\alpha$:
 
 $$H_0(X) \ge H_1(X) \ge H_2(X) \ge \cdots \ge H_\infty(X)$$
 
 All orders coincide for the uniform distribution.
 
-**Shannon entropy as the $\alpha \to 1$ limit.** Using L'Hôpital's rule:
+**Shannon entropy as the $\alpha \to 1$ limit.** Using L'Hopital's rule:
 
 $$\lim_{\alpha \to 1} H_\alpha(X) = \lim_{\alpha \to 1} \frac{\frac{d}{d\alpha}\log\sum_x p^\alpha}{\frac{d}{d\alpha}(1-\alpha)} = -\frac{\sum_x p(x)\log p(x)}{\sum_x p(x)} = -\sum_x p(x)\log p(x) = H(X)$$
 
-**Additivity.** Rényi entropy satisfies $H_\alpha(X,Y) = H_\alpha(X) + H_\alpha(Y)$ when $X \perp\!\!\!\perp Y$, for all $\alpha$. Shannon entropy satisfies a stronger additivity: the chain rule.
+**Additivity.** Renyi entropy satisfies $H_\alpha(X,Y) = H_\alpha(X) + H_\alpha(Y)$ when $X \perp\!\!\!\perp Y$, for all $\alpha$. Shannon entropy satisfies a stronger additivity: the chain rule.
 
 ### 9.2 Min-Entropy and Security
 
@@ -879,15 +879,15 @@ $$\lim_{\alpha \to 1} H_\alpha(X) = \lim_{\alpha \to 1} \frac{\frac{d}{d\alpha}\
 
 $$H_\infty(X) = -\log \max_{x \in \mathcal{X}} p(x)$$
 
-Min-entropy is the worst-case uncertainty — it measures how concentrated the distribution is at its most likely outcome.
+Min-entropy is the worst-case uncertainty - it measures how concentrated the distribution is at its most likely outcome.
 
-**Security interpretation.** $2^{-H_\infty(X)}$ is the **guessing advantage** — the probability that an adversary can correctly guess $X$ in one try by always guessing the most likely outcome. A cryptographic key $X$ with high min-entropy is hard to guess; one with low min-entropy (concentrated on a few values) is insecure.
+**Security interpretation.** $2^{-H_\infty(X)}$ is the **guessing advantage** - the probability that an adversary can correctly guess $X$ in one try by always guessing the most likely outcome. A cryptographic key $X$ with high min-entropy is hard to guess; one with low min-entropy (concentrated on a few values) is insecure.
 
 **Connection to ML.** In adversarial robustness, min-entropy of the model's output distribution bounds the probability that an adversary can predict the top-1 output without information about the input. Models with collapsed output distributions (mode seeking) have low min-entropy and are more vulnerable to certain attacks.
 
 **Relationship to other quantities:**
 - $H_\infty(X) \le H(X) \le H_0(X) = \log |\operatorname{supp}(p)|$
-- For uniform distribution: all Rényi entropies equal $\log n$
+- For uniform distribution: all Renyi entropies equal $\log n$
 
 ### 9.3 Tsallis Entropy
 
@@ -897,7 +897,7 @@ $$S_q(X) = \frac{1 - \sum_x p(x)^q}{q-1}$$
 
 with $S_1(X) = H(X)$ (Shannon entropy) as the $q \to 1$ limit.
 
-**Differences from Rényi:**
+**Differences from Renyi:**
 - Tsallis entropy is **not additive** for independent variables: $S_q(X,Y) = S_q(X) + S_q(Y) + (1-q)S_q(X)S_q(Y)$
 - Maximized by the $q$-exponential distribution $p(x) \propto [1-(1-q)E(x)]^{1/(1-q)}$ under energy constraints
 
@@ -931,7 +931,7 @@ where $H(Y_L)$, $H(Y_R)$ are the class entropies in the left and right partition
 
 **Gradient boosted trees.** XGBoost and LightGBM use second-order Taylor expansions of the loss function to compute split gains, but the connection to entropy remains: the gain measures uncertainty reduction in the residual distribution.
 
-**Random forests.** The diversity of trees in a random forest is controlled by the randomized feature selection, which limits the information gain at each split. Higher randomization → higher entropy of the ensemble → better generalization.
+**Random forests.** The diversity of trees in a random forest is controlled by the randomized feature selection, which limits the information gain at each split. Higher randomization -> higher entropy of the ensemble -> better generalization.
 
 ### 10.2 Entropy Regularization in RL
 
@@ -950,7 +950,7 @@ where $\alpha > 0$ is the temperature parameter controlling the trade-off betwee
 
 $$\pi^* = \arg\max_\pi J_{\text{MaxEnt}}(\pi) \iff \pi^*(a \mid s) \propto \exp(Q^{\pi^*}(s,a)/\alpha)$$
 
-The optimal policy is the Boltzmann/softmax policy over Q-values — exactly the MaxEnt distribution over actions under fixed mean Q-value constraint. SAC is used in robotics, LLM RLHF exploration stages, and game AI.
+The optimal policy is the Boltzmann/softmax policy over Q-values - exactly the MaxEnt distribution over actions under fixed mean Q-value constraint. SAC is used in robotics, LLM RLHF exploration stages, and game AI.
 
 **Entropy in RLHF.** In RLHF (Reinforcement Learning from Human Feedback) for LLMs, a KL penalty term enforces that the fine-tuned policy $\pi_{\boldsymbol{\theta}}$ stays close to the reference policy $\pi_{\text{ref}}$:
 
@@ -963,8 +963,8 @@ The KL penalty is equivalent to an entropy regularizer relative to $\pi_{\text{r
 A model is **calibrated** if its predicted probability for an event equals the empirical frequency of that event. The entropy of the model's output distribution is a key calibration signal:
 
 **Predictive entropy** $H(p_{\boldsymbol{\theta}}(\cdot \mid \mathbf{x}))$ decomposes into two components:
-1. **Aleatoric uncertainty** — inherent randomness in the data (irreducible)
-2. **Epistemic uncertainty** — uncertainty from lack of data or model misspecification (reducible)
+1. **Aleatoric uncertainty** - inherent randomness in the data (irreducible)
+2. **Epistemic uncertainty** - uncertainty from lack of data or model misspecification (reducible)
 
 **Temperature scaling** (Guo et al., 2017): The most effective post-hoc calibration method. Fit a single scalar $T > 0$ such that $p_T(y \mid \mathbf{x}) = \operatorname{softmax}(\mathbf{z}/T)$ is calibrated. $T > 1$ increases entropy (reduces overconfidence); $T < 1$ decreases entropy (sharpens predictions).
 
@@ -977,31 +977,31 @@ A model is **calibrated** if its predicted probability for an event equals the e
 
 ### 10.4 Preview: Cross-Entropy, KL, Mutual Information, Fisher Information
 
-This chapter (§09) develops four closely related concepts that each deserve a full section:
+This chapter (Section 09) develops four closely related concepts that each deserve a full section:
 
 > **Cross-Entropy** $H(p,q) = -\sum_x p(x)\log q(x)$
 >
 > Cross-entropy is the expected code length under code $q$ when the true distribution is $p$. It decomposes as $H(p,q) = H(p) + D_{\mathrm{KL}}(p \| q)$: the sum of the true entropy and the KL divergence. The cross-entropy loss in ML trains models to minimize the KL divergence between the data distribution and the model. Minimizing cross-entropy $\equiv$ minimizing KL divergence $\equiv$ maximum likelihood estimation.
 >
-> → _Full treatment: [§04 Cross-Entropy](../04-Cross-Entropy/notes.md)_
+> -> _Full treatment: [Section 04 Cross-Entropy](../04-Cross-Entropy/notes.md)_
 
 > **KL Divergence** $D_{\mathrm{KL}}(p \| q) = \sum_x p(x)\log\frac{p(x)}{q(x)}$
 >
 > KL divergence measures how much $q$ fails to match $p$. It is non-negative ($D_{\mathrm{KL}} \ge 0$, with equality iff $p = q$), asymmetric ($D_{\mathrm{KL}}(p\|q) \ne D_{\mathrm{KL}}(q\|p)$ in general), and appears everywhere: VAE regularizer, knowledge distillation, RLHF KL penalty, variational inference.
 >
-> → _Full treatment: [§02 KL Divergence](../02-KL-Divergence/notes.md)_
+> -> _Full treatment: [Section 02 KL Divergence](../02-KL-Divergence/notes.md)_
 
 > **Mutual Information** $I(X;Y) = H(X) - H(X \mid Y) = H(X) + H(Y) - H(X,Y)$
 >
-> Mutual information measures the statistical dependence between $X$ and $Y$ — how much knowing $Y$ reduces uncertainty about $X$. It is symmetric, non-negative, and zero iff $X \perp\!\!\!\perp Y$. Key applications: InfoNCE contrastive loss (SimCLR, CLIP), information bottleneck in DNNs, feature selection.
+> Mutual information measures the statistical dependence between $X$ and $Y$ - how much knowing $Y$ reduces uncertainty about $X$. It is symmetric, non-negative, and zero iff $X \perp\!\!\!\perp Y$. Key applications: InfoNCE contrastive loss (SimCLR, CLIP), information bottleneck in DNNs, feature selection.
 >
-> → _Full treatment: [§03 Mutual Information](../03-Mutual-Information/notes.md)_
+> -> _Full treatment: [Section 03 Mutual Information](../03-Mutual-Information/notes.md)_
 
 > **Fisher Information** $\mathcal{F}(\theta) = \mathbb{E}\!\left[\left(\frac{\partial}{\partial\theta}\log p(X;\theta)\right)^2\right]$
 >
-> Fisher information measures how much a random variable $X$ tells you about the parameter $\theta$ generating it. The Cramér-Rao bound says no unbiased estimator can have variance less than $1/\mathcal{F}(\theta)$. The natural gradient in optimization uses the Fisher information matrix as a Riemannian metric, leading to K-FAC and Shampoo.
+> Fisher information measures how much a random variable $X$ tells you about the parameter $\theta$ generating it. The Cramer-Rao bound says no unbiased estimator can have variance less than $1/\mathcal{F}(\theta)$. The natural gradient in optimization uses the Fisher information matrix as a Riemannian metric, leading to K-FAC and Shampoo.
 >
-> → _Full treatment: [§05 Fisher Information](../05-Fisher-Information/notes.md)_
+> -> _Full treatment: [Section 05 Fisher Information](../05-Fisher-Information/notes.md)_
 
 ---
 
@@ -1020,13 +1020,13 @@ This chapter (§09) develops four closely related concepts that each deserve a f
 | 9 | Confusing entropy with diversity | A distribution can have high entropy but concentrate near a few values if there are many near-uniform values | Entropy measures uncertainty, not diversity of interesting outputs; check the full distribution shape |
 | 10 | Applying Shannon's source coding theorem to non-i.i.d. sources | The theorem applies to i.i.d. sequences; for correlated sources, the entropy rate $\mathcal{H}$ (not $H(X_1)$) is the relevant bound | Use entropy rate $\mathcal{H} = \lim \frac{1}{n}H(X_1,\ldots,X_n)$ for dependent sources |
 | 11 | Confusing $H(X,Y)$ with $H(X) \cdot H(Y)$ | Joint entropy is not the product; entropy is additive (not multiplicative) for independent variables | For independent $X, Y$: $H(X,Y) = H(X) + H(Y)$ (sum, not product) |
-| 12 | Using Rényi entropy for all purposes | Different Rényi orders emphasize different parts of the distribution; Shannon entropy ($\alpha=1$) is the unique one satisfying the chain rule | Choose $\alpha$ based on the application: $\alpha=\infty$ for security, $\alpha=1$ for compression/learning, $\alpha=2$ for collision probability |
+| 12 | Using Renyi entropy for all purposes | Different Renyi orders emphasize different parts of the distribution; Shannon entropy ($\alpha=1$) is the unique one satisfying the chain rule | Choose $\alpha$ based on the application: $\alpha=\infty$ for security, $\alpha=1$ for compression/learning, $\alpha=2$ for collision probability |
 
 ---
 
 ## 12. Exercises
 
-**Exercise 1 ★ — Binary Entropy Function and Distributions**
+**Exercise 1 * - Binary Entropy Function and Distributions**
 
 (a) Compute $H(X)$ in bits for: (i) a fair coin ($p=0.5$), (ii) a biased coin ($p=0.1$), (iii) a fair 6-sided die, (iv) the distribution $(0.5, 0.25, 0.125, 0.125)$.
 
@@ -1034,7 +1034,7 @@ This chapter (§09) develops four closely related concepts that each deserve a f
 
 (c) A language model outputs a distribution over a vocabulary of $n = 32{,}000$ tokens. What is the maximum possible entropy in nats? What is the entropy if the distribution is uniform? What if the top-1 token has probability 0.95 and all others are uniform?
 
-**Exercise 2 ★ — Maximum Entropy via Lagrange Multipliers**
+**Exercise 2 * - Maximum Entropy via Lagrange Multipliers**
 
 (a) Show that the uniform distribution $p_i = 1/n$ maximizes $H(\mathbf{p}) = -\sum_i p_i \log p_i$ subject to $\sum_i p_i = 1$, $p_i \ge 0$.
 
@@ -1042,7 +1042,7 @@ This chapter (§09) develops four closely related concepts that each deserve a f
 
 (c) Find the maximum entropy distribution over $\mathbb{R}$ subject to $\mathbb{E}[X] = \mu$ and $\operatorname{Var}(X) = \sigma^2$. Show this is $\mathcal{N}(\mu, \sigma^2)$.
 
-**Exercise 3 ★ — Joint and Conditional Entropy**
+**Exercise 3 * - Joint and Conditional Entropy**
 
 (a) Given joint distribution $p(X,Y)$ with table: $p(0,0)=0.3$, $p(0,1)=0.1$, $p(1,0)=0.2$, $p(1,1)=0.4$. Compute $H(X)$, $H(Y)$, $H(X,Y)$, $H(X \mid Y)$, $H(Y \mid X)$.
 
@@ -1052,7 +1052,7 @@ This chapter (§09) develops four closely related concepts that each deserve a f
 
 (d) Modify the joint distribution so that $X \perp\!\!\!\perp Y$. Verify that $I(X;Y) = 0$ and $H(X,Y) = H(X) + H(Y)$.
 
-**Exercise 4 ★★ — Entropy Rate of a Markov Chain**
+**Exercise 4 ** - Entropy Rate of a Markov Chain**
 
 Consider a 3-state Markov chain with states $\{A, B, C\}$ and transition matrix:
 $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end{pmatrix}$$
@@ -1065,7 +1065,7 @@ $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end
 
 (d) Compute the perplexity $\operatorname{PPL} = e^{\mathcal{H}}$. If this Markov chain were a language model, what would this perplexity tell you?
 
-**Exercise 5 ★★ — Shannon Source Coding and Huffman Code**
+**Exercise 5 ** - Shannon Source Coding and Huffman Code**
 
 (a) Given source distribution $p(A) = 0.4, p(B) = 0.3, p(C) = 0.2, p(D) = 0.1$:
   - Compute $H(X)$ in bits.
@@ -1076,7 +1076,7 @@ $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end
 
 (c) For a distribution where $p(x_1) = 1/2^k$ for all $k = 1,\ldots,n-1$ and $p(x_n) = 1/2^{n-1}$ (geometric): show that the Huffman code achieves $\bar{L} = H(X)$ exactly (a dyadic distribution).
 
-**Exercise 6 ★★ — Differential Entropy and Gaussian MaxEnt**
+**Exercise 6 ** - Differential Entropy and Gaussian MaxEnt**
 
 (a) Compute the differential entropy $h(X)$ for: (i) $\mathcal{U}(0,1)$, (ii) $\mathcal{U}(0,2)$, (iii) $\mathcal{N}(0,1)$, (iv) $\mathcal{N}(0,4)$, (v) $\operatorname{Exp}(1)$.
 
@@ -1084,7 +1084,7 @@ $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end
 
 (c) Prove directly (without citing the MaxEnt theorem) that $h(\mathcal{N}(0,\sigma^2)) \ge h(X)$ for any $X$ with $\operatorname{Var}(X) = \sigma^2$ using the non-negativity of $D_{\mathrm{KL}}(p \| g)$ where $g = \mathcal{N}(0,\sigma^2)$.
 
-**Exercise 7 ★★★ — Rényi Entropy Family**
+**Exercise 7 *** - Renyi Entropy Family**
 
 (a) Implement a function `renyi_entropy(p, alpha)` that computes $H_\alpha(X)$ for $\alpha \ne 1$ and falls back to Shannon entropy for $\alpha = 1$ (handle the limit numerically).
 
@@ -1094,7 +1094,7 @@ $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end
 
 (d) What is the guessing advantage for this distribution? (The probability that an adversary guessing optimally in one shot succeeds.)
 
-**Exercise 8 ★★★ — MaxEnt RL: Entropy Bonus in Policy Optimization**
+**Exercise 8 *** - MaxEnt RL: Entropy Bonus in Policy Optimization**
 
 (a) Implement a tabular policy gradient for a simple 5-action bandit problem with reward vector $\mathbf{r} = (0.8, 0.6, 0.4, 0.2, 0.0)$. Train for 500 steps with learning rate $\eta = 0.1$.
 
@@ -1118,7 +1118,7 @@ $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end
 | Conditional entropy $H(Y \mid X)$ | Minimum irreducible error in any supervised learning problem; Bayes error rate bound |
 | Entropy regularization (MaxEnt RL) | SAC for robotics, game AI, RLHF exploration; prevents reward hacking; used in Gemini/Grok fine-tuning |
 | Temperature scaling | Post-hoc calibration for classification; diverse vs. greedy decoding in LLMs; top-$p$ sampling |
-| Rényi / min-entropy | Security of cryptographic tokens; private inference; differential privacy (Rényi DP) |
+| Renyi / min-entropy | Security of cryptographic tokens; private inference; differential privacy (Renyi DP) |
 | Tsallis / sparse softmax | $q$-softmax gives exact sparsity, used in sparse transformer attention variants |
 | Differential entropy of Gaussian | VAE ELBO; diffusion model score matching; optimal quantization in quantization-aware training |
 | Binary entropy function $h(p)$ | VC dimension and generalization bounds; PAC-Bayes theory; Fano's inequality in lower bounds |
@@ -1129,63 +1129,63 @@ $$P = \begin{pmatrix} 0.7 & 0.2 & 0.1 \\ 0.3 & 0.4 & 0.3 \\ 0.1 & 0.3 & 0.6 \end
 
 ## 14. Conceptual Bridge
 
-**Looking backward.** Entropy builds directly on probability theory (Chapter 6) and statistics (Chapter 7). The fundamental input is a probability distribution $p$ over an alphabet $\mathcal{X}$ — the core object of Chapter 6. The convention $H(X) = \mathbb{E}[-\log p(X)]$ uses the expectation operator. The maximum entropy principle invokes Lagrange multipliers from optimization (Chapter 8). The source coding theorem connects to combinatorics and counting (Chapter 1). Everything in this section is built from probability theory and the logarithm.
+**Looking backward.** Entropy builds directly on probability theory (Chapter 6) and statistics (Chapter 7). The fundamental input is a probability distribution $p$ over an alphabet $\mathcal{X}$ - the core object of Chapter 6. The convention $H(X) = \mathbb{E}[-\log p(X)]$ uses the expectation operator. The maximum entropy principle invokes Lagrange multipliers from optimization (Chapter 8). The source coding theorem connects to combinatorics and counting (Chapter 1). Everything in this section is built from probability theory and the logarithm.
 
-**Looking forward within Chapter 9.** Entropy is the foundation from which the other §09 concepts branch:
-- **KL divergence** (§02) = $H(p,q) - H(p)$ — the extra cost of using code $q$ when truth is $p$; also proved non-negative from $H(X) \le \log |\mathcal{X}|$
-- **Mutual information** (§03) = $H(X) - H(X \mid Y)$ — the reduction in $X$'s entropy from observing $Y$
-- **Cross-entropy** (§04) = $H(p,q)$ — the training loss for classification and language modeling
-- **Fisher information** (§05) = the local curvature of the KL divergence; a second-order entropy quantity
+**Looking forward within Chapter 9.** Entropy is the foundation from which the other Section 09 concepts branch:
+- **KL divergence** (Section 02) = $H(p,q) - H(p)$ - the extra cost of using code $q$ when truth is $p$; also proved non-negative from $H(X) \le \log |\mathcal{X}|$
+- **Mutual information** (Section 03) = $H(X) - H(X \mid Y)$ - the reduction in $X$'s entropy from observing $Y$
+- **Cross-entropy** (Section 04) = $H(p,q)$ - the training loss for classification and language modeling
+- **Fisher information** (Section 05) = the local curvature of the KL divergence; a second-order entropy quantity
 
-**Looking forward to advanced topics.** The entropy rate connects to ergodic theory and the Asymptotic Equipartition Property (AEP), which underpins all of lossless data compression. Rényi entropy connects to hypothesis testing and Rényi differential privacy. Differential entropy connects to rate-distortion theory (how much distortion is unavoidable at a given bit rate) and Gaussian channels (capacity $C = \frac{1}{2}\log(1 + \text{SNR})$). These are all covered in advanced information theory courses (Cover & Thomas, 2006).
+**Looking forward to advanced topics.** The entropy rate connects to ergodic theory and the Asymptotic Equipartition Property (AEP), which underpins all of lossless data compression. Renyi entropy connects to hypothesis testing and Renyi differential privacy. Differential entropy connects to rate-distortion theory (how much distortion is unavoidable at a given bit rate) and Gaussian channels (capacity $C = \frac{1}{2}\log(1 + \text{SNR})$). These are all covered in advanced information theory courses (Cover & Thomas, 2006).
 
 ```
 CURRICULUM POSITION
-════════════════════════════════════════════════════════════════════════
+
 
   Chapter 6: Probability Theory
-  └── Distributions, expectations, independence
-           │
-           ▼
+   Distributions, expectations, independence
+           
+           
   Chapter 7: Statistics
-  └── MLE, MAP, sufficient statistics, exponential family
-           │
-           ▼
+   MLE, MAP, sufficient statistics, exponential family
+           
+           
   Chapter 8: Optimization
-  └── Lagrange multipliers for MaxEnt derivations
-           │
-           ▼
-  ┌─────────────────────────────────────────────────┐
-  │  Chapter 9: Information Theory                  │
-  │                                                 │
-  │  § 01  ENTROPY  ◄── You are here                │
-  │         │                                       │
-  │         ├──► §02 KL Divergence                  │
-  │         │     (H(p,q) = H(p) + D_KL)            │
-  │         │                                       │
-  │         ├──► §03 Mutual Information              │
-  │         │     (I(X;Y) = H(X) - H(X|Y))          │
-  │         │                                       │
-  │         ├──► §04 Cross-Entropy                  │
-  │         │     (training loss for all LLMs)       │
-  │         │                                       │
-  │         └──► §05 Fisher Information             │
-  │               (geometry of the KL ball)         │
-  └─────────────────────────────────────────────────┘
-           │
-           ▼
+   Lagrange multipliers for MaxEnt derivations
+           
+           
+  
+    Chapter 9: Information Theory                  
+                                                   
+    Section  01  ENTROPY   You are here                
+                                                  
+            Section 02 KL Divergence                  
+                (H(p,q) = H(p) + D_KL)            
+                                                  
+            Section 03 Mutual Information              
+                (I(X;Y) = H(X) - H(X|Y))          
+                                                  
+            Section 04 Cross-Entropy                  
+                (training loss for all LLMs)       
+                                                  
+            Section 05 Fisher Information             
+                 (geometry of the KL ball)         
+  
+           
+           
   Chapter 10: Numerical Methods
-  └── Computing entropy stably (log-sum-exp trick),
+   Computing entropy stably (log-sum-exp trick),
       perplexity computation, information geometry
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-**The central unifying theme.** Every quantity in information theory can be expressed in terms of entropy. KL divergence, mutual information, cross-entropy, Fisher information, channel capacity — all reduce to sums of $-p \log p$ terms. Mastering entropy means mastering the mathematical language that unifies probabilistic inference, data compression, optimal coding, and modern machine learning.
+**The central unifying theme.** Every quantity in information theory can be expressed in terms of entropy. KL divergence, mutual information, cross-entropy, Fisher information, channel capacity - all reduce to sums of $-p \log p$ terms. Mastering entropy means mastering the mathematical language that unifies probabilistic inference, data compression, optimal coding, and modern machine learning.
 
 ---
 
-[← Back to Information Theory](../README.md) | [Next: KL Divergence →](../02-KL-Divergence/notes.md)
+[<- Back to Information Theory](../README.md) | [Next: KL Divergence ->](../02-KL-Divergence/notes.md)
 
 ---
 
@@ -1222,9 +1222,9 @@ where $A(n)$ is some function satisfying $A(mn) = A(m) + A(n)$ (additivity) by t
 
 **Why this matters.** The axiomatic derivation shows that there is no alternative: if you want a measure of uncertainty that is symmetric, continuous, maximal for uniform distributions, and consistent with hierarchical decomposition of outcomes, you *must* use Shannon entropy. Any other formula would violate at least one of these natural requirements.
 
-**The role of continuity.** Without the continuity axiom, many pathological functions satisfy the remaining axioms. Continuity ensures that nearly-certain events have nearly-zero entropy — a tiny probability cannot create a large information contribution.
+**The role of continuity.** Without the continuity axiom, many pathological functions satisfy the remaining axioms. Continuity ensures that nearly-certain events have nearly-zero entropy - a tiny probability cannot create a large information contribution.
 
-**Variants.** Dropping the symmetry axiom gives directed entropies (measuring asymmetric uncertainty in sequential decisions). Replacing the maximum axiom with a different normalization gives Rényi entropies. The Khinchin axioms are therefore the minimal set characterizing Shannon entropy specifically.
+**Variants.** Dropping the symmetry axiom gives directed entropies (measuring asymmetric uncertainty in sequential decisions). Replacing the maximum axiom with a different normalization gives Renyi entropies. The Khinchin axioms are therefore the minimal set characterizing Shannon entropy specifically.
 
 ---
 
@@ -1240,7 +1240,7 @@ $$-\frac{1}{n}\log p(X_1, X_2, \ldots, X_n) \xrightarrow{P} H(X) \quad \text{as 
 
 $$-\frac{1}{n}\log p(X_1,\ldots,X_n) = -\frac{1}{n}\sum_{i=1}^n \log p(X_i) \xrightarrow{P} \mathbb{E}[-\log p(X)] = H(X)$$
 
-**Interpretation.** The AEP says that for large $n$, all long sequences have approximately the same probability: roughly $2^{-nH}$ (in bits). The set of "typical sequences" — those with probability $\approx 2^{-nH(X)}$ — has total probability approaching 1.
+**Interpretation.** The AEP says that for large $n$, all long sequences have approximately the same probability: roughly $2^{-nH}$ (in bits). The set of "typical sequences" - those with probability $\approx 2^{-nH(X)}$ - has total probability approaching 1.
 
 **Typical Set.** Define the **typical set** $\mathcal{T}_\epsilon^{(n)}$ as:
 
@@ -1263,17 +1263,17 @@ $$-\frac{1}{n}\log p(X_1,\ldots,X_n) \xrightarrow{a.s.} \mathcal{H}$$
 
 where $\mathcal{H}$ is the entropy rate. This is the **Shannon-McMillan-Breiman theorem**. For language models, it says that the per-token loss converges almost surely to the entropy rate of the true language distribution.
 
-**For AI — Training Loss Convergence.** The training cross-entropy loss of an LLM:
+**For AI - Training Loss Convergence.** The training cross-entropy loss of an LLM:
 
 $$\hat{\mathcal{H}}_T = -\frac{1}{T}\sum_{t=1}^T \log p_{\boldsymbol{\theta}}(x_t \mid x_{<t})$$
 
-converges (by the ergodic theorem) to $H(p_{\mathrm{true}}, p_{\boldsymbol{\theta}})$ — the cross-entropy rate. When the model is perfect, this equals the true entropy rate of the language, which is the theoretical minimum achievable loss. The AEP tells us that this convergence is almost sure, not just in probability.
+converges (by the ergodic theorem) to $H(p_{\mathrm{true}}, p_{\boldsymbol{\theta}})$ - the cross-entropy rate. When the model is perfect, this equals the true entropy rate of the language, which is the theoretical minimum achievable loss. The AEP tells us that this convergence is almost sure, not just in probability.
 
 ---
 
 ## Appendix C: Entropy and Channel Capacity
 
-Shannon's information theory has two fundamental theorems: the source coding theorem (Appendix B and §6) and the **channel coding theorem** (noisy channel coding). While channel capacity is beyond the scope of this section (it is a mutual information concept, covered in §03), we briefly preview the connection to entropy.
+Shannon's information theory has two fundamental theorems: the source coding theorem (Appendix B and Section 6) and the **channel coding theorem** (noisy channel coding). While channel capacity is beyond the scope of this section (it is a mutual information concept, covered in Section 03), we briefly preview the connection to entropy.
 
 **Binary Symmetric Channel (BSC).** A BSC with crossover probability $p$ flips each transmitted bit with probability $p$. The maximum rate of reliable communication (channel capacity) is:
 
@@ -1283,7 +1283,7 @@ where $h(p)$ is the binary entropy function. This is the entropy of the output m
 
 **Entropy of noise limits communication.** The intuition: the channel introduces $h(p)$ bits of noise entropy per use. Of the $\log_2 2 = 1$ bit per channel use "capacity," $h(p)$ bits are consumed by noise uncertainty, leaving $1 - h(p)$ for reliable information. At $p = 1/2$ (complete randomness): $C = 0$. At $p = 0$ or $p = 1$ (deterministic): $C = 1$.
 
-**Shannon's Channel Coding Theorem (preview).** For any rate $R < C$, there exists a code of rate $R$ bits per channel use that achieves arbitrarily small error probability. Conversely, for any rate $R > C$, the error probability is bounded away from zero. The channel capacity is therefore a sharp threshold — another fundamental limit set by entropy.
+**Shannon's Channel Coding Theorem (preview).** For any rate $R < C$, there exists a code of rate $R$ bits per channel use that achieves arbitrarily small error probability. Conversely, for any rate $R > C$, the error probability is bounded away from zero. The channel capacity is therefore a sharp threshold - another fundamental limit set by entropy.
 
 Full treatment in: Cover & Thomas (2006), *Elements of Information Theory*, Chapter 7.
 
@@ -1303,7 +1303,7 @@ where $\lambda_i$ are the eigenvalues of $\rho$. For a pure state ($\rho^2 = \rh
 
 **Entanglement entropy.** For a bipartite quantum system $AB$ in state $\rho_{AB}$, the entanglement entropy $S(\rho_A)$ (entropy of the reduced density matrix of subsystem $A$) measures quantum entanglement between $A$ and $B$. When $A$ and $B$ are maximally entangled, $S(\rho_A) = \log d$ where $d$ is the dimension. This is a purely quantum phenomenon with no classical analogue.
 
-**For AI — Quantum ML.** While quantum computing for ML remains largely theoretical (2026), the von Neumann entropy is used in:
+**For AI - Quantum ML.** While quantum computing for ML remains largely theoretical (2026), the von Neumann entropy is used in:
 - Analyzing the information geometry of quantum circuits
 - Quantum kernel methods (quantum feature maps via density matrices)
 - Understanding the entanglement structure of tensor network representations of neural networks
@@ -1381,7 +1381,7 @@ $$H = -\sum_x \operatorname{softmax}(z_x)\log\operatorname{softmax}(z_x) = -\sum
 
 where $Z = \sum_{x'} e^{z_{x'}/\tau}$ and the computation is done entirely in log-space.
 
-**For AI — Perplexity Computation.** Computing perplexity from a sequence of log-probabilities:
+**For AI - Perplexity Computation.** Computing perplexity from a sequence of log-probabilities:
 
 ```python
 def perplexity(log_probs):
@@ -1398,8 +1398,8 @@ Numerically stable because averaging log-probabilities avoids the product $\prod
 ### G.1 Entropy Coding in Practice
 
 Modern lossless compression combines two components:
-1. **Statistical model:** Estimates $p(x_t \mid x_{<t})$ — a probability model (can be adaptive, arithmetic, or neural)
-2. **Entropy coder:** Converts probability estimates to bits — arithmetic coding or range coding
+1. **Statistical model:** Estimates $p(x_t \mid x_{<t})$ - a probability model (can be adaptive, arithmetic, or neural)
+2. **Entropy coder:** Converts probability estimates to bits - arithmetic coding or range coding
 
 The theoretical compression rate is $H(X)$ bits per symbol. The gap from practice comes from:
 - Imperfect probability model: adds $D_{\mathrm{KL}}(p_{\mathrm{true}} \| p_{\mathrm{model}})$ bits
@@ -1411,7 +1411,7 @@ The theoretical compression rate is $H(X)$ bits per symbol. The gap from practic
 A striking recent result: large language models are powerful compressors. By using an LLM as the probability model in arithmetic coding:
 
 - **Chinchilla 70B** achieves ~0.9 bits/byte on text (vs. ~2 bits/byte for gzip, ~1.8 bits/byte for zstd)
-- This is near the estimated entropy rate of English (~0.6–1.0 bits/char = ~1–1.5 bits/byte counting spaces/punctuation)
+- This is near the estimated entropy rate of English (~0.6-1.0 bits/char = ~1-1.5 bits/byte counting spaces/punctuation)
 
 **Deletang et al. (2023), "Language Modeling is Compression."** This paper establishes:
 1. A predictor (LLM) can be transformed into a lossless compressor (arithmetic coding on its outputs)
@@ -1434,22 +1434,22 @@ Neural network-based learned compression (BPG, WebP2, neural image codecs):
 
 ## Appendix H: Entropy in Cryptography and Privacy
 
-**Shannon entropy and secrecy.** Shannon (1949) introduced the concept of **perfect secrecy**: a cipher $C$ is perfectly secret if $I(P; C) = 0$, i.e., the ciphertext is statistically independent of the plaintext. The one-time pad achieves perfect secrecy: if the key $K$ is uniform and independent, then $H(P \mid C) = H(P)$ — knowing the ciphertext tells you nothing.
+**Shannon entropy and secrecy.** Shannon (1949) introduced the concept of **perfect secrecy**: a cipher $C$ is perfectly secret if $I(P; C) = 0$, i.e., the ciphertext is statistically independent of the plaintext. The one-time pad achieves perfect secrecy: if the key $K$ is uniform and independent, then $H(P \mid C) = H(P)$ - knowing the ciphertext tells you nothing.
 
-**Entropy and passwords.** Password strength is often measured in "bits of entropy" — but this means the log of the number of equally likely passwords in the password space, which equals $H_0$ (Hartley entropy / support size) in log₂, not Shannon entropy. A strong password has high Hartley entropy (many possible values) but may have low min-entropy (if certain patterns are more common).
+**Entropy and passwords.** Password strength is often measured in "bits of entropy" - but this means the log of the number of equally likely passwords in the password space, which equals $H_0$ (Hartley entropy / support size) in log2, not Shannon entropy. A strong password has high Hartley entropy (many possible values) but may have low min-entropy (if certain patterns are more common).
 
-**Differential privacy and Rényi entropy.** Differential privacy (DP) protects individual records in a dataset. The standard $(\epsilon, \delta)$-DP has been largely replaced by:
+**Differential privacy and Renyi entropy.** Differential privacy (DP) protects individual records in a dataset. The standard $(\epsilon, \delta)$-DP has been largely replaced by:
 
-- **Rényi DP (Mironov 2017):** $M$ is $(\alpha, \epsilon)$-Rényi DP if $D_\alpha(M(\mathcal{D}) \| M(\mathcal{D}')) \le \epsilon$ where $D_\alpha$ is the Rényi divergence. Composing $T$ Rényi-DP mechanisms gives $(T\epsilon)$-Rényi DP — much tighter than standard DP composition.
-- **Privacy amplification by sampling:** Random subsampling of the dataset amplifies privacy; the analysis uses Rényi divergence properties.
+- **Renyi DP (Mironov 2017):** $M$ is $(\alpha, \epsilon)$-Renyi DP if $D_\alpha(M(\mathcal{D}) \| M(\mathcal{D}')) \le \epsilon$ where $D_\alpha$ is the Renyi divergence. Composing $T$ Renyi-DP mechanisms gives $(T\epsilon)$-Renyi DP - much tighter than standard DP composition.
+- **Privacy amplification by sampling:** Random subsampling of the dataset amplifies privacy; the analysis uses Renyi divergence properties.
 
-**For LLM training with DP:** DP-SGD (Abadi et al., 2016) clips and noises gradients per sample. The privacy accounting uses Rényi DP moments for tight composition. Understanding Rényi entropy is necessary to analyze the privacy guarantees of differentially private language model training.
+**For LLM training with DP:** DP-SGD (Abadi et al., 2016) clips and noises gradients per sample. The privacy accounting uses Renyi DP moments for tight composition. Understanding Renyi entropy is necessary to analyze the privacy guarantees of differentially private language model training.
 
 ---
 
 ## Appendix I: Connection to Statistical Mechanics
 
-Shannon did not derive entropy from scratch — he was informed by thermodynamic entropy. The connection is deep and precise.
+Shannon did not derive entropy from scratch - he was informed by thermodynamic entropy. The connection is deep and precise.
 
 **Boltzmann entropy.** For a physical system with $W$ equally likely microstates corresponding to a given macrostate:
 
@@ -1463,7 +1463,7 @@ $$S_{\text{Gibbs}} = -k_B \sum_i p_i \ln p_i$$
 
 This is exactly Shannon entropy scaled by $k_B$. Shannon was aware of Gibbs' work; his advisor John von Neumann reportedly told him to call the new quantity "entropy" because "nobody knows what entropy really is, so in a debate you will always have the advantage."
 
-**Partition function = normalizing constant.** The partition function $Z = \sum_x e^{-\beta E(x)}$ in statistical mechanics is the same normalizing constant that appears in MaxEnt probability models (§5.2). Temperature $T = 1/(\beta k_B)$ in physics corresponds to the temperature parameter $\tau$ in softmax: high temperature = high entropy.
+**Partition function = normalizing constant.** The partition function $Z = \sum_x e^{-\beta E(x)}$ in statistical mechanics is the same normalizing constant that appears in MaxEnt probability models (Section 5.2). Temperature $T = 1/(\beta k_B)$ in physics corresponds to the temperature parameter $\tau$ in softmax: high temperature = high entropy.
 
 **Free energy and ELBO.** The Helmholtz free energy $F = U - TS = \mathbb{E}[E] - T\cdot S$ is the variational objective in statistical mechanics. The ELBO in variational inference is:
 
@@ -1473,7 +1473,7 @@ Setting $U = -\mathbb{E}_q[\log p(\mathbf{x} \mid \mathbf{z})]$ (reconstruction 
 
 $$\mathcal{L} = -U + TS \propto -(U - TS) = -F$$
 
-Maximizing the ELBO is equivalent to minimizing the variational free energy — the same variational principle as statistical mechanics. The VAE is literally learning the statistical mechanics of the data distribution.
+Maximizing the ELBO is equivalent to minimizing the variational free energy - the same variational principle as statistical mechanics. The VAE is literally learning the statistical mechanics of the data distribution.
 
 ---
 
@@ -1481,36 +1481,36 @@ Maximizing the ELBO is equivalent to minimizing the variational free energy — 
 
 ### Canonical Textbooks
 
-1. **Cover & Thomas (2006)** — *Elements of Information Theory*, 2nd ed.
+1. **Cover & Thomas (2006)** - *Elements of Information Theory*, 2nd ed.
    The definitive graduate textbook. Chapters 1-3 cover everything in this section rigorously.
    URL: https://www.wiley.com/en-us/Elements+of+Information+Theory%2C+2nd+Edition-p-9780471241959
 
-2. **MacKay (2003)** — *Information Theory, Inference, and Learning Algorithms*.
+2. **MacKay (2003)** - *Information Theory, Inference, and Learning Algorithms*.
    Free online; excellent for ML practitioners. Chapter 1-8 cover entropy and coding.
    URL: http://www.inference.org.uk/itila/
 
-3. **Shannon (1948)** — *A Mathematical Theory of Communication*.
+3. **Shannon (1948)** - *A Mathematical Theory of Communication*.
    The original paper. Remarkably readable.
 
-4. **Jaynes (2003)** — *Probability Theory: The Logic of Science*.
+4. **Jaynes (2003)** - *Probability Theory: The Logic of Science*.
    The MaxEnt perspective; Bayesian interpretation of entropy.
 
 ### Papers for AI/ML Context
 
-5. **Haarnoja et al. (2018)** — *Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor*. arXiv:1801.01290.
+5. **Haarnoja et al. (2018)** - *Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor*. arXiv:1801.01290.
 
-6. **Deletang et al. (2023)** — *Language Modeling is Compression*. ICLR 2024.
+6. **Deletang et al. (2023)** - *Language Modeling is Compression*. ICLR 2024.
 
-7. **Mironov (2017)** — *Rényi Differential Privacy*. arXiv:1702.07476.
+7. **Mironov (2017)** - *Renyi Differential Privacy*. arXiv:1702.07476.
 
-8. **Guo et al. (2017)** — *On Calibration of Modern Neural Networks*. ICML 2017.
+8. **Guo et al. (2017)** - *On Calibration of Modern Neural Networks*. ICML 2017.
 
-9. **Nemenman, Shafee & Bialek (2002)** — *Entropy and Inference, Revisited*. NeurIPS 2001.
+9. **Nemenman, Shafee & Bialek (2002)** - *Entropy and Inference, Revisited*. NeurIPS 2001.
 
 ### Online Resources
 
-- MIT OpenCourseWare 6.441: Information Theory lectures — covers all material in this chapter
-- Stanford EE376A: Information Theory — excellent problem sets on entropy and coding
+- MIT OpenCourseWare 6.441: Information Theory lectures - covers all material in this chapter
+- Stanford EE376A: Information Theory - excellent problem sets on entropy and coding
 
 ---
 
@@ -1534,15 +1534,15 @@ $$H(\text{letters}) \approx 4.18 \text{ bits/letter}$$
 
 This is much less than $\log_2 26 \approx 4.70$ bits (uniform), reflecting that some letters (e, t, a) are far more common than others (q, z, x).
 
-**Including spaces and punctuation:** $H \approx 4.3$–$4.5$ bits/character.
+**Including spaces and punctuation:** $H \approx 4.3$-$4.5$ bits/character.
 
-**Word-level entropy:** With a 10,000-word vocabulary, a rough estimate gives $H \approx 9$–$10$ bits/word.
+**Word-level entropy:** With a 10,000-word vocabulary, a rough estimate gives $H \approx 9$-$10$ bits/word.
 
-**Shannon's estimate of English entropy rate:** Shannon (1951) estimated the entropy rate at approximately 1.0–1.3 bits/character using a human prediction experiment. More recent estimates with n-gram models give 1.5–2 bits/character; with modern LLMs the estimate decreases as models capture more long-range structure.
+**Shannon's estimate of English entropy rate:** Shannon (1951) estimated the entropy rate at approximately 1.0-1.3 bits/character using a human prediction experiment. More recent estimates with n-gram models give 1.5-2 bits/character; with modern LLMs the estimate decreases as models capture more long-range structure.
 
-**Perplexity of a uniform letter model:** $2^{4.18} \approx 18$ — a model knowing only letter frequencies is as uncertain as a uniform distribution over 18 letters.
+**Perplexity of a uniform letter model:** $2^{4.18} \approx 18$ - a model knowing only letter frequencies is as uncertain as a uniform distribution over 18 letters.
 
-**LLM perplexity comparison.** GPT-4 on English text achieves approximately $e^{1.8} \approx 6$ in bits/token (roughly 1.5 bits/character). This means the model is, on average, as uncertain as a uniform distribution over about 6 equally likely next tokens — vastly better than a letter-frequency model.
+**LLM perplexity comparison.** GPT-4 on English text achieves approximately $e^{1.8} \approx 6$ in bits/token (roughly 1.5 bits/character). This means the model is, on average, as uncertain as a uniform distribution over about 6 equally likely next tokens - vastly better than a letter-frequency model.
 
 ### K.2 Entropy Computation for Joint Distributions
 
@@ -1568,9 +1568,9 @@ $$H(Y \mid X) = H(X,Y) - H(X) \approx 1.032 - 0.688 = 0.344 \text{ nats}$$
 
 $$I(X;Y) = H(X) + H(Y) - H(X,Y) \approx 0.688 + 0.693 - 1.032 = 0.349 \text{ nats}$$
 
-**Verification:** $H(X,Y) = 1.032 \le H(X) + H(Y) = 1.381$ ✓ (subadditivity)  
-$H(X \mid Y) = 0.339 \le H(X) = 0.688$ ✓ (conditioning reduces entropy)  
-$I(X;Y) = 0.349 \ge 0$ ✓ (mutual information non-negative)
+**Verification:** $H(X,Y) = 1.032 \le H(X) + H(Y) = 1.381$ PASS (subadditivity)  
+$H(X \mid Y) = 0.339 \le H(X) = 0.688$ PASS (conditioning reduces entropy)  
+$I(X;Y) = 0.349 \ge 0$ PASS (mutual information non-negative)
 
 If $X \perp\!\!\!\perp Y$: $H(X,Y) = H(X) + H(Y) = 1.381$; the actual $H(X,Y) = 1.032 < 1.381$ confirms dependence.
 
@@ -1596,7 +1596,7 @@ $$H(X_1) = -0.6\ln 0.6 - 0.4\ln 0.4 \approx 0.673 \text{ nats}$$
 
 The Markov chain has lower entropy rate ($0.544 < 0.673$) because there is temporal structure: state 0 tends to follow state 0, state 1 tends to follow state 1.
 
-**Perplexity:** $e^{0.544} \approx 1.72$ — the Markov chain is approximately as uncertain as a uniform distribution over 1.72 symbols, a very predictable process.
+**Perplexity:** $e^{0.544} \approx 1.72$ - the Markov chain is approximately as uncertain as a uniform distribution over 1.72 symbols, a very predictable process.
 
 ### K.4 Maximum Entropy Distributions: A Summary Table
 
@@ -1604,7 +1604,7 @@ The Markov chain has lower entropy rate ($0.544 < 0.673$) because there is tempo
 | --- | --- | --- | --- |
 | $\{1,\ldots,n\}$ (discrete) | None | Uniform $1/n$ | $\ln n$ |
 | $\{0,1\}$ (binary) | $\mathbb{E}[X] = p$ | Bernoulli$(p)$ | $h(p)$ |
-| $\{0,1,2,\ldots\}$ (integers) | $\mathbb{E}[X] = \mu$ | Geometric (modified) | — |
+| $\{0,1,2,\ldots\}$ (integers) | $\mathbb{E}[X] = \mu$ | Geometric (modified) | - |
 | $\mathbb{R}_{\ge 0}$ (non-negative reals) | $\mathbb{E}[X] = \mu$ | Exponential$(1/\mu)$ | $1 + \ln\mu$ |
 | $[a,b]$ (bounded interval) | None | Uniform$[a,b]$ | $\ln(b-a)$ |
 | $\mathbb{R}$ (all reals) | $\mathbb{E}[X]=\mu$, $\operatorname{Var}(X)=\sigma^2$ | $\mathcal{N}(\mu,\sigma^2)$ | $\frac{1}{2}\ln(2\pi e\sigma^2)$ |
@@ -1629,7 +1629,7 @@ The term $-\tau H(\mathbf{p})$ penalizes distributions far from uniform. This is
 
 $$p_{t+1}(x) \propto p_t(x) \cdot \exp(-\eta_t \nabla_{p_t} f(p_t)(x))$$
 
-This is exactly the **multiplicative weights** algorithm — the natural gradient descent on the simplex with entropy as the Bregman potential.
+This is exactly the **multiplicative weights** algorithm - the natural gradient descent on the simplex with entropy as the Bregman potential.
 
 **Softmax as MaxEnt regularization.** The softmax attention mechanism:
 
@@ -1670,9 +1670,9 @@ where $Q_\mathcal{H}$ is a prior over hypotheses and $n$ is the number of traini
 
 $$|\text{gen-error}| \le \sqrt{\frac{I(W; S)}{2n}}$$
 
-where $W$ are the model weights and $S$ is the training dataset. Mutual information $I(W;S)$ measures how much the weights "remember" the training data — a form of entropy-based overfitting measure.
+where $W$ are the model weights and $S$ is the training dataset. Mutual information $I(W;S)$ measures how much the weights "remember" the training data - a form of entropy-based overfitting measure.
 
-These connections show that entropy and information theory provide rigorous foundations for understanding why deep learning generalizes — not just heuristic explanations.
+These connections show that entropy and information theory provide rigorous foundations for understanding why deep learning generalizes - not just heuristic explanations.
 
 
 ---
@@ -1685,7 +1685,7 @@ These connections show that entropy and information theory provide rigorous foun
 
 $$q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}(\sqrt{1-\beta_t}\,\mathbf{x}_{t-1}, \beta_t I)$$
 
-The forward process converges to $\mathcal{N}(\mathbf{0}, I)$ — the maximum differential entropy distribution under unit variance. The total entropy increases monotonically along the forward process:
+The forward process converges to $\mathcal{N}(\mathbf{0}, I)$ - the maximum differential entropy distribution under unit variance. The total entropy increases monotonically along the forward process:
 
 $$h(\mathbf{x}_0) \le h(\mathbf{x}_1) \le \cdots \le h(\mathbf{x}_T) = \frac{d}{2}\ln(2\pi e)$$
 
@@ -1703,7 +1703,7 @@ Each KL divergence is the entropy gap between the true reverse process and the l
 
 $$h(\mathbf{X}) = h(\mathbf{Z}) + \mathbb{E}[\log |\det J_{f_{\boldsymbol{\theta}}}(\mathbf{Z})|]$$
 
-where $J_{f_{\boldsymbol{\theta}}}$ is the Jacobian of $f_{\boldsymbol{\theta}}$. The Jacobian term adds entropy based on how much the flow expands or contracts volumes. Training maximizes $\log p_{\boldsymbol{\theta}}(\mathbf{x}) = \log p_Z(f^{-1}(\mathbf{x})) + \log |\det J_{f^{-1}}(\mathbf{x})|$ — a combination of the base entropy and the volume scaling.
+where $J_{f_{\boldsymbol{\theta}}}$ is the Jacobian of $f_{\boldsymbol{\theta}}$. The Jacobian term adds entropy based on how much the flow expands or contracts volumes. Training maximizes $\log p_{\boldsymbol{\theta}}(\mathbf{x}) = \log p_Z(f^{-1}(\mathbf{x})) + \log |\det J_{f^{-1}}(\mathbf{x})|$ - a combination of the base entropy and the volume scaling.
 
 ### M.3 GANs and Entropy
 
@@ -1743,7 +1743,7 @@ $$k \cdot H(X_1,\ldots,X_n) \le \sum_{S \in \mathcal{F}} H(X_S)$$
 
 Shearer's lemma is a generalization of subadditivity and is used in combinatorics to prove counting inequalities. In information theory, it provides tight bounds on joint entropy from marginal entropies.
 
-**For ML — Federated Learning.** In federated learning with $n$ clients, each holding data subset $\mathcal{D}_i$, Shearer's lemma bounds the amount of information the combined model can learn from the distributed data relative to what each client knows individually.
+**For ML - Federated Learning.** In federated learning with $n$ clients, each holding data subset $\mathcal{D}_i$, Shearer's lemma bounds the amount of information the combined model can learn from the distributed data relative to what each client knows individually.
 
 ---
 
@@ -1751,50 +1751,50 @@ Shearer's lemma is a generalization of subadditivity and is used in combinatoric
 
 ```
 ENTROPY INEQUALITY REFERENCE
-════════════════════════════════════════════════════════════════════════
+
 
   DISCRETE ENTROPY:
 
-  Non-negativity:       0 ≤ H(X) ≤ log |X|
-  MaxEnt:               H(X) = log n  ⟺  X ~ Uniform
-  Conditioning:         H(X|Y) ≤ H(X)  with equality ⟺  X⊥Y
-  Subadditivity:        H(X,Y) ≤ H(X) + H(Y)  with equality ⟺  X⊥Y
+  Non-negativity:       0 <= H(X) <= log |X|
+  MaxEnt:               H(X) = log n    X ~ Uniform
+  Conditioning:         H(X|Y) <= H(X)  with equality   XY
+  Subadditivity:        H(X,Y) <= H(X) + H(Y)  with equality   XY
   Chain rule:           H(X,Y) = H(X) + H(Y|X)
-  Chain rule (n vars):  H(X₁,...,Xₙ) = Σᵢ H(Xᵢ | X₁,...,Xᵢ₋₁)
-  Data processing:      H(f(X)) ≤ H(X)  (bijection: equality)
-  Han's inequality:     H(X₁,...,Xₙ) ≤ (1/(n-1)) Σᵢ H(X₋ᵢ)
+  Chain rule (n vars):  H(X1,...,Xn) = i H(Xi | X1,...,Xi1)
+  Data processing:      H(f(X)) <= H(X)  (bijection: equality)
+  Han's inequality:     H(X1,...,Xn) <= (1/(n-1)) i H(Xi)
 
   DIFFERENTIAL ENTROPY:
 
   Scale:                h(aX) = h(X) + log|a|
-  Gaussian MaxEnt:      h(X) ≤ ½ log(2πe σ²)  given Var(X) = σ²
-  Multivariate MaxEnt:  h(X) ≤ ½ log det(2πe Σ)  given Cov(X) = Σ
-  Conditioning:         h(X|Y) ≤ h(X)  (differential version)
+  Gaussian MaxEnt:      h(X) <= 12 log(2pie 2)  given Var(X) = 2
+  Multivariate MaxEnt:  h(X) <= 12 log det(2pie )  given Cov(X) = 
+  Conditioning:         h(X|Y) <= h(X)  (differential version)
 
-  RÉNYI ENTROPY:
+  RENYI ENTROPY:
 
-  Ordering:             H₀(X) ≥ H₁(X) ≥ H₂(X) ≥ ... ≥ H∞(X)
-  Shannon limit:        lim_{α→1} Hα(X) = H(X)
-  Min-entropy:          H∞(X) = -log max_x p(x)
-  Guessing:             P(guess X correctly) = 2^{-H∞(X)}
+  Ordering:             H0(X) >= H1(X) >= H2(X) >= ... >= Hinfty(X)
+  Shannon limit:        lim_{alpha->1} Halpha(X) = H(X)
+  Min-entropy:          Hinfty(X) = -log max_x p(x)
+  Guessing:             P(guess X correctly) = 2^{-Hinfty(X)}
 
   KL DIVERGENCE (preview):
 
-  Non-negativity:       DKL(p‖q) ≥ 0  with equality ⟺  p = q
-  Cross-entropy:        H(p,q) = H(p) + DKL(p‖q) ≥ H(p)
-  MaxEnt via KL:        H(X) ≤ log n  ⟺  DKL(p ‖ uniform) ≥ 0
+  Non-negativity:       DKL(pq) >= 0  with equality   p = q
+  Cross-entropy:        H(p,q) = H(p) + DKL(pq) >= H(p)
+  MaxEnt via KL:        H(X) <= log n    DKL(p  uniform) >= 0
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
-This inequality table is a key reference for the entire information theory chapter. Every inequality here will be used in §02 (KL divergence derivations), §03 (mutual information bounds), §04 (cross-entropy loss analysis), and §05 (Fisher information and Cramér-Rao).
+This inequality table is a key reference for the entire information theory chapter. Every inequality here will be used in Section 02 (KL divergence derivations), Section 03 (mutual information bounds), Section 04 (cross-entropy loss analysis), and Section 05 (Fisher information and Cramer-Rao).
 
 
 ---
 
 ## Appendix P: Implementation Recipes
 
-### P.1 Entropy Computation — Production Patterns
+### P.1 Entropy Computation - Production Patterns
 
 ```python
 import numpy as np
@@ -1839,9 +1839,9 @@ def perplexity(log_probs):
     """log_probs: array of log p(x_t | x_{<t}). Returns PPL."""
     return np.exp(-np.mean(log_probs))
 
-# Pattern 6: Rényi entropy
+# Pattern 6: Renyi entropy
 def renyi_entropy(p, alpha):
-    """Rényi entropy of order alpha in nats."""
+    """Renyi entropy of order alpha in nats."""
     if np.isclose(alpha, 1.0):
         return np.sum(entr(p))  # Shannon limit
     if np.isinf(alpha):
@@ -1884,7 +1884,7 @@ H_wrong = -np.sum(p * np.log(p))  # nan when p[i] == 0
 
 # CORRECT: Use scipy.special.entr or add epsilon
 from scipy.special import entr
-H_correct = np.sum(entr(p))  # handles p=0 → 0
+H_correct = np.sum(entr(p))  # handles p=0 -> 0
 
 # WRONG: Mixing log bases
 H_bits = -np.sum(p * np.log2(p))   # bits
@@ -1912,7 +1912,7 @@ The **attention entropy** for query $i$ in head $h$ is:
 
 $$H_h(i) = -\sum_j \alpha_{ij} \log \alpha_{ij}$$
 
-This ranges from $0$ (attending to exactly one position — argmax attention) to $\log T$ (attending uniformly to all $T$ positions).
+This ranges from $0$ (attending to exactly one position - argmax attention) to $\log T$ (attending uniformly to all $T$ positions).
 
 **Attention entropy diagnostics:**
 - **Low entropy heads** (sharp, local attention): typically handle syntactic dependencies (subject-verb agreement, coreference)
@@ -1920,7 +1920,7 @@ This ranges from $0$ (attending to exactly one position — argmax attention) to
 - **Entropy collapse:** when fine-tuning collapses all heads to very low entropy, the model loses diversity and may overfit
 - **Dead heads:** entropy near $\log T$ (uniform) indicates a head that does not attend meaningfully; often pruned safely
 
-**For interpretability.** Mechanistic interpretability studies (Olsson et al., 2022 — "induction heads"; Elhage et al., 2021 — "Mathematical Framework for Transformer Circuits") characterize attention heads by their entropy patterns. High-entropy heads tend to be backup circuits; low-entropy heads implement specific algorithms.
+**For interpretability.** Mechanistic interpretability studies (Olsson et al., 2022 - "induction heads"; Elhage et al., 2021 - "Mathematical Framework for Transformer Circuits") characterize attention heads by their entropy patterns. High-entropy heads tend to be backup circuits; low-entropy heads implement specific algorithms.
 
 ### Q.2 Temperature and Entropy in Decoding
 
@@ -1929,7 +1929,7 @@ During LLM generation, three common sampling strategies adjust the output entrop
 | Strategy | Formula | Effect on entropy |
 | --- | --- | --- |
 | Greedy | $x = \arg\max_x p(x)$ | $H = 0$ (deterministic) |
-| Temperature | $p_\tau(x) \propto e^{z_x/\tau}$ | $H \propto \tau$; higher $\tau$ → higher $H$ |
+| Temperature | $p_\tau(x) \propto e^{z_x/\tau}$ | $H \propto \tau$; higher $\tau$ -> higher $H$ |
 | Top-$k$ | Restrict to top-$k$ tokens, renormalize | $H \le \log k$ |
 | Top-$p$ (nucleus) | Restrict to smallest set with $\sum p \ge p_{\text{thresh}}$ | $H$ varies with context |
 | Min-$p$ | Restrict to tokens with $p(x) \ge p_{\min} \cdot \max_x p(x)$ | Adaptive entropy bound |
@@ -1937,9 +1937,9 @@ During LLM generation, three common sampling strategies adjust the output entrop
 **The key insight:** All sampling strategies are entropy control mechanisms. They interpolate between $H = 0$ (deterministic, no creativity) and $H = H_{\max}$ (random sampling from the full distribution). Good generation requires entropy calibration: enough uncertainty to be interesting, not so much as to be incoherent.
 
 **Entropy-adaptive sampling.** Recent work (Entropix, 2024) uses the token-level entropy and varentropy (variance of entropy across the vocabulary) to dynamically adjust sampling strategy:
-- Low entropy + low varentropy → greedy (model is confident)
-- High entropy + high varentropy → sample with high temperature (genuine uncertainty)
-- Low entropy + high varentropy → sample carefully (multiple plausible branches)
+- Low entropy + low varentropy -> greedy (model is confident)
+- High entropy + high varentropy -> sample with high temperature (genuine uncertainty)
+- Low entropy + high varentropy -> sample carefully (multiple plausible branches)
 
 
 ---
@@ -1950,25 +1950,25 @@ During LLM generation, three common sampling strategies adjust the output entrop
 
 $$\operatorname{Varentropy}(X) = \operatorname{Var}[-\log p(X)] = \mathbb{E}[(\log p(X))^2] - (H(X))^2$$
 
-While $H(X) = \mathbb{E}[-\log p(X)]$ measures average surprise, varentropy measures the spread of the surprise distribution. A high-entropy, low-varentropy distribution is one where all outcomes have nearly equal probability (uniform-like). A high-entropy, high-varentropy distribution has a few very likely outcomes and many very unlikely ones — a different shape that calls for different sampling strategies.
+While $H(X) = \mathbb{E}[-\log p(X)]$ measures average surprise, varentropy measures the spread of the surprise distribution. A high-entropy, low-varentropy distribution is one where all outcomes have nearly equal probability (uniform-like). A high-entropy, high-varentropy distribution has a few very likely outcomes and many very unlikely ones - a different shape that calls for different sampling strategies.
 
-**Third and fourth moments.** The full distribution of $-\log p(X)$ (called the "information spectrum" or "entropy density") characterizes how information is distributed across outcomes. The skewness and kurtosis of this distribution are used in information spectrum analysis and Rényi entropy comparisons.
+**Third and fourth moments.** The full distribution of $-\log p(X)$ (called the "information spectrum" or "entropy density") characterizes how information is distributed across outcomes. The skewness and kurtosis of this distribution are used in information spectrum analysis and Renyi entropy comparisons.
 
 **For LLMs.** The entropy and varentropy of the output distribution at each generation step provide a 2D signal:
 
 ```
 ENTROPY-VARENTROPY DECISION SPACE
-════════════════════════════════════════════════════════════════════════
 
-  High varentropy │ Uncertain (branching)    │ Noisy (sample broadly)
-                  │ → careful sampling       │ → high temperature
-                  ├──────────────────────────┤
-  Low varentropy  │ Confident (clear choice) │ Uniform (stuck)
-                  │ → greedy / low temp      │ → restart / probe
-                  └──────────────────────────┘
+
+  High varentropy  Uncertain (branching)     Noisy (sample broadly)
+                   -> careful sampling        -> high temperature
+                  
+  Low varentropy   Confident (clear choice)  Uniform (stuck)
+                   -> greedy / low temp       -> restart / probe
+                  
                    Low entropy              High entropy
 
-════════════════════════════════════════════════════════════════════════
+
 ```
 
 **Entropix sampling** (Xjdr et al., 2024) implements entropy-adaptive sampling using both metrics. It represents an application of higher-order information theory to practical LLM inference quality improvement.
@@ -1987,13 +1987,13 @@ ENTROPY-VARENTROPY DECISION SPACE
 | $H(X \mid Y)$ | Conditional entropy | $H(X,Y) - H(Y)$ |
 | $\mathcal{H}$ | Entropy rate | $\lim_{n\to\infty}\frac{1}{n}H(X_1,\ldots,X_n)$ |
 | $h(X)$ | Differential entropy | $-\int p(x)\log p(x)\,dx$ |
-| $H_\alpha(X)$ | Rényi entropy | $\frac{1}{1-\alpha}\log\sum_x p(x)^\alpha$ |
+| $H_\alpha(X)$ | Renyi entropy | $\frac{1}{1-\alpha}\log\sum_x p(x)^\alpha$ |
 | $H_\infty(X)$ | Min-entropy | $-\log\max_x p(x)$ |
 | $S_q(X)$ | Tsallis entropy | $\frac{1-\sum_x p(x)^q}{q-1}$ |
 | $\operatorname{PPL}$ | Perplexity | $\exp(-\frac{1}{T}\sum_t \log p(x_t \mid x_{<t}))$ |
-| $I(X;Y)$ | Mutual information | $H(X) + H(Y) - H(X,Y)$ (preview: §03) |
-| $D_{\mathrm{KL}}(p\|q)$ | KL divergence | $\sum_x p(x)\log\frac{p(x)}{q(x)}$ (preview: §02) |
-| $H(p,q)$ | Cross-entropy | $H(p) + D_{\mathrm{KL}}(p\|q)$ (preview: §04) |
+| $I(X;Y)$ | Mutual information | $H(X) + H(Y) - H(X,Y)$ (preview: Section 03) |
+| $D_{\mathrm{KL}}(p\|q)$ | KL divergence | $\sum_x p(x)\log\frac{p(x)}{q(x)}$ (preview: Section 02) |
+| $H(p,q)$ | Cross-entropy | $H(p) + D_{\mathrm{KL}}(p\|q)$ (preview: Section 04) |
 
 
 

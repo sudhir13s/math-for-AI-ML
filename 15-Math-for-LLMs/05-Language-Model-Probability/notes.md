@@ -1,995 +1,1438 @@
-[← Positional Encodings](../04-Positional-Encodings/notes.md) | [Home](../../README.md) | [Training at Scale →](../06-Training-at-Scale/notes.md)
+[<- Positional Encodings](../04-Positional-Encodings/notes.md) | [Home](../../README.md) | [Training at Scale ->](../06-Training-at-Scale/notes.md)
 
 ---
 
 # Language Model Probability Math
 
-> _"A language model is nothing more — and nothing less — than a probability distribution over sequences of tokens. Everything else is commentary."_
+An LLM is a machine for assigning probabilities to token continuations. The transformer stack builds a contextual vector; this section explains how that vector becomes a normalized next-token distribution, how training improves that distribution, and how decoding turns it back into text.
 
 ## Overview
 
-Every large language model — GPT, LLaMA, Gemini, Claude — is fundamentally a probability estimator. Given a sequence of tokens, it produces a probability distribution over what comes next. The entire edifice of modern AI rests on this single operation: predict the next token. This section derives the mathematical foundations that make this possible: the chain rule decomposition that factorises sequence probability into autoregressive conditionals, the cross-entropy training objective and its gradient (which has the elegant form "predicted minus true"), information-theoretic measures (entropy, perplexity, KL divergence, bits-per-byte), the softmax function and its numerical stabilisation via log-sum-exp, all major decoding strategies (greedy, beam search, temperature, top-k, top-p, min-p, typical, contrastive, speculative), neural scaling laws (Kaplan, Chinchilla, inference-optimal, test-time compute), calibration and uncertainty quantification, conditional LMs (prompting, classifier-free guidance, RAG), RLHF/DPO/GRPO alignment objectives with full derivations, evaluation metrics (PPL, BLEU, ROUGE, BERTScore, LLM-as-judge), and implementation details for numerical stability at scale. This is the mathematical heart of every LLM.
+Language-model probability is the center of the LLM learning loop. During training, the model receives a true prefix and is penalized when the observed next token has low probability. During evaluation, the same probabilities produce negative log-likelihood, cross-entropy, perplexity, calibration curves, and answer scores. During generation, the probabilities are transformed by decoding rules such as temperature, top-k, top-p, beam search, or constraints.
+
+The most important idea is simple but deep:
+
+$$
+P(t_{1:n}) = \\prod_{i=1}^{n} P(t_i \\mid t_{<i}).
+$$
+
+This chain-rule factorization is exact. Autoregressive language modeling becomes a practical learning problem because a neural network can estimate each conditional distribution.
 
 ## Prerequisites
 
-- Probability theory: conditional probability, Bayes' theorem, expectation
-- Information theory: entropy, cross-entropy, KL divergence (covered in [09-Information-Theory](../../09-Information-Theory/01-Entropy/notes.md))
-- Calculus: partial derivatives, chain rule, gradient computation
-- Completed: [01-Tokenization-Math](../01-Tokenization-Math/notes.md), [02-Embedding-Space-Math](../02-Embedding-Space-Math/notes.md), [03-Attention-Mechanism-Math](../03-Attention-Mechanism-Math/notes.md), and [04-Positional-Encodings](../04-Positional-Encodings/notes.md)
+- Conditional probability and the product rule
+- Logarithms, exponentials, and gradients
+- Entropy, KL divergence, and cross-entropy
+- Vector and matrix shapes from embeddings and attention
+- The previous LLM sections on tokenization, embeddings, attention, and positions
 
 ## Companion Notebooks
 
-| Notebook                           | Description                                                                                              |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [theory.ipynb](theory.ipynb)       | Softmax, cross-entropy, perplexity, decoding strategies, scaling laws, DPO, calibration, numerical demos |
-| [exercises.ipynb](exercises.ipynb) | Chain rule decomposition, PPL calculation, temperature effects, top-p, CE gradient, scaling, DPO, ECE    |
+| Notebook | Purpose |
+| --- | --- |
+| [theory.ipynb](theory.ipynb) | Builds the probability machinery with executable toy LMs, stable softmax, cross-entropy gradients, perplexity, calibration, and decoding demos. |
+| [exercises.ipynb](exercises.ipynb) | Gives ten practice problems with scaffolds and complete solutions for sequence probability, loss, decoding, calibration, and conditional scoring. |
 
 ## Learning Objectives
 
-After completing this section, you will:
+After this section, you should be able to:
 
-- State the chain rule decomposition and factorise any sequence probability into autoregressive conditionals
-- Derive the softmax function from maximum-entropy principles and implement it with numerical stability
-- Compute cross-entropy loss, its gradient with respect to logits, and explain why the gradient equals "predicted minus true"
-- Define entropy, cross-entropy, KL divergence, perplexity, and bits-per-byte, and convert between them
-- Implement and compare all major decoding strategies: greedy, beam search, temperature, top-k, top-p, min-p, typical
-- Explain speculative decoding and contrastive decoding mathematically
-- State the Kaplan and Chinchilla scaling laws, compute optimal model/data allocation for a given compute budget
-- Define calibration, compute ECE, and apply temperature scaling for post-hoc calibration
-- Derive the DPO loss from the RLHF objective and compute gradients by hand
-- Explain GRPO and its advantage over PPO for reasoning model training
-- Evaluate language models using perplexity, BLEU, ROUGE, and LLM-as-judge frameworks
+- Define a language model as a distribution over token sequences with an EOS convention.
+- Derive the autoregressive factorization from the probability chain rule.
+- Convert hidden states into logits, logits into probabilities, and probabilities into log-likelihoods.
+- Implement numerically stable softmax and log-softmax.
+- Derive the cross-entropy gradient $p-y$ with respect to logits.
+- Compute entropy, KL divergence, cross-entropy, perplexity, bits per token, and length-normalized scores.
+- Explain why decoding changes the sampling distribution without changing the trained model.
+- Diagnose common probability bugs in LLM training and evaluation code.
 
----
+## Table of Contents
 
-## 1. Intuition
-
-### 1.1 What Is a Language Model?
-
-A language model is a probability distribution over sequences of tokens. Given a vocabulary $V$, a language model assigns a probability to every possible finite string in $V^*$:
-
-$$P: V^* \to [0, 1], \quad \sum_{\mathbf{t} \in V^*} P(\mathbf{t}) = 1$$
-
-The core question is deceptively simple: **given what has come before, what comes next?**
-
-Every LLM — GPT-4, LLaMA 3, Gemini, Claude — is fundamentally a probability estimator. The entire training process is about learning this distribution from data. Everything else — reasoning, coding, conversation, tool use — emerges from predicting the next token well enough.
-
-### 1.2 The Prediction Game
-
-| Component      | Description                                                                 |
-| -------------- | --------------------------------------------------------------------------- |
-| **Input**      | Sequence of tokens $(t_1, t_2, \ldots, t_n)$                                |
-| **Output**     | Probability distribution over next token $P(t_{n+1} \mid t_1, \ldots, t_n)$ |
-| **Generation** | Sample or argmax from this distribution, append, repeat                     |
-| **Training**   | Adjust parameters so model's distribution matches data distribution         |
-
-Everything else — reasoning, coding, conversation — emerges from this one operation: next-token prediction repeated until a stop condition.
-
-### 1.3 Why Probability?
-
-| Reason                | Explanation                                                                                       |
-| --------------------- | ------------------------------------------------------------------------------------------------- |
-| **Uncertainty**       | Language is fundamentally uncertain: many continuations are valid for any prefix                  |
-| **Ranking**           | Probability allows ranking: "Paris" is more likely than "banana" after "The capital of France is" |
-| **Calibration**       | A well-calibrated model knows what it doesn't know; uncertainty is informative                    |
-| **Differentiability** | Probability is differentiable → enables gradient-based training via cross-entropy loss            |
-| **Sampling**          | Probability enables controlled randomness: diversity, creativity, temperature scaling             |
-| **Compositionality**  | Sequence probability decomposes into a product of conditionals via the chain rule                 |
-
-### 1.4 Historical Timeline
-
-| Year    | Milestone       | Key Contribution                                                                            |
-| ------- | --------------- | ------------------------------------------------------------------------------------------- |
-| 1948    | Shannon         | Information theory; entropy as measure of language uncertainty                              |
-| 1951    | Shannon         | N-gram language models; bits-per-character experiments on English (≈1.0 BPC)                |
-| 1980s   | Jelinek et al.  | N-gram LMs for speech recognition; smoothing methods (Kneser-Ney, Good-Turing)              |
-| 2003    | Bengio et al.   | Neural probabilistic language model; learned embeddings replace discrete counts             |
-| 2010    | Mikolov et al.  | RNN language models; arbitrary-length context via hidden state                              |
-| 2013    | Graves          | Sequence generation with RNNs; handwriting and speech synthesis                             |
-| 2017    | Vaswani et al.  | Transformer LM; self-attention replaces recurrence; parallelisable training                 |
-| 2018–19 | Radford et al.  | GPT-1/2; large-scale autoregressive LM; zero-shot task transfer emerges                     |
-| 2020    | Brown et al.    | GPT-3 (175B); in-context learning emerges from scale alone                                  |
-| 2022    | Hoffmann et al. | Chinchilla scaling laws; optimal token/parameter ratio ≈ 20:1                               |
-| 2023    | Touvron et al.  | LLaMA; open-source scaling; over-training for inference efficiency                          |
-| 2023    | Rafailov et al. | DPO; direct preference optimisation bypasses reward model                                   |
-| 2024    | OpenAI          | o1; test-time compute scaling for reasoning via chain-of-thought search                     |
-| 2025    | DeepSeek        | R1; GRPO for reasoning; open-source test-time scaling                                       |
-| 2025–26 | Community       | Mixture-of-experts LMs, 10M-token contexts, reasoning agents, speculative decoding standard |
-
-### 1.5 Pipeline Position
-
-```
-Text → [Tokenizer] → IDs → [Embedding] → ℝᵈ → [Transformer Blocks] → hₙ → [LM Head] → logits → [Softmax] → P(next token)
-                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                               THIS section
-```
-
-The transformer produces a hidden state $h_n \in \mathbb{R}^d$ for each position. This section covers everything that happens after: the LM head projects $h_n$ to logits, softmax converts to probabilities, cross-entropy measures the loss, and decoding strategies select the output token.
+1. [Language Models as Distributions](#1-language-models-as-distributions)
+   - 1.1 [Finite vocabulary and EOS](#11-finite-vocabulary-and-eos)
+   - 1.2 [Probability over finite strings](#12-probability-over-finite-strings)
+   - 1.3 [Conditional next-token distributions](#13-conditional-nexttoken-distributions)
+   - 1.4 [Support and impossible events](#14-support-and-impossible-events)
+   - 1.5 [Why next-token prediction is enough](#15-why-nexttoken-prediction-is-enough)
+2. [Autoregressive Factorization](#2-autoregressive-factorization)
+   - 2.1 [Chain rule derivation](#21-chain-rule-derivation)
+   - 2.2 [Teacher forcing](#22-teacher-forcing)
+   - 2.3 [Causal masking](#23-causal-masking)
+   - 2.4 [Sequence log probability](#24-sequence-log-probability)
+   - 2.5 [Prefix scoring](#25-prefix-scoring)
+3. [Logits, Softmax, and Log-Sum-Exp](#3-logits-softmax-and-logsumexp)
+   - 3.1 [LM head](#31-lm-head)
+   - 3.2 [Softmax normalization](#32-softmax-normalization)
+   - 3.3 [Shift invariance](#33-shift-invariance)
+   - 3.4 [Stable log-softmax](#34-stable-logsoftmax)
+   - 3.5 [Temperature](#35-temperature)
+4. [Maximum Likelihood and Cross-Entropy](#4-maximum-likelihood-and-crossentropy)
+   - 4.1 [Dataset likelihood](#41-dataset-likelihood)
+   - 4.2 [Negative log-likelihood](#42-negative-loglikelihood)
+   - 4.3 [Cross-entropy](#43-crossentropy)
+   - 4.4 [Gradient with respect to logits](#44-gradient-with-respect-to-logits)
+   - 4.5 [Padding masks](#45-padding-masks)
+5. [Entropy, KL, Perplexity, and Bits](#5-entropy-kl-perplexity-and-bits)
+   - 5.1 [Entropy](#51-entropy)
+   - 5.2 [Cross-entropy decomposition](#52-crossentropy-decomposition)
+   - 5.3 [Perplexity](#53-perplexity)
+   - 5.4 [Bits per token](#54-bits-per-token)
+   - 5.5 [Tokenizer caveat](#55-tokenizer-caveat)
+6. [Sequence Scoring and Calibration](#6-sequence-scoring-and-calibration)
+   - 6.1 [Length bias](#61-length-bias)
+   - 6.2 [Average log probability](#62-average-log-probability)
+   - 6.3 [Calibration](#63-calibration)
+   - 6.4 [Expected calibration error](#64-expected-calibration-error)
+   - 6.5 [Temperature scaling](#65-temperature-scaling)
+7. [Decoding as Distribution Transformation](#7-decoding-as-distribution-transformation)
+   - 7.1 [Greedy decoding](#71-greedy-decoding)
+   - 7.2 [Sampling](#72-sampling)
+   - 7.3 [Top-k filtering](#73-topk-filtering)
+   - 7.4 [Nucleus top-p filtering](#74-nucleus-topp-filtering)
+   - 7.5 [Beam search and length penalty](#75-beam-search-and-length-penalty)
+8. [From Count Models to Neural LMs](#8-from-count-models-to-neural-lms)
+   - 8.1 [N-gram models](#81-ngram-models)
+   - 8.2 [Smoothing](#82-smoothing)
+   - 8.3 [Neural probabilistic LM](#83-neural-probabilistic-lm)
+   - 8.4 [Recurrent LM](#84-recurrent-lm)
+   - 8.5 [Transformer LM](#85-transformer-lm)
+9. [Conditional Generation and Constraints](#9-conditional-generation-and-constraints)
+   - 9.1 [Prompt conditioning](#91-prompt-conditioning)
+   - 9.2 [RAG conditioning](#92-rag-conditioning)
+   - 9.3 [Logit bias and constraints](#93-logit-bias-and-constraints)
+   - 9.4 [Guidance by logit mixing](#94-guidance-by-logit-mixing)
+   - 9.5 [Safety filters](#95-safety-filters)
+10. [Diagnostics and Learning Practice](#10-diagnostics-and-learning-practice)
+   - 10.1 [Normalization checks](#101-normalization-checks)
+   - 10.2 [Likelihood sanity checks](#102-likelihood-sanity-checks)
+   - 10.3 [Distribution shift](#103-distribution-shift)
+   - 10.4 [Generation versus evaluation](#104-generation-versus-evaluation)
+   - 10.5 [Bridge to training at scale](#105-bridge-to-training-at-scale)
 
 ---
 
-## 2. Formal Definitions
-
-### 2.1 Probability Over Sequences
-
-A language model defines a joint probability over token sequences:
-
-$$P(t_1, t_2, \ldots, t_n) \geq 0, \quad \sum_{\mathbf{t} \in V^*} P(\mathbf{t}) = 1$$
-
-This is a distribution over a **countably infinite set**: all finite strings over vocabulary $V$, including the empty string $\varepsilon$. The sum includes strings of every possible length.
-
-For a vocabulary of size $|V| = 50{,}000$, the number of possible sequences of length $n$ is $50{,}000^n$. At $n = 100$, this exceeds $10^{469}$ — impossibly many to enumerate. The chain rule decomposition makes this tractable.
-
-### 2.2 Chain Rule Decomposition
-
-The chain rule of probability factorises the joint probability exactly:
-
-$$\boxed{P(t_1, t_2, \ldots, t_n) = \prod_{i=1}^{n} P(t_i \mid t_1, t_2, \ldots, t_{i-1})}$$
-
-Each factor is the conditional probability of the next token given all previous tokens. This is **exact** — no approximation. The chain rule is always valid for any joint distribution.
-
-**Worked example**: P("the cat sat") with vocabulary tokens [the, cat, sat, ...]:
-
-$$P(\text{the, cat, sat}) = \underbrace{P(\text{the})}_{\text{unigram}} \times \underbrace{P(\text{cat} \mid \text{the})}_{\text{bigram context}} \times \underbrace{P(\text{sat} \mid \text{the, cat})}_{\text{trigram context}}$$
-
-We define $P(t_1 \mid \varepsilon) = P(t_1)$ where $\varepsilon$ is the empty context. In practice, $t_0 = \text{BOS}$ (beginning-of-sequence) token serves as the initial context.
-
-**Key insight**: An autoregressive language model only needs to model one thing — $P(t_i \mid t_{<i})$ — and the chain rule gives us the probability of any sequence for free.
-
-### 2.3 Conditional Distribution
-
-At each step $i$, the model outputs a distribution over the full vocabulary $V$:
-
-$$P(\cdot \mid t_1, \ldots, t_{i-1}): V \to [0, 1], \quad \sum_{t \in V} P(t \mid t_1, \ldots, t_{i-1}) = 1$$
-
-This is a probability vector $\mathbf{p} \in \mathbb{R}^{|V|}$ with $|V|$ entries summing to 1. For GPT-2, $|V| = 50{,}257$; for LLaMA 3, $|V| = 128{,}256$.
-
-**Implementation**: The conditional distribution is computed as:
-
-$$\text{logits} \xrightarrow{\text{softmax}} \text{probability vector} \in \Delta^{|V|-1}$$
-
-where $\Delta^{|V|-1}$ is the $(|V|-1)$-dimensional probability simplex.
-
-### 2.4 The LM Head
-
-The LM head converts hidden states to token probabilities:
-
-| Component          | Shape                                   | Description                                                                                   |
-| ------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Hidden state $h_n$ | $\mathbb{R}^d$                          | Final transformer output for position $n$                                                     |
-| Weight matrix $W$  | $\mathbb{R}^{\lvert V \rvert \times d}$ | Projection to vocabulary space (often tied to embedding matrix $E$)                           |
-| Bias $b$           | $\mathbb{R}^{\lvert V \rvert}$          | Optional; often omitted in modern models                                                      |
-| Logits $z$         | $\mathbb{R}^{\lvert V \rvert}$          | Raw unnormalised scores: $z = Wh_n + b$                                                       |
-| Probabilities $p$  | $\Delta^{\lvert V \rvert - 1}$          | $P(t \mid \text{context}) = \text{softmax}(z)_t = \frac{\exp(z_t)}{\sum_{v \in V} \exp(z_v)}$ |
-
-**Weight tying**: In most modern LLMs, $W = E^\top$ — the LM head weight is the transpose of the token embedding matrix. This halves the parameter count of the vocabulary projection and provides a geometric interpretation: the probability of token $t$ is proportional to $\exp(h_n \cdot e_t)$, the exponentiated cosine-like similarity between the hidden state and the token embedding.
-
-**Scale**: For LLaMA 3 8B ($d = 4096$, $|V| = 128{,}256$), the LM head is a $128{,}256 \times 4{,}096$ matrix — 525M parameters. With weight tying, these are shared with the embedding layer.
-
-### 2.5 Autoregressive Generation
-
-Generation proceeds token by token:
-
-$$t_1 \sim P(\cdot \mid \text{BOS}), \quad t_2 \sim P(\cdot \mid \text{BOS}, t_1), \quad \ldots, \quad t_i \sim P(\cdot \mid t_1, \ldots, t_{i-1})$$
-
-Stop when EOS token is sampled or maximum length is reached. Each step requires a full forward pass through the transformer (though KV caching makes this efficient).
-
-This process defines a valid probability distribution over all possible generated sequences. The probability of any specific output sequence is the product of all per-step sampling probabilities.
-
----
-
-## 3. Information Theory Foundations
-
-### 3.1 Self-Information
-
-The **surprise** (self-information) of observing token $t$ with probability $P(t)$:
-
-$$I(t) = -\log_2 P(t) \quad \text{(bits)}$$
-
-| $P(t)$              | $I(t)$ (bits)            | Interpretation                            |
-| ------------------- | ------------------------ | ----------------------------------------- |
-| 1.0                 | 0                        | Certain event: no surprise                |
-| 0.5                 | 1                        | Fair coin flip: 1 bit of information      |
-| 0.25                | 2                        | Two coin flips worth of surprise          |
-| 0.01                | 6.64                     | Rare event: high surprise                 |
-| 0.001               | 9.97                     | Very rare: ~10 bits                       |
-| $1/\lvert V \rvert$ | $\log_2 \lvert V \rvert$ | Maximum surprise for uniform distribution |
-
-**Key property**: Self-information is additive for independent events: $I(A \cap B) = I(A) + I(B)$.
-
-### 3.2 Entropy
-
-The **expected surprise** (average self-information) over a distribution:
-
-$$\boxed{H(P) = -\sum_{t \in V} P(t) \log_2 P(t) = \mathbb{E}_{t \sim P}[I(t)]}$$
-
-| Distribution                          | Entropy                       | Interpretation                               |
-| ------------------------------------- | ----------------------------- | -------------------------------------------- |
-| Point mass (one token has $P=1$)      | 0 bits                        | No uncertainty                               |
-| Uniform over $\lvert V \rvert$ tokens | $\log_2 \lvert V \rvert$ bits | Maximum uncertainty                          |
-| English text (Shannon 1951)           | ≈1.0–1.5 BPC                  | Natural language has structure               |
-| Typical LLM next-token                | ≈2–4 bits                     | Model exploits context to reduce uncertainty |
-
-**Shannon's source coding theorem**: Entropy is the minimum average number of bits needed to encode samples from $P$. No lossless compression can beat $H(P)$ bits per symbol on average.
-
-### 3.3 Cross-Entropy
-
-Expected surprise when using model distribution $Q$ to encode samples from true distribution $P$:
-
-$$\boxed{H(P, Q) = -\sum_{t \in V} P(t) \log_2 Q(t) = \mathbb{E}_{t \sim P}[-\log_2 Q(t)]}$$
-
-**Properties**:
-
-- $H(P, Q) \geq H(P)$ always (Gibbs' inequality)
-- $H(P, Q) = H(P)$ if and only if $P = Q$
-- The gap $H(P, Q) - H(P) = D_{KL}(P \| Q) \geq 0$
-
-**Training connection**: The LLM training objective is to minimise $H(P_{\text{data}}, P_{\text{model}})$ — make the model's distribution match the data distribution.
-
-In practice, $P_{\text{data}}$ is empirical (one-hot at the true next token), so:
-
-$$H(P_{\text{data}}, P_{\text{model}}) = -\log_2 P_{\text{model}}(t_{\text{true}} \mid \text{context})$$
-
-This is simply the negative log-probability of the correct token — the cross-entropy loss.
-
-### 3.4 KL Divergence
-
-The **extra bits** needed to use $Q$ instead of $P$:
-
-$$\boxed{D_{KL}(P \| Q) = \sum_{t \in V} P(t) \log \frac{P(t)}{Q(t)} = H(P, Q) - H(P)}$$
-
-| Property       | Value                                                                                      |
-| -------------- | ------------------------------------------------------------------------------------------ |
-| Non-negative   | $D_{KL}(P \| Q) \geq 0$ always (Gibbs' inequality)                                         |
-| Zero iff equal | $D_{KL}(P \| Q) = 0 \iff P = Q$                                                            |
-| Not symmetric  | $D_{KL}(P \| Q) \neq D_{KL}(Q \| P)$ in general                                            |
-| Not a metric   | Violates triangle inequality                                                               |
-| Forward KL     | $D_{KL}(P_{\text{data}} \| P_{\text{model}})$: mean-seeking; MLE minimises this            |
-| Reverse KL     | $D_{KL}(P_{\text{model}} \| P_{\text{data}})$: mode-seeking; used in variational inference |
-
-**Training equivalence**: Minimising $D_{KL}(P_{\text{data}} \| P_{\text{model}})$ is equivalent to maximising log-likelihood, which is equivalent to minimising cross-entropy loss.
-
-### 3.5 Perplexity
-
-Exponentiated cross-entropy; the standard LM evaluation metric:
-
-$$\boxed{\text{PPL} = 2^{H(P_{\text{data}}, P_{\text{model}})} = 2^{-\frac{1}{N}\sum_{i=1}^{N} \log_2 P(t_i \mid t_{<i})}}$$
-
-Or equivalently using natural logarithm:
-
-$$\text{PPL} = \exp\!\left(-\frac{1}{N} \sum_{i=1}^{N} \ln P(t_i \mid t_{<i})\right)$$
-
-**Interpretation**: Perplexity = the effective vocabulary size the model is "choosing from" at each step.
-
-| Model             | PPL (WikiText-103) | Effective branching factor      |
-| ----------------- | ------------------ | ------------------------------- | ------ | -------------------------- |
-| Uniform random ($ | V                  | =50K$)                          | 50,000 | Guessing from entire vocab |
-| 5-gram LM         | ~70                | Better than random              |
-| GPT-2 (1.5B)      | ~18                | Fairly confident                |
-| GPT-3 (175B)      | ~10                | Often narrows to ~10 candidates |
-| LLaMA 3 70B       | ~3–5               | Very confident; almost knows    |
-| Perfect model     | 1                  | Always predicts correctly       |
-
-Lower is better. Halving perplexity ≈ roughly doubling model quality in terms of predictive power.
-
-### 3.6 Bits Per Character / Bits Per Byte
-
-Normalise cross-entropy by characters or bytes instead of tokens:
-
-$$\text{BPC} = \frac{-\sum_{i} \log_2 P(t_i \mid t_{<i})}{\text{total characters}}, \quad \text{BPB} = \frac{-\sum_{i} \log_2 P(t_i \mid t_{<i})}{\text{total bytes}}$$
-
-| Metric     | Depends on tokeniser?                     | Use case                               |
-| ---------- | ----------------------------------------- | -------------------------------------- |
-| Perplexity | Yes — different tokenisers → incomparable | Model comparison within same tokeniser |
-| BPC        | No — normalised by raw characters         | Cross-lingual comparison               |
-| BPB        | No — normalised by raw bytes              | Tokeniser-independent comparison       |
-
-English text entropy ≈ 1.0–1.5 BPC (Shannon 1951). Good LLMs in 2024–2026 achieve ~0.7–1.0 BPC on standard benchmarks.
-
-**Conversion**: $\text{PPL}_{\text{token}} = 2^{\text{BPT} \times \text{avg chars per token}}$ where BPT is bits-per-token.
-
----
-
-## 4. Training Objective — Maximum Likelihood
-
-### 4.1 Log-Likelihood
-
-Given corpus $\mathcal{D} = (t_1, t_2, \ldots, t_N)$, the log-likelihood under model parameters $\theta$:
-
-$$\mathcal{L}(\theta) = \sum_{i=1}^{N} \log P_\theta(t_i \mid t_1, \ldots, t_{i-1})$$
-
-Since each $\log P_\theta(t_i \mid t_{<i}) \leq 0$ (probabilities are at most 1), the log-likelihood is always non-positive. We want to maximise it (make it less negative).
-
-Maximising $\mathcal{L}(\theta)$ = minimising negative log-likelihood (NLL) = minimising cross-entropy with the empirical distribution.
-
-### 4.2 Maximum Likelihood Estimation (MLE)
-
-$$\boxed{\theta^* = \arg\max_\theta \sum_{i=1}^{N} \log P_\theta(t_i \mid t_{<i})}$$
-
-This is the standard training objective for all autoregressive LLMs.
-
-| Property            | Description                                                                            |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| **Unbiased**        | With infinite data, MLE recovers the true distribution                                 |
-| **Consistent**      | As $N \to \infty$, $\hat{\theta} \to \theta^*$ in probability                          |
-| **Efficient**       | Achieves the Cramér-Rao lower bound asymptotically                                     |
-| **Teacher forcing** | During training, always condition on true previous tokens, not model's own predictions |
-
-**Teacher forcing**: At training time, position $i$ receives the true tokens $t_1, \ldots, t_{i-1}$ as input, not the model's own predictions. This enables parallel training of all positions simultaneously but creates an **exposure bias**: at inference time, the model must condition on its own (possibly incorrect) predictions.
-
-### 4.3 Cross-Entropy Loss in Practice
-
-Per-token loss at position $i$:
-
-$$\mathcal{L}_i = -\log P_\theta(t_i \mid t_{<i}) = -\log \text{softmax}(z_i)_{t_i} = -z_{t_i} + \log \sum_{v \in V} \exp(z_v)$$
-
-The decomposition reveals two parts:
-
-- $-z_{t_i}$: the logit for the correct token (want this large)
-- $\log \sum_v \exp(z_v)$: the log partition function (normalisation constant)
-
-Batch loss: mean over all tokens in batch
-
-$$\mathcal{L} = \frac{1}{|B|} \sum_{i \in B} \mathcal{L}_i$$
-
-**Computational cost**: The log-sum-exp term requires computing $\exp(z_v)$ for all $|V|$ tokens — for $|V| = 128K$, this is expensive. This is why vocabulary parallelism matters (§11.4).
-
-### 4.4 Gradient of Cross-Entropy Loss
-
-One of the most elegant results in machine learning. The gradient of the cross-entropy loss with respect to logits $z$:
-
-$$\boxed{\frac{\partial \mathcal{L}_i}{\partial z_v} = P_\theta(v \mid t_{<i}) - \mathbb{1}[v = t_i] = \hat{p}_v - y_v}$$
-
-where $\hat{p}_v = \text{softmax}(z)_v$ is the predicted probability and $y_v$ is the one-hot target.
-
-**Interpretation**: The gradient = predicted probability − true probability.
-
-| Token $v$           | $\hat{p}_v$ | $y_v$ | Gradient $\hat{p}_v - y_v$ | Effect                              |
-| ------------------- | ----------- | ----- | -------------------------- | ----------------------------------- |
-| Correct token $t_i$ | 0.7         | 1     | −0.3                       | Push logit **up** (decrease loss)   |
-| Wrong token $A$     | 0.2         | 0     | +0.2                       | Push logit **down**                 |
-| Wrong token $B$     | 0.1         | 0     | +0.1                       | Push logit **down** (less strongly) |
-
-**Key properties**:
-
-- Gradient is zero only when $\hat{p} = y$ (model perfectly predicts the target)
-- Gradient magnitude is bounded: $|\hat{p}_v - y_v| \leq 1$
-- Gradients sum to zero: $\sum_v (\hat{p}_v - y_v) = 1 - 1 = 0$
-- This is why cross-entropy + softmax is the universal LM training loss: simple, elegant, numerically stable gradient
-
-### 4.5 Label Smoothing
-
-Soften one-hot targets to prevent overconfidence:
-
-Instead of target $(0, \ldots, 1, \ldots, 0)$, use $\left(\frac{\varepsilon}{|V|}, \ldots, 1 - \varepsilon + \frac{\varepsilon}{|V|}, \ldots, \frac{\varepsilon}{|V|}\right)$
-
-$$\mathcal{L}_{\text{smooth}} = (1 - \varepsilon) \cdot \mathcal{L}_{\text{CE}} + \varepsilon \cdot H_{\text{uniform}}$$
-
-| Parameter           | Typical value        | Effect                                                         |
-| ------------------- | -------------------- | -------------------------------------------------------------- |
-| $\varepsilon = 0$   | Standard CE          | Model can become arbitrarily confident                         |
-| $\varepsilon = 0.1$ | Standard choice      | Prevents logits from growing unboundedly; improves calibration |
-| $\varepsilon = 0.2$ | Aggressive smoothing | May hurt accuracy on easy predictions                          |
-
-Used in the original Transformer, T5, PaLM, and many modern models. Forces the model to maintain non-zero probability on all tokens, which acts as implicit regularisation.
-
-### 4.6 Next-Token Prediction vs Masked LM
-
-| Aspect              | Causal LM (GPT-style)                     | Masked LM (BERT-style)                                               |
-| ------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
-| **Prediction**      | Predict each token from left context only | Predict randomly masked tokens (15%) from full bidirectional context |
-| **Context**         | Unidirectional (causal mask)              | Bidirectional                                                        |
-| **Training signal** | $N$ losses per sequence of length $N$     | ~$0.15N$ losses per sequence                                         |
-| **Generation**      | Natural: sample left-to-right             | Unnatural: requires iterative refinement                             |
-| **Examples**        | GPT-2/3/4, LLaMA, Claude, Gemini          | BERT, RoBERTa, DeBERTa                                               |
-| **Formula**         | $\sum_i \log P(t_i \mid t_{<i})$          | $\sum_{i \in \text{masked}} \log P(t_i \mid t_{\setminus i})$        |
-
-**UL2 (Tay et al. 2022)**: Unifies both with a mixture of denoising objectives (causal, prefix, span corruption). Used in PaLM 2 and Gemini.
-
----
-
-## 5. Decoding Strategies
-
-### 5.1 Greedy Decoding
-
-$$t_i^* = \arg\max_{t \in V} P(t \mid t_{<i})$$
-
-Always pick the highest-probability token. Fast, deterministic, but often suboptimal.
-
-**Problem**: Locally optimal $\neq$ globally optimal. Greedy decoding can miss high-probability sequences because it commits to each choice without look-ahead.
-
-**Example**: After "The most important thing is", greedy might pick "to" ($P=0.32$) but the sequence "the" → "fact" → "that" has higher joint probability.
-
-### 5.2 Beam Search
-
-Maintain $K$ candidate sequences (beams) at each step:
-
-$$\text{score}(\mathbf{t}) = \frac{1}{|\mathbf{t}|^\alpha} \sum_{i=1}^{|\mathbf{t}|} \log P(t_i \mid t_{<i})$$
-
-| Parameter                 | Description                          | Typical value |
-| ------------------------- | ------------------------------------ | ------------- |
-| $K$ (beam width)          | Number of candidates to maintain     | 4–10          |
-| $\alpha$ (length penalty) | Prevents bias toward short sequences | 0.6–0.8       |
-| $K = 1$                   | Reduces to greedy decoding           | —             |
-| $K \to \infty$            | Exhaustive search (intractable)      | —             |
-
-Beam search is standard for machine translation and summarisation. Less used for open-ended generation where diversity matters (beam search tends to produce generic, repetitive text).
-
-### 5.3 Temperature Sampling
-
-Divide logits by temperature $\tau$ before softmax:
-
-$$\boxed{P_\tau(t \mid t_{<i}) = \frac{\exp(z_t / \tau)}{\sum_v \exp(z_v / \tau)}}$$
-
-| Temperature $\tau$ | Effect                     | Entropy                      | Use case                    |
-| ------------------ | -------------------------- | ---------------------------- | --------------------------- |
-| $\tau \to 0$       | Approaches greedy (argmax) | $\to 0$                      | Maximum confidence          |
-| $\tau = 0.3$       | Sharp, focused             | Low                          | Factual QA, code completion |
-| $\tau = 0.7$       | Slightly sharpened         | Moderate                     | Creative writing, dialogue  |
-| $\tau = 1.0$       | Standard (no change)       | Original                     | General purpose             |
-| $\tau = 1.5$       | Flattened, more random     | High                         | Brainstorming, exploration  |
-| $\tau \to \infty$  | Approaches uniform random  | $\to \log_2 \lvert V \rvert$ | Pure randomness             |
-
-**Mathematical insight**: Temperature scales the entropy of the output distribution. If $H_1$ is the entropy at $\tau = 1$, then $H_\tau \approx H_1 / \tau$ for small perturbations.
-
-### 5.4 Top-k Sampling
-
-Sample only from the $k$ highest-probability tokens:
-
-$$P_k(t) \propto P(t) \cdot \mathbb{1}[t \in \text{top-}k(P)]$$
-
-Renormalise after filtering: probabilities of the top-$k$ tokens are rescaled to sum to 1.
-
-**Problem**: Fixed $k$ ignores the shape of the distribution:
-
-- When distribution is peaked: $k = 50$ includes many near-zero probability tokens (adds noise)
-- When distribution is flat: $k = 50$ may exclude tokens with meaningful probability (truncates too aggressively)
-
-Typical $k$: 40–100. Often combined with temperature.
-
-### 5.5 Top-p (Nucleus) Sampling
-
-Sample from the smallest set of tokens whose cumulative probability $\geq p$:
-
-$$\mathcal{V}_p = \arg\min_{S \subseteq V} |S| \quad \text{s.t.} \quad \sum_{t \in S} P(t) \geq p$$
-
-**Algorithm**:
-
-1. Sort tokens by probability descending: $P(t_{(1)}) \geq P(t_{(2)}) \geq \ldots$
-2. Find smallest $k^*$ such that $\sum_{j=1}^{k^*} P(t_{(j)}) \geq p$
-3. Sample from $\{t_{(1)}, \ldots, t_{(k^*)}\}$ with renormalised probabilities
-
-| $p$  | Effect                                            | Typical use              |
-| ---- | ------------------------------------------------- | ------------------------ |
-| 0.5  | Very focused; only most likely tokens             | Conservative generation  |
-| 0.9  | Standard; good balance of diversity and coherence | General purpose          |
-| 0.95 | Slightly more diverse                             | Creative tasks           |
-| 1.0  | No filtering (full distribution)                  | Same as temperature-only |
-
-**Advantage over top-k**: Adaptive vocabulary size. When the model is confident (peaked distribution), the nucleus is small. When uncertain (flat distribution), the nucleus is large. Outperforms top-k in practice (Holtzman et al. 2020).
-
-### 5.6 Min-p Sampling
-
-Filter tokens whose probability falls below a fraction of the top token's probability:
-
-$$\mathcal{V}_{\text{min-p}} = \left\{t : P(t) \geq p_{\min} \cdot \max_v P(v)\right\}$$
-
-**Example**: If $\max_v P(v) = 0.6$ and $p_{\min} = 0.1$, keep all tokens with $P(t) \geq 0.06$.
-
-**Advantage over top-p**: Scales threshold relative to the model's confidence level. When the model is very confident ($\max P$ is high), the absolute threshold is high → tight filtering. When uncertain ($\max P$ is low), threshold is low → more diversity.
-
-Increasingly adopted in 2024–2026; better than top-p for long generations where confidence varies substantially across positions.
-
-### 5.7 Typical Sampling
-
-Sample tokens whose self-information is close to the entropy of the distribution (Meister et al. 2023):
-
-$$\mathcal{V}_{\text{typ}} = \left\{t : \left|-\log P(t) - H(P)\right| \leq \delta\right\}$$
-
-**Intuition**: "Typical" tokens are neither too surprising (underconfident tail) nor too predictable (overconfident peak). Information theory says most samples from $P$ have self-information near $H(P)$ — this is the **asymptotic equipartition property**.
-
-Avoids both the too-deterministic trap of greedy decoding and the too-random trap of high temperature. Strong results on open-ended generation.
-
-### 5.8 Contrastive / Speculative Methods
-
-**Contrastive decoding** (Li et al. 2022): Subtract logits of a smaller "amateur" model from the "expert" model:
-
-$$z_{\text{CD}}(t) = \log P_{\text{expert}}(t) - \log P_{\text{amateur}}(t)$$
-
-Amplifies what the large model knows that the small model doesn't. Reduces hallucination and repetition.
-
-**Speculative decoding** (Leviathan et al. 2023): Use a small draft model to generate $K$ candidate tokens; verify all $K$ in parallel with the large target model.
-
-| Aspect            | Detail                                                                                               |
-| ----------------- | ---------------------------------------------------------------------------------------------------- |
-| **Draft**         | Small model generates $K$ tokens quickly (e.g., $K = 5$)                                             |
-| **Verify**        | Large model evaluates all $K$ tokens in one forward pass                                             |
-| **Accept/reject** | Accept token $k$ if $P_{\text{large}}(t_k) \geq r \cdot P_{\text{draft}}(t_k)$ where $r \sim U(0,1)$ |
-| **Distribution**  | Produces exact same distribution as the target model                                                 |
-| **Speedup**       | 2–3× inference speedup; standard in production 2024–2026                                             |
-
-### 5.9 Repetition and Frequency Penalties
-
-| Penalty            | Formula                                                            | Effect                                                    |
-| ------------------ | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| Repetition penalty | $z_t \leftarrow z_t / r$ for previously seen $t$                   | Divide logit by $r > 1$; discourages exact repetition     |
-| Frequency penalty  | $z_t \leftarrow z_t - \alpha \cdot \text{count}(t)$                | Subtract proportional to count; penalises frequent tokens |
-| Presence penalty   | $z_t \leftarrow z_t - \beta \cdot \mathbb{1}[\text{count}(t) > 0]$ | Flat penalty if token appeared at all                     |
-
-Used in OpenAI API, Anthropic API, and HuggingFace `generate()`. Typical values: $r = 1.1$, $\alpha = 0.5$, $\beta = 0.6$.
-
----
-
-## 6. Scaling Laws
-
-### 6.1 Neural Scaling Laws (Kaplan et al. 2020)
-
-Loss scales as a power law in model parameters $N$, dataset size $D$, and compute $C$:
-
-$$L(N) = \left(\frac{N_c}{N}\right)^{\alpha_N}, \quad \alpha_N \approx 0.076$$
-
-$$L(D) = \left(\frac{D_c}{D}\right)^{\alpha_D}, \quad \alpha_D \approx 0.095$$
-
-$$L(C) = \left(\frac{C_c}{C}\right)^{\alpha_C}, \quad \alpha_C \approx 0.050$$
-
-| Finding           | Detail                                                                                                     |
-| ----------------- | ---------------------------------------------------------------------------------------------------------- |
-| Power law         | Loss decreases as $N^{-0.076}$; $10\times$ parameters → loss decreases by factor $10^{0.076} \approx 1.19$ |
-| No saturation     | No signs of diminishing returns at available scale                                                         |
-| Smooth            | Loss curve is remarkably smooth; enables extrapolation                                                     |
-| Kaplan allocation | Given fixed compute, allocate most to parameters, less to data                                             |
-
-### 6.2 Chinchilla Scaling Laws (Hoffmann et al. 2022)
-
-Reanalysis of Kaplan: **optimal $N$ and $D$ scale equally** with compute:
-
-$$N_{\text{opt}} \propto C^{0.5}, \quad D_{\text{opt}} \propto C^{0.5}$$
-
-**Chinchilla rule**: ~20 tokens per parameter for compute-optimal training.
-
-| Model       | Parameters | Tokens trained | Tokens/param | Chinchilla?            |
-| ----------- | ---------- | -------------- | ------------ | ---------------------- |
-| GPT-3       | 175B       | 300B           | 1.7          | ✗ Under-trained        |
-| Chinchilla  | 70B        | 1.4T           | 20           | ✓ Compute-optimal      |
-| LLaMA 2 70B | 70B        | 2T             | 29           | Over-trained           |
-| LLaMA 3 8B  | 8B         | 15T            | 1,875        | Massively over-trained |
-| LLaMA 3 70B | 70B        | 15T            | 214          | Massively over-trained |
-
-**2024–2026 shift**: "Over-training" is deliberate. Chinchilla optimises for training compute, but inference compute (deployment) is what matters in production. Smaller models trained on far more data achieve better loss per inference FLOP.
-
-### 6.3 Inference-Optimal Scaling
-
-For fixed inference budget, smaller model trained on more tokens is better:
-
-- Inference cost $\propto N$ (parameters processed per token)
-- Training cost $\propto N \times D$ (total FLOPs)
-- Prefer smaller $N$ with larger $D$ to reach same loss with cheaper per-token inference
-
-This is the **LLaMA philosophy**: train beyond Chinchilla-optimal for cheaper deployment. A LLaMA 3 8B trained on 15T tokens matches a 30B+ model trained at Chinchilla-optimal, but costs 4× less to serve.
-
-### 6.4 Emergent Abilities and Phase Transitions
-
-Some capabilities appear suddenly at scale; not predicted by smooth loss curves:
-
-| Capability            | Emergence threshold (est.) | Note                                    |
-| --------------------- | -------------------------- | --------------------------------------- |
-| Arithmetic (3-digit)  | ~$10^{22}$ FLOPs           | Suddenly jumps from 0% to ~80% accuracy |
-| Chain-of-thought      | ~$10^{23}$ FLOPs           | Requires explicit prompting             |
-| Instruction following | ~$10^{22}$ FLOPs           | Enables zero-shot task performance      |
-| Code generation       | ~$10^{23}$ FLOPs           | Requires substantial training data      |
-
-**Debate** (Schaeffer et al. 2023): Emergence may be an artefact of discontinuous evaluation metrics (accuracy, exact match). The underlying loss curve is always smooth. When measured with continuous metrics (log-probability, Brier score), "emergence" appears gradual.
-
-### 6.5 Test-Time Compute Scaling (2024–2026)
-
-New scaling axis: scale inference compute, not just training compute.
-
-$$L(C_{\text{test}}) \propto C_{\text{test}}^{-\alpha_{\text{test}}}$$
-
-| Method                         | How it works                                        | Speedup/quality trade-off                |
-| ------------------------------ | --------------------------------------------------- | ---------------------------------------- |
-| Best-of-N                      | Generate $N$ responses; pick best (by reward model) | Linear compute cost; diminishing returns |
-| Beam search over CoT           | Search over reasoning chains                        | Better for structured problems           |
-| MCTS (Monte Carlo Tree Search) | Tree search over reasoning steps                    | Used by AlphaCode, o1                    |
-| Verifier-guided search         | Use verifier to prune bad reasoning paths           | DeepSeek-R1 approach                     |
-
-OpenAI o1 (2024) and DeepSeek-R1 (2025) demonstrated that test-time compute scaling can be as powerful as parameter scaling for reasoning tasks.
-
----
-
-## 7. Calibration and Uncertainty
-
-### 7.1 What Is Calibration?
-
-A model is **calibrated** if its stated probabilities match empirical frequencies:
-
-$$P(\text{correct} \mid P(t^*) = p) = p \quad \forall \, p \in [0, 1]$$
-
-When the model says it's 70% confident, it should be right 70% of the time. LLMs are often **overconfident** (high probability on wrong answers).
-
-### 7.2 Expected Calibration Error (ECE)
-
-$$\boxed{\text{ECE} = \sum_{b=1}^{B} \frac{|B_b|}{N} |\text{acc}(B_b) - \text{conf}(B_b)|}$$
-
-**Algorithm**:
-
-1. Bin predictions by confidence level (e.g., $B = 10$ bins: $[0, 0.1), [0.1, 0.2), \ldots$)
-2. For each bin $b$: compute average accuracy and average confidence
-3. ECE = weighted average of $|\text{accuracy} - \text{confidence}|$ per bin
-
-| ECE   | Interpretation          |
-| ----- | ----------------------- |
-| 0%    | Perfect calibration     |
-| 1–3%  | Well calibrated         |
-| 5–10% | Moderate miscalibration |
-| > 10% | Poorly calibrated       |
-
-### 7.3 Temperature Scaling for Calibration
-
-Post-hoc calibration: find optimal temperature $\tau^*$ on validation set:
-
-$$\tau^* = \arg\min_\tau \mathcal{L}_{\text{NLL}}\left(\text{softmax}(z / \tau), y\right)$$
-
-Simple, effective, and does not change model accuracy — only adjusts confidence. One scalar parameter to optimise, typically via L-BFGS on a validation set.
-
-Platt scaling: learn a linear transformation $z' = az + b$ for calibration. More flexible but risk of overfitting.
-
-### 7.4 Overconfidence in LLMs
-
-| Source                 | Mechanism                                                          |
-| ---------------------- | ------------------------------------------------------------------ |
-| MLE training           | Pushes model to maximise probability of training data; can overfit |
-| Label smoothing        | Partially corrects by preventing logits from growing unboundedly   |
-| RLHF                   | Can increase or decrease calibration depending on reward model     |
-| Verbalized uncertainty | "I'm 95% sure" — often poorly calibrated in practice               |
-
-### 7.5 Epistemic vs Aleatoric Uncertainty
-
-| Type          | Source                        | Reducible?           | Example                                     |
-| ------------- | ----------------------------- | -------------------- | ------------------------------------------- |
-| **Aleatoric** | Genuine ambiguity in language | No                   | "The best programming language is \_\_\_"   |
-| **Epistemic** | Lack of knowledge/data        | Yes (with more data) | "The population of Liechtenstein is \_\_\_" |
-
-LLMs conflate both types; cannot cleanly separate in practice. **Conformal prediction** (2024): distribution-free calibration guarantees for LLMs — provides prediction sets with guaranteed coverage probability regardless of the model's internal calibration.
-
----
-
-## 8. Conditional Language Models
-
-### 8.1 Conditional vs Unconditional LM
-
-| Type              | Distribution                 | Example                                                       |
-| ----------------- | ---------------------------- | ------------------------------------------------------------- |
-| **Unconditional** | $P(t_1, \ldots, t_n)$        | Distribution over all text; web crawl LM                      |
-| **Conditional**   | $P(t_1, \ldots, t_n \mid c)$ | Distribution given context $c$: instruction, image, documents |
-
-All instruction-tuned LLMs are conditional LMs: $P(\text{response} \mid \text{instruction})$.
-
-### 8.2 Prompt as Conditioning
-
-Prepend prompt tokens $p_1, \ldots, p_m$ to generation:
-
-$$P(t_1, \ldots, t_n \mid p_1, \ldots, p_m) = \prod_{i=1}^{n} P(t_i \mid p_1, \ldots, p_m, t_1, \ldots, t_{i-1})$$
-
-The prompt shifts the distribution — well-designed prompts steer the model toward high-probability desired outputs.
-
-**Prompt engineering**: finding $\mathbf{p}$ that maximises $P(\text{desired output} \mid \mathbf{p})$. This is a combinatorial optimisation problem over the discrete space of token sequences.
-
-### 8.3 Bayes' Theorem in Decoding
-
-Noisy channel model reverses conditioning direction:
-
-$$P(\text{output} \mid \text{input}) \propto P(\text{input} \mid \text{output}) \times P(\text{output})$$
-
-Used in speech recognition (acoustic model × language model). Contrastive decoding uses Bayesian intuition: expert vs amateur models.
-
-### 8.4 Classifier-Free Guidance (CFG)
-
-Adapted from diffusion models to LLMs:
-
-$$\log P_{\text{guided}}(t) = (1 + w) \log P(t \mid c) - w \log P(t)$$
-
-| $w$     | Effect                                           |
-| ------- | ------------------------------------------------ |
-| $w = 0$ | Standard conditional generation                  |
-| $w > 0$ | Amplifies conditioning signal; reduces diversity |
-| $w < 0$ | Inverse guidance; increases diversity            |
-
-Reduces diversity but increases adherence to prompt. Used in text-to-image (Stable Diffusion), some text generation systems. Requires two forward passes: one conditional, one unconditional.
-
-### 8.5 Retrieval-Augmented Generation (RAG)
-
-Condition on retrieved documents $\mathcal{D}$:
-
-$$P(t_i \mid t_{<i}, \mathcal{D}) = P(t_i \mid t_{<i}, d_1, \ldots, d_k)$$
-
-Documents are prepended to or interleaved with the context; the model attends to them during generation.
-
-| Benefit                      | Mechanism                                              |
-| ---------------------------- | ------------------------------------------------------ |
-| Reduces hallucination        | Conditions on factual documents                        |
-| Updatable knowledge          | Swap document index without retraining                 |
-| Attributable                 | Can cite source documents                              |
-| Probabilistic interpretation | Retrieved documents shift prior toward factual content |
-
----
-
-## 9. RLHF and Reward-Based Probability
-
-### 9.1 From Pretraining to Alignment
-
-| Stage                            | Distribution                             | Objective                                      |
-| -------------------------------- | ---------------------------------------- | ---------------------------------------------- |
-| **Pretraining**                  | $P_{\text{PT}}(t \mid \text{context})$   | Model internet text distribution via MLE       |
-| **SFT** (Supervised Fine-Tuning) | $P_{\text{SFT}}(t \mid \text{context})$  | Fine-tune on (instruction, response) pairs     |
-| **RLHF**                         | $P_{\text{RLHF}}(t \mid \text{context})$ | Align with human preferences via reward signal |
-
-### 9.2 Reward Model
-
-Learn scalar reward $R(\text{prompt}, \text{response})$ from human preference pairs.
-
-**Bradley-Terry model**: probability human prefers response $A$ over $B$:
-
-$$P(A \succ B) = \frac{\exp(R(A))}{\exp(R(A)) + \exp(R(B))} = \sigma(R(A) - R(B))$$
-
-where $\sigma$ is the sigmoid function. Train the reward model to maximise log-likelihood of observed human preferences:
-
-$$\mathcal{L}_{\text{RM}} = -\mathbb{E}_{(w, l) \sim \mathcal{D}}\left[\log \sigma(R(w) - R(l))\right]$$
-
-### 9.3 PPO Objective (RLHF)
-
-$$\boxed{\mathcal{L}_{\text{RLHF}} = \mathbb{E}\left[R(t_{1:n})\right] - \beta \cdot D_{KL}(P_\theta \| P_{\text{ref}})}$$
-
-Maximise expected reward while staying close to the reference (SFT) model.
-
-| Component            | Role                                                           |
-| -------------------- | -------------------------------------------------------------- |
-| $R(t_{1:n})$         | Reward for generated sequence; from reward model               |
-| $\beta \cdot D_{KL}$ | KL penalty: prevents "reward hacking" (model drifting too far) |
-| $P_{\text{ref}}$     | Reference policy = SFT model; anchor point                     |
-| $\beta = 0$          | Pure RL; no constraint → reward hacking                        |
-| $\beta \to \infty$   | No movement from SFT; ignores reward                           |
-| $\beta$ typical      | 0.01–0.1; balances reward and distributional constraint        |
-
-### 9.4 DPO — Direct Preference Optimisation
-
-Rafailov et al. (2023) showed that the RLHF objective has a closed-form solution that bypasses the explicit reward model.
-
-$$\boxed{\mathcal{L}_{\text{DPO}} = -\mathbb{E}\left[\log \sigma\!\left(\beta \log \frac{P_\theta(t_w)}{P_{\text{ref}}(t_w)} - \beta \log \frac{P_\theta(t_l)}{P_{\text{ref}}(t_l)}\right)\right]}$$
-
-where $t_w$ = preferred (winner) response, $t_l$ = dispreferred (loser) response.
-
-**Derivation sketch**:
-
-1. Start from RLHF objective: $\max_\theta \mathbb{E}[R(t)] - \beta D_{KL}(P_\theta \| P_{\text{ref}})$
-2. Optimal policy has closed form: $P^*(t) = \frac{P_{\text{ref}}(t) \exp(R(t)/\beta)}{Z}$
-3. Invert: $R(t) = \beta \log \frac{P^*(t)}{P_{\text{ref}}(t)} + \beta \log Z$
-4. Substitute into Bradley-Terry: the partition function $Z$ cancels
-5. Result: DPO loss depends only on log-probability ratios — no reward model needed
-
-| Property            | PPO (RLHF)                                 | DPO                                                       |
-| ------------------- | ------------------------------------------ | --------------------------------------------------------- |
-| Reward model        | Required (separate model)                  | Not needed                                                |
-| Training loop       | RL loop: generate → score → update         | Standard supervised: forward-backward on preference pairs |
-| Stability           | Often unstable; requires careful tuning    | Stable; standard training                                 |
-| Memory              | 4 models: policy, reference, reward, value | 2 models: policy, reference                               |
-| Dominance 2023–2026 | Still used at scale                        | Default method                                            |
-
-### 9.5 GRPO — Group Relative Policy Optimisation
-
-DeepSeek (2024): Removes the value function (critic) from PPO, reducing memory and compute.
-
-**Key idea**: Estimate the baseline from a group of sampled responses rather than a learned value function:
-
-$$A_i = \frac{r_i - \text{mean}(r_{1:G})}{\text{std}(r_{1:G})}$$
-
-where $G$ is the group size (typically 8–64 samples per prompt) and $r_i$ is the reward for sample $i$.
-
-| Advantage | Detail                                                             |
-| --------- | ------------------------------------------------------------------ |
-| No critic | Saves ~50% memory vs PPO                                           |
-| Simple    | Group normalisation replaces learned value function                |
-| Scalable  | Enables RL training on reasoning tasks at scale                    |
-| Adoption  | Used by DeepSeek-R1; widely adopted 2025–2026 for reasoning models |
-
-### 9.6 The Alignment Tax
-
-Fine-tuning for alignment shifts $P_\theta$ away from $P_{\text{PT}}$:
-
-| Concern                        | Reality (2024–2026)                                                       |
-| ------------------------------ | ------------------------------------------------------------------------- |
-| "Alignment reduces capability" | Tax much smaller than initially feared; careful RLHF preserves capability |
-| "RLHF causes mode collapse"    | KL constraint prevents this; DPO is more stable                           |
-| "Human feedback doesn't scale" | RLAIF (AI feedback), Constitutional AI scale better                       |
-| "Alignment is fragile"         | Robustness improving; but adversarial attacks remain possible             |
-
----
-
-## 10. Evaluation Metrics
-
-### 10.1 Perplexity (Revisited)
-
-Standard held-out test set perplexity. Caveats:
-
-| Issue                | Detail                                                                                  |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| Tokeniser dependence | Different tokenisers → incomparable PPL values                                          |
-| Sliding window       | For long documents: stride $s < $ context length to avoid beginning-of-sequence effects |
-| BPB alternative      | Bits-per-byte: tokeniser-independent; preferred for cross-model comparison              |
-
-### 10.2 BLEU Score
-
-Modified n-gram precision between generated and reference text:
-
-$$\text{BLEU} = \text{BP} \cdot \exp\!\left(\sum_{n=1}^{N} w_n \log p_n\right)$$
-
-where BP = brevity penalty, $p_n$ = modified n-gram precision, $w_n = 1/N$.
-
-| Component                | Formula                                                                     |
-| ------------------------ | --------------------------------------------------------------------------- |
-| Modified precision $p_n$ | Clip each n-gram count to max count in reference                            |
-| Brevity penalty BP       | $\min(1, e^{1 - r/c})$ where $r$ = reference length, $c$ = candidate length |
-| Typical $N$              | 4 (BLEU-4 most common)                                                      |
-
-Standard for machine translation. Increasingly criticised for open-ended generation; does not correlate well with human judgement for LLMs.
-
-### 10.3 ROUGE
-
-Recall-oriented n-gram overlap; standard for summarisation:
-
-$$\text{ROUGE-N} = \frac{\sum_{\text{ref}} \sum_{\text{gram}_n \in \text{ref}} \text{count\_match}(\text{gram}_n)}{\sum_{\text{ref}} \sum_{\text{gram}_n \in \text{ref}} \text{count}(\text{gram}_n)}$$
-
-| Variant | What it measures           |
-| ------- | -------------------------- |
-| ROUGE-1 | Unigram recall             |
-| ROUGE-2 | Bigram recall              |
-| ROUGE-L | Longest common subsequence |
-
-### 10.4 BERTScore
-
-Compute cosine similarity between contextual embeddings of generated and reference tokens. Soft matching: semantically similar words score well even if not identical.
-
-Better correlation with human judgement than BLEU/ROUGE. Sensitive to choice of BERT model and layer.
-
-### 10.5 LLM-as-Judge (2023–2026)
-
-Use a powerful LLM (GPT-4, Claude) to score or rank model outputs.
-
-| Benchmark      | Setup                                      | Note                                |
-| -------------- | ------------------------------------------ | ----------------------------------- |
-| MT-Bench       | GPT-4 scores 1–10 on multi-turn dialogue   | First major LLM-as-judge benchmark  |
-| AlpacaEval 2.0 | GPT-4 pairwise comparison vs reference     | Length-controlled variant preferred |
-| Arena-Hard     | Derived from Chatbot Arena; automated      | Highly correlated with human Elo    |
-| LiveBench      | Contamination-free; auto-updated questions | Launched 2024                       |
-
-**Known biases**: position bias (prefers first response), verbosity bias (prefers longer text), self-preference (model favours its own outputs). Mitigation: randomise order, use length-controlled variants.
-
-### 10.6 Benchmark Suites
-
-| Benchmark      | Tests                  | Metric     | Top 2026 score |
-| -------------- | ---------------------- | ---------- | -------------- |
-| MMLU           | 57-subject knowledge   | Accuracy   | ~90%           |
-| HellaSwag      | Commonsense completion | Accuracy   | ~97%           |
-| HumanEval      | Code generation        | pass@1     | ~90%           |
-| GSM8K          | Grade school math      | Accuracy   | ~97%           |
-| MATH           | Competition math       | Accuracy   | ~75%           |
-| ARC-Challenge  | Science QA             | Accuracy   | ~96%           |
-| TruthfulQA     | Factual accuracy       | % truthful | ~75%           |
-| BIG-Bench Hard | Reasoning              | Accuracy   | ~90%           |
-| RULER          | Long context retrieval | Accuracy   | ~85%           |
-| LiveBench      | Contamination-free     | Accuracy   | ~70%           |
-
----
-
-## 11. Numerical Stability and Implementation
-
-### 11.1 Log-Sum-Exp Trick
-
-Direct computation of $\sum_v \exp(z_v)$ overflows for large $z_v$ (e.g., $z_v > 709$ in float64).
-
-**Stable computation**:
-
-$$\log \sum_v \exp(z_v) = a + \log \sum_v \exp(z_v - a), \quad a = \max(z)$$
-
-Log-softmax (combining both):
-
-$$\log \text{softmax}(z)_k = z_k - \left(a + \log \sum_v \exp(z_v - a)\right)$$
-
-This shifts all exponents so the largest is 0, preventing overflow while maintaining precision.
-
-### 11.2 Numerical Loss of Cross-Entropy
-
-| Approach                          | Problem                                                                             | Solution                                                                   |
-| --------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Compute $\log(\text{softmax}(z))$ | Underflow: softmax can produce values so small they round to 0; $\log(0) = -\infty$ | Use log-softmax directly                                                   |
-| Separate softmax then log         | Two passes; numerical error compounds                                               | Fused log-softmax kernel                                                   |
-| PyTorch practice                  | —                                                                                   | `F.cross_entropy(logits, targets)` = log-softmax + NLL; numerically stable |
-
-**Rule**: Never compute `log(softmax(z))` in two steps. Always use `log_softmax(z)` directly.
-
-### 11.3 Mixed Precision Training
-
-| Precision    | Where used                                                        | Why                                                               |
-| ------------ | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
-| FP32         | Softmax, loss computation, weight master copy                     | Numerical stability during normalisation                          |
-| BF16         | Forward pass activations, gradients                               | Memory and speed efficiency; BF16 has same exponent range as FP32 |
-| FP16         | Some activations (with loss scaling)                              | Higher precision than BF16 in mantissa but smaller exponent range |
-| Loss scaling | Multiply loss by $2^{16}$ before backward; divide gradients after | Prevents FP16 underflow in small gradients                        |
-
-### 11.4 Vocabulary Parallelism
-
-For large $|V|$ (128K+): the LM head $W \in \mathbb{R}^{d \times |V|}$ is split across GPUs.
-
-| Aspect             | Detail                                                                    |
-| ------------------ | ------------------------------------------------------------------------- | --- | --------------------------------------------- | --- | --------- |
-| Tensor parallel    | Each GPU holds $                                                          | V   | /k$ vocabulary; computes partial logits       |
-| Partition function | Requires all-reduce across GPUs: $\log \sum_v \exp(z_v)$ needs all logits |
-| Communication      | One all-reduce per forward pass for softmax normalisation                 |
-| Memory saving      | $                                                                         | V   | \times d / k$ parameters per GPU instead of $ | V   | \times d$ |
-
----
-
-## 12. Common Mistakes
-
-| #   | Mistake                                 | Why It's Wrong                                                               | Fix                                                  |
-| --- | --------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------- |
-| 1   | "Higher probability = better output"    | Probability reflects training distribution, not quality; probable ≠ good     | Use reward model or human eval for quality           |
-| 2   | "PPL is comparable across models"       | PPL depends on tokeniser; different vocab sizes → different PPL              | Use BPB for fair comparison                          |
-| 3   | "Greedy decoding is optimal"            | Locally optimal ≠ globally optimal; greedy misses high-probability sequences | Use beam search for accuracy; sampling for diversity |
-| 4   | "Temperature 1.0 is always best"        | Optimal $\tau$ is task-dependent; factual tasks → lower $\tau$               | Tune $\tau$ per task and domain                      |
-| 5   | "BLEU correlates with quality"          | BLEU poorly correlates with human judgement for LLMs                         | Use LLM-as-judge or human eval                       |
-| 6   | "MLE = learning the true distribution"  | MLE on finite data overfits; never sees all of $P_{\text{data}}$             | Regularise; label smoothing; diverse data            |
-| 7   | "Scaling always improves all tasks"     | Some tasks saturate; some degrade (inverse scaling)                          | Evaluate task-specifically                           |
-| 8   | "RLHF removes hallucination"            | RLHF improves perceived quality but may increase confident hallucination     | Combine with RAG and factuality training             |
-| 9   | "Log probabilities are calibrated"      | LLMs are typically overconfident; $\log P \neq$ true probability             | Apply temperature scaling for calibration            |
-| 10  | "Perplexity measures reasoning ability" | PPL measures next-token prediction only; reasoning needs separate benchmarks | Use task-specific benchmarks (GSM8K, MATH, etc.)     |
-
----
-
-## 13. Exercises
-
-1. **Chain rule decomposition** — Write $P(\text{"the cat sat"})$ as a product of conditional probabilities; identify what each factor means and what context it conditions on.
-2. **Perplexity calculation** — Given log-probs $[-2.3, -1.1, -3.5, -0.8, -2.0]$ (nats), compute PPL; convert to bits-per-token; discuss what PPL means for this example.
-3. **Temperature effect** — Given logits $[3.0, 1.0, 0.5, -1.0]$, compute softmax at $\tau = 0.5, 1.0, 2.0$; plot distributions; compare entropy at each temperature.
-4. **Top-p sampling** — Sort token probabilities $[0.35, 0.25, 0.20, 0.12, 0.05, 0.03]$; find nucleus for $p = 0.9$; compute renormalised distribution.
-5. **Cross-entropy gradient** — For logits $z = [2.0, 1.0, 0.5]$ and target $t^* = 0$: compute loss; compute $\partial \mathcal{L}/\partial z$; verify gradient formula $\hat{p} - y$.
-6. **Scaling law extrapolation** — Given $L(N) = (N_c/N)^{0.076}$, if a 7B model achieves $L = 2.1$ nats, estimate loss for 70B and 700B models; plot the power law.
-7. **DPO by hand** — For $\beta = 0.1$, $\log P_\theta(t_w)/P_{\text{ref}}(t_w) = 0.5$, $\log P_\theta(t_l)/P_{\text{ref}}(t_l) = -0.3$: compute DPO loss; interpret the gradient direction.
-8. **Calibration check** — Given 100 predictions with confidence 0.9: if model is correct 72 times, compute ECE for this bin; determine if model is over- or underconfident.
-
----
-
-## 14. Why This Matters for AI (2026 Perspective)
-
-| Aspect                 | Impact                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| **Generation quality** | Decoding strategy directly determines output diversity, coherence, and factuality                 |
-| **Alignment**          | RLHF and DPO reshape $P_\theta$ toward human-preferred outputs; probability is the lever          |
-| **Hallucination**      | Hallucinations are high-probability but false outputs; calibration is the fix                     |
-| **Reasoning models**   | Test-time scaling (o1, R1) uses probability to guide search over reasoning chains                 |
-| **Evaluation**         | Perplexity, BPB, LLM-as-judge — all rooted in probability theory                                  |
-| **Cost**               | Speculative decoding exploits probability structure for 2–3× inference speedup                    |
-| **Safety**             | Probability of harmful outputs must be minimised; RLHF KL constraint bounds distribution shift    |
-| **Interpretability**   | Logit lens, probing, activation patching all operate on probability outputs                       |
-| **Multimodal**         | Same probabilistic framework extends to image, audio, video tokens                                |
-| **Agents**             | Action selection in LLM agents is sampling from $P(\text{action} \mid \text{state}, \text{goal})$ |
-
----
-
-## Conceptual Bridge
-
-Language modelling probability is the **mathematical heart of every LLM**. Everything before this section — tokenisation, embedding, attention, positional encoding — produces a hidden state $h_n$. Everything after — decoding, alignment, evaluation — consumes the probability distribution $P(\cdot \mid \text{context})$ that this section defines.
-
-The chain rule decomposition makes sequences tractable. Cross-entropy loss and its elegant gradient drive training. Decoding strategies control the quality-diversity trade-off. Scaling laws predict performance. And RLHF/DPO reshape the distribution toward human values.
-
-**Next**: [Training at Scale](../06-Training-at-Scale/notes.md) — how gradient descent navigates the loss landscape to find $\theta^*$ that minimises cross-entropy, including optimisers, learning rate schedules, distributed training, and the mathematics of convergence at billion-parameter scale.
-
-```
-… → [Transformer] → hₙ → [LM Head] → logits → [Softmax] → P → [Cross-Entropy] → L → [Backprop] → ∇θ
-                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                                        THIS section
+## Notation
+
+| Symbol | Meaning |
+| --- | --- |
+| $V$ | Vocabulary of ordinary tokens |
+| $V_\\mathrm{ext}$ | Vocabulary plus special tokens such as EOS |
+| $t_i$ | Token at position $i$ |
+| $t_{<i}$ | Prefix before position $i$ |
+| $h_i$ | Transformer hidden state at position $i$ |
+| $z_i$ | Logit vector for the next-token distribution |
+| $p_\\theta(\\cdot \\mid t_{<i})$ | Model distribution over the next token |
+| $y_i$ | One-hot target vector |
+| $m_i$ | Mask indicating whether a token contributes to loss |
+
+The standard decoder-only training path is:
+
+```text
+tokens -> embeddings + positions -> causal transformer -> hidden state -> LM head -> logits -> log-softmax -> NLL
 ```
 
+## 1. Language Models as Distributions
+
+This part studies language models as distributions as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Finite vocabulary and EOS](#1-finite-vocabulary-and-eos) | make sequence probability normalize by ending strings explicitly | $V_\mathrm{ext}=V\cup\{\mathrm{EOS}\}$ |
+| [Probability over finite strings](#1-probability-over-finite-strings) | a language model assigns mass to every complete token string | $P(t_{1:n},\mathrm{EOS})$ |
+| [Conditional next-token distributions](#1-conditional-nexttoken-distributions) | generation uses one normalized categorical distribution at each prefix | $p_\theta(t_{i}\mid t_{<i})$ |
+| [Support and impossible events](#1-support-and-impossible-events) | zero probability is a dangerous modeling choice | $p_\theta(v\mid h)>0$ after softmax |
+| [Why next-token prediction is enough](#1-why-nexttoken-prediction-is-enough) | the chain rule converts local predictions into a full joint model | $P(t_{1:n})=\prod_i P(t_i\mid t_{<i})$ |
+
+### 1.1 Finite vocabulary and EOS
+
+**Main idea.** Make sequence probability normalize by ending strings explicitly.
+
+The useful formula is:
+
+$$V_\mathrm{ext}=V\cup\{\mathrm{EOS}\}$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 1.2 Probability over finite strings
+
+**Main idea.** A language model assigns mass to every complete token string.
+
+The useful formula is:
+
+$$P(t_{1:n},\mathrm{EOS})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 1.3 Conditional next-token distributions
+
+**Main idea.** Generation uses one normalized categorical distribution at each prefix.
+
+The useful formula is:
+
+$$p_\theta(t_{i}\mid t_{<i})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 1.4 Support and impossible events
+
+**Main idea.** Zero probability is a dangerous modeling choice.
+
+The useful formula is:
+
+$$p_\theta(v\mid h)>0$ after softmax$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 1.5 Why next-token prediction is enough
+
+**Main idea.** The chain rule converts local predictions into a full joint model.
+
+The useful formula is:
+
+$$P(t_{1:n})=\prod_i P(t_i\mid t_{<i})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 2. Autoregressive Factorization
+
+This part studies autoregressive factorization as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Chain rule derivation](#2-chain-rule-derivation) | no independence assumption is needed | $P(t_{1:n})=P(t_1)\prod_{i=2}^n P(t_i\mid t_{1:i-1})$ |
+| [Teacher forcing](#2-teacher-forcing) | training conditions on the true prefix, not sampled model history | $-\log p_\theta(t_i^\star\mid t_{<i}^\star)$ |
+| [Causal masking](#2-causal-masking) | attention must not leak future targets into the conditional | $M_{ij}=0$ for $j\le i$ and $-\infty$ otherwise |
+| [Sequence log probability](#2-sequence-log-probability) | products become sums for stable scoring | $\log P(t_{1:n})=\sum_i \log p_\theta(t_i\mid t_{<i})$ |
+| [Prefix scoring](#2-prefix-scoring) | prompt likelihood and answer likelihood are different objects | $\log p_\theta(y\mid x)=\sum_j \log p_\theta(y_j\mid x,y_{<j})$ |
+
+### 2.1 Chain rule derivation
+
+**Main idea.** No independence assumption is needed.
+
+The useful formula is:
+
+$$P(t_{1:n})=P(t_1)\prod_{i=2}^n P(t_i\mid t_{1:i-1})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 2.2 Teacher forcing
+
+**Main idea.** Training conditions on the true prefix, not sampled model history.
+
+The useful formula is:
+
+$$-\log p_\theta(t_i^\star\mid t_{<i}^\star)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** This is why training can be massively parallel while generation is sequential.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 2.3 Causal masking
+
+**Main idea.** Attention must not leak future targets into the conditional.
+
+The useful formula is:
+
+$$M_{ij}=0$ for $j\le i$ and $-\infty$ otherwise$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 2.4 Sequence log probability
+
+**Main idea.** Products become sums for stable scoring.
+
+The useful formula is:
+
+$$\log P(t_{1:n})=\sum_i \log p_\theta(t_i\mid t_{<i})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 2.5 Prefix scoring
+
+**Main idea.** Prompt likelihood and answer likelihood are different objects.
+
+The useful formula is:
+
+$$\log p_\theta(y\mid x)=\sum_j \log p_\theta(y_j\mid x,y_{<j})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 3. Logits, Softmax, and Log-Sum-Exp
+
+This part studies logits, softmax, and log-sum-exp as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [LM head](#3-lm-head) | the hidden state becomes one score per vocabulary token | $z=Wh+b$ |
+| [Softmax normalization](#3-softmax-normalization) | logits are unnormalized log probabilities | $p_i=\exp(z_i)/\sum_j\exp(z_j)$ |
+| [Shift invariance](#3-shift-invariance) | adding a constant to every logit changes no probability | $\mathrm{softmax}(z+c\mathbf{1})=\mathrm{softmax}(z)$ |
+| [Stable log-softmax](#3-stable-logsoftmax) | subtract the maximum before exponentiating | $\log p_i=z_i-\operatorname{LSE}(z)$ |
+| [Temperature](#3-temperature) | divide logits before softmax to control entropy | $p_i(\tau)=\mathrm{softmax}(z_i/\tau)$ |
+
+### 3.1 LM head
+
+**Main idea.** The hidden state becomes one score per vocabulary token.
+
+The useful formula is:
+
+$$z=Wh+b$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 3.2 Softmax normalization
+
+**Main idea.** Logits are unnormalized log probabilities.
+
+The useful formula is:
+
+$$p_i=\exp(z_i)/\sum_j\exp(z_j)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** This is the final probability gate between hidden-state geometry and token choice.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 3.3 Shift invariance
+
+**Main idea.** Adding a constant to every logit changes no probability.
+
+The useful formula is:
+
+$$\mathrm{softmax}(z+c\mathbf{1})=\mathrm{softmax}(z)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 3.4 Stable log-softmax
+
+**Main idea.** Subtract the maximum before exponentiating.
+
+The useful formula is:
+
+$$\log p_i=z_i-\operatorname{LSE}(z)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 3.5 Temperature
+
+**Main idea.** Divide logits before softmax to control entropy.
+
+The useful formula is:
+
+$$p_i(\tau)=\mathrm{softmax}(z_i/\tau)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 4. Maximum Likelihood and Cross-Entropy
+
+This part studies maximum likelihood and cross-entropy as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Dataset likelihood](#4-dataset-likelihood) | training maximizes probability assigned to observed tokens | $\max_\theta \sum_{(x,y)}\log p_\theta(y\mid x)$ |
+| [Negative log-likelihood](#4-negative-loglikelihood) | loss is surprise under the model | $\ell=-\log p_\theta(y^\star\mid h)$ |
+| [Cross-entropy](#4-crossentropy) | one-hot labels reduce cross-entropy to NLL | $H(q,p_\theta)=-\sum_i q_i\log p_{\theta,i}$ |
+| [Gradient with respect to logits](#4-gradient-with-respect-to-logits) | the key derivative is predicted minus target | $\nabla_z \ell=p-y$ |
+| [Padding masks](#4-padding-masks) | only real target tokens should contribute to the average loss | $L=\sum_i m_i\ell_i/\sum_i m_i$ |
+
+### 4.1 Dataset likelihood
+
+**Main idea.** Training maximizes probability assigned to observed tokens.
+
+The useful formula is:
+
+$$\max_\theta \sum_{(x,y)}\log p_\theta(y\mid x)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 4.2 Negative log-likelihood
+
+**Main idea.** Loss is surprise under the model.
+
+The useful formula is:
+
+$$\ell=-\log p_\theta(y^\star\mid h)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 4.3 Cross-entropy
+
+**Main idea.** One-hot labels reduce cross-entropy to nll.
+
+The useful formula is:
+
+$$H(q,p_\theta)=-\sum_i q_i\log p_{\theta,i}$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 4.4 Gradient with respect to logits
+
+**Main idea.** The key derivative is predicted minus target.
+
+The useful formula is:
+
+$$\nabla_z \ell=p-y$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** This derivative is the reason cross-entropy is so convenient for transformer training.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 4.5 Padding masks
+
+**Main idea.** Only real target tokens should contribute to the average loss.
+
+The useful formula is:
+
+$$L=\sum_i m_i\ell_i/\sum_i m_i$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 5. Entropy, KL, Perplexity, and Bits
+
+This part studies entropy, kl, perplexity, and bits as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Entropy](#5-entropy) | intrinsic uncertainty of a distribution | $H(p)=-\sum_x p(x)\log p(x)$ |
+| [Cross-entropy decomposition](#5-crossentropy-decomposition) | model loss equals data entropy plus mismatch | $H(q,p)=H(q)+D_\mathrm{KL}(q\Vert p)$ |
+| [Perplexity](#5-perplexity) | exponentiated average NLL | $\mathrm{PPL}=\exp\left(\frac{1}{N}\sum_i-\log p_i\right)$ |
+| [Bits per token](#5-bits-per-token) | use base-2 logs for compression interpretation | $\mathrm{BPT}=\mathrm{NLL}_{\mathrm{nat}}/\log 2$ |
+| [Tokenizer caveat](#5-tokenizer-caveat) | perplexity depends on the tokenization unit | $\mathrm{BPB}$ and $\mathrm{BPC}$ are more comparable |
+
+### 5.1 Entropy
+
+**Main idea.** Intrinsic uncertainty of a distribution.
+
+The useful formula is:
+
+$$H(p)=-\sum_x p(x)\log p(x)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 5.2 Cross-entropy decomposition
+
+**Main idea.** Model loss equals data entropy plus mismatch.
+
+The useful formula is:
+
+$$H(q,p)=H(q)+D_\mathrm{KL}(q\Vert p)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 5.3 Perplexity
+
+**Main idea.** Exponentiated average nll.
+
+The useful formula is:
+
+$$\mathrm{PPL}=\exp\left(\frac{1}{N}\sum_i-\log p_i\right)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** This is the most common intrinsic language-model score, but it must be interpreted with tokenizer and dataset context.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 5.4 Bits per token
+
+**Main idea.** Use base-2 logs for compression interpretation.
+
+The useful formula is:
+
+$$\mathrm{BPT}=\mathrm{NLL}_{\mathrm{nat}}/\log 2$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 5.5 Tokenizer caveat
+
+**Main idea.** Perplexity depends on the tokenization unit.
+
+The useful formula is:
+
+$$\mathrm{BPB}$ and $\mathrm{BPC}$ are more comparable$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 6. Sequence Scoring and Calibration
+
+This part studies sequence scoring and calibration as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Length bias](#6-length-bias) | raw log probability favors shorter strings | $\log p(y\mid x)$ decreases with length |
+| [Average log probability](#6-average-log-probability) | length-normalized scores compare answers of different lengths | $\frac{1}{|y|}\sum_j \log p(y_j\mid x,y_{<j})$ |
+| [Calibration](#6-calibration) | confidence should match empirical correctness | $P(\mathrm{correct}\mid \hat p=c)\approx c$ |
+| [Expected calibration error](#6-expected-calibration-error) | bin confidence gaps to summarize miscalibration | $\mathrm{ECE}=\sum_b\frac{|B_b|}{n}|\mathrm{acc}(B_b)-\mathrm{conf}(B_b)|$ |
+| [Temperature scaling](#6-temperature-scaling) | post-hoc calibration rescales logits without changing class order | $z'=z/\tau$ |
+
+### 6.1 Length bias
+
+**Main idea.** Raw log probability favors shorter strings.
+
+The useful formula is:
+
+$$\log p(y\mid x)$ decreases with length$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 6.2 Average log probability
+
+**Main idea.** Length-normalized scores compare answers of different lengths.
+
+The useful formula is:
+
+$$\frac{1}{|y|}\sum_j \log p(y_j\mid x,y_{<j})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 6.3 Calibration
+
+**Main idea.** Confidence should match empirical correctness.
+
+The useful formula is:
+
+$$P(\mathrm{correct}\mid \hat p=c)\approx c$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 6.4 Expected calibration error
+
+**Main idea.** Bin confidence gaps to summarize miscalibration.
+
+The useful formula is:
+
+$$\mathrm{ECE}=\sum_b\frac{|B_b|}{n}|\mathrm{acc}(B_b)-\mathrm{conf}(B_b)|$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 6.5 Temperature scaling
+
+**Main idea.** Post-hoc calibration rescales logits without changing class order.
+
+The useful formula is:
+
+$$z'=z/\tau$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 7. Decoding as Distribution Transformation
+
+This part studies decoding as distribution transformation as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Greedy decoding](#7-greedy-decoding) | choose the highest-probability next token | $t_i=\arg\max_v p(v\mid t_{<i})$ |
+| [Sampling](#7-sampling) | draw from the categorical distribution | $t_i\sim p_\theta(\cdot\mid t_{<i})$ |
+| [Top-k filtering](#7-topk-filtering) | keep only the k highest probability tokens | $S_k=\operatorname{TopK}(p,k)$ |
+| [Nucleus top-p filtering](#7-nucleus-topp-filtering) | keep the smallest set whose mass exceeds p | $\sum_{v\in S}p(v)\ge p_\mathrm{nuc}$ |
+| [Beam search and length penalty](#7-beam-search-and-length-penalty) | approximate sequence MAP with multiple partial hypotheses | $s(y)=\log p(y\mid x)/|y|^\alpha$ |
+
+### 7.1 Greedy decoding
+
+**Main idea.** Choose the highest-probability next token.
+
+The useful formula is:
+
+$$t_i=\arg\max_v p(v\mid t_{<i})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 7.2 Sampling
+
+**Main idea.** Draw from the categorical distribution.
+
+The useful formula is:
+
+$$t_i\sim p_\theta(\cdot\mid t_{<i})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 7.3 Top-k filtering
+
+**Main idea.** Keep only the k highest probability tokens.
+
+The useful formula is:
+
+$$S_k=\operatorname{TopK}(p,k)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 7.4 Nucleus top-p filtering
+
+**Main idea.** Keep the smallest set whose mass exceeds p.
+
+The useful formula is:
+
+$$\sum_{v\in S}p(v)\ge p_\mathrm{nuc}$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** This is the default practical compromise between deterministic decoding and unrestricted sampling.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 7.5 Beam search and length penalty
+
+**Main idea.** Approximate sequence map with multiple partial hypotheses.
+
+The useful formula is:
+
+$$s(y)=\log p(y\mid x)/|y|^\alpha$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 8. From Count Models to Neural LMs
+
+This part studies from count models to neural lms as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [N-gram models](#8-ngram-models) | approximate history by the last n minus one tokens | $P(t_i\mid t_{<i})\approx P(t_i\mid t_{i-n+1:i-1})$ |
+| [Smoothing](#8-smoothing) | reserve probability for unseen events | $P_\alpha(w\mid h)=\frac{c(h,w)+\alpha}{c(h)+\alpha |V|}$ |
+| [Neural probabilistic LM](#8-neural-probabilistic-lm) | learn distributed word representations and probability together | $e_w\in\mathbb{R}^d$ |
+| [Recurrent LM](#8-recurrent-lm) | compress history into a state | $h_i=f(h_{i-1},x_i)$ |
+| [Transformer LM](#8-transformer-lm) | causal self-attention computes context-dependent hidden states in parallel | $p_\theta(t_i\mid t_{<i})=\mathrm{softmax}(Wh_i+b)$ |
+
+### 8.1 N-gram models
+
+**Main idea.** Approximate history by the last n minus one tokens.
+
+The useful formula is:
+
+$$P(t_i\mid t_{<i})\approx P(t_i\mid t_{i-n+1:i-1})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 8.2 Smoothing
+
+**Main idea.** Reserve probability for unseen events.
+
+The useful formula is:
+
+$$P_\alpha(w\mid h)=\frac{c(h,w)+\alpha}{c(h)+\alpha |V|}$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 8.3 Neural probabilistic LM
+
+**Main idea.** Learn distributed word representations and probability together.
+
+The useful formula is:
+
+$$e_w\in\mathbb{R}^d$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 8.4 Recurrent LM
+
+**Main idea.** Compress history into a state.
+
+The useful formula is:
+
+$$h_i=f(h_{i-1},x_i)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 8.5 Transformer LM
+
+**Main idea.** Causal self-attention computes context-dependent hidden states in parallel.
+
+The useful formula is:
+
+$$p_\theta(t_i\mid t_{<i})=\mathrm{softmax}(Wh_i+b)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 9. Conditional Generation and Constraints
+
+This part studies conditional generation and constraints as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Prompt conditioning](#9-prompt-conditioning) | a prompt is the observed prefix in the conditional | $p_\theta(y\mid x)$ |
+| [RAG conditioning](#9-rag-conditioning) | retrieved text changes the conditioning information | $p_\theta(y\mid x,r)$ |
+| [Logit bias and constraints](#9-logit-bias-and-constraints) | decoding can restrict or reweight the support | $z'_v=z_v+\beta_v$ |
+| [Guidance by logit mixing](#9-guidance-by-logit-mixing) | combine distributions in logit space when a control model exists | $z_\mathrm{guided}=z_\mathrm{base}+\lambda(z_\mathrm{cond}-z_\mathrm{base})$ |
+| [Safety filters](#9-safety-filters) | post-processing policies are not the same as model probability | $\Pr(\mathrm{emit})$ may differ from $p_\theta$ |
+
+### 9.1 Prompt conditioning
+
+**Main idea.** A prompt is the observed prefix in the conditional.
+
+The useful formula is:
+
+$$p_\theta(y\mid x)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 9.2 RAG conditioning
+
+**Main idea.** Retrieved text changes the conditioning information.
+
+The useful formula is:
+
+$$p_\theta(y\mid x,r)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** Retrieval does not change the probability rules; it changes what information the conditional can see.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 9.3 Logit bias and constraints
+
+**Main idea.** Decoding can restrict or reweight the support.
+
+The useful formula is:
+
+$$z'_v=z_v+\beta_v$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 9.4 Guidance by logit mixing
+
+**Main idea.** Combine distributions in logit space when a control model exists.
+
+The useful formula is:
+
+$$z_\mathrm{guided}=z_\mathrm{base}+\lambda(z_\mathrm{cond}-z_\mathrm{base})$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 9.5 Safety filters
+
+**Main idea.** Post-processing policies are not the same as model probability.
+
+The useful formula is:
+
+$$\Pr(\mathrm{emit})$ may differ from $p_\theta$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+## 10. Diagnostics and Learning Practice
+
+This part studies diagnostics and learning practice as an operational object: something an LLM computes for every prefix during training, scoring, and generation. The formulas below are small enough to derive by hand, but they are also exactly the formulas used inside large decoder-only models.
+
+| Subtopic | Core question | Formula |
+| --- | --- | --- |
+| [Normalization checks](#10-normalization-checks) | probabilities must sum to one at each prefix | $\sum_v p(v\mid h)=1$ |
+| [Likelihood sanity checks](#10-likelihood-sanity-checks) | known continuations should score above random continuations | $\log p(y_\mathrm{good}\mid x)>\log p(y_\mathrm{bad}\mid x)$ |
+| [Distribution shift](#10-distribution-shift) | low likelihood can indicate unfamiliar domain or bad tokenization | $p_\mathrm{train}\ne p_\mathrm{test}$ |
+| [Generation versus evaluation](#10-generation-versus-evaluation) | sampling quality and held-out NLL measure different properties | $\arg\min \mathrm{NLL}$ is not always best user experience |
+| [Bridge to training at scale](#10-bridge-to-training-at-scale) | the same loss drives distributed training and scaling laws | $L(C,N,D)$ |
+
+### 10.1 Normalization checks
+
+**Main idea.** Probabilities must sum to one at each prefix.
+
+The useful formula is:
+
+$$\sum_v p(v\mid h)=1$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 10.2 Likelihood sanity checks
+
+**Main idea.** Known continuations should score above random continuations.
+
+The useful formula is:
+
+$$\log p(y_\mathrm{good}\mid x)>\log p(y_\mathrm{bad}\mid x)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 10.3 Distribution shift
+
+**Main idea.** Low likelihood can indicate unfamiliar domain or bad tokenization.
+
+The useful formula is:
+
+$$p_\mathrm{train}\ne p_\mathrm{test}$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 10.4 Generation versus evaluation
+
+**Main idea.** Sampling quality and held-out nll measure different properties.
+
+The useful formula is:
+
+$$\arg\min \mathrm{NLL}$ is not always best user experience$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+### 10.5 Bridge to training at scale
+
+**Main idea.** The same loss drives distributed training and scaling laws.
+
+The useful formula is:
+
+$$L(C,N,D)$$
+
+The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
+
+**Worked micro-example.** Suppose the current prefix is `The capital of France is`. A reasonable model should place more mass on `Paris` than on `banana`, but it should still maintain a normalized distribution over every token in the vocabulary. If the logits for three candidate tokens are $[5.0, 1.0, -2.0]$, the probability of the first token is large because exponentiation magnifies logit differences:
+
+$$
+p_1 = \frac{e^{5.0}}{e^{5.0}+e^{1.0}+e^{-2.0}}.
+$$
+
+The model is not storing a sentence list. It is using a conditional distribution whose parameters are generated from the prefix representation.
+
+**Implementation check.** In code, check shapes and normalization. If logits have shape `(batch, time, vocab)`, then `softmax(logits, axis=-1)` should sum to one along the vocabulary axis for every batch and time position. When scoring labels, gather only the probability of the observed next token and mask padding positions before averaging.
+
+**AI connection.** For LLMs, this is not decoration; it controls a concrete training, scoring, or decoding behavior.
+
+**Common mistake.** Do not compare raw sequence probabilities across different output lengths without a length convention. Products of probabilities shrink as strings get longer, so a two-token answer often has a higher raw probability than a better twenty-token answer.
+
 ---
 
-[← Positional Encodings](../04-Positional-Encodings/notes.md) | [Home](../../README.md) | [Training at Scale →](../06-Training-at-Scale/notes.md)
+## Practice Exercises
+
+1. Factorize a three-token sentence probability using the chain rule.
+2. Compute stable softmax probabilities from a logit vector by subtracting the maximum.
+3. Derive the gradient of one-hot cross-entropy with respect to logits.
+4. Compute a masked average loss for a padded batch.
+5. Convert average NLL from nats to perplexity and bits per token.
+6. Compare raw and length-normalized scores for two candidate answers.
+7. Apply temperature, top-k, and top-p filtering to a toy distribution.
+8. Compute expected calibration error for binned confidence values.
+9. Score a conditional answer $p(y\\mid x)$ without including the prompt tokens in the average answer loss.
+10. Write a short checklist for debugging an LM probability implementation.
+
+## Why This Matters for AI
+
+The probability layer is the contract between representation learning and text behavior. If logits are unstable, loss is masked incorrectly, probabilities are compared across incompatible tokenizations, or decoding filters are misunderstood, the model may appear to improve while the measured probability object is wrong. Strong LLM work requires comfort with this layer because it appears in pretraining, supervised fine-tuning, preference optimization, retrieval evaluation, calibration, long-context tests, and deployment decoding.
+
+## Bridge to Training at Scale
+
+The next section studies what happens when the same cross-entropy objective is optimized with billions of tokens, large batches, distributed hardware, mixed precision, gradient accumulation, learning-rate schedules, and checkpointing. Nothing in the training-at-scale story changes the probability target. Scale changes how expensive and fragile it is to estimate the same conditional distributions.
+
+## References
+
+- Claude Shannon, "A Mathematical Theory of Communication", 1948.
+- Claude Shannon, "Prediction and Entropy of Printed English", 1951.
+- Yoshua Bengio, Rejean Ducharme, Pascal Vincent, and Christian Jauvin, "A Neural Probabilistic Language Model", JMLR, 2003: https://jmlr.csail.mit.edu/papers/v3/bengio03a.html
+- Tomas Mikolov, Martin Karafiat, Lukas Burget, Jan Cernocky, and Sanjeev Khudanpur, "Recurrent neural network based language model", Interspeech, 2010: https://www.isca-archive.org/interspeech_2010/mikolov10_interspeech.html
+- Dan Jurafsky and James H. Martin, "Speech and Language Processing", Chapter 3 on n-gram language models: https://web.stanford.edu/~jurafsky/slp3/
+- Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu, "Exploring the Limits of Language Modeling", 2016: https://arxiv.org/abs/1602.02410
+- Ashish Vaswani et al., "Attention Is All You Need", 2017: https://arxiv.org/abs/1706.03762
+- Ari Holtzman et al., "The Curious Case of Neural Text Degeneration", 2019: https://arxiv.org/abs/1904.09751
+- Ofir Press et al., "Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation", 2021: https://arxiv.org/abs/2108.12409

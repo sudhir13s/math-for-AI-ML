@@ -1,12 +1,12 @@
-[← Back to Mathematical Foundations](../README.md) | [Previous: Summation and Product Notation →](../04-Summation-and-Product-Notation/notes.md) | [Next: Proof Techniques →](../06-Proof-Techniques/notes.md)
+[<- Back to Mathematical Foundations](../README.md) | [Previous: Summation and Product Notation ->](../04-Summation-and-Product-Notation/notes.md) | [Next: Proof Techniques ->](../06-Proof-Techniques/notes.md)
 
 # Einstein Summation and Index Notation
 
-> _"I have made a great discovery in mathematics; I have suppressed the summation sign every time that the summation must be made over an index which occurs twice."_ — **Albert Einstein**, 1916
+> _"I have made a great discovery in mathematics; I have suppressed the summation sign every time that the summation must be made over an index which occurs twice."_ - **Albert Einstein**, 1916
 
 ## Overview
 
-Einstein summation convention is the notational engine of modern tensor computation. Wherever the same index appears exactly twice in a single term, summation over all values of that index is implied — no $\Sigma$ needed. This convention, born in general relativity, now powers every matrix multiply, every attention score, every gradient computation in deep learning. Once you can read index notation, you can read any transformer paper, derive any backpropagation formula, and debug any shape error — mechanically.
+Einstein summation convention is the notational engine of modern tensor computation. Wherever the same index appears exactly twice in a single term, summation over all values of that index is implied - no $\Sigma$ needed. This convention, born in general relativity, now powers every matrix multiply, every attention score, every gradient computation in deep learning. Once you can read index notation, you can read any transformer paper, derive any backpropagation formula, and debug any shape error - mechanically.
 
 ## Prerequisites
 
@@ -44,8 +44,8 @@ After completing this section, you will be able to:
   - [1.6 The Hierarchy of Tensor Operations](#16-the-hierarchy-of-tensor-operations)
 - [2. Formal Definitions](#2-formal-definitions)
   - [2.1 Tensors as Indexed Arrays](#21-tensors-as-indexed-arrays)
-  - [2.2 The Einstein Summation Convention — Precise Statement](#22-the-einstein-summation-convention--precise-statement)
-  - [2.3 Free vs Dummy Indices — Precise Definitions](#23-free-vs-dummy-indices--precise-definitions)
+  - [2.2 The Einstein Summation Convention - Precise Statement](#22-the-einstein-summation-convention--precise-statement)
+  - [2.3 Free vs Dummy Indices - Precise Definitions](#23-free-vs-dummy-indices--precise-definitions)
   - [2.4 Index Ranges](#24-index-ranges)
   - [2.5 Covariant and Contravariant Indices](#25-covariant-and-contravariant-indices)
 - [3. Basic Operations in Index Notation](#3-basic-operations-in-index-notation)
@@ -70,7 +70,7 @@ After completing this section, you will be able to:
 
 ### 1.1 What Is Einstein Summation?
 
-Einstein summation convention is a notational shorthand: whenever the same index appears **exactly twice** in a single term, summation over all values of that index is implied automatically. No $\Sigma$ symbol needed — the repetition of an index *is* its own summation instruction.
+Einstein summation convention is a notational shorthand: whenever the same index appears **exactly twice** in a single term, summation over all values of that index is implied automatically. No $\Sigma$ symbol needed - the repetition of an index *is* its own summation instruction.
 
 Consider the matrix-vector product. In standard notation:
 
@@ -80,7 +80,7 @@ In Einstein notation, the same expression is simply:
 
 $$w_i = A_{ij} v_j$$
 
-The index $j$ appears twice (once on $A$, once on $v$), so summation over $j$ is implied. The index $i$ appears once — it is a **free index**, meaning the equation holds for each value of $i$.
+The index $j$ appears twice (once on $A$, once on $v$), so summation over $j$ is implied. The index $i$ appears once - it is a **free index**, meaning the equation holds for each value of $i$.
 
 The result: tensor equations that would fill pages compress to single lines. The structure of the operation is immediately visible in the index pattern.
 
@@ -88,7 +88,7 @@ The result: tensor equations that would fill pages compress to single lines. The
 
 ### 1.2 Why This Notation Transforms Thinking
 
-Without index notation, $AB$ means "matrix multiply $A$ and $B$" — the mechanics are hidden. With index notation:
+Without index notation, $AB$ means "matrix multiply $A$ and $B$" - the mechanics are hidden. With index notation:
 
 $$(AB)_{ij} = A_{ik}B_{kj}$$
 
@@ -104,38 +104,38 @@ The repeated $k$ tells you exactly **what is summed**, **over what range**, and 
 | $u_i v_j$ | none | $i, j$ | Outer product |
 | $u_i v_i$ | $i$ | none | Dot product (scalar) |
 
-**Debugging power:** If an equation has a free index on one side but not the other, it is **wrong**. Index balance checking catches errors mechanically — before running any code.
+**Debugging power:** If an equation has a free index on one side but not the other, it is **wrong**. Index balance checking catches errors mechanically - before running any code.
 
-**Generalisation:** Every operation on any-order tensor is expressed uniformly. There is no special notation for matrices vs vectors vs 4D tensors — just indices.
+**Generalisation:** Every operation on any-order tensor is expressed uniformly. There is no special notation for matrices vs vectors vs 4D tensors - just indices.
 
 ### 1.3 The Core Idea in One Sentence
 
 Two rules govern everything:
 
-- **Free index**: appears once → result has that index → no summation
-- **Dummy index**: appears twice → summed over → disappears from result
+- **Free index**: appears once -> result has that index -> no summation
+- **Dummy index**: appears twice -> summed over -> disappears from result
 
 That's it. Everything else follows from these two rules.
 
 ```
 THE TWO RULES
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
 Expression: C_ij = A_ik B_kj
 
-  Index i: appears ONCE → FREE    → C has index i (rows)
-  Index j: appears ONCE → FREE    → C has index j (cols)
-  Index k: appears TWICE → DUMMY  → summed over → gone from result
+  Index i: appears ONCE -> FREE    -> C has index i (rows)
+  Index j: appears ONCE -> FREE    -> C has index j (cols)
+  Index k: appears TWICE -> DUMMY  -> summed over -> gone from result
 
-  Result shape: C is a matrix (has i,j) ✓
-  Computation: C_ij = Σ_k A_ik B_kj ✓
+  Result shape: C is a matrix (has i,j) OK
+  Computation: C_ij = \Sigma_k A_ik B_kj OK
 
 Expression: s = u_i v_i
 
-  Index i: appears TWICE → DUMMY  → summed over → gone from result
+  Index i: appears TWICE -> DUMMY  -> summed over -> gone from result
 
-  Result shape: s is a scalar (no free indices) ✓
-  Computation: s = Σ_i u_i v_i = dot product ✓
+  Result shape: s is a scalar (no free indices) OK
+  Computation: s = \Sigma_i u_i v_i = dot product OK
 ```
 
 ### 1.4 Where This Appears in AI
@@ -145,7 +145,7 @@ Every core operation in deep learning is an Einstein summation:
 | Operation | Index Notation | Dummy | Free | Description |
 |---|---|---|---|---|
 | Matrix multiply | $C_{ij} = A_{ik}B_{kj}$ | $k$ | $i,j$ | Forward pass linear layer |
-| Dot product | $s = a_i b_i$ | $i$ | — | Scalar score |
+| Dot product | $s = a_i b_i$ | $i$ | - | Scalar score |
 | Attention score | $S_{ij} = Q_{ik}K_{jk}/\sqrt{d_k}$ | $k$ | $i,j$ | Query-key similarity |
 | Attention output | $O_{ia} = \alpha_{ij}V_{ja}$ | $j$ | $i,a$ | Weighted value sum |
 | Gradient of matmul | $\frac{\partial L}{\partial A_{ik}} = \frac{\partial L}{\partial C_{ij}} B_{kj}$ | $j$ | $i,k$ | Backprop through $C = AB$ |
@@ -158,41 +158,41 @@ Every core operation in deep learning is an Einstein summation:
 |---|---|---|
 | 1900 | Ricci & Levi-Civita: absolute differential calculus | Index notation precursor |
 | 1916 | Einstein: general relativity paper | Introduced implicit summation convention |
-| 1920s–50s | Standard in physics | GR, electromagnetism, continuum mechanics |
-| 1960s–90s | Penrose: abstract index notation | Diagrammatic tensor calculus |
+| 1920s-50s | Standard in physics | GR, electromagnetism, continuum mechanics |
+| 1960s-90s | Penrose: abstract index notation | Diagrammatic tensor calculus |
 | 2006 | NumPy `numpy.einsum` | Einstein convention for array computing |
 | 2016 | PyTorch `torch.einsum` | GPU-accelerated einsum |
 | 2017 | Vaswani et al.: "Attention Is All You Need" | Attention expressed as index contractions |
 | 2018 | `opt_einsum` library | Optimal contraction order for multi-tensor einsum |
 | 2022 | Dao et al.: FlashAttention | Attention kernels designed from index structure |
 | 2024 | DeepSeek: MLA (Multi-head Latent Attention) | Low-rank contraction $K_{ja} = c_{jr} W^K_{ra}$ |
-| 2025–26 | JAX einsum + JIT; einsum as ML lingua franca | Seamless compilation of arbitrary contractions |
+| 2025-26 | JAX einsum + JIT; einsum as ML lingua franca | Seamless compilation of arbitrary contractions |
 
 ### 1.6 The Hierarchy of Tensor Operations
 
 ```
 TENSOR RANK HIERARCHY
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
-  Scalar (rank 0):   s            — no indices
-  Vector (rank 1):   v_i          — one index
-  Matrix (rank 2):   M_ij         — two indices
-  3-Tensor (rank 3): T_ijk        — three indices
-  n-Tensor (rank n): T_{i₁i₂…iₙ} — n indices
+  Scalar (rank 0):   s            - no indices
+  Vector (rank 1):   v_i          - one index
+  Matrix (rank 2):   M_ij         - two indices
+  3-Tensor (rank 3): T_ijk        - three indices
+  n-Tensor (rank n): T_{i_1i_2...i_n} - n indices
 
 RANK-CHANGING OPERATIONS:
-  ┌─────────────────────────────────────────────────────────────┐
-  │  Contract one pair of indices  → reduce rank by 2           │
-  │  Outer product                 → rank = sum of input ranks  │
-  │  Transpose                    → relabel indices (same rank) │
-  │  Trace                        → contract diagonal (rank −2) │
-  └─────────────────────────────────────────────────────────────┘
+  +-------------------------------------------------------------+
+  |  Contract one pair of indices  -> reduce rank by 2           |
+  |  Outer product                 -> rank = sum of input ranks  |
+  |  Transpose                    -> relabel indices (same rank) |
+  |  Trace                        -> contract diagonal (rank -2) |
+  +-------------------------------------------------------------+
 
 EXAMPLES:
-  dot product:     rank 1 + rank 1 − 2 = rank 0 (scalar)
-  matrix-vector:   rank 2 + rank 1 − 2 = rank 1 (vector)
-  matrix-matrix:   rank 2 + rank 2 − 2 = rank 2 (matrix)
-  trace:           rank 2 − 2           = rank 0 (scalar)
+  dot product:     rank 1 + rank 1 - 2 = rank 0 (scalar)
+  matrix-vector:   rank 2 + rank 1 - 2 = rank 1 (vector)
+  matrix-matrix:   rank 2 + rank 2 - 2 = rank 2 (matrix)
+  trace:           rank 2 - 2           = rank 0 (scalar)
   outer product:   rank 1 + rank 1      = rank 2 (matrix)
 ```
 
@@ -218,7 +218,7 @@ It assigns a real number $T_{i_1 i_2 \ldots i_r}$ to each tuple of indices.
 
 The **shape** is the tuple of index set sizes $(n_1, n_2, \ldots, n_r)$. It determines memory layout and operation validity.
 
-### 2.2 The Einstein Summation Convention — Precise Statement
+### 2.2 The Einstein Summation Convention - Precise Statement
 
 **Convention:** In any expression, if an index label $\alpha$ appears **exactly twice** in a single term, it is a **dummy index** and is implicitly summed over all values in its range.
 
@@ -232,29 +232,29 @@ An index appearing **once** is a **free index**: the equation holds for each val
 
 $$C_{ij} = A_{ik} B_{kj}$$
 
-- $k$ appears twice → dummy → implicit sum: $C_{ij} = \sum_{k=1}^{p} A_{ik} B_{kj}$
-- $i$ appears once → free → equation holds for all $i \in \{1,\ldots,m\}$
-- $j$ appears once → free → equation holds for all $j \in \{1,\ldots,n\}$
+- $k$ appears twice -> dummy -> implicit sum: $C_{ij} = \sum_{k=1}^{p} A_{ik} B_{kj}$
+- $i$ appears once -> free -> equation holds for all $i \in \{1,\ldots,m\}$
+- $j$ appears once -> free -> equation holds for all $j \in \{1,\ldots,n\}$
 - Result: $C \in \mathbb{R}^{m \times n}$, same as standard matrix multiply $C = AB$
 
-### 2.3 Free vs Dummy Indices — Precise Definitions
+### 2.3 Free vs Dummy Indices - Precise Definitions
 
-**Free index** — appears exactly once in a term:
+**Free index** - appears exactly once in a term:
 - Result expression carries that index
 - The equation holds for every value of the free index independently
-- Example: $A_{ij} = B_{ik}C_{kj}$ — indices $i$ and $j$ are free; equation holds for all $(i,j)$
+- Example: $A_{ij} = B_{ik}C_{kj}$ - indices $i$ and $j$ are free; equation holds for all $(i,j)$
 
-**Dummy index (bound/contracted index)** — appears exactly twice in a single term:
+**Dummy index (bound/contracted index)** - appears exactly twice in a single term:
 - Implicitly summed over its entire range
 - Does not appear in the result
-- Example: $B_{ik}C_{kj}$ — index $k$ is dummy; summed from 1 to $p$; gone from result
+- Example: $B_{ik}C_{kj}$ - index $k$ is dummy; summed from 1 to $p$; gone from result
 
-**Invalid** — index appearing three or more times:
+**Invalid** - index appearing three or more times:
 - $A_{iii}$ is ambiguous: which two occurrences to contract?
 - Einstein convention forbids this; write explicit $\Sigma$ if needed
-- Example: $A_{iij}B_i$ has index $i$ appearing three times — not valid
+- Example: $A_{iij}B_i$ has index $i$ appearing three times - not valid
 
-**Consistency rule** — free indices must be the same on both sides of an equation:
+**Consistency rule** - free indices must be the same on both sides of an equation:
 
 $$v_i = A_{ij} u_j \quad \checkmark \quad \text{(both sides have free index } i \text{)}$$
 
@@ -270,10 +270,10 @@ Each index position has a defined range from the tensor's shape:
 - Contracted indices **must have matching ranges**: $A_{ik}B_{kj}$ valid only if $A$'s second dimension equals $B$'s first dimension
 - This is exactly the matrix multiply shape compatibility condition: $A \in \mathbb{R}^{m \times p}$, $B \in \mathbb{R}^{p \times n}$; $k$ ranges over $\{1,\ldots,p\}$
 
-**Shape inference** — from index structure alone, the result shape is determined:
-- $A_{ik}B_{kj}$: $i$ ranges over $m$, $j$ ranges over $n$ → result shape $(m, n)$
-- $v_i w_i$: no free indices → result shape () — scalar
-- $T_{ijk}U_{jl}V_{kl}$: $j$ and $k$ and $l$ are all dummy; $i$ is free → result shape $(n_i,)$ — vector
+**Shape inference** - from index structure alone, the result shape is determined:
+- $A_{ik}B_{kj}$: $i$ ranges over $m$, $j$ ranges over $n$ -> result shape $(m, n)$
+- $v_i w_i$: no free indices -> result shape () - scalar
+- $T_{ijk}U_{jl}V_{kl}$: $j$ and $k$ and $l$ are all dummy; $i$ is free -> result shape $(n_i,)$ - vector
 
 ### 2.5 Covariant and Contravariant Indices
 
@@ -287,21 +287,21 @@ In differential geometry and general relativity, upper (contravariant) and lower
 **For machine learning:** we almost always ignore the up/down distinction. All indices are effectively lower. No metric tensor is needed because we work in flat Euclidean space where $g_{ij} = \delta_{ij}$. When reading physics literature, understand the convention; in ML, treat all indices as lower.
 
 ```
-COVARIANT vs CONTRAVARIANT — PHYSICS vs ML
-═══════════════════════════════════════════════════════════════════
+COVARIANT vs CONTRAVARIANT - PHYSICS vs ML
+===================================================================
 
   PHYSICS (General Relativity):
-    Upper index:  v^i         (contravariant — transforms one way)
-    Lower index:  w_i         (covariant — transforms the other)
-    Contraction:  v^i w_i     (one up, one down → valid)
+    Upper index:  v^i         (contravariant - transforms one way)
+    Lower index:  w_i         (covariant - transforms the other)
+    Contraction:  v^i w_i     (one up, one down -> valid)
     Metric:       v_i = g_ij v^j   (raises/lowers indices)
 
   MACHINE LEARNING:
     All indices:  v_i, w_j    (no up/down distinction)
-    Contraction:  v_i w_i     (two of same name → valid)
-    Metric:       g_ij = δ_ij (identity — flat space)
+    Contraction:  v_i w_i     (two of same name -> valid)
+    Metric:       g_ij = \delta_ij (identity - flat space)
 
-  → In ML, upper/lower distinction collapses. All that matters:
+  -> In ML, upper/lower distinction collapses. All that matters:
     - Same index twice = sum over it
     - Same index once  = free dimension
 ```
@@ -316,7 +316,7 @@ Scalar times vector: $(sv)_i = s \cdot v_i$
 
 Scalar times matrix: $(sA)_{ij} = s \cdot A_{ij}$
 
-The scalar $s$ has no indices; it multiplies each component. No summation occurs — there is no repeated index.
+The scalar $s$ has no indices; it multiplies each component. No summation occurs - there is no repeated index.
 
 ### 3.2 Vector Addition
 
@@ -328,23 +328,23 @@ Same free index $i$ on both terms. No repeated index, no summation. Purely eleme
 
 $$s = u_i v_i = \sum_i u_i v_i$$
 
-Both $u$ and $v$ carry index $i$. Since $i$ appears twice, it is a dummy index — summed over. The result $s$ is a scalar (no free indices).
+Both $u$ and $v$ carry index $i$. Since $i$ appears twice, it is a dummy index - summed over. The result $s$ is a scalar (no free indices).
 
 Equivalently: $s = u^\top v = \langle u, v \rangle$
 
-**Sign check:** result has no free indices → result must be scalar ✓
+**Sign check:** result has no free indices -> result must be scalar OK
 
 ### 3.4 Outer Product
 
 $$C_{ij} = u_i v_j$$
 
-No repeated index — $i$ appears once, $j$ appears once. Both are free. No summation. The result $C \in \mathbb{R}^{m \times n}$ where $m = \dim(u)$, $n = \dim(v)$.
+No repeated index - $i$ appears once, $j$ appears once. Both are free. No summation. The result $C \in \mathbb{R}^{m \times n}$ where $m = \dim(u)$, $n = \dim(v)$.
 
 Equivalently: $C = uv^\top$
 
 Each entry $C_{ij} = u_i \times v_j$. This always produces a **rank-1 matrix**.
 
-**Key distinction from dot product:** $u_i v_i$ (same index → sum → scalar) vs $u_i v_j$ (different indices → no sum → matrix).
+**Key distinction from dot product:** $u_i v_i$ (same index -> sum -> scalar) vs $u_i v_j$ (different indices -> no sum -> matrix).
 
 ### 3.5 Matrix-Vector Multiply
 
@@ -352,7 +352,7 @@ $$w_i = A_{ij} v_j = \sum_j A_{ij} v_j$$
 
 - $j$ is dummy (summed): connects $A$'s columns to $v$'s entries
 - $i$ is free (result index): selects row of $A$ and row of result $w$
-- $w \in \mathbb{R}^m$, $A \in \mathbb{R}^{m \times n}$, $v \in \mathbb{R}^n$; $j$ ranges over $n$ ✓
+- $w \in \mathbb{R}^m$, $A \in \mathbb{R}^{m \times n}$, $v \in \mathbb{R}^n$; $j$ ranges over $n$ OK
 
 This is the standard matrix-vector product $w = Av$.
 
@@ -362,7 +362,7 @@ $$C_{ij} = A_{ik} B_{kj} = \sum_k A_{ik} B_{kj}$$
 
 - $k$ is dummy: summed over; connects $A$'s columns to $B$'s rows
 - $i, j$ are free: $i$ selects row of $A$, $j$ selects column of $B$
-- $C \in \mathbb{R}^{m \times n}$, $A \in \mathbb{R}^{m \times p}$, $B \in \mathbb{R}^{p \times n}$; $k$ ranges over $p$ ✓
+- $C \in \mathbb{R}^{m \times n}$, $A \in \mathbb{R}^{m \times p}$, $B \in \mathbb{R}^{p \times n}$; $k$ ranges over $p$ OK
 
 Equivalently: $C = AB$
 
@@ -370,25 +370,25 @@ Equivalently: $C = AB$
 
 $$(A^\top)_{ij} = A_{ji}$$
 
-Simply swap index labels. No summation; pure relabelling. Note that $A_{ji}$ and $A_{ij}$ are **different** expressions — different index order means transposed access.
+Simply swap index labels. No summation; pure relabelling. Note that $A_{ji}$ and $A_{ij}$ are **different** expressions - different index order means transposed access.
 
 ### 3.8 Trace
 
 $$\text{tr}(A) = A_{ii} = \sum_i A_{ii}$$
 
-The **same index** appears twice on the **same tensor** — sum over diagonal elements. Result is scalar; no free index. Valid only for square matrices (both index ranges must be equal).
+The **same index** appears twice on the **same tensor** - sum over diagonal elements. Result is scalar; no free index. Valid only for square matrices (both index ranges must be equal).
 
 **Trace of product:**
 
 $$\text{tr}(AB) = A_{ij} B_{ji} = A_{ik} B_{ki}$$
 
-Both pairs $(i,j)$ or $(i,k)$ are dummy → scalar. This equals $\text{tr}(BA)$ — rename dummy index to verify: $A_{ij}B_{ji} = B_{ji}A_{ij} = B_{ij}A_{ji}$ (relabel $i \leftrightarrow j$) $= \text{tr}(BA)$ ✓
+Both pairs $(i,j)$ or $(i,k)$ are dummy -> scalar. This equals $\text{tr}(BA)$ - rename dummy index to verify: $A_{ij}B_{ji} = B_{ji}A_{ij} = B_{ij}A_{ji}$ (relabel $i \leftrightarrow j$) $= \text{tr}(BA)$ OK
 
 ### 3.9 Frobenius Inner Product
 
 $$\langle A, B \rangle_F = A_{ij} B_{ij} = \sum_i \sum_j A_{ij} B_{ij}$$
 
-Both $i$ and $j$ are dummy — double summation. Result is scalar. Equivalently:
+Both $i$ and $j$ are dummy - double summation. Result is scalar. Equivalently:
 
 $$\langle A, B \rangle_F = \text{tr}(A^\top B) = (A^\top)_{ji} B_{ji} = A_{ij} B_{ij} \quad \checkmark$$
 
@@ -398,9 +398,9 @@ $$\langle A, B \rangle_F = \text{tr}(A^\top B) = (A^\top)_{ji} B_{ji} = A_{ij} B
 
 $$(A \odot B)_{ij} = A_{ij} B_{ij}$$
 
-Both $A$ and $B$ share indices $i, j$. But here $i, j$ are **free** — both appear in the result. No summation; elementwise multiplication.
+Both $A$ and $B$ share indices $i, j$. But here $i, j$ are **free** - both appear in the result. No summation; elementwise multiplication.
 
-**Critical distinction:** The expression $A_{ij}B_{ij}$ looks the same as the Frobenius inner product. The difference is whether $i, j$ are free or dummy — which depends on whether the result carries those indices:
+**Critical distinction:** The expression $A_{ij}B_{ij}$ looks the same as the Frobenius inner product. The difference is whether $i, j$ are free or dummy - which depends on whether the result carries those indices:
 
 | Einsum string | $i, j$ status | Operation | Result |
 |---|---|---|---|
@@ -411,20 +411,20 @@ In standard mathematical notation, context determines interpretation. In `einsum
 
 ```
 COMPLETE BASIC OPERATIONS REFERENCE
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
   Operation          Index Form       Einsum     Free  Dummy  Result
-  ─────────────────  ──────────────   ─────────  ────  ─────  ──────
-  Scalar multiply    s·v_i            scalar     i     —      vector
-  Vector add         u_i + v_i        —          i     —      vector
-  Dot product        u_i v_i          "i,i->"    —     i      scalar
-  Outer product      u_i v_j          "i,j->ij"  i,j   —      matrix
+  -----------------  --------------   ---------  ----  -----  ------
+  Scalar multiply    s*v_i            scalar     i     -      vector
+  Vector add         u_i + v_i        -          i     -      vector
+  Dot product        u_i v_i          "i,i->"    -     i      scalar
+  Outer product      u_i v_j          "i,j->ij"  i,j   -      matrix
   Matrix-vector      A_ij v_j         "ij,j->i"  i     j      vector
   Matrix multiply    A_ik B_kj        "ik,kj->ij" i,j  k      matrix
-  Transpose          A_ji             "ij->ji"   i,j   —      matrix
-  Trace              A_ii             "ii->"     —     i      scalar
-  Frobenius inner    A_ij B_ij        "ij,ij->"  —     i,j    scalar
-  Hadamard product   A_ij B_ij        "ij,ij->ij" i,j  —      matrix
+  Transpose          A_ji             "ij->ji"   i,j   -      matrix
+  Trace              A_ii             "ii->"     -     i      scalar
+  Frobenius inner    A_ij B_ij        "ij,ij->"  -     i,j    scalar
+  Hadamard product   A_ij B_ij        "ij,ij->ij" i,j  -      matrix
 ```
 
 ---
@@ -441,10 +441,10 @@ $$\text{result rank} = r_1 + r_2 - 2k$$
 
 | Inputs | Ranks | Contracted pairs | Result rank | Operation |
 |---|---|---|---|---|
-| scalar × scalar | 0 + 0 | 0 | 0 | Scalar multiply |
-| vector · vector | 1 + 1 | 1 | 0 | Dot product |
-| matrix × vector | 2 + 1 | 1 | 1 | Linear map |
-| matrix × matrix | 2 + 2 | 1 | 2 | Matrix multiply |
+| scalar \times scalar | 0 + 0 | 0 | 0 | Scalar multiply |
+| vector * vector | 1 + 1 | 1 | 0 | Dot product |
+| matrix \times vector | 2 + 1 | 1 | 1 | Linear map |
+| matrix \times matrix | 2 + 2 | 1 | 2 | Matrix multiply |
 | Frobenius inner product | 2 + 2 | 2 | 0 | Scalar |
 | trace | 2 | 1 (self) | 0 | Diagonal sum |
 
@@ -456,13 +456,13 @@ $$T_{ijk} \xrightarrow{\text{contract } i,j} S_k = T_{iik} = \sum_i T_{iik}$$
 
 Result: rank-1 tensor (vector). $k$ is free; $i$ is dummy.
 
-This is a **partial trace** — tracing over a subset of indices. It generalises the matrix trace to higher-order tensors.
+This is a **partial trace** - tracing over a subset of indices. It generalises the matrix trace to higher-order tensors.
 
 **AI example:** In multi-head attention, computing per-head statistics involves contracting over query/key positions while keeping the head dimension free.
 
 ### 4.3 Two-Tensor Contraction
 
-General form: contract tensors $A$ (rank $p$) and $B$ (rank $q$) over $k$ shared indices → result rank $p + q - 2k$.
+General form: contract tensors $A$ (rank $p$) and $B$ (rank $q$) over $k$ shared indices -> result rank $p + q - 2k$.
 
 | Contraction | Index form | $p + q - 2k$ | Operation |
 |---|---|---|---|
@@ -474,11 +474,11 @@ General form: contract tensors $A$ (rank $p$) and $B$ (rank $q$) over $k$ shared
 
 For expression $A_{ij}B_{jk}C_{kl}$ (three matrices), there are two possible contraction orders:
 
-**(AB)C — left to right:**
+**(AB)C - left to right:**
 1. Compute $D_{ik} = A_{ij}B_{jk}$: cost $O(m \cdot p \cdot n)$ multiplications
 2. Compute $D_{ik}C_{kl}$: cost $O(m \cdot n \cdot q)$ multiplications
 
-**A(BC) — right to left:**
+**A(BC) - right to left:**
 1. Compute $E_{jl} = B_{jk}C_{kl}$: cost $O(p \cdot n \cdot q)$ multiplications
 2. Compute $A_{ij}E_{jl}$: cost $O(m \cdot p \cdot q)$ multiplications
 
@@ -492,7 +492,7 @@ For rectangular tensors, different orders can differ by **orders of magnitude**.
 **But:** $A \in \mathbb{R}^{1000 \times 1000}$, $B \in \mathbb{R}^{1000 \times 2}$, $C \in \mathbb{R}^{2 \times 1000}$
 
 - $(AB)C$: $1000^2 \times 2 + 1000 \times 2 \times 1000 = 2 \times 10^6 + 2 \times 10^6 = 4 \times 10^6$
-- $A(BC)$: $1000 \times 2 \times 1000 + 1000^2 \times 1000 = 2 \times 10^6 + 10^9$ ← **250× slower!**
+- $A(BC)$: $1000 \times 2 \times 1000 + 1000^2 \times 1000 = 2 \times 10^6 + 10^9$ <- **250\times slower!**
 
 Finding the optimal contraction order is NP-hard in general, but greedy approaches work well in practice. The `opt_einsum` library finds near-optimal contraction orders for multi-tensor einsum expressions.
 
@@ -508,30 +508,30 @@ $$C_{\text{free indices}} = \sum_{\alpha \in S} A_{\ldots\alpha\ldots} B_{\ldots
 
 ```
 CONTRACTION VISUALISED
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
 Matrix Multiply: C_ij = A_ik B_kj
 
   A (rank 2)      B (rank 2)        C (rank 2)
-  ┌───┐           ┌───┐             ┌───┐
-  │   │──k──────k─│   │    =        │   │
-  │   │           │   │             │   │
-  └───┘           └───┘             └───┘
-   ↕ i              ↕ j              ↕ i  ↕ j
+  +---+           +---+             +---+
+  |   |--k------k-|   |    =        |   |
+  |   |           |   |             |   |
+  +---+           +---+             +---+
+   <-> i              <-> j              <-> i  <-> j
    (free)           (free)           (free indices)
 
-  k is contracted (summed) → disappears from result
-  i, j are free → appear in result
+  k is contracted (summed) -> disappears from result
+  i, j are free -> appear in result
 
 Frobenius Inner Product: s = A_ij B_ij
 
   A (rank 2)      B (rank 2)        s (rank 0)
-  ┌───┐           ┌───┐
-  │   │──i──────i─│   │    =        ● (scalar)
-  │   │──j──────j─│   │
-  └───┘           └───┘
+  +---+           +---+
+  |   |--i------i-|   |    =        * (scalar)
+  |   |--j------j-|   |
+  +---+           +---+
 
-  Both i and j contracted → no free indices → scalar result
+  Both i and j contracted -> no free indices -> scalar result
 ```
 
 ---
@@ -544,9 +544,9 @@ The Kronecker delta is the identity matrix expressed in index notation:
 
 $$\delta_{ij} = \begin{cases} 1 & \text{if } i = j \\ 0 & \text{if } i \neq j \end{cases}$$
 
-As a matrix: $\delta_{ij} = I_{ij}$ — the identity matrix.
+As a matrix: $\delta_{ij} = I_{ij}$ - the identity matrix.
 
-**The key property — index substitution (index killing):**
+**The key property - index substitution (index killing):**
 
 $$A_{i\ldots} \delta_{ij} = A_{j\ldots}$$
 
@@ -569,7 +569,7 @@ This is the most important property in all of index notation. It says: contracti
 | $A_{ij}\delta_{jk} = A_{ik}$ | Index substitution: $j \to k$ | $AI = A$ |
 | $\delta_{ij}A_{ij} = A_{ii} = \text{tr}(A)$ | Substitution reduces to trace | $\text{tr}(IA) = \text{tr}(A)$ |
 
-**AI use:** The Kronecker delta appears in every gradient derivation. When you differentiate $C_{ij} = A_{ik}B_{kj}$ with respect to $A_{lm}$, the derivative $\partial A_{ik}/\partial A_{lm} = \delta_{il}\delta_{km}$ — the delta selects which element you're differentiating. This is the engine of backpropagation derivations.
+**AI use:** The Kronecker delta appears in every gradient derivation. When you differentiate $C_{ij} = A_{ik}B_{kj}$ with respect to $A_{lm}$, the derivative $\partial A_{ik}/\partial A_{lm} = \delta_{il}\delta_{km}$ - the delta selects which element you're differentiating. This is the engine of backpropagation derivations.
 
 ### 5.3 Levi-Civita Symbol (Permutation Symbol)
 
@@ -577,9 +577,9 @@ The Levi-Civita symbol is a completely antisymmetric tensor. In 3D:
 
 $$\varepsilon_{ijk} = \begin{cases} +1 & \text{if } (i,j,k) \text{ is an even permutation of } (1,2,3) \\ -1 & \text{if } (i,j,k) \text{ is an odd permutation of } (1,2,3) \\ 0 & \text{if any two indices are equal} \end{cases}$$
 
-**Even permutations** (cyclic): $(1,2,3)$, $(2,3,1)$, $(3,1,2)$ → $\varepsilon = +1$
+**Even permutations** (cyclic): $(1,2,3)$, $(2,3,1)$, $(3,1,2)$ -> $\varepsilon = +1$
 
-**Odd permutations** (one swap): $(1,3,2)$, $(3,2,1)$, $(2,1,3)$ → $\varepsilon = -1$
+**Odd permutations** (one swap): $(1,3,2)$, $(3,2,1)$, $(2,1,3)$ -> $\varepsilon = -1$
 
 The symbol is non-zero only when all three indices are distinct. In $n$ dimensions, $\varepsilon_{i_1 i_2 \ldots i_n}$ generalises to $n!$ non-zero values out of $n^n$ possible.
 
@@ -591,17 +591,17 @@ $$(u \times v)_i = \varepsilon_{ijk} u_j v_k = \sum_j \sum_k \varepsilon_{ijk} u
 
 The index structure encodes the cross product formula: $i$ is free (result component), $j$ and $k$ are dummy (summed over).
 
-**Determinant (3×3):**
+**Determinant (3\times3):**
 
 $$\det(A) = \varepsilon_{ijk} A_{1i} A_{2j} A_{3k}$$
 
-All of $i, j, k$ are dummy → result is scalar. The Levi-Civita selects only the six permutations with correct signs.
+All of $i, j, k$ are dummy -> result is scalar. The Levi-Civita selects only the six permutations with correct signs.
 
-**Key identity — $\varepsilon$-$\delta$ contraction:**
+**Key identity - $\varepsilon$-$\delta$ contraction:**
 
 $$\varepsilon_{ijk} \varepsilon_{ilm} = \delta_{jl}\delta_{km} - \delta_{jm}\delta_{kl}$$
 
-This allows simplifying double Levi-Civita contractions into Kronecker deltas — essential for proofs involving cross products and curl operations.
+This allows simplifying double Levi-Civita contractions into Kronecker deltas - essential for proofs involving cross products and curl operations.
 
 **AI context:** The Levi-Civita symbol is less directly used than the Kronecker delta in ML. It appears in:
 - Determinant computations for normalising flows ($\log |\det J|$)
@@ -624,7 +624,7 @@ $$\varepsilon_{ijk} \varepsilon_{lmn} = \delta^{ijk}_{lmn} = \delta_{il}\delta_{
 
 ### 6.1 Renaming Dummy Indices
 
-Dummy indices are **bound variables** — any name works. This is alpha-equivalence, just like in lambda calculus.
+Dummy indices are **bound variables** - any name works. This is alpha-equivalence, just like in lambda calculus.
 
 $$A_{ij}B_{jk} = A_{il}B_{lk} \quad \text{(rename } j \to l \text{; identical expression)}$$
 
@@ -645,9 +645,9 @@ $$A_{ij}B_{jk} = A_{il}B_{lk} \quad \text{(rename } j \to l \text{; identical ex
 
 **Antisymmetric tensor:** $A_{ij} = -A_{ji}$ (sign flip under index swap)
 - Examples: Levi-Civita $\varepsilon_{ijk}$; cross product matrix $[\omega]_\times$
-- Consequence: $A_{ii} = -A_{ii} \implies A_{ii} = 0$ — diagonal elements are always zero
+- Consequence: $A_{ii} = -A_{ii} \implies A_{ii} = 0$ - diagonal elements are always zero
 
-**Critical identity — antisymmetric contracted with symmetric vanishes:**
+**Critical identity - antisymmetric contracted with symmetric vanishes:**
 
 If $A_{ij}$ is antisymmetric and $S_{ij}$ is symmetric:
 
@@ -657,7 +657,7 @@ $$A_{ij} S_{ij} = 0$$
 $$A_{ij}S_{ij} = A_{ji}S_{ji} \quad \text{(rename } i \leftrightarrow j \text{)} = (-A_{ij})S_{ij} \quad \text{(use antisymmetry of } A \text{, symmetry of } S \text{)}$$
 $$\implies 2A_{ij}S_{ij} = 0 \implies A_{ij}S_{ij} = 0 \quad \checkmark$$
 
-**AI relevance:** Attention score matrices $S_{ij} = Q_i \cdot K_j$ are generally **not** symmetric (queries ≠ keys). Weight matrices are not symmetric. Understanding symmetry properties helps simplify gradient expressions.
+**AI relevance:** Attention score matrices $S_{ij} = Q_i \cdot K_j$ are generally **not** symmetric (queries \neq keys). Weight matrices are not symmetric. Understanding symmetry properties helps simplify gradient expressions.
 
 ### 6.3 Symmetrisation and Antisymmetrisation
 
@@ -688,11 +688,11 @@ In differential geometry, the **metric tensor** $g_{ij}$ converts between covari
 $$v_i = g_{ij} v^j \quad \text{(lower index)}$$
 $$v^i = g^{ij} v_j \quad \text{(raise index, using inverse metric } g^{ij} \text{)}$$
 
-In flat Euclidean space: $g_{ij} = \delta_{ij}$ → raising and lowering are trivial (no change).
+In flat Euclidean space: $g_{ij} = \delta_{ij}$ -> raising and lowering are trivial (no change).
 
 **ML context:** All ML computations happen in Euclidean space (or spaces treated as Euclidean). The metric is identity; upper/lower distinction collapses. When reading physics papers, mentally replace $g_{ij} \to \delta_{ij}$.
 
-**Exception — natural gradient:** Fisher information matrix $F_{ij}$ acts as a metric on parameter space. In natural gradient descent, $F_{ij}$ plays the role of $g_{ij}$, and the "covariant gradient" $\tilde{\nabla}_i = F^{ij} \nabla_j$ differs from the ordinary gradient. This is one place where the physics convention is genuinely useful in ML.
+**Exception - natural gradient:** Fisher information matrix $F_{ij}$ acts as a metric on parameter space. In natural gradient descent, $F_{ij}$ plays the role of $g_{ij}$, and the "covariant gradient" $\tilde{\nabla}_i = F^{ij} \nabla_j$ differs from the ordinary gradient. This is one place where the physics convention is genuinely useful in ML.
 
 ### 6.5 Partial Derivatives in Index Notation
 
@@ -706,7 +706,7 @@ Partial derivatives get their own index notation, making gradient calculations c
 | Divergence | $\nabla \cdot v = \sum_i \frac{\partial v_i}{\partial x_i}$ | $\partial_i v_i$ | Scalar ($i$ is dummy) |
 | Laplacian | $\nabla^2 f = \sum_i \frac{\partial^2 f}{\partial x_i^2}$ | $\partial_i \partial_i f$ | Scalar ($i$ is dummy) |
 
-The divergence $\partial_i v_i$ has $i$ appearing twice → summed → scalar. The Laplacian $\partial_i \partial_i f$ has the same structure — a "trace" of second derivatives.
+The divergence $\partial_i v_i$ has $i$ appearing twice -> summed -> scalar. The Laplacian $\partial_i \partial_i f$ has the same structure - a "trace" of second derivatives.
 
 **AI connection:** Gradient computation in index notation is the foundation of Section 7. The Jacobian-vector product $J_{ij}v_j = \partial_j f_i \cdot v_j$ is exactly what automatic differentiation computes in forward mode. The vector-Jacobian product $u_i J_{ij} = u_i \partial_j f_i$ is reverse mode (backpropagation).
 
@@ -714,7 +714,7 @@ The divergence $\partial_i v_i$ has $i$ appearing twice → summed → scalar. T
 
 ## 7. Einstein Notation for Gradients and Backpropagation
 
-Index notation turns gradient derivations from pattern matching into mechanical computation. The core tool is the **Kronecker delta** — the derivative of a tensor component with respect to itself.
+Index notation turns gradient derivations from pattern matching into mechanical computation. The core tool is the **Kronecker delta** - the derivative of a tensor component with respect to itself.
 
 ### 7.1 Gradient of Linear Form
 
@@ -722,7 +722,7 @@ $f(x) = a_i x_i$ (dot product $a \cdot x$)
 
 $$\frac{\partial f}{\partial x_j} = \frac{\partial}{\partial x_j}(a_i x_i) = a_i \frac{\partial x_i}{\partial x_j} = a_i \delta_{ij} = a_j$$
 
-The $\delta_{ij}$ kills the sum over $i$, substituting $j$ for $i$. Result: $\nabla_x(a^\top x) = a$ ✓
+The $\delta_{ij}$ kills the sum over $i$, substituting $j$ for $i$. Result: $\nabla_x(a^\top x) = a$ OK
 
 ### 7.2 Gradient of Quadratic Form
 
@@ -760,7 +760,7 @@ In index notation: $\left(\frac{\partial L}{\partial A}\right)_{lm} = \left(\fra
 
 $$\boxed{\frac{\partial L}{\partial A} = \frac{\partial L}{\partial C} \cdot B^\top}$$
 
-This is the standard backpropagation formula — **derived mechanically** using only $\delta_{ij}$ substitution.
+This is the standard backpropagation formula - **derived mechanically** using only $\delta_{ij}$ substitution.
 
 ### 7.4 Gradient of Matrix Multiply (B side)
 
@@ -820,18 +820,18 @@ The elegant result: the gradient of cross-entropy loss through softmax is just p
 
 ```
 GRADIENT DERIVATION CHEAT SHEET
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
   Function                  Gradient via Index Notation
-  ────────────────────────  ──────────────────────────────────────
-  f = a_i x_i               ∂f/∂x_j = a_j          (linear)
-  f = x_i A_ij x_j          ∂f/∂x_k = (A+Aᵀ)_kj x_j (quadratic)
-  C_ij = A_ik B_kj          ∂L/∂A_lm = (∂L/∂C)_lj B_mj   (A side)
-                             ∂L/∂B_mn = A_im (∂L/∂C)_in    (B side)
-  f = tr(AB)                 ∂f/∂A_lm = B_ml = (Bᵀ)_lm
-  p_v = softmax(z)_v         ∂p_v/∂z_w = p_v(δ_vw - p_w)
+  ------------------------  --------------------------------------
+  f = a_i x_i               \partialf/\partialx_j = a_j          (linear)
+  f = x_i A_ij x_j          \partialf/\partialx_k = (A+A^T)_kj x_j (quadratic)
+  C_ij = A_ik B_kj          \partialL/\partialA_lm = (\partialL/\partialC)_lj B_mj   (A side)
+                             \partialL/\partialB_mn = A_im (\partialL/\partialC)_in    (B side)
+  f = tr(AB)                 \partialf/\partialA_lm = B_ml = (B^T)_lm
+  p_v = softmax(z)_v         \partialp_v/\partialz_w = p_v(\delta_vw - p_w)
 
-  TOOL: ∂T_ab/∂T_cd = δ_ac δ_bd  (Kronecker delta — the engine)
+  TOOL: \partialT_ab/\partialT_cd = \delta_ac \delta_bd  (Kronecker delta - the engine)
 ```
 
 ---
@@ -852,9 +852,9 @@ For each batch element $b$, compute $A_b v_b$ independently.
 
 $$w_{bi} = A_{ij} v_{bj}$$
 
-$A$ has no $b$ index — the same weight matrix is applied to every sample. $v_{bj}$ varies per batch element.
+$A$ has no $b$ index - the same weight matrix is applied to every sample. $v_{bj}$ varies per batch element.
 
-In einsum: `"ij,bj->bi"` — $b$ is free (appears in output), $j$ is dummy (contracted).
+In einsum: `"ij,bj->bi"` - $b$ is free (appears in output), $j$ is dummy (contracted).
 
 ### 8.2 Batched Matrix Multiply
 
@@ -876,7 +876,7 @@ Full multi-head attention with explicit indices:
 
 $$S_{bhij} = \frac{Q_{bhia} K_{bhja}}{\sqrt{d}}$$
 
-- $a$ is dummy (summed over head dimension → dot product)
+- $a$ is dummy (summed over head dimension -> dot product)
 - $b, h, i, j$ are free (per batch, per head, per query-key pair)
 - Einsum: `"bhid,bhjd->bhij"` (this is $QK^\top$ per head)
 
@@ -894,7 +894,7 @@ $$O_{bhia} = \alpha_{bhij} V_{bhja}$$
 
 ### 8.4 Broadcasting as Implicit Index Repetition
 
-NumPy/PyTorch broadcasting corresponds to an index **not appearing** on one tensor — it is implicitly repeated:
+NumPy/PyTorch broadcasting corresponds to an index **not appearing** on one tensor - it is implicitly repeated:
 
 | Code operation | Index notation | Broadcasting rule |
 |---|---|---|
@@ -911,9 +911,9 @@ Summing over an index eliminates it from the result:
 | Operation | Index notation | Einsum | Description |
 |---|---|---|---|
 | Sum over batch | $s_i = x_{bi}$ ($b$ dummy) | `"bi->i"` | Average features across batch |
-| Mean over batch | $\mu_i = \frac{1}{B} x_{bi}$ | `"bi->i"` ÷ B | Batch mean |
+| Mean over batch | $\mu_i = \frac{1}{B} x_{bi}$ | `"bi->i"` \div B | Batch mean |
 | Sum over sequence | $s_{bi} = x_{bti}$ ($t$ dummy) | `"bti->bi"` | Sum over positions |
-| Global sum | $s = x_{bti}$ ($b,t,i$ all dummy) | `"bti->"` | Total sum → scalar |
+| Global sum | $s = x_{bti}$ ($b,t,i$ all dummy) | `"bti->"` | Total sum -> scalar |
 
 Pooling operations are all forms of reduction over specific index dimensions. Average pooling = sum + normalise. Max pooling breaks the einsum pattern (non-linear) but is still a reduction over an index.
 
@@ -930,11 +930,11 @@ The `einsum` function (available in NumPy, PyTorch, JAX, TensorFlow) implements 
 **Rules:**
 - Input operands separated by commas; output after arrow (`->`)
 - Each character is an index label (single letter)
-- Index appearing on multiple inputs → contraction (sum) if not in output
-- Index in output → free (kept in result)
-- Index omitted from output → dummy (summed over)
+- Index appearing on multiple inputs -> contraction (sum) if not in output
+- Index in output -> free (kept in result)
+- Index omitted from output -> dummy (summed over)
 
-**Example:** `"ik,kj->ij"` means $C_{ij} = A_{ik}B_{kj}$ — matrix multiply. Index $k$ appears on both inputs but not in output → contracted.
+**Example:** `"ik,kj->ij"` means $C_{ij} = A_{ik}B_{kj}$ - matrix multiply. Index $k$ appears on both inputs but not in output -> contracted.
 
 ### 9.2 Standard Operations as Einsum Strings
 
@@ -966,12 +966,12 @@ Einsum supports more than two input tensors:
 torch.einsum("ijk,jl,km->ilm", A, B, C)
 ```
 
-This computes $D_{ilm} = A_{ijk} B_{jl} C_{km}$ — contracting $j$ (between $A$ and $B$) and $k$ (between $A$ and $C$) simultaneously.
+This computes $D_{ilm} = A_{ijk} B_{jl} C_{km}$ - contracting $j$ (between $A$ and $B$) and $k$ (between $A$ and $C$) simultaneously.
 
 **Contraction order matters.** For three-tensor contraction $A_{ij}B_{jk}C_{kl} \to D_{il}$:
 
-- **Option 1:** $(AB)C$ — compute $E_{ik} = A_{ij}B_{jk}$ first, then $E_{ik}C_{kl}$
-- **Option 2:** $A(BC)$ — compute $F_{jl} = B_{jk}C_{kl}$ first, then $A_{ij}F_{jl}$
+- **Option 1:** $(AB)C$ - compute $E_{ik} = A_{ij}B_{jk}$ first, then $E_{ik}C_{kl}$
+- **Option 2:** $A(BC)$ - compute $F_{jl} = B_{jk}C_{kl}$ first, then $A_{ij}F_{jl}$
 
 For rectangular tensors, one order can be **orders of magnitude** faster. The `opt_einsum` library finds near-optimal contraction paths automatically:
 
@@ -986,12 +986,12 @@ result = opt_einsum.contract("ijk,jl,km->ilm", A, B, C, optimize=path)
 
 **Implicit mode** (no arrow): output indices = all indices appearing exactly once, in alphabetical order.
 
-- `"ij,jk"` → implicit output `"ik"` ($j$ appears twice → contracted)
+- `"ij,jk"` -> implicit output `"ik"` ($j$ appears twice -> contracted)
 - Convenient shorthand; may be ambiguous for complex expressions
 
 **Explicit mode** (with arrow): output indices specified exactly.
 
-- `"ij,jk->ki"` → transposed result (column-major output)
+- `"ij,jk->ki"` -> transposed result (column-major output)
 - Always use explicit mode for clarity
 
 **Rule of thumb:** Always use explicit mode in production code. Implicit mode is fine for quick interactive exploration but introduces ambiguity in complex expressions.
@@ -1024,14 +1024,14 @@ The tensor product of $A$ (rank $p$) and $B$ (rank $q$) produces a rank-$(p+q)$ 
 
 $$(A \otimes B)_{i_1\ldots i_p j_1\ldots j_q} = A_{i_1\ldots i_p} B_{j_1\ldots j_q}$$
 
-No contraction — all indices are free. The result carries all indices of both operands.
+No contraction - all indices are free. The result carries all indices of both operands.
 
 **Special cases:**
-- Outer product of vectors: $(u \otimes v)_{ij} = u_i v_j$ → rank-2 (matrix)
-- Outer product of matrices: $(A \otimes B)_{ijkl} = A_{ij} B_{kl}$ → rank-4
+- Outer product of vectors: $(u \otimes v)_{ij} = u_i v_j$ -> rank-2 (matrix)
+- Outer product of matrices: $(A \otimes B)_{ijkl} = A_{ij} B_{kl}$ -> rank-4
 - Kronecker product: specific arrangement of matrix tensor product
 
-**AI connection — LoRA:** The low-rank update $\Delta W = BA$ where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$ is a sum of $r$ rank-1 outer products: $\Delta W_{ij} = B_{ik}A_{kj} = \sum_{k=1}^r B_{ik}A_{kj}$. The index $k$ ranges over the LoRA rank $r$, making the low-rank structure explicit.
+**AI connection - LoRA:** The low-rank update $\Delta W = BA$ where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$ is a sum of $r$ rank-1 outer products: $\Delta W_{ij} = B_{ik}A_{kj} = \sum_{k=1}^r B_{ik}A_{kj}$. The index $k$ ranges over the LoRA rank $r$, making the low-rank structure explicit.
 
 ### 10.2 Tensor Unfolding (Matricisation)
 
@@ -1055,9 +1055,9 @@ Decompose a tensor as a sum of rank-1 tensors:
 
 $$T_{ijk} = \sum_{r=1}^{R} \lambda_r \, a^{(1)}_{ir} \, a^{(2)}_{jr} \, a^{(3)}_{kr}$$
 
-In Einstein notation: $T_{ijk} = \lambda_r \, a^{(1)}_{ir} \, a^{(2)}_{jr} \, a^{(3)}_{kr}$ — the index $r$ is dummy (summed over rank components).
+In Einstein notation: $T_{ijk} = \lambda_r \, a^{(1)}_{ir} \, a^{(2)}_{jr} \, a^{(3)}_{kr}$ - the index $r$ is dummy (summed over rank components).
 
-Each term $\lambda_r \, a^{(1)}_{ir} \, a^{(2)}_{jr} \, a^{(3)}_{kr}$ is a rank-1 tensor (outer product of three vectors). $R$ is the **tensor rank** — the minimum number of rank-1 terms needed for exact representation.
+Each term $\lambda_r \, a^{(1)}_{ir} \, a^{(2)}_{jr} \, a^{(3)}_{kr}$ is a rank-1 tensor (outer product of three vectors). $R$ is the **tensor rank** - the minimum number of rank-1 terms needed for exact representation.
 
 **AI use:** Low-rank CP decomposition for compressing embedding tables, convolutional filters, and MoE routing tensors.
 
@@ -1071,7 +1071,7 @@ where $a, b, c$ are dummy indices (contracted):
 
 This generalises SVD to higher-order tensors. Truncating the core tensor dimensions yields compression.
 
-**AI use:** Compressing convolutional filters (4D tensors: output channels × input channels × height × width). Compressing transformer weight tensors. The Tucker structure explicitly shows which modes interact through the core tensor.
+**AI use:** Compressing convolutional filters (4D tensors: output channels \times input channels \times height \times width). Compressing transformer weight tensors. The Tucker structure explicitly shows which modes interact through the core tensor.
 
 ### 10.5 Tensor Train (TT) Decomposition / Matrix Product States
 
@@ -1083,7 +1083,7 @@ $$T_{i_1 i_2 \ldots i_r} = G^{(1)}_{i_1 \alpha_1} G^{(2)}_{\alpha_1 i_2 \alpha_2
 - $i_k$: **physical indices** (free; correspond to original tensor dimensions)
 - Bond dimension $\chi = \max(\text{range of } \alpha_k)$: controls approximation quality
 
-**Compression ratio:** An order-$r$ tensor of size $n$ stores $n^r$ values. TT format stores $O(r \, n \, \chi^2)$ parameters — exponential compression when $\chi$ is small.
+**Compression ratio:** An order-$r$ tensor of size $n$ stores $n^r$ values. TT format stores $O(r \, n \, \chi^2)$ parameters - exponential compression when $\chi$ is small.
 
 **AI connections:**
 - Tensor train for embedding tables: compress $|V| \times d$ embedding into chain of small matrices
@@ -1092,30 +1092,30 @@ $$T_{i_1 i_2 \ldots i_r} = G^{(1)}_{i_1 \alpha_1} G^{(2)}_{\alpha_1 i_2 \alpha_2
 
 ```
 TENSOR DECOMPOSITION OVERVIEW
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
   CP Decomposition:
-    T_ijk = Σ_r λ_r · a_ir · b_jr · c_kr
-    → Sum of rank-1 outer products
-    → Parameters: R(n₁ + n₂ + n₃)
+    T_ijk = \Sigma_r \lambda_r * a_ir * b_jr * c_kr
+    -> Sum of rank-1 outer products
+    -> Parameters: R(n_1 + n_2 + n_3)
 
   Tucker Decomposition:
-    T_ijk = G_abc · U_ia · V_jb · W_kc
-    → Core tensor + factor matrices
-    → Parameters: r₁r₂r₃ + n₁r₁ + n₂r₂ + n₃r₃
+    T_ijk = G_abc * U_ia * V_jb * W_kc
+    -> Core tensor + factor matrices
+    -> Parameters: r_1r_2r_3 + n_1r_1 + n_2r_2 + n_3r_3
 
   Tensor Train:
-    T_{i₁i₂...iₙ} = G¹_{i₁α₁} · G²_{α₁i₂α₂} · ... · Gⁿ_{αₙ₋₁iₙ}
-    → Chain of 3-index cores
-    → Parameters: O(n·d·χ²) for order-d, mode-n, bond-χ
+    T_{i_1i_2...i_n} = G^1_{i_1\alpha_1} * G^2_{\alpha_1i_2\alpha_2} * ... * G^n_{\alpha_n_1i_n}
+    -> Chain of 3-index cores
+    -> Parameters: O(n*d*\chi^2) for order-d, mode-n, bond-\chi
 
   SVD (matrix, rank-2):
-    A_ij = U_ik Σ_k V_jk
-    → Special case of all three decompositions
+    A_ij = U_ik \Sigma_k V_jk
+    -> Special case of all three decompositions
 
   LoRA (practical):
-    ΔW_ij = B_ir A_rj    (r = LoRA rank, typically 4-64)
-    → Rank-r matrix update; r is the dummy index
+    \DeltaW_ij = B_ir A_rj    (r = LoRA rank, typically 4-64)
+    -> Rank-r matrix update; r is the dummy index
 ```
 
 ---
@@ -1138,7 +1138,7 @@ $$\frac{\partial L}{\partial W_{ij}} = \frac{\partial L}{\partial h_i} \sigma'(z
 
 where $\delta_i = \frac{\partial L}{\partial h_i} \sigma'(z_i)$ is the error signal at neuron $i$.
 
-In matrix form: $\frac{\partial L}{\partial W} = \delta x^\top$ — an outer product of error and input.
+In matrix form: $\frac{\partial L}{\partial W} = \delta x^\top$ - an outer product of error and input.
 
 **Gradient w.r.t. input:**
 
@@ -1160,7 +1160,7 @@ Select row $t$ from $E$. Index $i$ is free (embedding dimension); $t$ is a fixed
 
 $$\frac{\partial L}{\partial E_{vi}} = \frac{\partial L}{\partial e_i} \cdot \mathbb{1}[v = t] = \delta_{vt} \frac{\partial L}{\partial e_i}$$
 
-Only row $t$ has non-zero gradient — the Kronecker delta $\delta_{vt}$ enforces sparsity. This is why embedding updates use sparse gradient operations rather than dense matrix updates.
+Only row $t$ has non-zero gradient - the Kronecker delta $\delta_{vt}$ enforces sparsity. This is why embedding updates use sparse gradient operations rather than dense matrix updates.
 
 ### 11.3 Layer Normalisation
 
@@ -1174,13 +1174,13 @@ $$\mu = \frac{1}{d} \sum_i x_i = \frac{1}{d} x_i \quad \text{(i is dummy)} \qqua
 
 **Output:** $y_i = \gamma_i \hat{x}_i + \beta_i$ (elementwise; $\gamma, \beta$ are learnable scale and shift)
 
-**Gradient complexity:** $\frac{\partial L}{\partial x_i}$ involves sums over $j$ of gradient terms because $\mu$ and $\sigma^2$ depend on **all** $x_j$. The gradient is non-local — changing any single $x_j$ affects the normalisation of every $x_i$. In index notation:
+**Gradient complexity:** $\frac{\partial L}{\partial x_i}$ involves sums over $j$ of gradient terms because $\mu$ and $\sigma^2$ depend on **all** $x_j$. The gradient is non-local - changing any single $x_j$ affects the normalisation of every $x_i$. In index notation:
 
 $$\frac{\partial L}{\partial x_i} = \frac{\gamma_i}{\sqrt{\sigma^2 + \varepsilon}} \left[ \frac{\partial L}{\partial y_i} - \frac{1}{d}\sum_j \frac{\partial L}{\partial y_j}\gamma_j \hat{x}_j \cdot \hat{x}_i - \frac{1}{d}\sum_j \frac{\partial L}{\partial y_j}\gamma_j \right]$$
 
 The sums over $j$ (dummy index) make the non-locality explicit.
 
-### 11.4 Causal Self-Attention — Complete Index Derivation
+### 11.4 Causal Self-Attention - Complete Index Derivation
 
 This is the central computation of the transformer. Every step in index notation:
 
@@ -1230,7 +1230,7 @@ The modern transformer FFN uses gated linear units:
 
 **Down projection:** $y_i = W^d_{ij} h_j$ ($j$ is dummy; $i$ is free)
 
-**Index flow:** $d$-dim input → $d_{ff}$-dim hidden (via two parallel projections) → $d$-dim output. The index dimensions trace the information flow explicitly.
+**Index flow:** $d$-dim input -> $d_{ff}$-dim hidden (via two parallel projections) -> $d$-dim output. The index dimensions trace the information flow explicitly.
 
 ### 11.6 Gradient of Attention Output
 
@@ -1240,7 +1240,7 @@ Given upstream gradient $\frac{\partial L}{\partial O_{ia}}$, derive gradients w
 
 $$\frac{\partial L}{\partial V_{ja}} = \sum_i \frac{\partial L}{\partial O_{ia}} \alpha_{ij} = \alpha_{ij} \frac{\partial L}{\partial O_{ia}}$$
 
-In matrix form: $\frac{\partial L}{\partial V} = \alpha^\top \frac{\partial L}{\partial O}$ ✓ ($i$ is dummy; $j, a$ are free)
+In matrix form: $\frac{\partial L}{\partial V} = \alpha^\top \frac{\partial L}{\partial O}$ OK ($i$ is dummy; $j, a$ are free)
 
 **Gradient w.r.t. $\alpha$:**
 
@@ -1260,7 +1260,7 @@ This is the softmax Jacobian from Section 7.7 applied to each row $i$. These are
 
 A function $f$ is **permutation-invariant** if $f(\{x_i\}) = f(\{x_{\pi(i)}\})$ for any permutation $\pi$. In index form: the output depends only on the **set** $\{x_j\}$, not on their order.
 
-**Example — sum pooling:** $s_a = \sum_i X_{ia} = X_{ia}$ ($i$ is dummy)
+**Example - sum pooling:** $s_a = \sum_i X_{ia} = X_{ia}$ ($i$ is dummy)
 
 The sum doesn't change if we permute the rows of $X$. Any reduction over the position index $i$ that doesn't depend on position yields a permutation-invariant result.
 
@@ -1288,7 +1288,7 @@ Output: $O'_{ia} = \alpha'_{ij}V'_{ja} = P_{ic}P_{jd}\alpha_{cd} P_{je}V_{ea}$
 
 Since $P_{jd}P_{je} = \delta_{de}$ (orthogonality of permutation): $O'_{ia} = P_{ic}\alpha_{cd}V_{da} = P_{ic}O_{ca}$
 
-Therefore: $O' = PO$ — the output is permuted the same way as the input ✓
+Therefore: $O' = PO$ - the output is permuted the same way as the input OK
 
 **With positional encoding:** The encoding $\text{PE}_{ia}$ breaks equivariance because it depends on position $i$ directly. Different permutations map positions to different encodings.
 
@@ -1307,7 +1307,7 @@ The presence or absence of the position index $i$ in the output determines wheth
 
 For a group $G$ acting on inputs via representation $\rho$:
 
-$$(ρ(g)X)_{ia} = X_{o(g,i),a}$$
+$$(\rho(g)X)_{ia} = X_{o(g,i),a}$$
 
 where $o(g,i)$ applies group element $g$ to position $i$.
 
@@ -1327,7 +1327,7 @@ This constrains $W$ to a specific **shared-weight structure**:
 | Full symmetric ($S_n$) | $W_{ij}$ same for all $i \neq j$; $W_{ii}$ same for all $i$ | Sum/mean pooling |
 | Rotation ($SO(3)$) | $W$ commutes with rotation matrices | Spherical harmonics convolution |
 
-Index notation makes these symmetry constraints explicit and verifiable — you can check equivariance by substituting the group action into the index expression.
+Index notation makes these symmetry constraints explicit and verifiable - you can check equivariance by substituting the group action into the index expression.
 
 ---
 
@@ -1344,30 +1344,30 @@ Tensor network diagrams represent tensors and their contractions visually:
 
 ```
 TENSOR NETWORK DIAGRAMS
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
   Vector v_i:          Matrix M_ij:         Rank-3 T_ijk:
-      │ i                  │ i  │ j              │ i  │ j
-      ●                    ┌─┐                   ┌─┐
-                           │M│                   │T│──── k
-                           └─┘                   └─┘
+      | i                  | i  | j              | i  | j
+      *                    +-+                   +-+
+                           |M|                   |T|---- k
+                           +-+                   +-+
 
   Matrix multiply C_ij = A_ik B_kj:
-      │ i           │ j
-      ┌─┐     k     ┌─┐           k is contracted (internal wire)
-      │A│───────────│B│           i, j are free (dangling wires)
-      └─┘           └─┘
+      | i           | j
+      +-+     k     +-+           k is contracted (internal wire)
+      |A|-----------|B|           i, j are free (dangling wires)
+      +-+           +-+
 
   Trace: tr(A) = A_ii:
-      ┌──────┐
-      │  ┌─┐ │                    Wire loops back → self-contraction
-      └──│A│─┘                    No dangling wires → scalar
-         └─┘
+      +------+
+      |  +-+ |                    Wire loops back -> self-contraction
+      +--|A|-+                    No dangling wires -> scalar
+         +-+
 
   Frobenius: A_ij B_ij:
-      ┌─┐  i,j   ┌─┐             Both wires connected
-      │A│════════│B│             → all contracted → scalar
-      └─┘        └─┘
+      +-+  i,j   +-+             Both wires connected
+      |A|========|B|             -> all contracted -> scalar
+      +-+        +-+
 ```
 
 **AI applications of tensor networks:**
@@ -1379,7 +1379,7 @@ TENSOR NETWORK DIAGRAMS
 
 Differential $k$-forms are completely antisymmetric rank-$k$ tensors $\omega_{i_1 \ldots i_k}$.
 
-**Wedge product:** $(α \wedge β)_{i_1 \ldots i_k j_1 \ldots j_l}$ = antisymmetrisation of $α_{i_1 \ldots i_k} β_{j_1 \ldots j_l}$
+**Wedge product:** $(\alpha \wedge \beta)_{i_1 \ldots i_k j_1 \ldots j_l}$ = antisymmetrisation of $\alpha_{i_1 \ldots i_k} \beta_{j_1 \ldots j_l}$
 
 **Exterior derivative:** $d\omega$ of a $k$-form is a $(k+1)$-form:
 
@@ -1402,11 +1402,11 @@ $$A^{kl}_{ij} = \frac{1}{2}(\delta^k_i \delta^l_j - \delta^l_i \delta^k_j)$$
 
 Applied to a rank-2 tensor $T$:
 
-- $(ST)_{ij} = S^{kl}_{ij} T_{kl} = \frac{1}{2}(T_{ij} + T_{ji})$ — symmetric part
-- $(AT)_{ij} = A^{kl}_{ij} T_{kl} = \frac{1}{2}(T_{ij} - T_{ji})$ — antisymmetric part
+- $(ST)_{ij} = S^{kl}_{ij} T_{kl} = \frac{1}{2}(T_{ij} + T_{ji})$ - symmetric part
+- $(AT)_{ij} = A^{kl}_{ij} T_{kl} = \frac{1}{2}(T_{ij} - T_{ji})$ - antisymmetric part
 
 **Projection properties:**
-- $S^2 = S$ and $A^2 = A$ (idempotent — projecting twice = projecting once)
+- $S^2 = S$ and $A^2 = A$ (idempotent - projecting twice = projecting once)
 - $S + A = I$ (every tensor = symmetric part + antisymmetric part)
 - $SA = AS = 0$ (orthogonal projections)
 
@@ -1416,7 +1416,7 @@ Applied to a rank-2 tensor $T$:
 
 $$A_{ij} = \lambda_k v_{ik} v_{jk}$$
 
-Here $k$ is dummy — summed over eigenvalues. $v_{ik}$ is the $i$-th component of the $k$-th eigenvector. In matrix form: $A = V \Lambda V^\top$.
+Here $k$ is dummy - summed over eigenvalues. $v_{ik}$ is the $i$-th component of the $k$-th eigenvector. In matrix form: $A = V \Lambda V^\top$.
 
 **SVD:**
 
@@ -1424,7 +1424,7 @@ $$A_{ij} = U_{ik} \Sigma_k V_{jk}$$
 
 $k$ ranges over rank. $\Sigma_k$ is implicitly $\Sigma_{kl} = \sigma_k \delta_{kl}$ (diagonal), which simplifies to just $\Sigma_k$ when contracted.
 
-**Low-rank approximation:** truncate the sum to $k \leq r$ → rank-$r$ approximation.
+**Low-rank approximation:** truncate the sum to $k \leq r$ -> rank-$r$ approximation.
 
 **LoRA in index notation:**
 
@@ -1460,11 +1460,11 @@ $$\mathbb{E}_p[f_a(x) s_i(x)] = -\mathbb{E}_p[\partial_i f_a(x)]$$
 | 1 | $A_{ij}B_{ij} = (\sum_i A_{ij})(\sum_j B_{ij})$ | Sums over BOTH $i$ and $j$ simultaneously; each pair $(i,j)$ contributes $A_{ij}B_{ij}$ | $A_{ij}B_{ij} = \sum_i\sum_j A_{ij}B_{ij}$ = Frobenius inner product |
 | 2 | $A_{ij}B_{ji} = A_{ij}B_{ij}$ | $B_{ji}$ is the **transpose** of $B_{ij}$; different unless $B$ is symmetric | $A_{ij}B_{ji} = \text{tr}(AB)$ while $A_{ij}B_{ij} = \text{tr}(A^\top B)$ |
 | 3 | Free index mismatch: $v_i = A_{jk}u_k$ | Left has free $i$; right has free $j$; **inconsistent** | Free indices must match both sides |
-| 4 | Triple index: $A_{iii}B_i$ | Index $i$ appears **three** times — ambiguous | Write explicit $\Sigma$; Einstein requires exactly two |
-| 5 | $\delta_{ij}$ means "set $i = j$ everywhere" | $\delta_{ij}$ acts as index substitutor **when contracted**; it doesn't globally equate $i$ and $j$ | $A_{ki}\delta_{ij} = A_{kj}$ — $i$ is replaced by $j$ in $A$; $\delta$ disappears |
+| 4 | Triple index: $A_{iii}B_i$ | Index $i$ appears **three** times - ambiguous | Write explicit $\Sigma$; Einstein requires exactly two |
+| 5 | $\delta_{ij}$ means "set $i = j$ everywhere" | $\delta_{ij}$ acts as index substitutor **when contracted**; it doesn't globally equate $i$ and $j$ | $A_{ki}\delta_{ij} = A_{kj}$ - $i$ is replaced by $j$ in $A$; $\delta$ disappears |
 | 6 | `"ij,jk->ij"` is matrix multiply | This keeps both $i$ and $j$ in output; $j$ is NOT contracted | Matrix multiply is `"ij,jk->ik"` |
 | 7 | Outer product has repeated index | $a_i b_j$ has DIFFERENT index names; no repetition = no contraction | Different indices = free = outer product |
-| 8 | Tensor rank = matrix rank | **Tensor rank** (number of indices) ≠ **matrix rank** (dimension of column space) | Completely different concepts; "rank" is overloaded |
+| 8 | Tensor rank = matrix rank | **Tensor rank** (number of indices) \neq **matrix rank** (dimension of column space) | Completely different concepts; "rank" is overloaded |
 | 9 | Renaming free index changes expression | Renaming consistently on BOTH sides is valid (alpha-equivalence) | $v_i = A_{ij}u_j$ and $v_k = A_{kj}u_j$ are identical |
 | 10 | Einstein notation only works for two tensors | Multi-tensor contractions follow same rules | $A_{ij}B_{jk}C_{kl} \to D_{il}$ contracts two pairs |
 
@@ -1477,7 +1477,7 @@ When an einsum expression gives unexpected results, check:
 3. **Output indices:** Are the output indices exactly what you want? (Missing one = extra contraction; extra one = missing contraction)
 4. **Index collision:** Did you accidentally reuse an index name? (`"ij,ik->jk"` contracts over $i$; is that intended?)
 5. **Batch dimension:** Does the batch index appear in all the right places?
-6. **Contraction vs elementwise:** `"ij,ij->"` vs `"ij,ij->ij"` — contracted vs elementwise
+6. **Contraction vs elementwise:** `"ij,ij->"` vs `"ij,ij->ij"` - contracted vs elementwise
 
 ### 14.3 Index Balance as Type Checking
 
@@ -1485,23 +1485,23 @@ Think of index balance like type checking in a programming language:
 
 ```
 TYPE CHECKING ANALOGY
-═══════════════════════════════════════════════════════════════════
+===================================================================
 
   Expression              Free indices    "Type"
-  ────────────────────    ─────────────   ──────────────
+  --------------------    -------------   --------------
   A_ij B_kj               i, k           Matrix (2 free)
   v_i                     i              Vector (1 free)
   A_ii                    (none)         Scalar (0 free)
 
   Type-correct equation:
-    v_i = A_ij u_j        ← both sides: 1 free index (i)  ✓
+    v_i = A_ij u_j        <- both sides: 1 free index (i)  OK
 
   Type error:
-    v_i = A_jk u_k        ← left: free i; right: free j   ✗
-    s = A_ij B_jk          ← left: 0 free; right: i,k     ✗
+    v_i = A_jk u_k        <- left: free i; right: free j   NO
+    s = A_ij B_jk          <- left: 0 free; right: i,k     NO
 
-  → If free indices don't match, the equation is WRONG.
-  → This is a mechanical check — no mathematical understanding needed.
+  -> If free indices don't match, the equation is WRONG.
+  -> This is a mechanical check - no mathematical understanding needed.
 ```
 
 ---
@@ -1726,7 +1726,7 @@ Then $C_{il} = A_{ij} E_{jl}$, shape $(10000, 512)$:
 
 Total: $\mathbf{2{,}622{,}488{,}576}$ FLOPs.
 
-**5c.** Left-to-right is $\approx 64\times$ faster! This mirrors the LoRA pattern: always multiply the low-rank factors first. The intermediate tensor $T_{ik}$ has shape $(10000, 4)$ — far smaller than $E_{jl}$ at $(512, 512)$.
+**5c.** Left-to-right is $\approx 64\times$ faster! This mirrors the LoRA pattern: always multiply the low-rank factors first. The intermediate tensor $T_{ik}$ has shape $(10000, 4)$ - far smaller than $E_{jl}$ at $(512, 512)$.
 
 </details>
 
@@ -1814,7 +1814,7 @@ Implement the **complete forward and backward pass** for single-head self-attent
 
 Given: input $X$ with shape $(T, d)$, weight matrices $W^Q, W^K, W^V$ each $(d, d_k)$.
 
-**Forward pass** — write each step in index notation and einsum:
+**Forward pass** - write each step in index notation and einsum:
 
 ```python
 import numpy as np
@@ -1826,13 +1826,13 @@ WK = np.random.randn(d, d_k)
 WV = np.random.randn(d, d_k)
 
 # Step 1: Queries, Keys, Values
-# Q_ia = X_id WQ_da   →   einsum: 'id,da->ia'
+# Q_ia = X_id WQ_da   ->   einsum: 'id,da->ia'
 Q = np.einsum('id,da->ia', X, WQ)
 K = np.einsum('id,da->ia', X, WK)
 V = np.einsum('id,da->ia', X, WV)
 
 # Step 2: Attention scores
-# S_ij = Q_ia K_ja / sqrt(d_k)   →   einsum: 'ia,ja->ij'
+# S_ij = Q_ia K_ja / sqrt(d_k)   ->   einsum: 'ia,ja->ij'
 S = np.einsum('ia,ja->ij', Q, K) / np.sqrt(d_k)
 
 # Step 3: Attention weights (softmax over j for each i)
@@ -1841,19 +1841,19 @@ exp_S = np.exp(S - S_max)
 alpha = exp_S / exp_S.sum(axis=1, keepdims=True)  # shape (T, T)
 
 # Step 4: Output
-# O_ia = alpha_ij V_ja   →   einsum: 'ij,ja->ia'
+# O_ia = alpha_ij V_ja   ->   einsum: 'ij,ja->ia'
 O = np.einsum('ij,ja->ia', alpha, V)
 ```
 
-**Backward pass** — given upstream gradient $\frac{\partial L}{\partial O_{ia}}$:
+**Backward pass** - given upstream gradient $\frac{\partial L}{\partial O_{ia}}$:
 
 ```python
 dO = np.random.randn(T, d_k)  # upstream gradient
 
 # Step 4 backward: dL/d(alpha) and dL/dV
-# dL/dV_ja = alpha_ij * dO_ia   →   einsum: 'ij,ia->ja'
+# dL/dV_ja = alpha_ij * dO_ia   ->   einsum: 'ij,ia->ja'
 dV = np.einsum('ij,ia->ja', alpha, dO)
-# dL/d(alpha_ij) = dO_ia * V_ja   →   einsum: 'ia,ja->ij'
+# dL/d(alpha_ij) = dO_ia * V_ja   ->   einsum: 'ia,ja->ij'
 dalpha = np.einsum('ia,ja->ij', dO, V)
 
 # Step 3 backward: softmax gradient
@@ -1862,13 +1862,13 @@ sum_term = np.einsum('ij,ij->i', alpha, dalpha)  # shape (T,)
 dS = alpha * (dalpha - sum_term[:, None]) / np.sqrt(d_k)
 
 # Step 2 backward: dL/dQ and dL/dK
-# dL/dQ_ia = dS_ij K_ja   →   einsum: 'ij,ja->ia'
+# dL/dQ_ia = dS_ij K_ja   ->   einsum: 'ij,ja->ia'
 dQ = np.einsum('ij,ja->ia', dS, K)
-# dL/dK_ja = dS_ij Q_ia   →   einsum: 'ij,ia->ja'
+# dL/dK_ja = dS_ij Q_ia   ->   einsum: 'ij,ia->ja'
 dK = np.einsum('ij,ia->ja', dS, Q)
 
 # Step 1 backward: dL/dW^Q, dL/dW^K, dL/dW^V
-# dL/dWQ_da = X_id * dQ_ia   →   einsum: 'id,ia->da'
+# dL/dWQ_da = X_id * dQ_ia   ->   einsum: 'id,ia->da'
 dWQ = np.einsum('id,ia->da', X, dQ)
 dWK = np.einsum('id,ia->da', X, dK)
 dWV = np.einsum('id,ia->da', X, dV)
@@ -1945,4 +1945,4 @@ The next chapters turn indices into the working language of vectors, matrices, t
 
 ---
 
-[← Previous: 04-Summation-and-Product-Notation](../04-Summation-and-Product-Notation/notes.md) | [Home](../../README.md) | [Next: 06-Proof-Techniques →](../06-Proof-Techniques/notes.md)
+[<- Previous: 04-Summation-and-Product-Notation](../04-Summation-and-Product-Notation/notes.md) | [Home](../../README.md) | [Next: 06-Proof-Techniques ->](../06-Proof-Techniques/notes.md)

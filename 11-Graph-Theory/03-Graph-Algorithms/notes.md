@@ -1,26 +1,26 @@
-[← Back to Graph Theory](../README.md) | [Previous: Graph Representations ←](../02-Graph-Representations/notes.md) | [Next: Spectral Graph Theory →](../04-Spectral-Graph-Theory/notes.md)
+[<- Back to Graph Theory](../README.md) | [Previous: Graph Representations <-](../02-Graph-Representations/notes.md) | [Next: Spectral Graph Theory ->](../04-Spectral-Graph-Theory/notes.md)
 
 ---
 
 # Graph Algorithms
 
-> _"An algorithm must be seen to be believed."_ — Donald Knuth
+> _"An algorithm must be seen to be believed."_ - Donald Knuth
 
 ## Overview
 
-Graph algorithms are the computational engine of graph theory. A graph $G = (V, E)$ is an abstract object; a graph algorithm is a procedure that extracts structure, distances, connectivity, or optimal subgraphs from that object in time proportional to the graph's size. The classical algorithms developed between the 1950s and 1980s — BFS, DFS, Dijkstra, Bellman-Ford, Kruskal, Prim, Tarjan, Ford-Fulkerson — remain the workhorses of modern systems, from web crawlers to GPS navigation to protein interaction databases.
+Graph algorithms are the computational engine of graph theory. A graph $G = (V, E)$ is an abstract object; a graph algorithm is a procedure that extracts structure, distances, connectivity, or optimal subgraphs from that object in time proportional to the graph's size. The classical algorithms developed between the 1950s and 1980s - BFS, DFS, Dijkstra, Bellman-Ford, Kruskal, Prim, Tarjan, Ford-Fulkerson - remain the workhorses of modern systems, from web crawlers to GPS navigation to protein interaction databases.
 
-For AI and machine learning, graph algorithms are more than historical curiosities. Breadth-first search defines the $k$-hop neighbourhood that a $k$-layer Graph Neural Network can see — the BFS frontier *is* the GNN receptive field. Topological sort on directed acyclic graphs is exactly the forward-pass ordering algorithm in PyTorch and JAX autograd engines. Dijkstra's algorithm reappears as approximate inference in probabilistic graphical models. Minimum spanning trees underpin graph-based clustering and hierarchical agglomeration. Max-flow / min-cut formalises graph partitioning and connects — via the Cheeger inequality — to the spectral clustering methods in §04.
+For AI and machine learning, graph algorithms are more than historical curiosities. Breadth-first search defines the $k$-hop neighbourhood that a $k$-layer Graph Neural Network can see - the BFS frontier *is* the GNN receptive field. Topological sort on directed acyclic graphs is exactly the forward-pass ordering algorithm in PyTorch and JAX autograd engines. Dijkstra's algorithm reappears as approximate inference in probabilistic graphical models. Minimum spanning trees underpin graph-based clustering and hierarchical agglomeration. Max-flow / min-cut formalises graph partitioning and connects - via the Cheeger inequality - to the spectral clustering methods in 04.
 
 This section covers the full classical canon: traversal (BFS, DFS), shortest paths (Dijkstra, Bellman-Ford, Floyd-Warshall, A\*), minimum spanning trees (Kruskal, Prim), DAG algorithms (topological sort, critical path), strongly connected components (Tarjan, Kosaraju), and maximum flow. Every algorithm is stated with precise pseudocode, complexity analysis, a correctness argument, and an explicit connection to AI practice.
 
 ## Prerequisites
 
-- Graph definitions ($G=(V,E)$, adjacency, degree, paths, cycles, DAGs) — [§01 Graph Basics](../01-Graph-Basics/notes.md)
-- Graph representations (adjacency list, CSR, edge list) — [§02 Graph Representations](../02-Graph-Representations/notes.md)
-- Basic asymptotic notation $O, \Theta, \Omega$ — [Chapter 1](../../01-Mathematical-Foundations/README.md)
+- Graph definitions ($G=(V,E)$, adjacency, degree, paths, cycles, DAGs) - [01 Graph Basics](../01-Graph-Basics/notes.md)
+- Graph representations (adjacency list, CSR, edge list) - [02 Graph Representations](../02-Graph-Representations/notes.md)
+- Basic asymptotic notation $O, \Theta, \Omega$ - [Chapter 1](../../01-Mathematical-Foundations/README.md)
 - Priority queue / heap data structure (assumed from CS background)
-- Union-Find (disjoint-set union) data structure (introduced in §4.2 below)
+- Union-Find (disjoint-set union) data structure (introduced in 4.2 below)
 
 ## Companion Notebooks
 
@@ -59,7 +59,7 @@ After completing this section, you will:
   - [2.2 BFS Correctness and Shortest-Hop Paths](#22-bfs-correctness-and-shortest-hop-paths)
   - [2.3 Depth-First Search (DFS)](#23-depth-first-search-dfs)
   - [2.4 DFS: Edge Classification](#24-dfs-edge-classification)
-  - [2.5 BFS vs DFS — When to Use Which](#25-bfs-vs-dfs--when-to-use-which)
+  - [2.5 BFS vs DFS - When to Use Which](#25-bfs-vs-dfs--when-to-use-which)
   - [2.6 AI Connection: GNN Receptive Fields](#26-ai-connection-gnn-receptive-fields)
 - [3. Shortest Paths](#3-shortest-paths)
   - [3.1 The SSSP Problem](#31-the-sssp-problem)
@@ -113,11 +113,11 @@ A graph algorithm is a procedure that takes a graph $G = (V, E)$ (and possibly e
 
 Graph algorithms fall into three broad families:
 
-**Traversal algorithms** visit every vertex reachable from a starting point, in a principled order. Breadth-First Search (BFS) visits nodes layer by layer in increasing hop distance; Depth-First Search (DFS) dives as deep as possible before backtracking. Both run in $O(n + m)$ time for a graph with $n$ nodes and $m$ edges — this is optimal, since every vertex and edge must be examined at least once.
+**Traversal algorithms** visit every vertex reachable from a starting point, in a principled order. Breadth-First Search (BFS) visits nodes layer by layer in increasing hop distance; Depth-First Search (DFS) dives as deep as possible before backtracking. Both run in $O(n + m)$ time for a graph with $n$ nodes and $m$ edges - this is optimal, since every vertex and edge must be examined at least once.
 
 **Optimisation algorithms** find a subgraph or path that minimises or maximises some quantity. Dijkstra finds shortest paths minimising total edge weight. Kruskal and Prim find spanning trees minimising total weight. Ford-Fulkerson maximises the flow from source to sink. These algorithms use problem-specific data structures (priority queues, union-find) to achieve better-than-brute-force complexity.
 
-**Structural algorithms** reveal the global organisation of a graph — which vertices belong to the same strongly connected component, whether the graph is a DAG, what its chromatic number is. Tarjan's SCC algorithm and topological sort are the core structural algorithms in this section.
+**Structural algorithms** reveal the global organisation of a graph - which vertices belong to the same strongly connected component, whether the graph is a DAG, what its chromatic number is. Tarjan's SCC algorithm and topological sort are the core structural algorithms in this section.
 
 The choice of algorithm depends critically on:
 1. **Graph structure:** directed or undirected, weighted or unweighted, dense or sparse
@@ -147,15 +147,15 @@ The table below gives the at-a-glance reference for every algorithm in this sect
 
 ### 1.3 Why Graph Algorithms Matter for AI
 
-Graph algorithms are not separate from deep learning — they are embedded in it.
+Graph algorithms are not separate from deep learning - they are embedded in it.
 
-**GNN receptive fields.** A $k$-layer Graph Neural Network aggregates information from the $k$-hop neighbourhood of each node. The set of nodes at hop distance $\leq k$ is exactly the BFS frontier after $k$ iterations from that node. The GNN forward pass *is* a parameterised, learnable BFS. See §2.6 for details.
+**GNN receptive fields.** A $k$-layer Graph Neural Network aggregates information from the $k$-hop neighbourhood of each node. The set of nodes at hop distance $\leq k$ is exactly the BFS frontier after $k$ iterations from that node. The GNN forward pass *is* a parameterised, learnable BFS. See 2.6 for details.
 
-**Autograd engines.** PyTorch's `backward()` call and JAX's `grad()` both operate on a Directed Acyclic Graph (DAG) of operations. Forward pass = topological sort traversal. Backward pass = reverse topological order, accumulating gradients via the chain rule. See §5.4.
+**Autograd engines.** PyTorch's `backward()` call and JAX's `grad()` both operate on a Directed Acyclic Graph (DAG) of operations. Forward pass = topological sort traversal. Backward pass = reverse topological order, accumulating gradients via the chain rule. See 5.4.
 
 **Knowledge graph reasoning.** Multi-hop reasoning over knowledge graphs (e.g., finding paths between entities in Wikidata) uses SSSP and BFS. KGQA (knowledge-graph question answering) systems routinely call shortest-path routines on subgraphs.
 
-**Graph-based clustering.** Spectral clustering (§04) finds the optimal graph cut by computing the Fiedler eigenvector. The Cheeger inequality bounds the spectral gap by the minimum normalised cut — which is a min-cut problem. Graph-cut-based image segmentation (Boykov & Kolmogorov, 2004) uses max-flow to segment images.
+**Graph-based clustering.** Spectral clustering (04) finds the optimal graph cut by computing the Fiedler eigenvector. The Cheeger inequality bounds the spectral gap by the minimum normalised cut - which is a min-cut problem. Graph-cut-based image segmentation (Boykov & Kolmogorov, 2004) uses max-flow to segment images.
 
 **Reinforcement learning.** Bellman-Ford's update rule $d[v] \leftarrow \min_{u:(u,v)\in E}(d[u] + w(u,v))$ is the same recurrence as the Bellman equation in dynamic programming. Value iteration in RL is Bellman-Ford on the state-action graph.
 
@@ -165,27 +165,27 @@ Graph algorithms are not separate from deep learning — they are embedded in it
 
 ```
 GRAPH ALGORITHM HISTORY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  1736  Euler — Königsberg Bridge Problem: first graph theory argument
-  1847  Kirchhoff — Spanning tree theorem for electrical networks
-  1930  Jarník — MST algorithm (rediscovered as Prim 1957)
-  1956  Ford & Fulkerson — Max-flow / augmenting path method
-  1956  Bellman — Shortest paths via dynamic programming
-  1957  Kruskal — MST via sorted edge greedy
-  1959  Dijkstra — Shortest path with priority queue
-  1962  Floyd / Warshall — All-pairs shortest paths via DP
-  1968  Hart, Nilsson, Raphael — A* heuristic search
-  1972  Tarjan — Linear-time DFS-based SCC algorithm
-  1972  Hopcroft & Karp — Bipartite matching, max-flow
-  1975  Kosaraju — Two-pass DFS SCC algorithm
-  1987  Goldberg & Tarjan — Push-relabel max-flow O(n²√m)
-  2003  Boykov & Kolmogorov — Graph-cuts for image segmentation
-  2017  Kipf & Welling — GCN: BFS-structured neural message passing
-  2021  GraphBLAS — Sparse linear algebra standard for graph analytics
+  1736  Euler - Konigsberg Bridge Problem: first graph theory argument
+  1847  Kirchhoff - Spanning tree theorem for electrical networks
+  1930  Jarnik - MST algorithm (rediscovered as Prim 1957)
+  1956  Ford & Fulkerson - Max-flow / augmenting path method
+  1956  Bellman - Shortest paths via dynamic programming
+  1957  Kruskal - MST via sorted edge greedy
+  1959  Dijkstra - Shortest path with priority queue
+  1962  Floyd / Warshall - All-pairs shortest paths via DP
+  1968  Hart, Nilsson, Raphael - A* heuristic search
+  1972  Tarjan - Linear-time DFS-based SCC algorithm
+  1972  Hopcroft & Karp - Bipartite matching, max-flow
+  1975  Kosaraju - Two-pass DFS SCC algorithm
+  1987  Goldberg & Tarjan - Push-relabel max-flow O(n^2\sqrtm)
+  2003  Boykov & Kolmogorov - Graph-cuts for image segmentation
+  2017  Kipf & Welling - GCN: BFS-structured neural message passing
+  2021  GraphBLAS - Sparse linear algebra standard for graph analytics
   2023+ GPU-accelerated BFS for trillion-edge graphs (NVIDIA cuGraph)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ---
@@ -200,22 +200,22 @@ Breadth-First Search answers the question: "Starting from a source node $s$, in 
 
 ```
 BFS(G, s):
-  for each v in V: d[v] ← ∞, parent[v] ← NIL
-  d[s] ← 0
-  Q ← empty queue
+  for each v in V: d[v] <- \infty, parent[v] <- NIL
+  d[s] <- 0
+  Q <- empty queue
   enqueue(Q, s)
   while Q not empty:
-    u ← dequeue(Q)
+    u <- dequeue(Q)
     for each neighbour v of u:
-      if d[v] = ∞:           ← v not yet visited
-        d[v] ← d[u] + 1
-        parent[v] ← u
+      if d[v] = \infty:           <- v not yet visited
+        d[v] <- d[u] + 1
+        parent[v] <- u
         enqueue(Q, v)
 ```
 
-**Output:** After BFS, $d[v]$ is the exact shortest number of hops from $s$ to $v$ (or $\infty$ if $v$ is not reachable). The `parent[]` array encodes the **BFS tree** — a spanning tree of the component containing $s$ in which every root-to-leaf path is a shortest path.
+**Output:** After BFS, $d[v]$ is the exact shortest number of hops from $s$ to $v$ (or $\infty$ if $v$ is not reachable). The `parent[]` array encodes the **BFS tree** - a spanning tree of the component containing $s$ in which every root-to-leaf path is a shortest path.
 
-**Complexity.** Each vertex is enqueued at most once ($O(n)$ enqueue/dequeue operations). Each edge $(u,v)$ is examined at most twice — once when $u$ is dequeued, once when $v$ is dequeued. Total: $O(n + m)$ time, $O(n)$ space for $d$ and `parent`.
+**Complexity.** Each vertex is enqueued at most once ($O(n)$ enqueue/dequeue operations). Each edge $(u,v)$ is examined at most twice - once when $u$ is dequeued, once when $v$ is dequeued. Total: $O(n + m)$ time, $O(n)$ space for $d$ and `parent`.
 
 **Layer structure.** BFS naturally partitions $V$ into **layers** $L_0 = \{s\}$, $L_1 = $ neighbours of $s$, $L_2 = $ neighbours of $L_1$ not in $L_0 \cup L_1$, etc. All vertices in $L_k$ are at hop distance exactly $k$ from $s$.
 
@@ -232,7 +232,7 @@ BFS(G, s):
 
 **Proof sketch.** We prove by induction on the hop distance $k$ that all vertices at distance $k$ from $s$ are assigned $d[v] = k$. Base: $k=0$, $d[s]=0$ by initialisation. Inductive step: suppose all vertices at distance $\leq k-1$ are correctly assigned. A vertex $v$ at distance $k$ has at least one neighbour $u$ at distance $k-1$. By induction $d[u]=k-1$, so when $u$ is dequeued, $v$ is discovered with $d[v]=k$. No earlier dequeue can discover $v$ with a smaller label, since any earlier dequeued node $u'$ has $d[u'] \leq k-1$, and $v$'s distance from $s$ via $u'$ would be $\geq k$. $\square$
 
-**Corollary.** BFS solves the unweighted SSSP problem in $O(n+m)$ — optimal, since merely reading the graph takes $\Omega(n+m)$.
+**Corollary.** BFS solves the unweighted SSSP problem in $O(n+m)$ - optimal, since merely reading the graph takes $\Omega(n+m)$.
 
 **Path reconstruction.** Following `parent[]` pointers from $v$ back to $s$ yields a shortest path. The path has exactly $d[v]$ edges.
 
@@ -242,28 +242,28 @@ DFS explores as far as possible along each branch before backtracking. It assign
 
 ```
 DFS(G):
-  for each v in V: colour[v] ← WHITE
-  time ← 0
+  for each v in V: colour[v] <- WHITE
+  time <- 0
   for each v in V:
     if colour[v] = WHITE:
       DFS-VISIT(G, v)
 
 DFS-VISIT(G, u):
-  time ← time + 1; disc[u] ← time
-  colour[u] ← GREY              ← discovered, not finished
+  time <- time + 1; disc[u] <- time
+  colour[u] <- GREY              <- discovered, not finished
   for each neighbour v of u:
     if colour[v] = WHITE:
-      parent[v] ← u
+      parent[v] <- u
       DFS-VISIT(G, v)
-  colour[u] ← BLACK             ← finished
-  time ← time + 1; fin[u] ← time
+  colour[u] <- BLACK             <- finished
+  time <- time + 1; fin[u] <- time
 ```
 
-**Three colours** — WHITE (undiscovered), GREY (discovered, stack open), BLACK (finished) — are the classic DFS state machine. A vertex is GREY between its `disc` and `fin` timestamps.
+**Three colours** - WHITE (undiscovered), GREY (discovered, stack open), BLACK (finished) - are the classic DFS state machine. A vertex is GREY between its `disc` and `fin` timestamps.
 
-**The parenthesis theorem.** For any two vertices $u, v$: the intervals $[\text{disc}[u], \text{fin}[u]]$ and $[\text{disc}[v], \text{fin}[v]]$ are either disjoint or one contains the other. They cannot partially overlap. This gives DFS a nested interval structure — hence the "parenthesis" name.
+**The parenthesis theorem.** For any two vertices $u, v$: the intervals $[\text{disc}[u], \text{fin}[u]]$ and $[\text{disc}[v], \text{fin}[v]]$ are either disjoint or one contains the other. They cannot partially overlap. This gives DFS a nested interval structure - hence the "parenthesis" name.
 
-**Complexity.** $O(n + m)$ — each vertex transitions WHITE→GREY→BLACK exactly once; each edge is examined twice (once per endpoint in undirected, once in directed).
+**Complexity.** $O(n + m)$ - each vertex transitions WHITE->GREY->BLACK exactly once; each edge is examined twice (once per endpoint in undirected, once in directed).
 
 ### 2.4 DFS: Edge Classification
 
@@ -278,43 +278,43 @@ In a DFS on a directed graph, every edge $(u,v)$ falls into exactly one class:
 
 **Key results from edge classification:**
 - **Cycle detection:** A directed graph has a cycle if and only if DFS discovers at least one **back edge**. (An undirected graph has a cycle iff DFS finds a non-tree edge.)
-- **DAG test:** A directed graph is a DAG ⟺ DFS finds no back edges.
-- **Topological order:** In a DAG, vertices listed in decreasing `fin[]` order form a topological ordering (§5.2).
+- **DAG test:** A directed graph is a DAG <=> DFS finds no back edges.
+- **Topological order:** In a DAG, vertices listed in decreasing `fin[]` order form a topological ordering (5.2).
 
-**For undirected graphs** there are only tree edges and back edges — forward and cross edges cannot occur, because an edge $(u,v)$ explored when $v$ is BLACK would have already been explored in the other direction.
+**For undirected graphs** there are only tree edges and back edges - forward and cross edges cannot occur, because an edge $(u,v)$ explored when $v$ is BLACK would have already been explored in the other direction.
 
-### 2.5 BFS vs DFS — When to Use Which
+### 2.5 BFS vs DFS - When to Use Which
 
 ```
 BFS vs DFS: DECISION GUIDE
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Use BFS when:                        Use DFS when:
-  ─────────────                        ────────────
-  ✓ Shortest paths (unweighted)        ✓ Cycle detection
-  ✓ Level-by-level exploration         ✓ Topological sort
-  ✓ GNN k-hop neighbourhood           ✓ Strongly connected components
-  ✓ Web crawling (breadth-first)       ✓ Detecting back/forward edges
-  ✓ Connected components               ✓ Maze solving (backtracking)
-  ✓ Bipartiteness check               ✓ DFS tree for Tarjan SCC
-  ✓ Social network proximity          ✓ Memory-efficient deep search
+  -------------                        ------------
+  OK Shortest paths (unweighted)        OK Cycle detection
+  OK Level-by-level exploration         OK Topological sort
+  OK GNN k-hop neighbourhood           OK Strongly connected components
+  OK Web crawling (breadth-first)       OK Detecting back/forward edges
+  OK Connected components               OK Maze solving (backtracking)
+  OK Bipartiteness check               OK DFS tree for Tarjan SCC
+  OK Social network proximity          OK Memory-efficient deep search
 
   Memory: O(n) queue (wide graphs     Memory: O(depth) stack (narrow
           can be large!)               graphs can be efficient)
 
   BFS queue = FIFO (first in, first out)
-  DFS stack = LIFO (last in, first out) — implicit via recursion
+  DFS stack = LIFO (last in, first out) - implicit via recursion
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Memory consideration.** For a wide, shallow graph (e.g., a star $K_{1,n}$), BFS's queue can hold $O(n)$ nodes simultaneously. For a deep, narrow graph (e.g., a path $P_n$), DFS recursion uses $O(n)$ stack frames. In practice, BFS is preferred when the shortest path or level structure matters; DFS is preferred when structural properties (SCC, cycles) are the goal.
 
 ### 2.6 AI Connection: GNN Receptive Fields
 
-> **Preview (full treatment in [§05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md))**
+> **Preview (full treatment in [05 Graph Neural Networks](../05-Graph-Neural-Networks/notes.md))**
 
-A Graph Neural Network layer aggregates messages from immediate neighbours. After $k$ layers, each node has aggregated information from all nodes within hop distance $k$ — its **$k$-hop neighbourhood**, or **receptive field**.
+A Graph Neural Network layer aggregates messages from immediate neighbours. After $k$ layers, each node has aggregated information from all nodes within hop distance $k$ - its **$k$-hop neighbourhood**, or **receptive field**.
 
 This is exactly the BFS $k$-hop set $\Gamma^k(v) = \{u : d(v,u) \leq k\}$.
 
@@ -323,7 +323,7 @@ $$\mathbf{H}^{[l+1]} = \sigma\!\left(\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2} \
 
 where $\tilde{A} = A + I$ (adjacency with self-loops). The matrix multiplication $\tilde{A}\mathbf{H}^{[l]}$ is a **one-step BFS aggregation**: row $v$ of the result is the sum of feature vectors of all neighbours of $v$ (including $v$ itself). Stacking $k$ such layers = BFS $k$ hops, with the degree normalisation $\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}$ playing the role of averaging rather than summing.
 
-**Implication.** The expressiveness of a GNN is bounded by the $k$-WL hierarchy (Weisfeiler-Leman test). Two nodes that BFS cannot distinguish in $k$ hops will be assigned identical embeddings by any $k$-layer GNN with sum/mean aggregation — regardless of the weights $W^{[l]}$.
+**Implication.** The expressiveness of a GNN is bounded by the $k$-WL hierarchy (Weisfeiler-Leman test). Two nodes that BFS cannot distinguish in $k$ hops will be assigned identical embeddings by any $k$-layer GNN with sum/mean aggregation - regardless of the weights $W^{[l]}$.
 
 ---
 
@@ -343,8 +343,8 @@ where the minimum is over all paths $P$ from $s$ to $v$. If no path exists, $\de
 ```
 RELAX(u, v, w):
   if d[v] > d[u] + w(u,v):
-    d[v] ← d[u] + w(u,v)
-    parent[v] ← u
+    d[v] <- d[u] + w(u,v)
+    parent[v] <- u
 ```
 All SSSP algorithms consist of choosing which edges to relax, and in what order. BFS is the special case where all weights equal 1 and the queue replaces the priority queue.
 
@@ -357,23 +357,23 @@ Dijkstra's algorithm solves SSSP for graphs with **non-negative edge weights**. 
 
 ```
 DIJKSTRA(G, s):
-  for each v in V: d[v] ← ∞, parent[v] ← NIL
-  d[s] ← 0
-  Q ← min-priority queue with all vertices keyed by d[·]
+  for each v in V: d[v] <- \infty, parent[v] <- NIL
+  d[s] <- 0
+  Q <- min-priority queue with all vertices keyed by d[*]
   while Q not empty:
-    u ← EXTRACT-MIN(Q)           ← vertex with smallest tentative distance
+    u <- EXTRACT-MIN(Q)           <- vertex with smallest tentative distance
     for each neighbour v of u:
       if d[u] + w(u,v) < d[v]:
-        d[v] ← d[u] + w(u,v)
-        parent[v] ← u
-        DECREASE-KEY(Q, v, d[v]) ← update priority queue
+        d[v] <- d[u] + w(u,v)
+        parent[v] <- u
+        DECREASE-KEY(Q, v, d[v]) <- update priority queue
 ```
 
-**Correctness invariant.** When vertex $u$ is extracted from $Q$, $d[u] = \delta(s,u)$ — it is the exact shortest distance. This holds because all weights are non-negative: any alternative path from $s$ to $u$ passing through an unvisited vertex $x$ has $d[x] \geq d[u]$ (since $u$ was extracted first), so extending that path cannot improve upon $d[u]$.
+**Correctness invariant.** When vertex $u$ is extracted from $Q$, $d[u] = \delta(s,u)$ - it is the exact shortest distance. This holds because all weights are non-negative: any alternative path from $s$ to $u$ passing through an unvisited vertex $x$ has $d[x] \geq d[u]$ (since $u$ was extracted first), so extending that path cannot improve upon $d[u]$.
 
 **Proof sketch.** By induction. Base: $s$ is extracted first with $d[s]=0=\delta(s,s)$. Inductive step: assume all previously extracted vertices have correct distances. Let $u$ be the next extracted vertex. Suppose for contradiction there exists a shorter path $P: s \to \ldots \to y \to x \to \ldots \to u$ with $y$ extracted, $x$ not extracted. Then $d[x] \geq d[u]$ (otherwise $x$ would have been extracted before $u$), and the suffix $x \to \ldots \to u$ has non-negative weight, so the path is no shorter than $d[u]$. Contradiction. $\square$
 
-**Complexity.** With a binary heap: $O((n+m)\log n)$ — $n$ EXTRACT-MIN and up to $m$ DECREASE-KEY operations, each $O(\log n)$. With a Fibonacci heap: $O(m + n \log n)$ — theoretically better for dense graphs; rarely used in practice due to large constants.
+**Complexity.** With a binary heap: $O((n+m)\log n)$ - $n$ EXTRACT-MIN and up to $m$ DECREASE-KEY operations, each $O(\log n)$. With a Fibonacci heap: $O(m + n \log n)$ - theoretically better for dense graphs; rarely used in practice due to large constants.
 
 **Failure case.** Dijkstra gives incorrect results when any edge has negative weight. Example: $s \to u$ with weight 10, $s \to v$ with weight 2, $v \to u$ with weight $-5$. Dijkstra fixes $d[u] = 10$ when $u$ is extracted, but the true distance is $2 + (-5) = 7$ via $v \to u$.
 
@@ -387,12 +387,12 @@ Bellman-Ford solves SSSP for graphs with **arbitrary edge weights** (including n
 
 ```
 BELLMAN-FORD(G, s):
-  for each v in V: d[v] ← ∞, parent[v] ← NIL
-  d[s] ← 0
-  for i = 1 to n-1:              ← n-1 relaxation rounds
+  for each v in V: d[v] <- \infty, parent[v] <- NIL
+  d[s] <- 0
+  for i = 1 to n-1:              <- n-1 relaxation rounds
     for each edge (u,v) in E:
       RELAX(u, v, w(u,v))
-  for each edge (u,v) in E:      ← negative cycle check
+  for each edge (u,v) in E:      <- negative cycle check
     if d[v] > d[u] + w(u,v):
       return "negative cycle exists"
   return d[]
@@ -400,9 +400,9 @@ BELLMAN-FORD(G, s):
 
 **Why $n-1$ rounds?** Any shortest path that does not repeat a vertex has at most $n-1$ edges. After round $i$, $d[v]$ correctly reflects the shortest path using at most $i$ edges. After $n-1$ rounds, all shortest paths are found (assuming no negative cycle).
 
-**Negative cycle detection.** After $n-1$ rounds, if any edge still allows relaxation, there is a negative-weight cycle reachable from $s$ — the $n$-th round would continue improving distances indefinitely.
+**Negative cycle detection.** After $n-1$ rounds, if any edge still allows relaxation, there is a negative-weight cycle reachable from $s$ - the $n$-th round would continue improving distances indefinitely.
 
-**Complexity.** $O(nm)$ — $n-1$ rounds, each examining all $m$ edges. Slower than Dijkstra but correct for negative weights.
+**Complexity.** $O(nm)$ - $n-1$ rounds, each examining all $m$ edges. Slower than Dijkstra but correct for negative weights.
 
 **Dynamic programming view.** Let $d_i[v] = $ length of shortest path from $s$ to $v$ using $\leq i$ edges. Recurrence:
 $$d_i[v] = \min\!\left(d_{i-1}[v],\; \min_{(u,v)\in E}\!\left(d_{i-1}[u] + w(u,v)\right)\right)$$
@@ -420,11 +420,11 @@ Floyd-Warshall solves the **All-Pairs Shortest Path (APSP)** problem: find $\del
 
 ```
 FLOYD-WARSHALL(G):
-  D ← n×n matrix with D[i][j] = w(i,j) if (i,j)∈E, 0 if i=j, ∞ otherwise
+  D <- n\timesn matrix with D[i][j] = w(i,j) if (i,j)\inE, 0 if i=j, \infty otherwise
   for k = 1 to n:
     for i = 1 to n:
       for j = 1 to n:
-        D[i][j] ← min(D[i][j], D[i][k] + D[k][j])
+        D[i][j] <- min(D[i][j], D[i][k] + D[k][j])
   return D
 ```
 
@@ -440,7 +440,7 @@ is a DP over the choice of whether vertex $k$ is used as an intermediate.
 
 **Matrix interpretation.** The Floyd-Warshall update $D[i][j] \leftarrow \min(D[i][j], D[i][k]+D[k][j])$ is the tropical matrix product (min-plus algebra):
 $(A \otimes B)[i][j] = \min_k(A[i][k] + B[k][j])$
-So $D^{(n)} = W^{\otimes n}$ — the $n$-th tropical power of the weight matrix — gives all-pairs distances. This connects APSP to algebraic path problems over semirings.
+So $D^{(n)} = W^{\otimes n}$ - the $n$-th tropical power of the weight matrix - gives all-pairs distances. This connects APSP to algebraic path problems over semirings.
 
 ### 3.5 A* Search
 
@@ -450,22 +450,22 @@ A\* (Hart, Nilsson & Raphael, 1968) is a best-first search algorithm that guides
 
 ```
 A-STAR(G, s, t, h):
-  for each v: d[v] ← ∞, f[v] ← ∞
-  d[s] ← 0; f[s] ← h(s)
-  Q ← min-priority queue keyed by f[·]
+  for each v: d[v] <- \infty, f[v] <- \infty
+  d[s] <- 0; f[s] <- h(s)
+  Q <- min-priority queue keyed by f[*]
   enqueue(Q, s)
   while Q not empty:
-    u ← EXTRACT-MIN(Q)
-    if u = t: return d[t]        ← goal found
+    u <- EXTRACT-MIN(Q)
+    if u = t: return d[t]        <- goal found
     for each neighbour v of u:
-      new_d ← d[u] + w(u,v)
+      new_d <- d[u] + w(u,v)
       if new_d < d[v]:
-        d[v] ← new_d
-        f[v] ← new_d + h(v)
+        d[v] <- new_d
+        f[v] <- new_d + h(v)
         update Q with v
 ```
 
-**Admissibility.** A heuristic $h$ is **admissible** if $h(v) \leq \delta(v,t)$ for all $v$ — it never overestimates. An admissible heuristic guarantees A\* finds the optimal path.
+**Admissibility.** A heuristic $h$ is **admissible** if $h(v) \leq \delta(v,t)$ for all $v$ - it never overestimates. An admissible heuristic guarantees A\* finds the optimal path.
 
 **Consistency (monotonicity).** $h$ is **consistent** if $h(u) \leq w(u,v) + h(v)$ for all edges $(u,v)$. Consistency implies admissibility and guarantees each vertex is processed at most once (like Dijkstra).
 
@@ -504,7 +504,7 @@ $$\text{MST} = \arg\min_{T \text{ spanning tree}} \sum_{e \in T} w(e)$$
 
 **Cut property.** Let $S \subset V$ be any proper subset of vertices, and let $e = (u,v)$ be the minimum-weight edge crossing the cut $(S, V\setminus S)$ (i.e., $u \in S$, $v \in V\setminus S$). Then $e$ belongs to every MST of $G$.
 
-*Intuition:* If the minimum cut-crossing edge were not in the MST, we could swap it with a heavier cut-crossing edge in the MST and reduce total weight — contradiction.
+*Intuition:* If the minimum cut-crossing edge were not in the MST, we could swap it with a heavier cut-crossing edge in the MST and reduce total weight - contradiction.
 
 **Cycle property.** Let $C$ be any cycle in $G$, and let $e$ be the unique maximum-weight edge of $C$. Then $e$ does NOT belong to any MST of $G$.
 
@@ -512,7 +512,7 @@ $$\text{MST} = \arg\min_{T \text{ spanning tree}} \sum_{e \in T} w(e)$$
 
 Both Kruskal and Prim are instantiations of a generic **greedy MST algorithm** that repeatedly adds the minimum-weight safe edge (one that doesn't create a cycle and respects the cut property).
 
-**Total weight lower bound.** The MST weight gives the minimum cost to connect all vertices — any other spanning tree costs at least as much. MST weight is a lower bound for the Travelling Salesman Problem (TSP) on the same metric graph.
+**Total weight lower bound.** The MST weight gives the minimum cost to connect all vertices - any other spanning tree costs at least as much. MST weight is a lower bound for the Travelling Salesman Problem (TSP) on the same metric graph.
 
 ### 4.2 Kruskal's Algorithm
 
@@ -520,13 +520,13 @@ Kruskal's algorithm builds the MST by greedily adding edges in increasing weight
 
 ```
 KRUSKAL(G):
-  Sort edges E by weight: e_1 ≤ e_2 ≤ ... ≤ e_m
-  T ← ∅
-  for each vertex v: MAKE-SET(v)   ← Union-Find initialisation
+  Sort edges E by weight: e_1 \leq e_2 \leq ... \leq e_m
+  T <- \emptyset
+  for each vertex v: MAKE-SET(v)   <- Union-Find initialisation
   for each edge (u,v) in sorted order:
-    if FIND(u) ≠ FIND(v):         ← u and v in different components?
-      T ← T ∪ {(u,v)}
-      UNION(u, v)                  ← merge components
+    if FIND(u) \neq FIND(v):         <- u and v in different components?
+      T <- T \cup {(u,v)}
+      UNION(u, v)                  <- merge components
   return T
 ```
 
@@ -535,7 +535,7 @@ KRUSKAL(G):
 - `FIND(x)`: return the representative ("root") of $x$'s set
 - `UNION(x, y)`: merge the sets containing $x$ and $y$
 
-With **union by rank** and **path compression**, all operations run in amortised $O(\alpha(n))$ time, where $\alpha$ is the inverse Ackermann function — effectively $O(1)$ for all practical $n$.
+With **union by rank** and **path compression**, all operations run in amortised $O(\alpha(n))$ time, where $\alpha$ is the inverse Ackermann function - effectively $O(1)$ for all practical $n$.
 
 **Correctness.** Each added edge is the minimum-weight edge crossing some cut $(S, V\setminus S)$ where $S$ is one of the current components. By the cut property, this edge belongs to the MST.
 
@@ -544,7 +544,7 @@ With **union by rank** and **path compression**, all operations run in amortised
 **Example.** Graph with edges $(A,B,1), (A,C,4), (B,C,2), (B,D,5), (C,D,3)$:
 - Add $(A,B,1)$: $T = \{AB\}$; components $\{A,B\}, \{C\}, \{D\}$
 - Add $(B,C,2)$: $T = \{AB,BC\}$; components $\{A,B,C\}, \{D\}$
-- Add $(C,D,3)$: $T = \{AB,BC,CD\}$; all connected — done. MST weight $= 1+2+3=6$
+- Add $(C,D,3)$: $T = \{AB,BC,CD\}$; all connected - done. MST weight $= 1+2+3=6$
 - Skip $(A,C,4)$: would form cycle $A-B-C-A$
 - Skip $(B,D,5)$: would form cycle $B-C-D-B$
 
@@ -554,23 +554,23 @@ Prim's algorithm grows the MST one vertex at a time, always attaching the cheape
 
 ```
 PRIM(G, r):
-  for each v: key[v] ← ∞, parent[v] ← NIL, inMST[v] ← FALSE
-  key[r] ← 0                    ← start from root r
-  Q ← min-priority queue of all vertices keyed by key[·]
+  for each v: key[v] <- \infty, parent[v] <- NIL, inMST[v] <- FALSE
+  key[r] <- 0                    <- start from root r
+  Q <- min-priority queue of all vertices keyed by key[*]
   while Q not empty:
-    u ← EXTRACT-MIN(Q)
-    inMST[u] ← TRUE
+    u <- EXTRACT-MIN(Q)
+    inMST[u] <- TRUE
     for each neighbour v of u:
       if NOT inMST[v] AND w(u,v) < key[v]:
-        key[v] ← w(u,v)
-        parent[v] ← u
+        key[v] <- w(u,v)
+        parent[v] <- u
         DECREASE-KEY(Q, v, key[v])
-  return {(v, parent[v]) : v ≠ r}
+  return {(v, parent[v]) : v \neq r}
 ```
 
-**Analogy with Dijkstra.** Prim and Dijkstra have identical structure — the only difference is the priority key: Dijkstra uses $d[u] + w(u,v)$ (cumulative path cost); Prim uses $w(u,v)$ (edge cost alone). Prim greedily picks the cheapest edge into the tree; Dijkstra greedily picks the cheapest path to any vertex.
+**Analogy with Dijkstra.** Prim and Dijkstra have identical structure - the only difference is the priority key: Dijkstra uses $d[u] + w(u,v)$ (cumulative path cost); Prim uses $w(u,v)$ (edge cost alone). Prim greedily picks the cheapest edge into the tree; Dijkstra greedily picks the cheapest path to any vertex.
 
-**Complexity.** $O((n+m)\log n)$ with a binary heap — same as Dijkstra.
+**Complexity.** $O((n+m)\log n)$ with a binary heap - same as Dijkstra.
 
 **When to prefer Prim vs Kruskal:**
 - Kruskal is simpler to implement and better for sparse graphs ($m$ close to $n$)
@@ -579,7 +579,7 @@ PRIM(G, r):
 
 ### 4.4 AI Applications of MSTs
 
-**Graph-based clustering.** Remove the $k-1$ heaviest edges from the MST to obtain $k$ clusters. This is **single-linkage hierarchical clustering** — equivalent to building the MST and pruning. Each resulting subtree is a cluster. The method is sensitive to outliers (a long edge can connect two distant clusters) but is $O(m \log m)$ and parameter-free.
+**Graph-based clustering.** Remove the $k-1$ heaviest edges from the MST to obtain $k$ clusters. This is **single-linkage hierarchical clustering** - equivalent to building the MST and pruning. Each resulting subtree is a cluster. The method is sensitive to outliers (a long edge can connect two distant clusters) but is $O(m \log m)$ and parameter-free.
 
 **Feature selection.** Build a minimum spanning tree on a graph where nodes are features and edge weights are mutual information between features. The MST structure reveals the most informative non-redundant features.
 
@@ -606,7 +606,7 @@ A **Directed Acyclic Graph (DAG)** is a directed graph with no directed cycles. 
 - **Scheduling:** project tasks with precedence constraints.
 - **Probabilistic graphical models:** Bayesian networks are DAGs where edges represent conditional dependencies.
 
-**In-degree and out-degree in DAGs.** Every DAG has at least one **source** (in-degree 0) and at least one **sink** (out-degree 0). This follows because if every vertex had a predecessor, we could follow predecessors indefinitely — but the graph is finite and acyclic, so we must eventually reach a vertex with no predecessor.
+**In-degree and out-degree in DAGs.** Every DAG has at least one **source** (in-degree 0) and at least one **sink** (out-degree 0). This follows because if every vertex had a predecessor, we could follow predecessors indefinitely - but the graph is finite and acyclic, so we must eventually reach a vertex with no predecessor.
 
 ### 5.2 Topological Sort
 
@@ -621,13 +621,13 @@ A **topological ordering** of a DAG is a linear ordering $v_1, v_2, \ldots, v_n$
 ```
 KAHN(G):
   Compute in-degree indeg[v] for each v
-  Q ← queue of all vertices with indeg[v] = 0   ← sources
-  order ← empty list
+  Q <- queue of all vertices with indeg[v] = 0   <- sources
+  order <- empty list
   while Q not empty:
-    u ← dequeue(Q)
+    u <- dequeue(Q)
     append u to order
     for each edge (u,v):
-      indeg[v] ← indeg[v] - 1
+      indeg[v] <- indeg[v] - 1
       if indeg[v] = 0: enqueue(Q, v)
   if |order| < n: return "graph has a cycle"
   return order
@@ -651,7 +651,7 @@ In general graphs, finding longest paths is NP-hard (it generalises TSP). But in
 
 ```
 DAG-SSSP(G, s):
-  d[s] ← 0; d[v] ← ∞ for all v ≠ s
+  d[s] <- 0; d[v] <- \infty for all v \neq s
   for each u in topological order of G:
     for each edge (u,v):
       RELAX(u, v, w(u,v))
@@ -660,7 +660,7 @@ DAG-SSSP(G, s):
 
 For longest paths, initialise $d[s]=0$, $d[v]=-\infty$ and replace RELAX with a maximisation.
 
-**Critical Path Method.** In project scheduling, nodes are tasks and edges represent precedence. Edge weights are durations. The **critical path** is the longest path in the DAG — it determines the minimum project duration. Earliest/latest start times for each task are computed via two DAG DP passes (forward and backward).
+**Critical Path Method.** In project scheduling, nodes are tasks and edges represent precedence. Edge weights are durations. The **critical path** is the longest path in the DAG - it determines the minimum project duration. Earliest/latest start times for each task are computed via two DAG DP passes (forward and backward).
 
 ### 5.4 AI Connection: Autograd Computation Graphs
 
@@ -670,29 +670,29 @@ PyTorch's autograd engine builds a DAG when executing a forward pass. Every tens
 
 ```
 PYTORCH AUTOGRAD DAG (simplified):
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Forward pass (topological order, sources to sinks):
-    x ───matmul──→ z ───relu──→ a ───softmax──→ p ───cross_entropy──→ L
-          ↑                         ↑
+    x ---matmul---> z ---relu---> a ---softmax---> p ---cross_entropy---> L
+          up                         up
           W                         (no weight here)
 
   Backward pass (reverse topological order, sinks to sources):
-    ∂L/∂p  ←──── ∂L/∂a ←──── ∂L/∂z ←──── ∂L/∂x, ∂L/∂W
+    \partialL/\partialp  <----- \partialL/\partiala <----- \partialL/\partialz <----- \partialL/\partialx, \partialL/\partialW
 
   At each node: multiply incoming gradient by local Jacobian (chain rule)
   Accumulate gradients at leaf nodes (parameters)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 **Forward pass = topological traversal** from input tensors (sources) to the loss (sink). Each node applies its operation.
 
 **Backward pass = reverse topological traversal**. Each node receives the upstream gradient $\partial L / \partial \text{output}$ and propagates $\partial L / \partial \text{input} = \partial L / \partial \text{output} \cdot \partial \text{output} / \partial \text{input}$ to its predecessors. The gradient for shared tensors is accumulated (summed) over all incoming edges.
 
-**Why DAG and not a tree?** When a tensor is used multiple times (e.g., weight sharing, skip connections in ResNet), it has multiple out-edges. The backward pass sums gradients from all out-edges — this is the graph-theoretic explanation for gradient accumulation.
+**Why DAG and not a tree?** When a tensor is used multiple times (e.g., weight sharing, skip connections in ResNet), it has multiple out-edges. The backward pass sums gradients from all out-edges - this is the graph-theoretic explanation for gradient accumulation.
 
-**No-cycle guarantee.** The autograd engine assumes the computation graph is a DAG. Recurrent networks (RNNs) are *unrolled* through time into DAGs before differentiation — this is **Backpropagation Through Time (BPTT)**, which is simply differentiation on an unrolled DAG.
+**No-cycle guarantee.** The autograd engine assumes the computation graph is a DAG. Recurrent networks (RNNs) are *unrolled* through time into DAGs before differentiation - this is **Backpropagation Through Time (BPTT)**, which is simply differentiation on an unrolled DAG.
 
 
 ---
@@ -709,11 +709,11 @@ In undirected graphs, connectivity is binary: two vertices are either connected 
 - Every directed graph has a unique partition into SCCs.
 - A vertex with no edges forms its own trivial SCC $\{v\}$.
 
-**Condensation graph.** Contract each SCC to a single node. The result is a DAG — the **condensation** (also called the SCC DAG or meta-graph). This DAG reveals the high-level structure of the directed graph: SCCs with no incoming edges are "sources" (starting points for information flow); SCCs with no outgoing edges are "sinks".
+**Condensation graph.** Contract each SCC to a single node. The result is a DAG - the **condensation** (also called the SCC DAG or meta-graph). This DAG reveals the high-level structure of the directed graph: SCCs with no incoming edges are "sources" (starting points for information flow); SCCs with no outgoing edges are "sinks".
 
 **Example.** For the directed graph $1 \to 2 \to 3 \to 1$ (cycle), $3 \to 4$, $4 \to 5$, $5 \to 4$ (another cycle):
 - SCCs: $\{1,2,3\}$ (cycle), $\{4,5\}$ (cycle), each a single strongly connected component
-- Condensation: $\{1,2,3\} \to \{4,5\}$ — a DAG with two nodes and one edge
+- Condensation: $\{1,2,3\} \to \{4,5\}$ - a DAG with two nodes and one edge
 
 ### 6.2 Kosaraju's Algorithm
 
@@ -735,30 +735,30 @@ KOSARAJU(G):
 
 Tarjan's algorithm finds all SCCs in a single DFS pass using **low-link values**.
 
-**Low-link value.** $\text{low}[v] = \min(\text{disc}[v], \min_{(v,w)\in E}\text{low}[w], \min_{(v,w)\in E, w \in \text{stack}}\text{disc}[w])$ — the minimum discovery time reachable from the subtree rooted at $v$ via back edges.
+**Low-link value.** $\text{low}[v] = \min(\text{disc}[v], \min_{(v,w)\in E}\text{low}[w], \min_{(v,w)\in E, w \in \text{stack}}\text{disc}[w])$ - the minimum discovery time reachable from the subtree rooted at $v$ via back edges.
 
 ```
 TARJAN(G):
-  disc[] ← all -1, low[] ← 0
-  onStack[] ← all FALSE
-  stack S ← empty, time ← 0, sccs ← []
+  disc[] <- all -1, low[] <- 0
+  onStack[] <- all FALSE
+  stack S <- empty, time <- 0, sccs <- []
   
   DFS-VISIT(v):
-    disc[v] ← low[v] ← time++
-    push v onto S; onStack[v] ← TRUE
+    disc[v] <- low[v] <- time++
+    push v onto S; onStack[v] <- TRUE
     for each edge (v,w):
-      if disc[w] = -1:              ← tree edge
+      if disc[w] = -1:              <- tree edge
         DFS-VISIT(w)
-        low[v] ← min(low[v], low[w])
-      elif onStack[w]:              ← back edge to stack vertex
-        low[v] ← min(low[v], disc[w])
-    if low[v] = disc[v]:           ← v is root of an SCC
+        low[v] <- min(low[v], low[w])
+      elif onStack[w]:              <- back edge to stack vertex
+        low[v] <- min(low[v], disc[w])
+    if low[v] = disc[v]:           <- v is root of an SCC
       pop vertices from S until v, forming one SCC
 
   for each v with disc[v] = -1: DFS-VISIT(v)
 ```
 
-**The key insight.** A vertex $v$ is the root of an SCC if and only if no back edge from $v$'s subtree escapes to a vertex discovered before $v$ — i.e., $\text{low}[v] = \text{disc}[v]$. When this condition holds, all vertices on the stack above $v$ (including $v$) form one SCC.
+**The key insight.** A vertex $v$ is the root of an SCC if and only if no back edge from $v$'s subtree escapes to a vertex discovered before $v$ - i.e., $\text{low}[v] = \text{disc}[v]$. When this condition holds, all vertices on the stack above $v$ (including $v$) form one SCC.
 
 **Complexity.** Single DFS pass: $O(n+m)$.
 
@@ -769,9 +769,9 @@ TARJAN(G):
 
 ### 6.4 AI Applications of SCCs
 
-**Knowledge graph analysis.** In a directed knowledge graph (entity → relation → entity), SCCs correspond to groups of entities that are mutually related via directed paths. Trivial SCCs (singletons) are "leaf" entities; large SCCs indicate dense relationship clusters.
+**Knowledge graph analysis.** In a directed knowledge graph (entity -> relation -> entity), SCCs correspond to groups of entities that are mutually related via directed paths. Trivial SCCs (singletons) are "leaf" entities; large SCCs indicate dense relationship clusters.
 
-**Circular dependency detection.** Package dependency graphs should be DAGs. If the package manager finds an SCC with more than one node, there is a circular dependency — a build-system error.
+**Circular dependency detection.** Package dependency graphs should be DAGs. If the package manager finds an SCC with more than one node, there is a circular dependency - a build-system error.
 
 **PageRank on condensation.** Google's original PageRank algorithm first computes the condensation DAG, then computes within-SCC PageRank, then propagates across the condensation edges. This avoids the "dangling node" and "spider trap" problems that arise from cycles.
 
@@ -792,7 +792,7 @@ A **flow** is a function $f: E \to \mathbb{R}_{\geq 0}$ satisfying:
 1. **Capacity constraint:** $0 \leq f(u,v) \leq c(u,v)$ for all $(u,v) \in E$
 2. **Flow conservation:** For each $v \neq s, t$: $\sum_{u:(u,v)\in E} f(u,v) = \sum_{w:(v,w)\in E} f(v,w)$ (flow in = flow out)
 
-The **value** of flow $f$ is $|f| = \sum_{v:(s,v)\in E} f(s,v)$ — total flow leaving the source.
+The **value** of flow $f$ is $|f| = \sum_{v:(s,v)\in E} f(s,v)$ - total flow leaving the source.
 
 **Goal:** Find a flow $f^*$ maximising $|f|$.
 
@@ -806,14 +806,14 @@ An **augmenting path** is any path from $s$ to $t$ in $G_f$ with positive capaci
 
 ```
 FORD-FULKERSON(G, s, t):
-  f(u,v) ← 0 for all edges
+  f(u,v) <- 0 for all edges
   while there exists an augmenting path P in G_f:
-    δ ← min capacity on P (bottleneck)
-    augment flow along P by δ
+    \delta <- min capacity on P (bottleneck)
+    augment flow along P by \delta
   return f
 ```
 
-**Correctness.** The algorithm terminates (for integer capacities; may not terminate for irrational capacities with bad path choices) and returns a maximum flow, by the Max-Flow Min-Cut theorem (§7.4).
+**Correctness.** The algorithm terminates (for integer capacities; may not terminate for irrational capacities with bad path choices) and returns a maximum flow, by the Max-Flow Min-Cut theorem (7.4).
 
 **Complexity.** $O(Ef)$ where $E = |E|$ and $f = |f^*|$ is the maximum flow value. This can be exponential if edge capacities are large.
 
@@ -821,7 +821,7 @@ FORD-FULKERSON(G, s, t):
 
 Edmonds-Karp (1972) is Ford-Fulkerson with BFS used to find augmenting paths (shortest path in $G_f$ in terms of number of edges).
 
-**Complexity.** $O(nm^2)$ — polynomial regardless of edge capacities. The key insight: augmenting along a shortest path guarantees that the number of augmentation steps is at most $O(nm)$.
+**Complexity.** $O(nm^2)$ - polynomial regardless of edge capacities. The key insight: augmenting along a shortest path guarantees that the number of augmentation steps is at most $O(nm)$.
 
 ### 7.4 The Max-Flow Min-Cut Theorem
 
@@ -832,19 +832,19 @@ Edmonds-Karp (1972) is Ford-Fulkerson with BFS used to find augmenting paths (sh
 **Theorem (Max-Flow Min-Cut).** The maximum value of any $s$-$t$ flow equals the minimum capacity of any $s$-$t$ cut:
 $$\max_f |f| = \min_{(S,T) \text{ s-t cut}} c(S,T)$$
 
-**Proof sketch.** When Ford-Fulkerson terminates, there is no augmenting path in $G_f$. Let $S = \{v : s \leadsto v \text{ in } G_f\}$. Then $(S, V\setminus S)$ is an $s$-$t$ cut with no residual capacity — meaning every edge $(u,v)$ from $S$ to $V\setminus S$ is saturated ($f(u,v) = c(u,v)$) and every edge from $V\setminus S$ to $S$ carries zero flow. Thus $|f| = c(S,V\setminus S)$. Since $|f| \leq c(S,T)$ for any cut, $f$ is maximum and $(S,V\setminus S)$ is minimum. $\square$
+**Proof sketch.** When Ford-Fulkerson terminates, there is no augmenting path in $G_f$. Let $S = \{v : s \leadsto v \text{ in } G_f\}$. Then $(S, V\setminus S)$ is an $s$-$t$ cut with no residual capacity - meaning every edge $(u,v)$ from $S$ to $V\setminus S$ is saturated ($f(u,v) = c(u,v)$) and every edge from $V\setminus S$ to $S$ carries zero flow. Thus $|f| = c(S,V\setminus S)$. Since $|f| \leq c(S,T)$ for any cut, $f$ is maximum and $(S,V\setminus S)$ is minimum. $\square$
 
 **Integrality theorem.** If all capacities are integers, there exists a maximum flow that is integer-valued on every edge.
 
 ### 7.5 AI Connections: Graph Cuts and Partitioning
 
-**Image segmentation.** Model pixels as nodes; adjacent pixels connected by edges weighted by colour similarity (high weight = similar). Source $s$ = "foreground" terminal, sink $t$ = "background" terminal. Add edges from $s$ to pixels likely to be foreground, from pixels likely to be background to $t$. The min-cut partitions pixels into foreground/background — this is the **Boykov-Kolmogorov graph cut** algorithm used throughout computer vision (2001–2010).
+**Image segmentation.** Model pixels as nodes; adjacent pixels connected by edges weighted by colour similarity (high weight = similar). Source $s$ = "foreground" terminal, sink $t$ = "background" terminal. Add edges from $s$ to pixels likely to be foreground, from pixels likely to be background to $t$. The min-cut partitions pixels into foreground/background - this is the **Boykov-Kolmogorov graph cut** algorithm used throughout computer vision (2001-2010).
 
-**Graph partitioning.** Dividing a graph into $k$ balanced parts with minimal cut capacity — used for distributed computing (partition a computation graph across GPUs), parallel simulation, and community detection.
+**Graph partitioning.** Dividing a graph into $k$ balanced parts with minimal cut capacity - used for distributed computing (partition a computation graph across GPUs), parallel simulation, and community detection.
 
-**Spectral connection (forward reference).** The **normalised cut** (Shi & Malik 2000) minimises $\frac{\text{cut}(S,T)}{\text{vol}(S)} + \frac{\text{cut}(T,S)}{\text{vol}(T)}$, which approximates $h(G)$ — the **Cheeger constant** of the graph. The Cheeger inequality (§04) bounds $h(G)$ in terms of the Fiedler eigenvalue $\lambda_2$: $h(G) \geq \lambda_2/2$. This is how max-flow/min-cut and spectral graph theory connect.
+**Spectral connection (forward reference).** The **normalised cut** (Shi & Malik 2000) minimises $\frac{\text{cut}(S,T)}{\text{vol}(S)} + \frac{\text{cut}(T,S)}{\text{vol}(T)}$, which approximates $h(G)$ - the **Cheeger constant** of the graph. The Cheeger inequality (04) bounds $h(G)$ in terms of the Fiedler eigenvalue $\lambda_2$: $h(G) \geq \lambda_2/2$. This is how max-flow/min-cut and spectral graph theory connect.
 
-→ _Full treatment of spectral clustering: [§04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)_
+-> _Full treatment of spectral clustering: [04 Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)_
 
 
 ---
@@ -857,7 +857,7 @@ $$\max_f |f| = \min_{(S,T) \text{ s-t cut}} c(S,T)$$
 
 **Bidirectional Dijkstra** runs two simultaneous Dijkstra searches: one forward from $s$ and one backward from $t$ (on the reversed graph). The searches alternate, and terminate when a vertex is settled by both.
 
-**Speedup.** In the best case, each search explores a ball of radius $d(s,t)/2$, reducing explored area from $\pi r^2$ to $2 \pi (r/2)^2 = \pi r^2 / 2$ — a factor of 2 in practice, but can be much better for graphs with clustered structure.
+**Speedup.** In the best case, each search explores a ball of radius $d(s,t)/2$, reducing explored area from $\pi r^2$ to $2 \pi (r/2)^2 = \pi r^2 / 2$ - a factor of 2 in practice, but can be much better for graphs with clustered structure.
 
 **ALT (A\* with Landmarks and Triangle inequality).** A practical enhancement: precompute shortest distances from a small set of **landmark** vertices. Use these to compute tight admissible heuristics for A\*. Used in production road routing (OpenStreetMap, Google Maps).
 
@@ -872,13 +872,13 @@ Johnson's algorithm solves APSP for sparse graphs with negative edge weights (bu
 ```
 JOHNSON(G):
   1. Add new vertex q with zero-weight edges to all vertices
-  2. Run Bellman-Ford from q to compute h[v] = δ(q,v) for all v
-  3. Reweight: w'(u,v) = w(u,v) + h[u] - h[v] ≥ 0
+  2. Run Bellman-Ford from q to compute h[v] = \delta(q,v) for all v
+  3. Reweight: w'(u,v) = w(u,v) + h[u] - h[v] \geq 0
   4. For each source s: run Dijkstra with weights w'
-  5. Adjust distances: δ(u,v) = δ'(u,v) - h[u] + h[v]
+  5. Adjust distances: \delta(u,v) = \delta'(u,v) - h[u] + h[v]
 ```
 
-**Complexity.** $O(nm + n^2\log n)$ — one Bellman-Ford ($O(nm)$) plus $n$ Dijkstra runs ($O(n(n+m)\log n)$ total). Better than Floyd-Warshall's $O(n^3)$ for sparse graphs where $m \ll n^2$.
+**Complexity.** $O(nm + n^2\log n)$ - one Bellman-Ford ($O(nm)$) plus $n$ Dijkstra runs ($O(n(n+m)\log n)$ total). Better than Floyd-Warshall's $O(n^3)$ for sparse graphs where $m \ll n^2$.
 
 **Correctness of reweighting.** The reweighted distances $w'(u,v)$ are non-negative (by the triangle inequality on Bellman-Ford distances: $h[v] \leq h[u] + w(u,v)$). The reweighting preserves shortest paths: $\delta'(s,t) = \delta(s,t) + h[s] - h[t]$.
 
@@ -888,23 +888,23 @@ JOHNSON(G):
 
 ```
 PARALLEL-BFS(G, s):
-  frontier ← {s}
-  d[s] ← 0
+  frontier <- {s}
+  d[s] <- 0
   while frontier not empty:
-    next_frontier ← ∅
+    next_frontier <- \emptyset
     for each u in frontier (in parallel):
       for each neighbour v of u:
-        if d[v] = ∞ (using atomic compare-and-swap):
-          d[v] ← d[u] + 1
+        if d[v] = \infty (using atomic compare-and-swap):
+          d[v] <- d[u] + 1
           add v to next_frontier
-    frontier ← next_frontier
+    frontier <- next_frontier
 ```
 
 This is called **level-synchronous BFS** or **frontier BFS**. On a GPU with thousands of cores, all vertices in the frontier are processed simultaneously. For billion-node social network graphs, frontier BFS with GPU parallelism achieves throughputs of $10^9$ edges/second (NVIDIA cuGraph, 2023).
 
 **GraphBLAS.** The GraphBLAS standard (2017) expresses graph algorithms as sparse linear algebra over user-defined semirings. BFS becomes matrix-vector multiplication $\mathbf{v}_{k+1} = A \otimes \mathbf{v}_k$ over the (OR, AND) semiring (Boolean frontier propagation). Dijkstra becomes SpMV over the (min, +) tropical semiring. This unification enables highly optimised GPU implementations.
 
-**GNN aggregation as SpMM.** The GNN message-passing step $H^{[l+1]} = \sigma(\hat{A} H^{[l]} W)$ is a **Sparse Matrix times Dense Matrix** (SpMM) operation. Modern frameworks (PyG, DGL) implement this as a single GPU kernel. The time complexity is $O(m \cdot d)$ where $d$ is the feature dimension — identical to running BFS with a $d$-dimensional state vector per node.
+**GNN aggregation as SpMM.** The GNN message-passing step $H^{[l+1]} = \sigma(\hat{A} H^{[l]} W)$ is a **Sparse Matrix times Dense Matrix** (SpMM) operation. Modern frameworks (PyG, DGL) implement this as a single GPU kernel. The time complexity is $O(m \cdot d)$ where $d$ is the feature dimension - identical to running BFS with a $d$-dimensional state vector per node.
 
 ### 8.4 Approximation Algorithms
 
@@ -918,7 +918,7 @@ Given $n$ cities with metric distances (satisfying triangle inequality), find th
 Partition $V$ into two sets $S$ and $T$ to maximise the number of edges between $S$ and $T$.
 - Greedy: for each vertex, assign it to the side that maximises its cut contribution
 - Result: at least $m/2$ edges in the cut (since a random partition cuts each edge in expectation with probability $1/2$)
-- Goemans-Williamson SDP relaxation achieves $\approx 0.878$ approximation — a landmark result in approximation algorithms
+- Goemans-Williamson SDP relaxation achieves $\approx 0.878$ approximation - a landmark result in approximation algorithms
 
 ---
 
@@ -928,41 +928,41 @@ Partition $V$ into two sets $S$ and $T$ to maximise the number of edges between 
 
 ```
 GRAPH ALGORITHM SELECTION
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   What do you need?
-  │
-  ├─ TRAVERSAL / REACHABILITY
-  │   ├─ Shortest hop-distance? ──────────────────────► BFS  O(n+m)
-  │   ├─ Detect cycles? ─────────────────────────────► DFS  O(n+m)
-  │   ├─ Connected components? ──────────────────────► BFS or DFS
-  │   └─ SCCs (directed)? ───────────────────────────► Tarjan  O(n+m)
-  │
-  ├─ SHORTEST PATHS
-  │   ├─ Unweighted graph? ──────────────────────────► BFS  O(n+m)
-  │   ├─ Non-negative weights?
-  │   │   ├─ Single source ────────────────────────► Dijkstra  O((n+m)logn)
-  │   │   ├─ Single pair, heuristic known ─────────► A*  O(m logn)
-  │   │   └─ All pairs, dense graph ───────────────► Floyd-Warshall  O(n³)
-  │   ├─ Negative weights (no neg cycle)?
-  │   │   ├─ Single source ────────────────────────► Bellman-Ford  O(nm)
-  │   │   └─ All pairs, sparse graph ──────────────► Johnson's  O(nm + n²logn)
-  │   └─ Need negative cycle detection? ────────────► Bellman-Ford
-  │
-  ├─ SPANNING TREES
-  │   ├─ Sparse graph (m close to n) ────────────────► Kruskal  O(m logm)
-  │   └─ Dense graph (m close to n²) ───────────────► Prim  O((n+m)logn)
-  │
-  ├─ DAG PROBLEMS
-  │   ├─ Ordering with dependencies ────────────────► Topological Sort  O(n+m)
-  │   ├─ Shortest path in DAG ──────────────────────► DAG-DP  O(n+m)
-  │   └─ Critical path (project scheduling) ────────► DAG longest path  O(n+m)
-  │
-  └─ FLOW / CUT
-      ├─ Max flow (small graph) ─────────────────────► Ford-Fulkerson
-      └─ Max flow (large graph) ─────────────────────► Edmonds-Karp  O(nm²)
+  |
+  +- TRAVERSAL / REACHABILITY
+  |   +- Shortest hop-distance? ----------------------> BFS  O(n+m)
+  |   +- Detect cycles? -----------------------------> DFS  O(n+m)
+  |   +- Connected components? ----------------------> BFS or DFS
+  |   +- SCCs (directed)? ---------------------------> Tarjan  O(n+m)
+  |
+  +- SHORTEST PATHS
+  |   +- Unweighted graph? --------------------------> BFS  O(n+m)
+  |   +- Non-negative weights?
+  |   |   +- Single source ------------------------> Dijkstra  O((n+m)logn)
+  |   |   +- Single pair, heuristic known ---------> A*  O(m logn)
+  |   |   +- All pairs, dense graph ---------------> Floyd-Warshall  O(n^3)
+  |   +- Negative weights (no neg cycle)?
+  |   |   +- Single source ------------------------> Bellman-Ford  O(nm)
+  |   |   +- All pairs, sparse graph --------------> Johnson's  O(nm + n^2logn)
+  |   +- Need negative cycle detection? ------------> Bellman-Ford
+  |
+  +- SPANNING TREES
+  |   +- Sparse graph (m close to n) ----------------> Kruskal  O(m logm)
+  |   +- Dense graph (m close to n^2) ---------------> Prim  O((n+m)logn)
+  |
+  +- DAG PROBLEMS
+  |   +- Ordering with dependencies ----------------> Topological Sort  O(n+m)
+  |   +- Shortest path in DAG ----------------------> DAG-DP  O(n+m)
+  |   +- Critical path (project scheduling) --------> DAG longest path  O(n+m)
+  |
+  +- FLOW / CUT
+      +- Max flow (small graph) ---------------------> Ford-Fulkerson
+      +- Max flow (large graph) ---------------------> Edmonds-Karp  O(nm^2)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 9.2 Complexity Summary Table
@@ -996,7 +996,7 @@ Ten common bugs in graph algorithm implementations:
 
 4. **Missing the negative-cycle check.** Implementing Bellman-Ford without the final check-round misses the case where the answer is $-\infty$. Always run the $(n)$-th relaxation round and check for further improvement.
 
-5. **Off-by-one in Kahn's algorithm.** If the output list has fewer than $n$ vertices, a cycle exists — this is the cycle-detection mechanism. Not checking this means returning a partial topological order silently.
+5. **Off-by-one in Kahn's algorithm.** If the output list has fewer than $n$ vertices, a cycle exists - this is the cycle-detection mechanism. Not checking this means returning a partial topological order silently.
 
 6. **Not resetting the `onStack` flag in Tarjan.** When an SCC is popped, vertices must be marked as not on the stack. Otherwise, later DFS edges to those vertices incorrectly update `low` values.
 
@@ -1025,7 +1025,7 @@ Ten common bugs in graph algorithm implementations:
 | **Topological Sort** | PyTorch/JAX autograd forward pass; package dependency resolution (pip, conda); build system (Make, Bazel) ordering |
 | **Tarjan SCC** | Circular dependency detection in ML pipelines; knowledge graph cycle analysis; 2-SAT constraint solving in neural architecture search |
 | **Ford-Fulkerson / Edmonds-Karp** | Image segmentation (Boykov-Kolmogorov); network reliability; matching in bipartite graphs (Hungarian algorithm) |
-| **Max-Flow / Min-Cut** | Graph partitioning for distributed GNN training; community detection; min-cut spectral connection (Cheeger inequality → §04) |
+| **Max-Flow / Min-Cut** | Graph partitioning for distributed GNN training; community detection; min-cut spectral connection (Cheeger inequality -> 04) |
 | **Graph cuts (Boykov 2001)** | Semantic segmentation before deep learning (still used as post-processing); MRF energy minimisation |
 | **Parallel BFS (GPU)** | Trillion-edge social network analysis; billion-node knowledge graph traversal (NVIDIA cuGraph, GraphBLAS) |
 | **SpMM (GNN aggregation)** | Every GNN forward pass: $H^{[l+1]} = \sigma(\hat{A} H^{[l]} W)$ is sparse-dense matrix multiply |
@@ -1035,25 +1035,25 @@ Ten common bugs in graph algorithm implementations:
 The deepest connection between classical graph algorithms and modern AI is this:
 
 ```
-GRAPH ALGORITHM → GNN GENERALISATION
-════════════════════════════════════════════════════════════════════════
+GRAPH ALGORITHM -> GNN GENERALISATION
+========================================================================
 
-  BFS (hop-distance labels)           → GCN (learned node embeddings)
-  BFS frontier = layer k nodes        → GNN layer k receptive field
-  "distance from source"              → "representation of k-hop context"
-  Fixed aggregation (count)           → Learned aggregation (attention)
-  Deterministic (one answer)          → Parameterised (trained on data)
+  BFS (hop-distance labels)           -> GCN (learned node embeddings)
+  BFS frontier = layer k nodes        -> GNN layer k receptive field
+  "distance from source"              -> "representation of k-hop context"
+  Fixed aggregation (count)           -> Learned aggregation (attention)
+  Deterministic (one answer)          -> Parameterised (trained on data)
 
-  Dijkstra (shortest path)            → Neural shortest path (learned w)
-  Static weights w(u,v)               → Edge features in GNN
-  Priority queue extraction           → Attention-weighted aggregation
-  Exact optimal solution              → Approximate learned solution
+  Dijkstra (shortest path)            -> Neural shortest path (learned w)
+  Static weights w(u,v)               -> Edge features in GNN
+  Priority queue extraction           -> Attention-weighted aggregation
+  Exact optimal solution              -> Approximate learned solution
 
-  MST (global structure)              → Graph pooling (global summary)
-  Kruskal cut/cycle decisions         → Differentiable graph pooling
-  Minimum spanning structure          → Compressed graph representation
+  MST (global structure)              -> Graph pooling (global summary)
+  Kruskal cut/cycle decisions         -> Differentiable graph pooling
+  Minimum spanning structure          -> Compressed graph representation
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 Every GNN is a learned, parameterised, differentiable version of a classical graph algorithm. Understanding the classical algorithms provides:
@@ -1068,16 +1068,16 @@ Every GNN is a learned, parameterised, differentiable version of a classical gra
 
 | # | Mistake | Why It's Wrong | Fix |
 |---|---------|---------------|-----|
-| 1 | Using `d[v] = 0` to mark "unvisited" in BFS | Conflicts with actual distance 0 for source; BFS fails on any source other than node 0 | Use `d[v] = ∞` (infinity) for unvisited; only `d[s] = 0` is set at initialisation |
+| 1 | Using `d[v] = 0` to mark "unvisited" in BFS | Conflicts with actual distance 0 for source; BFS fails on any source other than node 0 | Use `d[v] = \infty` (infinity) for unvisited; only `d[s] = 0` is set at initialisation |
 | 2 | Applying Dijkstra to a graph with negative edge weights | Greedy extraction invariant breaks; can return incorrect distances | Use Bellman-Ford for negative weights; or reweight with Johnson's method |
 | 3 | Treating DFS finish-order as topological order (not reversing) | DFS finish order is the *reverse* topological order | Reverse the finish order list, or use Kahn's algorithm directly |
 | 4 | Confusing BFS shortest paths on weighted graphs | BFS counts hops, not weighted distances; gives wrong answers for weighted SSSP | Use Dijkstra (non-neg weights) or Bellman-Ford (arbitrary weights) |
 | 5 | Running Kruskal on a multigraph without handling parallel edges | Parallel edges can all be added if they connect different components; deduplication may be needed | Pre-process: keep only minimum-weight edge between each node pair if MST is the goal |
 | 6 | Declaring a graph a DAG after just one DFS component | DFS from one source only checks reachable vertices; cycles elsewhere go undetected | Run DFS from *all* unvisited vertices (outer loop) and check for back edges globally |
-| 7 | Floyd-Warshall with `D[i][i] = ∞` initial value | Diagonal should be 0 (distance from a node to itself); incorrect initialisations propagate errors throughout all iterations | Initialise `D[i][i] = 0` for all $i$ |
+| 7 | Floyd-Warshall with `D[i][i] = \infty` initial value | Diagonal should be 0 (distance from a node to itself); incorrect initialisations propagate errors throughout all iterations | Initialise `D[i][i] = 0` for all $i$ |
 | 8 | Max-flow without bidirectional residual edges | Cancellation of flow is impossible; algorithm gets stuck at suboptimal solutions | For every edge $(u,v)$ with capacity $c$, add a reverse edge $(v,u)$ with initial capacity 0 in the residual graph |
 | 9 | Prim's algorithm applied to a disconnected graph | Prim always starts from one vertex and grows; disconnected vertices are never added to the MST | Verify graph is connected before running Prim, or run Kruskal (which works on disconnected graphs, yielding a minimum spanning forest) |
-| 10 | Bellman-Ford stopping early when no relaxation occurs in a round | In the presence of negative edges, relaxation may restart later; early stopping can miss shorter paths | Only apply early stopping if a full round passes with zero relaxations — this is an optimisation, but must complete all $n-1$ rounds first |
+| 10 | Bellman-Ford stopping early when no relaxation occurs in a round | In the presence of negative edges, relaxation may restart later; early stopping can miss shorter paths | Only apply early stopping if a full round passes with zero relaxations - this is an optimisation, but must complete all $n-1$ rounds first |
 | 11 | A\* with an inadmissible heuristic | An overestimating heuristic causes A\* to expand a non-optimal path first, missing the true shortest path | Always verify $h(v) \leq \delta(v,t)$ (admissibility); Euclidean distance is safe for Euclidean graphs |
 | 12 | SCCs on an undirected graph using SCC algorithm | Every edge in an undirected graph is a bidirectional path; every connected component is a trivial SCC | For undirected graphs, simply find connected components with BFS/DFS |
 
@@ -1085,7 +1085,7 @@ Every GNN is a learned, parameterised, differentiable version of a classical gra
 
 ## 12. Exercises
 
-**Exercise 1 ★ — BFS Shortest Paths**
+**Exercise 1 * - BFS Shortest Paths**
 Consider the undirected graph with adjacency list:
 $0: [1, 2]$, $1: [0, 3, 4]$, $2: [0, 4]$, $3: [1, 5]$, $4: [1, 2, 5]$, $5: [3, 4]$.
 
@@ -1094,7 +1094,7 @@ $0: [1, 2]$, $1: [0, 3, 4]$, $2: [0, 4]$, $3: [1, 5]$, $4: [1, 2, 5]$, $5: [3, 4
 (c) How many distinct shortest paths are there from $0$ to $5$? Enumerate them.
 (d) Implement BFS in Python and verify your answer.
 
-**Exercise 2 ★ — DFS Edge Classification**
+**Exercise 2 * - DFS Edge Classification**
 Consider the directed graph with edges: $1 \to 2$, $1 \to 3$, $2 \to 4$, $3 \to 2$, $4 \to 3$, $4 \to 5$.
 
 (a) Run DFS starting from vertex 1. Record disc[] and fin[] timestamps.
@@ -1102,7 +1102,7 @@ Consider the directed graph with edges: $1 \to 2$, $1 \to 3$, $2 \to 4$, $3 \to 
 (c) Does this graph contain a cycle? Identify it.
 (d) Is a topological ordering possible? Explain why or why not.
 
-**Exercise 3 ★ — Dijkstra's Algorithm**
+**Exercise 3 * - Dijkstra's Algorithm**
 Run Dijkstra's algorithm on the weighted directed graph with edges:
 $(s,a,10), (s,b,3), (b,a,4), (b,c,8), (a,c,1), (c,d,2), (a,d,7)$.
 
@@ -1111,7 +1111,7 @@ $(s,a,10), (s,b,3), (b,a,4), (b,c,8), (a,c,1), (c,d,2), (a,d,7)$.
 (c) What is the shortest path from $s$ to $d$?
 (d) Why would Dijkstra fail if edge $(b,a)$ had weight $-6$? What is the correct answer, and which algorithm finds it?
 
-**Exercise 4 ★★ — Bellman-Ford and DP**
+**Exercise 4 ** - Bellman-Ford and DP**
 Given the directed graph with edges $(s,u,5), (s,v,8), (u,v,-3), (u,t,6), (v,t,2)$:
 
 (a) Show the Bellman-Ford DP table $d_i[v]$ for $i = 0, 1, 2, 3$ (rows = iterations, columns = vertices).
@@ -1119,7 +1119,7 @@ Given the directed graph with edges $(s,u,5), (s,v,8), (u,v,-3), (u,t,6), (v,t,2
 (c) Add edge $(t,u,-10)$. What happens to Bellman-Ford? Show the behaviour in the $n$-th round.
 (d) Explain the connection between Bellman-Ford's update rule and the Bellman equation for value iteration in RL.
 
-**Exercise 5 ★★ — Kruskal's MST with Union-Find**
+**Exercise 5 ** - Kruskal's MST with Union-Find**
 Implement Kruskal's algorithm with Union-Find (union by rank + path compression) for the graph with edges:
 $(A,B,4), (A,C,2), (B,C,5), (B,D,10), (C,D,3), (D,E,7), (C,E,8)$.
 
@@ -1128,7 +1128,7 @@ $(A,B,4), (A,C,2), (B,C,5), (B,D,10), (C,D,3), (D,E,7), (C,E,8)$.
 (c) Verify the MST satisfies the cut property for the cut $(\{A,C\}, \{B,D,E\})$.
 (d) How many distinct MSTs does this graph have? (Hint: are all edge weights distinct?)
 
-**Exercise 6 ★★ — Topological Sort and Autograd**
+**Exercise 6 ** - Topological Sort and Autograd**
 Consider a computation graph (DAG) with operations:
 $\text{matmul}_1: \{W_1, x\} \to z_1$, $\text{relu}: \{z_1\} \to a_1$, $\text{matmul}_2: \{W_2, a_1\} \to z_2$, $\text{loss}: \{z_2, y\} \to L$.
 
@@ -1138,7 +1138,7 @@ $\text{matmul}_1: \{W_1, x\} \to z_1$, $\text{relu}: \{z_1\} \to a_1$, $\text{ma
 (d) Give the reverse topological order for the backward pass.
 (e) Which gradients are accumulated (summed) rather than simply propagated? Why?
 
-**Exercise 7 ★★★ — Tarjan's SCC**
+**Exercise 7 *** - Tarjan's SCC**
 Run Tarjan's algorithm on the directed graph with edges:
 $0 \to 1$, $1 \to 2$, $2 \to 0$, $1 \to 3$, $3 \to 4$, $4 \to 5$, $5 \to 3$, $2 \to 6$, $6 \to 7$.
 
@@ -1147,7 +1147,7 @@ $0 \to 1$, $1 \to 2$, $2 \to 0$, $1 \to 3$, $3 \to 4$, $4 \to 5$, $5 \to 3$, $2 
 (c) List all SCCs and draw the condensation DAG.
 (d) Which SCC is a "source" (in-degree 0 in condensation) and which is a "sink"?
 
-**Exercise 8 ★★★ — Max-Flow and the Min-Cut Theorem**
+**Exercise 8 *** - Max-Flow and the Min-Cut Theorem**
 Consider the flow network with source $s$, sink $t$, and edges:
 $(s,a,10), (s,b,8), (a,c,7), (a,d,5), (b,c,6), (b,d,4), (c,t,9), (d,t,6)$.
 
@@ -1162,70 +1162,70 @@ $(s,a,10), (s,b,8), (a,c,7), (a,d,5), (b,c,6), (b,d,4), (c,t,9), (d,t,6)$.
 
 ### Backward: What This Section Builds On
 
-Graph algorithms are the *operational layer* on top of the structures defined in §01 and §02. Every algorithm in this section assumes familiarity with:
-- **§01 Graph Basics:** the definitions of paths, cycles, connectivity, and DAGs that make algorithm statements precise
-- **§02 Graph Representations:** the choice of adjacency list vs adjacency matrix vs CSR directly determines algorithm complexity — BFS on an adjacency list is $O(n+m)$; on an adjacency matrix it would be $O(n^2)$ even for sparse graphs
+Graph algorithms are the *operational layer* on top of the structures defined in 01 and 02. Every algorithm in this section assumes familiarity with:
+- **01 Graph Basics:** the definitions of paths, cycles, connectivity, and DAGs that make algorithm statements precise
+- **02 Graph Representations:** the choice of adjacency list vs adjacency matrix vs CSR directly determines algorithm complexity - BFS on an adjacency list is $O(n+m)$; on an adjacency matrix it would be $O(n^2)$ even for sparse graphs
 
 The algorithms also draw on core data structures: priority queues (Dijkstra, Prim, A\*), Union-Find (Kruskal), stacks (DFS, Tarjan), and queues (BFS, Kahn). These are assumed from a standard algorithms course.
 
 ### Forward: What This Section Enables
 
-**§04 Spectral Graph Theory** takes the graph objects studied here and analyses them through eigenvalues. The Cheeger inequality connects the min-cut (§7.4 above) to the Fiedler eigenvalue $\lambda_2$ of the Laplacian. Spectral clustering finds an approximate min-cut by computing $\lambda_2$'s eigenvector — a bridge from combinatorial algorithms (§03) to algebraic methods (§04).
+**04 Spectral Graph Theory** takes the graph objects studied here and analyses them through eigenvalues. The Cheeger inequality connects the min-cut (7.4 above) to the Fiedler eigenvalue $\lambda_2$ of the Laplacian. Spectral clustering finds an approximate min-cut by computing $\lambda_2$'s eigenvector - a bridge from combinatorial algorithms (03) to algebraic methods (04).
 
-**§05 Graph Neural Networks** makes the algorithmic connections explicit: GNN layers are parameterised, differentiable generalisations of BFS aggregation. Every classical algorithm in this section has a GNN counterpart: BFS → GCN, Dijkstra → neural shortest paths, MST → differentiable graph pooling. The expressiveness limitations of GNNs (WL test) are precisely characterised in terms of how many BFS hops the network can simulate.
+**05 Graph Neural Networks** makes the algorithmic connections explicit: GNN layers are parameterised, differentiable generalisations of BFS aggregation. Every classical algorithm in this section has a GNN counterpart: BFS -> GCN, Dijkstra -> neural shortest paths, MST -> differentiable graph pooling. The expressiveness limitations of GNNs (WL test) are precisely characterised in terms of how many BFS hops the network can simulate.
 
-**§22 Causal Inference** uses DAG algorithms — topological sort, d-separation, Markov blanket computation — to reason about causal structure. The do-calculus operates on causal DAGs; interventions modify the DAG structure; counterfactuals involve path analysis.
+**22 Causal Inference** uses DAG algorithms - topological sort, d-separation, Markov blanket computation - to reason about causal structure. The do-calculus operates on causal DAGs; interventions modify the DAG structure; counterfactuals involve path analysis.
 
 ```
-CURRICULUM POSITION: §03 GRAPH ALGORITHMS
-════════════════════════════════════════════════════════════════════════
+CURRICULUM POSITION: 03 GRAPH ALGORITHMS
+========================================================================
 
-  ┌─────────────────────────────────────────────────────────────────┐
-  │  CH. 11  GRAPH THEORY                                          │
-  │                                                                 │
-  │  §01 Graph Basics        §02 Graph Representations            │
-  │  (vocabulary)            (data structures)                     │
-  │            ↓                    ↓                             │
-  │       ╔══════════════════════════════════╗                    │
-  │       ║  §03 GRAPH ALGORITHMS  ← YOU ARE HERE                 ║
-  │       ║  BFS · DFS · Dijkstra · Bellman-Ford                  ║
-  │       ║  Kruskal · Prim · Topo Sort · SCC                     ║
-  │       ║  Ford-Fulkerson · Max-Flow / Min-Cut                   ║
-  │       ╚══════════════════════════════════╝                    │
-  │                    ↓                                           │
-  │       §04 Spectral Graph Theory                               │
-  │       (Laplacian eigenvalues, Fiedler, spectral clustering)    │
-  │                    ↓                                           │
-  │       §05 Graph Neural Networks                               │
-  │       (MPNN, GCN, GAT — learned graph algorithms)             │
-  │                    ↓                                           │
-  │       §06 Random Graphs                                       │
-  │       (probabilistic graph models, phase transitions)          │
-  └─────────────────────────────────────────────────────────────────┘
+  +-----------------------------------------------------------------+
+  |  CH. 11  GRAPH THEORY                                          |
+  |                                                                 |
+  |  01 Graph Basics        02 Graph Representations            |
+  |  (vocabulary)            (data structures)                     |
+  |            down                    down                             |
+  |       +==================================+                    |
+  |       |  03 GRAPH ALGORITHMS  <- YOU ARE HERE                 |
+  |       |  BFS * DFS * Dijkstra * Bellman-Ford                  |
+  |       |  Kruskal * Prim * Topo Sort * SCC                     |
+  |       |  Ford-Fulkerson * Max-Flow / Min-Cut                   |
+  |       +==================================+                    |
+  |                    down                                           |
+  |       04 Spectral Graph Theory                               |
+  |       (Laplacian eigenvalues, Fiedler, spectral clustering)    |
+  |                    down                                           |
+  |       05 Graph Neural Networks                               |
+  |       (MPNN, GCN, GAT - learned graph algorithms)             |
+  |                    down                                           |
+  |       06 Random Graphs                                       |
+  |       (probabilistic graph models, phase transitions)          |
+  +-----------------------------------------------------------------+
 
   Prerequisite chains into this section:
-    §01 ─── definitions, paths, DAGs
-    §02 ─── adjacency list (O(n+m) complexity)
-    Ch.02 ── matrix multiply (Floyd-Warshall, adjacency matrix BFS)
+    01 --- definitions, paths, DAGs
+    02 --- adjacency list (O(n+m) complexity)
+    Ch.02 -- matrix multiply (Floyd-Warshall, adjacency matrix BFS)
 
   Where this section feeds:
-    §04 ─── min-cut ↔ Cheeger constant; BFS layers ↔ graph spectrum
-    §05 ─── BFS = GNN receptive field; topo sort = autograd ordering
-    §22 ─── DAG algorithms for causal inference
+    04 --- min-cut <-> Cheeger constant; BFS layers <-> graph spectrum
+    05 --- BFS = GNN receptive field; topo sort = autograd ordering
+    22 --- DAG algorithms for causal inference
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### Further Reading
 
-1. **Cormen, Leiserson, Rivest, Stein** — *Introduction to Algorithms* (CLRS), Ch. 22–26: the definitive reference for BFS, DFS, SSSP, MST, max-flow with complete proofs
-2. **Kleinberg & Tardos** — *Algorithm Design*, Ch. 3–4, 7: excellent motivating examples for graph algorithms and flows
-3. **Sedgewick & Wayne** — *Algorithms* (4th ed.), Part II: practical Java implementations with visualisations
-4. **Kepner & Gilbert** — *Graph Algorithms in the Language of Linear Algebra* (2011): GraphBLAS and semiring formulations
-5. **Boykov & Kolmogorov** — "An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision" (PAMI 2004): graph cuts for CV
-6. **Leskovec, Rajaraman & Ullman** — *Mining of Massive Datasets*, Ch. 10: graph algorithms at web scale
+1. **Cormen, Leiserson, Rivest, Stein** - *Introduction to Algorithms* (CLRS), Ch. 22-26: the definitive reference for BFS, DFS, SSSP, MST, max-flow with complete proofs
+2. **Kleinberg & Tardos** - *Algorithm Design*, Ch. 3-4, 7: excellent motivating examples for graph algorithms and flows
+3. **Sedgewick & Wayne** - *Algorithms* (4th ed.), Part II: practical Java implementations with visualisations
+4. **Kepner & Gilbert** - *Graph Algorithms in the Language of Linear Algebra* (2011): GraphBLAS and semiring formulations
+5. **Boykov & Kolmogorov** - "An Experimental Comparison of Min-Cut/Max-Flow Algorithms for Energy Minimization in Vision" (PAMI 2004): graph cuts for CV
+6. **Leskovec, Rajaraman & Ullman** - *Mining of Massive Datasets*, Ch. 10: graph algorithms at web scale
 
-[← Back to Graph Theory](../README.md) | [Previous: Graph Representations ←](../02-Graph-Representations/notes.md) | [Next: Spectral Graph Theory →](../04-Spectral-Graph-Theory/notes.md)
+[<- Back to Graph Theory](../README.md) | [Previous: Graph Representations <-](../02-Graph-Representations/notes.md) | [Next: Spectral Graph Theory ->](../04-Spectral-Graph-Theory/notes.md)
 
 ---
 
@@ -1239,33 +1239,33 @@ CURRICULUM POSITION: §03 GRAPH ALGORITHMS
 
 | Step | Extract | d[s] | d[a] | d[b] | d[c] | d[d] | Relaxed |
 |------|---------|------|------|------|------|------|---------|
-| 0 | — | 0 | ∞ | ∞ | ∞ | ∞ | init |
-| 1 | s (0) | 0 | 4 | 2 | ∞ | ∞ | s→a=4, s→b=2 |
-| 2 | b (2) | 0 | 3 | 2 | 7 | ∞ | b→a: 2+1=3<4 ✓, b→c: 2+5=7 |
-| 3 | a (3) | 0 | 3 | 2 | 7 | 6 | a→d: 3+3=6 |
-| 4 | c (7) | 0 | 3 | 2 | 7 | 6 | c→d: 7+1=8>6, no update |
+| 0 | - | 0 | \infty | \infty | \infty | \infty | init |
+| 1 | s (0) | 0 | 4 | 2 | \infty | \infty | s->a=4, s->b=2 |
+| 2 | b (2) | 0 | 3 | 2 | 7 | \infty | b->a: 2+1=3<4 OK, b->c: 2+5=7 |
+| 3 | a (3) | 0 | 3 | 2 | 7 | 6 | a->d: 3+3=6 |
+| 4 | c (7) | 0 | 3 | 2 | 7 | 6 | c->d: 7+1=8>6, no update |
 | 5 | d (6) | 0 | 3 | 2 | 7 | 6 | no outgoing edges |
 
 **Result:** $d = \{s:0, a:3, b:2, c:7, d:6\}$.
-- Shortest path to $d$: $s \to b \to a \to d$ (cost $2+1+3=6$). ✓
-- Key observation: $b$ was extracted before $a$ (2 < 4), and when $b$ was processed, it improved $d[a]$ from 4 to 3. This is the power of Dijkstra's greedy approach — later extraction can improve earlier estimates.
+- Shortest path to $d$: $s \to b \to a \to d$ (cost $2+1+3=6$). OK
+- Key observation: $b$ was extracted before $a$ (2 < 4), and when $b$ was processed, it improved $d[a]$ from 4 to 3. This is the power of Dijkstra's greedy approach - later extraction can improve earlier estimates.
 
 ### A.2 Complete Bellman-Ford Trace
 
 **Graph.** $n=4$ nodes $\{s,u,v,t\}$, edges: $(s,u,6)$, $(s,v,7)$, $(u,v,8)$, $(u,t,-4)$, $(v,t,9)$, $(u,w,-2)$ where $w=v$, $(v,u,-3)$.
 
-Simplified: nodes $\{s,a,b,t\}$, edges $(s,a,5)$, $(s,b,6)$, $(a,b,-4)$, $(b,a,-3)$ — note: this creates a negative cycle $a \to b \to a$ of weight $-7$.
+Simplified: nodes $\{s,a,b,t\}$, edges $(s,a,5)$, $(s,b,6)$, $(a,b,-4)$, $(b,a,-3)$ - note: this creates a negative cycle $a \to b \to a$ of weight $-7$.
 
 Let's use a clean no-neg-cycle example: nodes $\{s,a,b,t\}$, edges $(s,a,3)$, $(s,b,6)$, $(a,t,7)$, $(b,a,-2)$, $(b,t,4)$.
 
 | Round | d[s] | d[a] | d[b] | d[t] |
 |-------|------|------|------|------|
-| 0 (init) | 0 | ∞ | ∞ | ∞ |
-| 1 | 0 | 3 | 6 | min(∞,3+7,6+4)=10 |
+| 0 (init) | 0 | \infty | \infty | \infty |
+| 1 | 0 | 3 | 6 | min(\infty,3+7,6+4)=10 |
 | 2 | 0 | min(3,6-2)=3 | 6 | min(10,3+7,6+4)=10 |
 | 3 | 0 | 3 | 6 | 10 |
 
-**Result:** $d[t] = 10$ via $s \to b \to t$ (cost $6+4$) or $s \to a \to t$ (cost $3+7$) — both give 10. No negative cycle (round 3 makes no changes). ✓
+**Result:** $d[t] = 10$ via $s \to b \to t$ (cost $6+4$) or $s \to a \to t$ (cost $3+7$) - both give 10. No negative cycle (round 3 makes no changes). OK
 
 ### A.3 Tarjan SCC: Detailed Trace
 
@@ -1277,23 +1277,23 @@ DFS from node 0:
 Visit 0: disc[0]=0, low[0]=0, stack=[0]
   Visit 1: disc[1]=1, low[1]=1, stack=[0,1]
     Visit 2: disc[2]=2, low[2]=2, stack=[0,1,2]
-      Edge 2→0: 0 is on stack → low[2] = min(2,disc[0]) = 0
-    Finish 2: low[2]=0 ≠ disc[2]=2 → not SCC root
+      Edge 2->0: 0 is on stack -> low[2] = min(2,disc[0]) = 0
+    Finish 2: low[2]=0 \neq disc[2]=2 -> not SCC root
     Back-propagate: low[1] = min(1,low[2]) = 0
     Visit 3: disc[3]=3, low[3]=3, stack=[0,1,2,3]
       Visit 4: disc[4]=4, low[4]=4, stack=[0,1,2,3,4]
-        Edge 4→1: 1 is on stack → low[4] = min(4,disc[1]) = 1
-      Finish 4: low[4]=1 ≠ disc[4]=4 → not SCC root
+        Edge 4->1: 1 is on stack -> low[4] = min(4,disc[1]) = 1
+      Finish 4: low[4]=1 \neq disc[4]=4 -> not SCC root
       Back-propagate: low[3] = min(3,low[4]) = 1
-    Finish 3: low[3]=1 ≠ disc[3]=3 → not SCC root
+    Finish 3: low[3]=1 \neq disc[3]=3 -> not SCC root
     Back-propagate: low[1] = min(0,low[3]) = 0
-  Finish 1: low[1]=0 ≠ disc[1]=1 → not SCC root
+  Finish 1: low[1]=0 \neq disc[1]=1 -> not SCC root
   Back-propagate: low[0] = min(0,low[1]) = 0
-Finish 0: low[0]=0 = disc[0]=0 → SCC ROOT!
-  Pop stack until 0: {0,1,2,3,4} → but wait...
+Finish 0: low[0]=0 = disc[0]=0 -> SCC ROOT!
+  Pop stack until 0: {0,1,2,3,4} -> but wait...
 ```
 
-Actually node 0 is the first on the stack. All nodes $\{0,1,2,3,4\}$ pop as one SCC only if they're all mutually reachable. Let's verify: $0 \to 1 \to 3 \to 4 \to 1$ — is 3 reachable from 0? Yes. Is 0 reachable from 3? $3 \to 4 \to 1 \to 2 \to 0$. Yes! So SCCs: $\{0,1,2,3,4\}$ form one SCC in this graph.
+Actually node 0 is the first on the stack. All nodes $\{0,1,2,3,4\}$ pop as one SCC only if they're all mutually reachable. Let's verify: $0 \to 1 \to 3 \to 4 \to 1$ - is 3 reachable from 0? Yes. Is 0 reachable from 3? $3 \to 4 \to 1 \to 2 \to 0$. Yes! So SCCs: $\{0,1,2,3,4\}$ form one SCC in this graph.
 
 For distinct SCCs, use the graph from Exercise 7: $0\to1\to2\to0$ (SCC $\{0,1,2\}$), $3\to4\to5\to3$ (SCC $\{3,4,5\}$), links $2\to6$, $6\to7$ (singletons $\{6\}$, $\{7\}$).
 
@@ -1304,9 +1304,9 @@ For distinct SCCs, use the graph from Exercise 7: $0\to1\to2\to0$ (SCC $\{0,1,2\
 ### B.1 Why Dijkstra is O((n+m) log n)
 
 The binary-heap-based priority queue supports:
-- `INSERT` in $O(\log n)$ — adding $n$ vertices initially: $O(n \log n)$
-- `EXTRACT-MIN` in $O(\log n)$ — called $n$ times: $O(n \log n)$
-- `DECREASE-KEY` in $O(\log n)$ — called at most once per edge: $O(m \log n)$
+- `INSERT` in $O(\log n)$ - adding $n$ vertices initially: $O(n \log n)$
+- `EXTRACT-MIN` in $O(\log n)$ - called $n$ times: $O(n \log n)$
+- `DECREASE-KEY` in $O(\log n)$ - called at most once per edge: $O(m \log n)$
 
 Total: $O((n+m)\log n)$.
 
@@ -1325,17 +1325,17 @@ $$d^{(k)}[i][j] = \min\underbrace{d^{(k-1)}[i][j]}_{\text{don't use }k},\; \unde
 
 After $n$ iterations (all vertices considered as potential intermediates), $d^{(n)}[i][j] = \delta(i,j)$. $\square$
 
-**In-place update.** The transition $d^{(k)} \to d^{(k+1)}$ can be done in-place (the same matrix) because $d^{(k)}[i][k] = d^{(k-1)}[i][k]$ and $d^{(k)}[k][j] = d^{(k-1)}[k][j]$ — the row $k$ and column $k$ do not change in iteration $k$.
+**In-place update.** The transition $d^{(k)} \to d^{(k+1)}$ can be done in-place (the same matrix) because $d^{(k)}[i][k] = d^{(k-1)}[i][k]$ and $d^{(k)}[k][j] = d^{(k-1)}[k][j]$ - the row $k$ and column $k$ do not change in iteration $k$.
 
 ### B.3 Union-Find Complexity: Inverse Ackermann
 
-The **inverse Ackermann function** $\alpha(n)$ grows so slowly that $\alpha(n) \leq 4$ for any $n$ realistically encountered in practice ($\alpha(n) > 4$ only for $n > 2^{2^{2^{65536}}}$). Thus Union-Find with path compression + union by rank runs in $O(\alpha(n))$ amortised per operation — effectively $O(1)$.
+The **inverse Ackermann function** $\alpha(n)$ grows so slowly that $\alpha(n) \leq 4$ for any $n$ realistically encountered in practice ($\alpha(n) > 4$ only for $n > 2^{2^{2^{65536}}}$). Thus Union-Find with path compression + union by rank runs in $O(\alpha(n))$ amortised per operation - effectively $O(1)$.
 
 **Path compression.** During `FIND(x)`, after finding the root $r$, set the parent of every node on the path $x \to r$ directly to $r$. This flattens the tree for future queries.
 
 **Union by rank.** When merging two trees, attach the shallower tree's root as a child of the taller tree's root. With rank as an upper bound on height, no tree gets taller than $O(\log n)$.
 
-Together, these two optimisations achieve $O(n \alpha(n))$ for any sequence of $n$ operations — proven by Tarjan (1975), completing the complexity analysis of Kruskal's algorithm.
+Together, these two optimisations achieve $O(n \alpha(n))$ for any sequence of $n$ operations - proven by Tarjan (1975), completing the complexity analysis of Kruskal's algorithm.
 
 ### B.4 Max-Flow Integrality and Network Applications
 
@@ -1363,7 +1363,7 @@ Let $\mathbf{v} \in \{0,1\}^n$ be the current frontier (1 = in frontier, 0 = not
 $$\mathbf{v}_{k+1} = (A \cdot \mathbf{v}_k) \setminus \bigcup_{i \leq k} \mathbf{v}_i$$
 where $\cdot$ is Boolean matrix-vector multiply and $\setminus$ removes already-visited nodes.
 
-This formulation maps directly to the **GraphBLAS** interface: `vxm` (vector-times-matrix) over a user-defined semiring. For BFS, the semiring is (OR, AND). For shortest paths, the semiring is (min, +) — the **tropical semiring**.
+This formulation maps directly to the **GraphBLAS** interface: `vxm` (vector-times-matrix) over a user-defined semiring. For BFS, the semiring is (OR, AND). For shortest paths, the semiring is (min, +) - the **tropical semiring**.
 
 ### C.2 Shortest Paths via Tropical Algebra
 
@@ -1382,20 +1382,20 @@ i.e., the tropical matrix power gives all-pairs shortest paths.
 **Bellman-Ford** computes tropical matrix-vector products:
 $$\mathbf{d}^{(k)} = W^{\otimes k} \otimes \mathbf{d}^{(0)}$$
 
-This algebraic view unifies shortest-path algorithms under the theory of algebraic path problems. The same framework extends to other graph algorithms by changing the semiring: (max, min) for widest paths, (max, ×) for maximum reliability paths.
+This algebraic view unifies shortest-path algorithms under the theory of algebraic path problems. The same framework extends to other graph algorithms by changing the semiring: (max, min) for widest paths, (max, \times) for maximum reliability paths.
 
 ### C.3 The Adjacency Matrix Power and Walk Counting
 
-From §02, recall that $(A^k)[i][j]$ counts the number of walks of length exactly $k$ from $i$ to $j$.
+From 02, recall that $(A^k)[i][j]$ counts the number of walks of length exactly $k$ from $i$ to $j$.
 
-**BFS connection.** The first $k$ for which $(A^k)[s][v] > 0$ and $(A^{k-1})[s][v] = 0$ is exactly $d(s,v)$ — the BFS distance from $s$ to $v$.
+**BFS connection.** The first $k$ for which $(A^k)[s][v] > 0$ and $(A^{k-1})[s][v] = 0$ is exactly $d(s,v)$ - the BFS distance from $s$ to $v$.
 
 **Reachability.** Over the Boolean semiring: $(A \vee A^2 \vee \cdots \vee A^n)[i][j] = 1$ iff $j$ is reachable from $i$ in $\leq n$ hops. Computing this is the transitive closure problem, equivalent to Floyd-Warshall over Booleans.
 
 **GNN aggregation.** A $k$-layer GNN with linear activations computes:
 $$H^{[k]} = (\hat{A})^k H^{[0]} \prod_{l=0}^{k-1} W^{[l]}$$
 
-The matrix $(\hat{A})^k[i][j]$ measures how much node $j$ contributes to node $i$'s representation — proportional to the number of weighted walks of length $k$ from $j$ to $i$. This is the algebraic content of "receptive field = BFS $k$-hop neighbourhood."
+The matrix $(\hat{A})^k[i][j]$ measures how much node $j$ contributes to node $i$'s representation - proportional to the number of weighted walks of length $k$ from $j$ to $i$. This is the algebraic content of "receptive field = BFS $k$-hop neighbourhood."
 
 ---
 
@@ -1406,7 +1406,7 @@ The matrix $(\hat{A})^k[i][j]$ measures how much node $j$ contributes to node $i
 | Library | Algorithms | Strength |
 |---------|-----------|---------|
 | `networkx` | All classical algorithms | Easy to use, educational; slow for large graphs |
-| `igraph` | BFS, DFS, SP, MST, community | C-backed; 10-100× faster than NetworkX |
+| `igraph` | BFS, DFS, SP, MST, community | C-backed; 10-100\times faster than NetworkX |
 | `scipy.sparse` | SpMV, matrix-vector BFS | Efficient sparse matrix operations |
 | `cuGraph` (NVIDIA) | BFS, SSSP, PageRank, MST | GPU-accelerated; for billion-node graphs |
 | `PyG` / `DGL` | GNN message passing (SpMM) | Deep learning on graphs; CUDA support |
@@ -1437,7 +1437,7 @@ The matrix $(\hat{A})^k[i][j]$ measures how much node $j$ contributes to node $i
 | Large | $n < 10^9$ | $m < 10^{11}$ | Distributed (GraphX, Pregel), or GPU (cuGraph) |
 | Massive | $n > 10^9$ | $m > 10^{11}$ | Streaming algorithms, sketches, sampling |
 
-The Facebook social graph (2012): $n \approx 10^9$ nodes, $m \approx 10^{11}$ edges. BFS on this graph requires distributed computing — each frontier step involves terabytes of edge data.
+The Facebook social graph (2012): $n \approx 10^9$ nodes, $m \approx 10^{11}$ edges. BFS on this graph requires distributed computing - each frontier step involves terabytes of edge data.
 
 ### D.4 NetworkX Quick Reference
 
@@ -1518,7 +1518,7 @@ $(1) \Rightarrow (2)$: If there were an augmenting path, we could increase $|f|$
 $(2) \Rightarrow (3)$: If no $s \leadsto t$ path in $G_f$, let $S = \{v : s \leadsto v \text{ in } G_f\}$. Then $s \in S$, $t \notin S$, so $(S, V\setminus S)$ is an $s$-$t$ cut. For every edge $(u,v)$ with $u \in S$, $v \notin S$: we need $c_f(u,v) = 0$, i.e., $f(u,v) = c(u,v)$ (saturated). For every edge $(v,u)$ with $v \notin S$, $u \in S$: $c_f(v,u) = 0$, i.e., $f(v,u) = 0$ (no backward cancellation possible). Therefore:
 $$|f| = \sum_{u\in S, v\notin S} f(u,v) - \sum_{v\notin S, u\in S} f(v,u) = \sum_{u\in S,v\notin S} c(u,v) - 0 = c(S,T)$$
 
-$(3) \Rightarrow (1)$: By weak duality, $|f| \leq c(S,T)$ for any cut. If $|f| = c(S,T)$, then $f$ achieves the lower bound on cut capacity — no flow can exceed the cut capacity, so $f$ is maximum. $\square$
+$(3) \Rightarrow (1)$: By weak duality, $|f| \leq c(S,T)$ for any cut. If $|f| = c(S,T)$, then $f$ achieves the lower bound on cut capacity - no flow can exceed the cut capacity, so $f$ is maximum. $\square$
 
 ### E.4 DFS Parenthesis Theorem (Full Proof)
 
@@ -1526,9 +1526,9 @@ $(3) \Rightarrow (1)$: By weak duality, $|f| \leq c(S,T)$ for any cut. If $|f| =
 
 **Proof.** WLOG assume $\text{disc}[u] < \text{disc}[v]$ (u is discovered before v).
 
-**Case 1: $\text{disc}[v] > \text{fin}[u]$** — $v$ is discovered after $u$ finishes. The intervals $[disc[u], fin[u]]$ and $[disc[v], fin[v]]$ are disjoint.
+**Case 1: $\text{disc}[v] > \text{fin}[u]$** - $v$ is discovered after $u$ finishes. The intervals $[disc[u], fin[u]]$ and $[disc[v], fin[v]]$ are disjoint.
 
-**Case 2: $\text{disc}[v] < \text{fin}[u]$** — $v$ is discovered while $u$ is still on the stack (GREY). Then $v$ must be a descendant of $u$ in the DFS tree (because $u$ is still open when $v$ is opened, meaning $v$ is inside $u$'s subtree). Consequently, $\text{fin}[v] < \text{fin}[u]$ — $v$ finishes before $u$ finishes. So $[\text{disc}[v], \text{fin}[v]] \subset [\text{disc}[u], \text{fin}[u]]$. $\square$
+**Case 2: $\text{disc}[v] < \text{fin}[u]$** - $v$ is discovered while $u$ is still on the stack (GREY). Then $v$ must be a descendant of $u$ in the DFS tree (because $u$ is still open when $v$ is opened, meaning $v$ is inside $u$'s subtree). Consequently, $\text{fin}[v] < \text{fin}[u]$ - $v$ finishes before $u$ finishes. So $[\text{disc}[v], \text{fin}[v]] \subset [\text{disc}[u], \text{fin}[u]]$. $\square$
 
 **Corollary.** $v$ is a descendant of $u$ in the DFS tree iff $[\text{disc}[v], \text{fin}[v]] \subset [\text{disc}[u], \text{fin}[u]]$.
 
@@ -1541,18 +1541,18 @@ BFS:           Queue + visited set.  O(n+m).  SSSP (unweighted).
 DFS:           Stack/recursion + timestamps.  O(n+m).  Cycle detection, SCC.
 Dijkstra:      Min-heap + relax.  O((n+m)logn).  SSSP non-neg weights.
 Bellman-Ford:  n-1 rounds, relax all edges.  O(nm).  SSSP any weights.
-Floyd-Warshall: DP D[i][k]+D[k][j].  O(n³).  APSP.
+Floyd-Warshall: DP D[i][k]+D[k][j].  O(n^3).  APSP.
 A*:            Dijkstra + heuristic h(v).  O(m logn).  Single-pair SP.
 Kruskal:       Sort edges + Union-Find.  O(m logm).  MST.
 Prim:          Min-heap from any root.  O((n+m)logn).  MST.
 Kahn:          In-degree queue.  O(n+m).  Topological sort.
 Tarjan SCC:    DFS + low-link + stack.  O(n+m).  SCC directed graph.
 Ford-Fulkerson: Residual graph + augmenting paths.  O(Ef). Max flow.
-Edmonds-Karp:  BFS augmenting paths.  O(nm²).  Max flow poly guarantee.
+Edmonds-Karp:  BFS augmenting paths.  O(nm^2).  Max flow poly guarantee.
 
 KEY INVARIANTS:
-  Dijkstra:   d[u] = δ(s,u) when u extracted.
-  Bellman-Ford: after k rounds, d[v] = δ via ≤k edges.
+  Dijkstra:   d[u] = \delta(s,u) when u extracted.
+  Bellman-Ford: after k rounds, d[v] = \delta via \leqk edges.
   Kruskal:    each added edge is min-weight crossing some cut.
   Tarjan:     v is SCC root iff low[v] = disc[v].
   MaxFlow:    optimal iff no augmenting path in residual graph.
@@ -1594,15 +1594,15 @@ The Transformer attention mechanism (Vaswani et al., 2017) can be interpreted as
 In self-attention:
 - Each token $i$ is a node
 - Edge weights $\alpha_{ij} = \text{softmax}(\mathbf{q}_i \cdot \mathbf{k}_j / \sqrt{d})$ are learned attention scores
-- Aggregation: $\mathbf{h}_i = \sum_j \alpha_{ij} \mathbf{v}_j$ — a weighted sum over all tokens
+- Aggregation: $\mathbf{h}_i = \sum_j \alpha_{ij} \mathbf{v}_j$ - a weighted sum over all tokens
 
-This is equivalent to one step of **graph attention** on the complete graph. Sparse transformers (Longformer, BigBird) restrict attention to a sparse graph, reducing complexity from $O(n^2)$ to $O(n \log n)$ or $O(n)$ — precisely the graph-algorithmic idea of working with sparse adjacency structures.
+This is equivalent to one step of **graph attention** on the complete graph. Sparse transformers (Longformer, BigBird) restrict attention to a sparse graph, reducing complexity from $O(n^2)$ to $O(n \log n)$ or $O(n)$ - precisely the graph-algorithmic idea of working with sparse adjacency structures.
 
-**Graph Attention Networks (GAT, Veličković et al. 2018)** apply the same attention mechanism to graph neighbourhoods:
+**Graph Attention Networks (GAT, Velickovic et al. 2018)** apply the same attention mechanism to graph neighbourhoods:
 $$\alpha_{ij} = \text{softmax}_j\left(\text{LeakyReLU}\!\left(\mathbf{a}^\top [\mathbf{W}\mathbf{h}_i \| \mathbf{W}\mathbf{h}_j]\right)\right)$$
 $$\mathbf{h}_i' = \sigma\!\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij} \mathbf{W} \mathbf{h}_j\right)$$
 
-The support is restricted to the graph's actual edge set — sparse attention on the graph's adjacency structure. The algorithm is BFS aggregation with learned, node-pair-specific weights.
+The support is restricted to the graph's actual edge set - sparse attention on the graph's adjacency structure. The algorithm is BFS aggregation with learned, node-pair-specific weights.
 
 ### G.3 Knowledge Graph Reasoning as Shortest Path
 
@@ -1610,7 +1610,7 @@ Knowledge graphs encode entities and relations as directed, labelled edges: (ent
 
 **Rule-based reasoning** finds shortest paths or bounded-length paths in the KG. This is multi-hop BFS: find all paths from "president of France" of length $\leq k$ that end at a person via a "spouse" edge.
 
-**Embedding-based reasoning** (TransE, RotatE, ComplEx) learns entity embeddings $\mathbf{e}_i$ and relation embeddings $\mathbf{r}$ such that $\mathbf{e}_i + \mathbf{r} \approx \mathbf{e}_j$ for true triples $(i,r,j)$. Query answering becomes nearest-neighbour search in embedding space — the graph structure is compiled into the embeddings.
+**Embedding-based reasoning** (TransE, RotatE, ComplEx) learns entity embeddings $\mathbf{e}_i$ and relation embeddings $\mathbf{r}$ such that $\mathbf{e}_i + \mathbf{r} \approx \mathbf{e}_j$ for true triples $(i,r,j)$. Query answering becomes nearest-neighbour search in embedding space - the graph structure is compiled into the embeddings.
 
 **Neural graph reasoning** (NeuralLP, DRUM, NBFNet) explicitly runs differentiable versions of Bellman-Ford or BFS on the KG, learning edge weights that capture relation semantics. NBFNet (Neural Bellman-Ford Networks, Zhu et al. 2021) initialises boundary conditions at the query entity and propagates generalised Bellman-Ford messages, achieving state-of-the-art on KG link prediction.
 
@@ -1625,7 +1625,7 @@ A path is blocked if it contains:
 - A fork $A \leftarrow B \rightarrow C$ with $B \in Z$ (conditioning on common cause blocks)
 - A collider $A \to B \leftarrow C$ with $B \notin Z$ and no descendant of $B$ in $Z$ (collider naturally blocks the path)
 
-**Algorithmic test.** Given a DAG and sets $X$, $Y$, $Z$, determine d-separation by BFS/DFS on the **moral graph** (marry co-parents, drop edge directions) restricted by the Bayes Ball algorithm. This is a graph reachability computation — Dijkstra and BFS on a transformed graph.
+**Algorithmic test.** Given a DAG and sets $X$, $Y$, $Z$, determine d-separation by BFS/DFS on the **moral graph** (marry co-parents, drop edge directions) restricted by the Bayes Ball algorithm. This is a graph reachability computation - Dijkstra and BFS on a transformed graph.
 
 **Interventional queries** (do-calculus) modify the DAG by removing incoming edges to the intervened variable and running independence tests on the modified graph. Every do-calculus rule reduces to graph reachability computations.
 
@@ -1636,7 +1636,7 @@ Neural Architecture Search (NAS) frames architecture design as optimisation over
 - Edges are operations (conv, relu, attention, etc.)
 - Multiple paths from input to output = skip connections
 
-**DARTS** (Differentiable Architecture Search, Liu et al. 2019) relaxes the discrete DAG into a continuous optimisation: each edge carries a mixture of all candidate operations, and the mixture weights are jointly optimised with network weights by gradient descent. The final architecture is recovered by picking the argmax operation per edge — a topological sort on the final discrete DAG.
+**DARTS** (Differentiable Architecture Search, Liu et al. 2019) relaxes the discrete DAG into a continuous optimisation: each edge carries a mixture of all candidate operations, and the mixture weights are jointly optimised with network weights by gradient descent. The final architecture is recovered by picking the argmax operation per edge - a topological sort on the final discrete DAG.
 
 **Cell-based NAS** restricts the search to small DAG templates (cells) that are stacked. The cell DAG is searched over, then replicated. This reduces the search space from all possible architectures to all possible DAGs with $k$ nodes and allowed operations.
 
@@ -1653,19 +1653,19 @@ Neural Architecture Search (NAS) frames architecture design as optimisation over
 
 **Q2.** Why can Bellman-Ford handle negative edge weights but Dijkstra cannot?
 
-*Answer:* Dijkstra's correctness relies on the greedy invariant: once a vertex is extracted from the priority queue, its distance estimate is final and correct. This holds because non-negative edge weights guarantee that any later path through unvisited vertices cannot improve the distance. With negative edge weights, a vertex extracted "early" might later be improved via a path that includes a negative edge — breaking the invariant. Bellman-Ford avoids this by not committing to any distance estimate prematurely: it runs $n-1$ full rounds of relaxation, allowing distances to be improved in any order.
+*Answer:* Dijkstra's correctness relies on the greedy invariant: once a vertex is extracted from the priority queue, its distance estimate is final and correct. This holds because non-negative edge weights guarantee that any later path through unvisited vertices cannot improve the distance. With negative edge weights, a vertex extracted "early" might later be improved via a path that includes a negative edge - breaking the invariant. Bellman-Ford avoids this by not committing to any distance estimate prematurely: it runs $n-1$ full rounds of relaxation, allowing distances to be improved in any order.
 
 **Q3.** Give an example where DFS-based topological sort and Kahn's algorithm produce different orderings. Which is "correct"?
 
-*Answer:* Any DAG with multiple valid topological orderings will do. For $A \to C$, $B \to C$ (two sources $A, B$): DFS might produce $[B, A, C]$ or $[A, B, C]$ depending on which source is processed first. Kahn's might produce $[A, B, C]$ or $[B, A, C]$ depending on queue order. Both are correct — any topological ordering is valid, and neither algorithm has priority over the other.
+*Answer:* Any DAG with multiple valid topological orderings will do. For $A \to C$, $B \to C$ (two sources $A, B$): DFS might produce $[B, A, C]$ or $[A, B, C]$ depending on which source is processed first. Kahn's might produce $[A, B, C]$ or $[B, A, C]$ depending on queue order. Both are correct - any topological ordering is valid, and neither algorithm has priority over the other.
 
 **Q4.** In what sense is A\* with $h \equiv 0$ equivalent to Dijkstra? With $h = $ true remaining distance?
 
-*Answer:* With $h \equiv 0$: all vertices are sorted by $f(v) = d[v] + 0 = d[v]$, so A\* extracts vertices in exactly the same order as Dijkstra. They are identical. With $h = \delta(\cdot, t)$ (perfect heuristic): $f(v) = d[v] + \delta(v,t) = \delta(s,v) + \delta(v,t)$ — this equals $\delta(s,t)$ for all vertices on optimal paths. A\* with the perfect heuristic only expands vertices on optimal paths — it finds the answer by exploring the minimum possible number of nodes.
+*Answer:* With $h \equiv 0$: all vertices are sorted by $f(v) = d[v] + 0 = d[v]$, so A\* extracts vertices in exactly the same order as Dijkstra. They are identical. With $h = \delta(\cdot, t)$ (perfect heuristic): $f(v) = d[v] + \delta(v,t) = \delta(s,v) + \delta(v,t)$ - this equals $\delta(s,t)$ for all vertices on optimal paths. A\* with the perfect heuristic only expands vertices on optimal paths - it finds the answer by exploring the minimum possible number of nodes.
 
 **Q5.** The Ford-Fulkerson algorithm may not terminate if capacities are irrational. Explain the pathological example.
 
-*Answer:* Consider a graph where each augmenting path carries an irrational amount $1/\phi$ (where $\phi = (1+\sqrt{5})/2$ is the golden ratio), and the algorithm always picks a particular augmenting path. The sequence of flow increments converges to a sum that is not the maximum flow — the algorithm oscillates without terminating. Edmonds-Karp avoids this by always using BFS (shortest augmenting path), which guarantees polynomial termination regardless of capacities.
+*Answer:* Consider a graph where each augmenting path carries an irrational amount $1/\phi$ (where $\phi = (1+\sqrt{5})/2$ is the golden ratio), and the algorithm always picks a particular augmenting path. The sequence of flow increments converges to a sum that is not the maximum flow - the algorithm oscillates without terminating. Edmonds-Karp avoids this by always using BFS (shortest augmenting path), which guarantees polynomial termination regardless of capacities.
 
 ### H.2 Proof Exercises
 
@@ -1694,40 +1694,40 @@ Neural Architecture Search (NAS) frames architecture design as optimisation over
 
 ### I.1 From Linear Algebra to Graph Algorithms
 
-The adjacency matrix $A \in \{0,1\}^{n \times n}$ introduced in §02 appears in graph algorithms in several ways:
+The adjacency matrix $A \in \{0,1\}^{n \times n}$ introduced in 02 appears in graph algorithms in several ways:
 
-- **Walk counting:** $(A^k)[i][j]$ = number of walks of length $k$ from $i$ to $j$ (§C.3 above)
-- **Reachability:** transitive closure $(I \vee A \vee A^2 \vee \cdots \vee A^{n-1})$ — Boolean APSP
-- **Tropical matrix power:** shortest paths via $W^{\otimes n}$ in the min-plus semiring (§C.2)
+- **Walk counting:** $(A^k)[i][j]$ = number of walks of length $k$ from $i$ to $j$ (C.3 above)
+- **Reachability:** transitive closure $(I \vee A \vee A^2 \vee \cdots \vee A^{n-1})$ - Boolean APSP
+- **Tropical matrix power:** shortest paths via $W^{\otimes n}$ in the min-plus semiring (C.2)
 - **Gaussian elimination on graphs:** LU decomposition of the Laplacian relates to Gaussian elimination on the graph (Cholesky = symbolic factorisation of the tree structure)
 
 The **matrix-tree theorem** (Kirchhoff, 1847) connects spanning tree counting to linear algebra:
 $$\text{(number of spanning trees of } G) = \text{any cofactor of the Laplacian } L$$
-This is proved via the Cauchy-Binet formula and connects the combinatorial (MST, spanning trees) and algebraic (eigenvalues) views of graphs — a bridge to §04.
+This is proved via the Cauchy-Binet formula and connects the combinatorial (MST, spanning trees) and algebraic (eigenvalues) views of graphs - a bridge to 04.
 
 ### I.2 From Probability to Graph Algorithms
 
-Random walks on graphs — the Markov chain perspective — connect graph algorithms to probability theory (Chapter 6):
+Random walks on graphs - the Markov chain perspective - connect graph algorithms to probability theory (Chapter 6):
 
 - **Stationary distribution** of the random walk on a $d$-regular graph = uniform over vertices
-- **Mixing time** = how long until the walk is close to stationary ≈ $O(1/\lambda_2)$ where $\lambda_2$ is the Fiedler value (connection to §04)
+- **Mixing time** = how long until the walk is close to stationary \approx $O(1/\lambda_2)$ where $\lambda_2$ is the Fiedler value (connection to 04)
 - **Cover time** = expected steps for the walk to visit all vertices; for any connected graph, cover time $\leq O(n^3)$ (Matthews bound)
-- **PageRank** = stationary distribution of a damped random walk: $\mathbf{r} = (1-d)\mathbf{1}/n + d \cdot A^\top D^{-1} \mathbf{r}$ — a fixed-point equation solved by power iteration (an iterative BFS-like process)
+- **PageRank** = stationary distribution of a damped random walk: $\mathbf{r} = (1-d)\mathbf{1}/n + d \cdot A^\top D^{-1} \mathbf{r}$ - a fixed-point equation solved by power iteration (an iterative BFS-like process)
 
 ### I.3 From Optimisation to Graph Algorithms
 
 Graph algorithms are the foundation of many combinatorial optimisation methods (Chapter 8):
 
-- **Linear programming duality** ↔ max-flow min-cut duality: the LP relaxation of min-cut gives max-flow (strong duality)
+- **Linear programming duality** <-> max-flow min-cut duality: the LP relaxation of min-cut gives max-flow (strong duality)
 - **Integer programming** on graphs: MST, matching, flow are all polynomial due to total unimodularity of their constraint matrices
-- **Gradient descent** on the graph Laplacian: $\min_{\mathbf{x}} \mathbf{x}^\top L \mathbf{x}$ subject to constraints — eigenvalue problems (§04)
+- **Gradient descent** on the graph Laplacian: $\min_{\mathbf{x}} \mathbf{x}^\top L \mathbf{x}$ subject to constraints - eigenvalue problems (04)
 - **Submodular optimisation:** cut functions are submodular; greedy maximisation of submodular functions on graphs generalises MST
 
 ### I.4 Looking Ahead to Chapter 12 (Functional Analysis)
 
-The graph Laplacian $L = D - A$ can be extended to continuous domains: replace the finite vertex set with a manifold, replace the adjacency matrix with a kernel function $k(x,y)$, and take the limit $n \to \infty$. The result is the **Laplace-Beltrami operator** on manifolds — the spectral graph theory of §04 generalises to functional analysis on infinite-dimensional spaces.
+The graph Laplacian $L = D - A$ can be extended to continuous domains: replace the finite vertex set with a manifold, replace the adjacency matrix with a kernel function $k(x,y)$, and take the limit $n \to \infty$. The result is the **Laplace-Beltrami operator** on manifolds - the spectral graph theory of 04 generalises to functional analysis on infinite-dimensional spaces.
 
-Spectral graph algorithms (§04) such as spectral clustering use eigenvectors of $L$ — these correspond to the eigenfunctions of the Laplace-Beltrami operator in the continuous limit. This connection motivates the study of Hilbert spaces and operators in Chapter 12.
+Spectral graph algorithms (04) such as spectral clustering use eigenvectors of $L$ - these correspond to the eigenfunctions of the Laplace-Beltrami operator in the continuous limit. This connection motivates the study of Hilbert spaces and operators in Chapter 12.
 
 ---
 
@@ -1779,9 +1779,9 @@ When an LLM generates a chain-of-thought (CoT) reasoning trace, it implicitly pe
 - Dependencies between conclusions are edges (conclusion A must precede conclusion B)
 - The order of generation = a topological sort of the reasoning DAG
 
-**Tree-of-Thought** (Yao et al. 2023) makes this explicit: a search tree of partial solutions is explored using BFS or DFS, with a value function scoring each node. This is A\* or BFS on the reasoning tree — graph algorithms for LLM reasoning.
+**Tree-of-Thought** (Yao et al. 2023) makes this explicit: a search tree of partial solutions is explored using BFS or DFS, with a value function scoring each node. This is A\* or BFS on the reasoning tree - graph algorithms for LLM reasoning.
 
-**Scratchpad / Program-of-Thought** (Chen et al. 2022) generates executable programs (Python, JavaScript) that are then run. A Python program is itself a DAG — statements form a control flow graph. The LLM is generating a topological order of operations, and Python's interpreter executes them in that order.
+**Scratchpad / Program-of-Thought** (Chen et al. 2022) generates executable programs (Python, JavaScript) that are then run. A Python program is itself a DAG - statements form a control flow graph. The LLM is generating a topological order of operations, and Python's interpreter executes them in that order.
 
 ### J.3 Attention Patterns as Adjacency Matrices
 
@@ -1789,16 +1789,16 @@ The attention weight matrix in a Transformer layer $\alpha \in \mathbb{R}^{n \ti
 
 Mechanistic interpretability research (Elhage et al. 2021, Olsson et al. 2022) uses graph-theoretic analysis to understand information flow through attention:
 
-- **Induction heads** implement a 2-hop path: attend to a previous occurrence of the current token, then "copy" the next token — a BFS-2 pattern
-- **Circuit analysis** identifies subgraphs of attention heads (circuits) responsible for specific capabilities — analogous to finding subgraphs with specific connectivity properties
-- **Attention sink phenomenon** (Xiao et al. 2023): some tokens (e.g., `[BOS]`) receive very high attention from all other tokens — analogous to high-degree "hub" nodes in a graph, or sink nodes that absorb most of the max-flow
+- **Induction heads** implement a 2-hop path: attend to a previous occurrence of the current token, then "copy" the next token - a BFS-2 pattern
+- **Circuit analysis** identifies subgraphs of attention heads (circuits) responsible for specific capabilities - analogous to finding subgraphs with specific connectivity properties
+- **Attention sink phenomenon** (Xiao et al. 2023): some tokens (e.g., `[BOS]`) receive very high attention from all other tokens - analogous to high-degree "hub" nodes in a graph, or sink nodes that absorb most of the max-flow
 
 ### J.4 Structured State Space Models and Path Counting
 
 Structured State Space Models (S4, Mamba) process sequences using linear recurrences:
 $$h_t = A h_{t-1} + B x_t, \quad y_t = C h_t$$
 
-The matrix $A$ defines a recurrence over a latent state — equivalent to a weighted adjacency matrix of a directed "state transition graph." The output $y_t$ depends on all past inputs via the series $C A^{t-1} B + C A^{t-2} B + \cdots + CB$ — a sum over all path lengths in the state graph.
+The matrix $A$ defines a recurrence over a latent state - equivalent to a weighted adjacency matrix of a directed "state transition graph." The output $y_t$ depends on all past inputs via the series $C A^{t-1} B + C A^{t-2} B + \cdots + CB$ - a sum over all path lengths in the state graph.
 
 This is the tropical algebra perspective again: SSMs compute convolutions in the linear semiring $(+, \times)$, while graph shortest paths use the tropical semiring $(\min, +)$. The mathematical structure is identical; only the semiring changes.
 
@@ -1807,56 +1807,56 @@ This is the tropical algebra perspective again: SSMs compute convolutions in the
 ## Appendix K: Pseudocode Summary (All Algorithms)
 
 ```
-══════════════════════════════════════════════════════════════════════
+======================================================================
 BFS(G, s)
-  d[s]=0; d[v]=∞ ∀v≠s; Q=[s]
-  while Q: u=dequeue(Q); for v∈N(u): if d[v]=∞: d[v]=d[u]+1; enqueue(Q,v)
-──────────────────────────────────────────────────────────────────────
+  d[s]=0; d[v]=\infty \forallv\neqs; Q=[s]
+  while Q: u=dequeue(Q); for v\inN(u): if d[v]=\infty: d[v]=d[u]+1; enqueue(Q,v)
+----------------------------------------------------------------------
 DFS(G)
   for v: DFS-VISIT(v) if v unvisited
-  DFS-VISIT(u): disc[u]=time++; GREY; for v∈N(u): if v WHITE: DFS-VISIT(v)
+  DFS-VISIT(u): disc[u]=time++; GREY; for v\inN(u): if v WHITE: DFS-VISIT(v)
                fin[u]=time++; BLACK
-──────────────────────────────────────────────────────────────────────
+----------------------------------------------------------------------
 DIJKSTRA(G, s)
-  d[s]=0; d[v]=∞; Q=min-heap(V keyed by d)
-  while Q: u=EXTRACT-MIN(Q); for v∈N(u): if d[u]+w<d[v]: DECREASE-KEY
-──────────────────────────────────────────────────────────────────────
+  d[s]=0; d[v]=\infty; Q=min-heap(V keyed by d)
+  while Q: u=EXTRACT-MIN(Q); for v\inN(u): if d[u]+w<d[v]: DECREASE-KEY
+----------------------------------------------------------------------
 BELLMAN-FORD(G, s)
-  d[s]=0; d[v]=∞
-  for i=1..n-1: for (u,v)∈E: RELAX(u,v)
-  for (u,v)∈E: if d[u]+w<d[v]: return "neg cycle"
-──────────────────────────────────────────────────────────────────────
+  d[s]=0; d[v]=\infty
+  for i=1..n-1: for (u,v)\inE: RELAX(u,v)
+  for (u,v)\inE: if d[u]+w<d[v]: return "neg cycle"
+----------------------------------------------------------------------
 FLOYD-WARSHALL(G)
   D=weight matrix; D[i][i]=0
   for k=1..n: for i: for j: D[i][j]=min(D[i][j], D[i][k]+D[k][j])
-──────────────────────────────────────────────────────────────────────
+----------------------------------------------------------------------
 KRUSKAL(G)
-  Sort E by weight; MAKE-SET(v) ∀v
-  for (u,v) in sorted E: if FIND(u)≠FIND(v): add edge; UNION(u,v)
-──────────────────────────────────────────────────────────────────────
+  Sort E by weight; MAKE-SET(v) \forallv
+  for (u,v) in sorted E: if FIND(u)\neqFIND(v): add edge; UNION(u,v)
+----------------------------------------------------------------------
 PRIM(G, r)
-  key[r]=0; key[v]=∞; Q=min-heap(V keyed by key)
-  while Q: u=EXTRACT-MIN; for v∈N(u): if v∈Q and w<key[v]: DECREASE-KEY
-──────────────────────────────────────────────────────────────────────
+  key[r]=0; key[v]=\infty; Q=min-heap(V keyed by key)
+  while Q: u=EXTRACT-MIN; for v\inN(u): if v\inQ and w<key[v]: DECREASE-KEY
+----------------------------------------------------------------------
 KAHN(G)
-  indeg[v]=in-degree ∀v; Q=[v: indeg[v]=0]
+  indeg[v]=in-degree \forallv; Q=[v: indeg[v]=0]
   while Q: u=dequeue; order.append(u); for (u,v): indeg[v]--; if 0: enqueue
-──────────────────────────────────────────────────────────────────────
+----------------------------------------------------------------------
 TARJAN-SCC(G)
   DFS-VISIT(v): disc[v]=low[v]=time++; stack.push(v); onStack[v]=T
     for (v,w): if disc[w]=-1: visit(w); low[v]=min(low[v],low[w])
                elif onStack[w]: low[v]=min(low[v],disc[w])
     if low[v]=disc[v]: pop SCC from stack until v
-──────────────────────────────────────────────────────────────────────
+----------------------------------------------------------------------
 FORD-FULKERSON(G, s, t)
-  f=0; while augmenting path P in G_f: δ=bottleneck(P); augment by δ
-──────────────────────────────────────────────────────════════════════
+  f=0; while augmenting path P in G_f: \delta=bottleneck(P); augment by \delta
+------------------------------------------------------================
 ```
 
 
 ---
 
-## Appendix L: Worked Example — Full Graph Problem
+## Appendix L: Worked Example - Full Graph Problem
 
 ### L.1 End-to-End: Building and Querying a Road Network
 
@@ -1875,9 +1875,9 @@ $(A,B,5), (A,C,8), (B,C,3), (B,D,10), (C,D,2), (C,E,7), (D,F,4), (D,G,6), (E,F,9
 Sort by extraction order:
 - Extract $A(0)$: relax $A\to B(5)$, $A\to C(8)$
 - Extract $B(5)$: relax $B\to C: 5+3=8$ (tie), $B\to D: 5+10=15$
-- Extract $C(8)$: relax $C\to D: 8+2=10 < 15$ ✓, $C\to E: 8+7=15$
+- Extract $C(8)$: relax $C\to D: 8+2=10 < 15$ OK, $C\to E: 8+7=15$
 - Extract $D(10)$: relax $D\to F: 10+4=14$, $D\to G: 10+6=16$
-- Extract $F(14)$: relax $F\to G: 14+1=15 < 16$ ✓, $F\to E: 14+9=23 > 15$
+- Extract $F(14)$: relax $F\to G: 14+1=15 < 16$ OK, $F\to E: 14+9=23 > 15$
 - Extract $E(15)$: no improvement
 - Extract $G(15)$: done
 
@@ -1898,8 +1898,8 @@ Re-sorted: $(F,G,1), (C,D,2), (B,C,3), (D,F,4), (A,B,5), (D,G,6), (C,E,7), ...$
 - Add $(B,C,3)$: $\{B,C,D\}$. $T = \{FG, CD, BC\}$
 - Add $(D,F,4)$: $\{B,C,D,F,G\}$ (merges). $T = \{FG, CD, BC, DF\}$
 - Add $(A,B,5)$: $\{A,B,C,D,F,G\}$ (merges). $T = \{FG, CD, BC, DF, AB\}$
-- Add $(D,G,6)$: FIND($D$) = FIND($G$) — same component! Skip.
-- Add $(C,E,7)$: $\{A,B,C,D,E,F,G\}$ — all connected! $T = \{FG, CD, BC, DF, AB, CE\}$
+- Add $(D,G,6)$: FIND($D$) = FIND($G$) - same component! Skip.
+- Add $(C,E,7)$: $\{A,B,C,D,E,F,G\}$ - all connected! $T = \{FG, CD, BC, DF, AB, CE\}$
 
 **MST edges:** $FG, CD, BC, DF, AB, CE$. **Total weight:** $1+2+3+4+5+7 = 22$ minutes.
 
@@ -1916,7 +1916,7 @@ Augmenting paths found by BFS:
 
 *[Full trace left as Exercise 8]*
 
-This single graph problem illustrates how all four algorithm families (BFS, SSSP, MST, max-flow) answer different questions about the same underlying graph — each appropriate for a different operational need.
+This single graph problem illustrates how all four algorithm families (BFS, SSSP, MST, max-flow) answer different questions about the same underlying graph - each appropriate for a different operational need.
 
 
 ---
@@ -1958,7 +1958,7 @@ n_comp, labels = connected_components(A)
 
 ### M.2 Efficient Implementations: Common Patterns
 
-**Pattern 1: Avoid Python loops — use vectorised operations**
+**Pattern 1: Avoid Python loops - use vectorised operations**
 ```python
 # BAD: Python loop BFS (O(n*m) effectively due to Python overhead)
 for u in queue:
@@ -2017,7 +2017,7 @@ bfs_result = cugraph.bfs(G, start_vertex=0)
 sssp_result = cugraph.sssp(G, source=0)
 ```
 
-For billion-node graphs, cuGraph achieves throughputs of $10^9$ edges/second on modern GPUs — three orders of magnitude faster than serial Python implementations.
+For billion-node graphs, cuGraph achieves throughputs of $10^9$ edges/second on modern GPUs - three orders of magnitude faster than serial Python implementations.
 
 ### M.4 Memory-Efficient Graph Storage
 
@@ -2026,5 +2026,5 @@ For large graphs that don't fit in GPU memory, consider:
 1. **Graph partitioning:** split the graph into $k$ parts using METIS or spectral methods, process each partition on a separate GPU, and exchange boundary information
 2. **Graph sampling:** for GNNs, sample subgraphs (GraphSAGE-style) rather than loading the full adjacency
 3. **Streaming algorithms:** process edges in order without materialising the full graph; union-find for online connectivity, sliding-window BFS for temporal graphs
-4. **External memory algorithms:** if the graph doesn't fit in RAM, use disk-based BFS (level-by-level, one level per disk pass) — used for web-crawl graphs in the early 2000s
+4. **External memory algorithms:** if the graph doesn't fit in RAM, use disk-based BFS (level-by-level, one level per disk pass) - used for web-crawl graphs in the early 2000s
 

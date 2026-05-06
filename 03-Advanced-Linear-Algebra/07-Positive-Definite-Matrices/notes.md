@@ -1,4 +1,4 @@
-[← Back to Advanced Linear Algebra](../README.md) | [← Matrix Norms](../06-Matrix-Norms/notes.md) | [Next: Matrix Decompositions →](../08-Matrix-Decompositions/notes.md)
+[<- Back to Advanced Linear Algebra](../README.md) | [<- Matrix Norms](../06-Matrix-Norms/notes.md) | [Next: Matrix Decompositions ->](../08-Matrix-Decompositions/notes.md)
 
 ---
 
@@ -10,17 +10,17 @@
 
 Positive definite matrices are the matrices that behave like positive numbers. Just as a positive scalar $c > 0$ makes the equation $cx = b$ uniquely solvable and the function $cx^2$ have a unique minimum, a positive definite matrix $A \succ 0$ makes the system $A\mathbf{x} = \mathbf{b}$ uniquely solvable, the quadratic form $\mathbf{x}^\top A \mathbf{x}$ have a unique minimum at zero, and the decomposition $A = LL^\top$ (Cholesky) exist and be unique. Positive definiteness is the structural condition that separates "well-posed" from "ill-posed" in a precise algebraic sense.
 
-This section develops the full theory of positive definite and positive semidefinite matrices. We begin with quadratic forms and the geometric picture — level sets that form ellipsoids, energy functions with unique bowls — then build the complete toolkit: four equivalent characterizations (eigenvalue, determinantal, pivot, Cholesky), the Cholesky and LDLᵀ decompositions as the canonical section topic, matrix square roots, the Schur complement and its role in Gaussian conditioning, log-determinants, Gram matrices, and the PSD cone with semidefinite programming.
+This section develops the full theory of positive definite and positive semidefinite matrices. We begin with quadratic forms and the geometric picture - level sets that form ellipsoids, energy functions with unique bowls - then build the complete toolkit: four equivalent characterizations (eigenvalue, determinantal, pivot, Cholesky), the Cholesky and LDL^T decompositions as the canonical section topic, matrix square roots, the Schur complement and its role in Gaussian conditioning, log-determinants, Gram matrices, and the PSD cone with semidefinite programming.
 
-The AI connections are dense and load-bearing. Every covariance matrix in a multivariate Gaussian must be positive semidefinite — this is not a convenience but a mathematical necessity. The Fisher information matrix is PSD by construction and drives natural gradient methods (K-FAC). The Hessian at a local minimum is PSD. Cholesky factorization is the standard algorithm for sampling from multivariate Gaussians and the reparameterization trick in VAEs. Log-determinants appear in every Gaussian log-likelihood and normalizing flow objective. The attention mechanism computes a scaled Gram matrix. Understanding positive definiteness is understanding the algebraic backbone of probabilistic machine learning.
+The AI connections are dense and load-bearing. Every covariance matrix in a multivariate Gaussian must be positive semidefinite - this is not a convenience but a mathematical necessity. The Fisher information matrix is PSD by construction and drives natural gradient methods (K-FAC). The Hessian at a local minimum is PSD. Cholesky factorization is the standard algorithm for sampling from multivariate Gaussians and the reparameterization trick in VAEs. Log-determinants appear in every Gaussian log-likelihood and normalizing flow objective. The attention mechanism computes a scaled Gram matrix. Understanding positive definiteness is understanding the algebraic backbone of probabilistic machine learning.
 
 ## Prerequisites
 
-- Eigenvalues, eigenvectors, spectral theorem for symmetric matrices — [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
-- Singular value decomposition — [§02: SVD](../02-Singular-Value-Decomposition/notes.md)
-- Inner products, orthogonality, orthogonal matrices — [§05: Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)
-- Matrix norms, condition numbers — [§06: Matrix Norms](../06-Matrix-Norms/notes.md)
-- Determinants — [Chapter 2 §04: Determinants](../../02-Linear-Algebra-Basics/04-Determinants/notes.md)
+- Eigenvalues, eigenvectors, spectral theorem for symmetric matrices - [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)
+- Singular value decomposition - [02: SVD](../02-Singular-Value-Decomposition/notes.md)
+- Inner products, orthogonality, orthogonal matrices - [05: Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)
+- Matrix norms, condition numbers - [06: Matrix Norms](../06-Matrix-Norms/notes.md)
+- Determinants - [Chapter 2 04: Determinants](../../02-Linear-Algebra-Basics/04-Determinants/notes.md)
 
 ## Companion Notebooks
 
@@ -37,7 +37,7 @@ After completing this section, you will be able to:
 - Distinguish PD ($A \succ 0$), PSD ($A \succeq 0$), negative definite, and indefinite with examples
 - Apply Sylvester's criterion to certify positive definiteness without computing eigenvalues
 - Implement the Cholesky algorithm from scratch and analyze its numerical stability
-- Factor $A = LDL^\top$ and explain when to prefer LDLᵀ over standard Cholesky
+- Factor $A = LDL^\top$ and explain when to prefer LDL^T over standard Cholesky
 - Compute the matrix square root $A^{1/2}$ and explain its uniqueness
 - Define the Schur complement and use it to test positive definiteness of block matrices
 - Apply the matrix inversion lemma via Schur complements
@@ -70,7 +70,7 @@ After completing this section, you will be able to:
   - [4.1 The Theorem: Existence and Uniqueness](#41-the-theorem-existence-and-uniqueness)
   - [4.2 The Algorithm: Constructing L](#42-the-algorithm-constructing-l)
   - [4.3 Complexity and Numerical Properties](#43-complexity-and-numerical-properties)
-  - [4.4 LDLᵀ Factorization](#44-ldlt-factorization)
+  - [4.4 LDL^T Factorization](#44-ldlt-factorization)
   - [4.5 Modified Cholesky for Near-PD Matrices](#45-modified-cholesky-for-near-pd-matrices)
 - [5. Matrix Square Root and Whitening](#5-matrix-square-root-and-whitening)
   - [5.1 The PSD Square Root](#51-the-psd-square-root)
@@ -127,9 +127,9 @@ For a positive definite matrix $A \succ 0$:
 - The matrix has a unique positive definite square root $A^{1/2} \succ 0$
 - The quadratic form $\mathbf{x}^\top A \mathbf{x} > 0$ for all $\mathbf{x} \neq \mathbf{0}$
 
-The quadratic form $Q(\mathbf{x}) = \mathbf{x}^\top A \mathbf{x}$ is the central object. Think of it as a machine that takes a vector $\mathbf{x}$ and returns a scalar measuring its "energy" with respect to $A$. When $A$ is the identity, $Q(\mathbf{x}) = \|\mathbf{x}\|^2$, the familiar squared Euclidean length. When $A$ is diagonal with positive entries $d_1, \ldots, d_n$, then $Q(\mathbf{x}) = d_1 x_1^2 + \cdots + d_n x_n^2$ — a weighted sum of squared coordinates. Positive definiteness requires this energy to be positive for every nonzero direction.
+The quadratic form $Q(\mathbf{x}) = \mathbf{x}^\top A \mathbf{x}$ is the central object. Think of it as a machine that takes a vector $\mathbf{x}$ and returns a scalar measuring its "energy" with respect to $A$. When $A$ is the identity, $Q(\mathbf{x}) = \|\mathbf{x}\|^2$, the familiar squared Euclidean length. When $A$ is diagonal with positive entries $d_1, \ldots, d_n$, then $Q(\mathbf{x}) = d_1 x_1^2 + \cdots + d_n x_n^2$ - a weighted sum of squared coordinates. Positive definiteness requires this energy to be positive for every nonzero direction.
 
-The formal definition requires $A$ to be symmetric. The condition $\mathbf{x}^\top A \mathbf{x} > 0$ for $\mathbf{x} \neq \mathbf{0}$ is called **strict positive definiteness**. The relaxed condition $\mathbf{x}^\top A \mathbf{x} \geq 0$ is **positive semidefiniteness** — it allows zero energy in some directions (those in the null space of $A$).
+The formal definition requires $A$ to be symmetric. The condition $\mathbf{x}^\top A \mathbf{x} > 0$ for $\mathbf{x} \neq \mathbf{0}$ is called **strict positive definiteness**. The relaxed condition $\mathbf{x}^\top A \mathbf{x} \geq 0$ is **positive semidefiniteness** - it allows zero energy in some directions (those in the null space of $A$).
 
 **For AI:** Every loss function $\mathcal{L}(\boldsymbol{\theta})$ that has a strict local minimum at $\boldsymbol{\theta}^*$ satisfies $\nabla^2 \mathcal{L}(\boldsymbol{\theta}^*) \succ 0$. The Hessian being positive definite at a critical point is exactly the second-order sufficient condition for a local minimum. This is the mathematical content of "the loss landscape is a bowl."
 
@@ -137,41 +137,41 @@ The formal definition requires $A$ to be symmetric. The condition $\mathbf{x}^\t
 
 The level sets of the quadratic form $\mathbf{x}^\top A \mathbf{x} = c$ reveal the geometry of $A$ directly.
 
-**Case 1: $A = I$ (identity).** The level set $\mathbf{x}^\top I \mathbf{x} = c$ is $\|\mathbf{x}\|^2 = c$ — a sphere of radius $\sqrt{c}$.
+**Case 1: $A = I$ (identity).** The level set $\mathbf{x}^\top I \mathbf{x} = c$ is $\|\mathbf{x}\|^2 = c$ - a sphere of radius $\sqrt{c}$.
 
 **Case 2: $A$ diagonal, $A = \text{diag}(\lambda_1, \lambda_2)$ with $\lambda_1 > \lambda_2 > 0$.** The level set $\lambda_1 x_1^2 + \lambda_2 x_2^2 = 1$ is an ellipse with semi-axes $1/\sqrt{\lambda_1}$ and $1/\sqrt{\lambda_2}$. The larger eigenvalue compresses that direction; the smaller eigenvalue stretches it.
 
 **Case 3: $A$ general symmetric PD.** The level set $\mathbf{x}^\top A \mathbf{x} = 1$ is an ellipsoid whose axes are aligned with the eigenvectors of $A$ and whose semi-axis lengths are $1/\sqrt{\lambda_i}$. This follows from the spectral decomposition $A = Q\Lambda Q^\top$: substituting $\mathbf{y} = Q^\top \mathbf{x}$ gives $\mathbf{y}^\top \Lambda \mathbf{y} = 1$, a coordinate-aligned ellipsoid.
 
-**Case 4: $A$ indefinite (some positive, some negative eigenvalues).** The level set is a hyperboloid — unbounded in the negative-eigenvalue directions. There is no minimum energy.
+**Case 4: $A$ indefinite (some positive, some negative eigenvalues).** The level set is a hyperboloid - unbounded in the negative-eigenvalue directions. There is no minimum energy.
 
-**Case 5: $A$ positive semidefinite (some zero eigenvalues).** The level set is an "infinite cylinder" — flat in the null space directions. Energy is zero for all vectors in the null space.
+**Case 5: $A$ positive semidefinite (some zero eigenvalues).** The level set is an "infinite cylinder" - flat in the null space directions. Energy is zero for all vectors in the null space.
 
 ```
 QUADRATIC FORM GEOMETRY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  2D quadratic form  Q(x₁,x₂) = x⊤Ax,  level set Q = 1
+  2D quadratic form  Q(x_1,x_2) = x^TAx,  level set Q = 1
 
-  PD (both λ > 0):     PSD (one λ = 0):    Indefinite:
+  PD (both \lambda > 0):     PSD (one \lambda = 0):    Indefinite:
                         
-     ┌───────┐           ─────────          ╱       ╲
-     │  ╱─╲  │           ─────────          ─────────
-     │ ╱   ╲ │           ─────────          ╲       ╱
-     └───────┘           ─────────          ─────────
+     +-------+           ---------          /       \
+     |  /-\  |           ---------          ---------
+     | /   \ |           ---------          \       /
+     +-------+           ---------          ---------
      ellipse             parallel lines     hyperbola
      
-  Semi-axes ∝ 1/√λᵢ
+  Semi-axes \propto 1/\sqrt\lambda^i
   Axes aligned with eigenvectors of A
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 This geometric picture has a direct machine learning reading. The covariance matrix $\Sigma$ of a multivariate Gaussian defines a metric on feature space: $(\mathbf{x} - \boldsymbol{\mu})^\top \Sigma^{-1} (\mathbf{x} - \boldsymbol{\mu})$ is the squared Mahalanobis distance, measuring how many standard deviations $\mathbf{x}$ is from $\boldsymbol{\mu}$ in each principal direction. The level sets of this distance are the ellipsoidal contours of the Gaussian density.
 
 ### 1.3 Why PD Matrices Matter for AI
 
-Positive definiteness is not a technical curiosity — it is a pervasive structural condition in machine learning systems:
+Positive definiteness is not a technical curiosity - it is a pervasive structural condition in machine learning systems:
 
 **Covariance matrices.** Any valid probability distribution must have a non-negative variance. For a multivariate random variable $\mathbf{x} \in \mathbb{R}^n$, the covariance matrix $\Sigma = \mathbb{E}[(\mathbf{x}-\boldsymbol{\mu})(\mathbf{x}-\boldsymbol{\mu})^\top]$ is always PSD. For a multivariate Gaussian $\mathcal{N}(\boldsymbol{\mu}, \Sigma)$ with a proper density, we need $\Sigma \succ 0$ (so $\det \Sigma \neq 0$ and the density is normalized). Every time a VAE encoder outputs a covariance or diagonal variance, it must produce a PSD (or PD) parameterization.
 
@@ -179,7 +179,7 @@ Positive definiteness is not a technical curiosity — it is a pervasive structu
 
 **Gram matrices and kernels.** The inner product matrix $G_{ij} = \langle \mathbf{x}_i, \mathbf{x}_j \rangle$ for any set of vectors is always PSD. Kernel methods rely on this: a function $k(\mathbf{x},\mathbf{z})$ is a valid kernel if and only if its Gram matrix is PSD for any set of inputs (Mercer's theorem). The scaled attention score matrix $QK^\top / \sqrt{d_k}$ in transformers is a (non-symmetric) Gram matrix.
 
-**Cholesky in numerical computation.** Cholesky decomposition ($A = LL^\top$) is the fastest algorithm for solving $A\mathbf{x} = \mathbf{b}$ when $A$ is known to be PD — twice as fast as LU. It is the standard backend for Gaussian process inference, multivariate normal sampling, and Bayesian linear regression. NumPy, SciPy, PyTorch all use Cholesky internally whenever PD structure is detected.
+**Cholesky in numerical computation.** Cholesky decomposition ($A = LL^\top$) is the fastest algorithm for solving $A\mathbf{x} = \mathbf{b}$ when $A$ is known to be PD - twice as fast as LU. It is the standard backend for Gaussian process inference, multivariate normal sampling, and Bayesian linear regression. NumPy, SciPy, PyTorch all use Cholesky internally whenever PD structure is detected.
 
 **Hessian and second-order methods.** At a local minimum $\boldsymbol{\theta}^*$, the Hessian $\nabla^2 \mathcal{L}(\boldsymbol{\theta}^*) \succeq 0$. Sharpness-Aware Minimization (SAM) seeks parameters where $\lambda_{\max}(\nabla^2 \mathcal{L})$ is small, empirically improving generalization. The Gauss-Newton approximation $H \approx J^\top J$ is always PSD and is the basis for K-FAC and natural gradient methods.
 
@@ -196,10 +196,10 @@ Positive definiteness is not a technical curiosity — it is a pervasive structu
 | 1936 | Mercer | Mercer's theorem linking PSD functions to kernel expansions |
 | 1955 | Bellman | Positive definite matrices in dynamic programming and control |
 | 1990 | Vandenberghe & Boyd | Semidefinite programming (SDP) as efficient optimization |
-| 1998 | Schölkopf & Smola | Kernel methods: SVMs via PSD kernel matrices |
+| 1998 | Scholkopf & Smola | Kernel methods: SVMs via PSD kernel matrices |
 | 2013 | Kingma & Welling | VAE reparameterization trick using Cholesky sampling |
 | 2015 | Martens & Grosse | K-FAC: Kronecker-factored PSD approximation to Fisher |
-| 2024–2026 | Multiple groups | PSD structure in diffusion model covariances, normalizing flows, structured covariance estimation |
+| 2024-2026 | Multiple groups | PSD structure in diffusion model covariances, normalizing flows, structured covariance estimation |
 
 ---
 
@@ -219,7 +219,7 @@ $$Q_A(\mathbf{x}) = ax_1^2 + 2bx_1x_2 + dx_2^2.$$
 
 The diagonal entries $a, d$ give the pure squared terms; the off-diagonal $b$ gives the cross term.
 
-**Completing the square.** For the 1D quadratic $q(x) = ax^2 + 2bx + c = a(x + b/a)^2 + (c - b^2/a)$, the minimum is $c - b^2/a$, achieved at $x = -b/a$. The matrix analogue is the Schur complement (§6) — the quadratic form $\mathbf{x}^\top A \mathbf{x} + 2\mathbf{b}^\top \mathbf{x} + c$ is minimized at $\mathbf{x}^* = -A^{-1}\mathbf{b}$ (when $A \succ 0$) with minimum value $c - \mathbf{b}^\top A^{-1} \mathbf{b}$.
+**Completing the square.** For the 1D quadratic $q(x) = ax^2 + 2bx + c = a(x + b/a)^2 + (c - b^2/a)$, the minimum is $c - b^2/a$, achieved at $x = -b/a$. The matrix analogue is the Schur complement (6) - the quadratic form $\mathbf{x}^\top A \mathbf{x} + 2\mathbf{b}^\top \mathbf{x} + c$ is minimized at $\mathbf{x}^* = -A^{-1}\mathbf{b}$ (when $A \succ 0$) with minimum value $c - \mathbf{b}^\top A^{-1} \mathbf{b}$.
 
 **Connection to bilinear forms.** The quadratic form $Q_A(\mathbf{x})$ is the diagonal of the bilinear form $B_A(\mathbf{x}, \mathbf{y}) = \mathbf{x}^\top A \mathbf{y}$, i.e., $Q_A(\mathbf{x}) = B_A(\mathbf{x}, \mathbf{x})$. The bilinear form encodes the inner product structure induced by $A$.
 
@@ -233,15 +233,15 @@ The diagonal entries $a, d$ give the pure squared terms; the off-diagonal $b$ gi
 | **Positive semidefinite** | $A \succeq 0$ | $\mathbf{x}^\top A \mathbf{x} \geq 0$ for all $\mathbf{x}$ | "flat bowl" |
 | **Negative definite** | $A \prec 0$ | $\mathbf{x}^\top A \mathbf{x} < 0$ for all $\mathbf{x} \neq \mathbf{0}$ | "dome" |
 | **Negative semidefinite** | $A \preceq 0$ | $\mathbf{x}^\top A \mathbf{x} \leq 0$ for all $\mathbf{x}$ | "flat dome" |
-| **Indefinite** | — | $Q_A$ takes both positive and negative values | "saddle" |
+| **Indefinite** | - | $Q_A$ takes both positive and negative values | "saddle" |
 
 Note: $A \prec 0 \Leftrightarrow -A \succ 0$. The interesting cases for applications are PD and PSD.
 
 **Standard examples:**
 
-$A = I_n$: $\mathbf{x}^\top I \mathbf{x} = \|\mathbf{x}\|^2 > 0$ for $\mathbf{x} \neq \mathbf{0}$. $I \succ 0$. ✓
+$A = I_n$: $\mathbf{x}^\top I \mathbf{x} = \|\mathbf{x}\|^2 > 0$ for $\mathbf{x} \neq \mathbf{0}$. $I \succ 0$. OK
 
-$A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}$: $Q = 2x_1^2 + 2x_1x_2 + 2x_2^2 = (x_1+x_2)^2 + x_1^2 + x_2^2 \geq x_1^2 + x_2^2 > 0$ for $\mathbf{x} \neq \mathbf{0}$. $\succ 0$. ✓
+$A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \end{pmatrix}$: $Q = 2x_1^2 + 2x_1x_2 + 2x_2^2 = (x_1+x_2)^2 + x_1^2 + x_2^2 \geq x_1^2 + x_2^2 > 0$ for $\mathbf{x} \neq \mathbf{0}$. $\succ 0$. OK
 
 $A = \begin{pmatrix} 1 & 0 \\ 0 & 0 \end{pmatrix}$: $Q = x_1^2 \geq 0$, and $Q(\mathbf{e}_2) = 0$. $\succeq 0$ but not $\succ 0$. (PSD, not PD.)
 
@@ -265,7 +265,7 @@ If $A \succ 0$, then many properties follow immediately from the definition:
 
 2. **Positive trace.** $\text{tr}(A) = \sum_i A_{ii} > 0$.
 
-3. **Positive determinant.** $\det A > 0$. *(Follows from all eigenvalues positive, §3.1.)*
+3. **Positive determinant.** $\det A > 0$. *(Follows from all eigenvalues positive, 3.1.)*
 
 4. **Invertibility.** $A$ is invertible, and $A^{-1} \succ 0$. *Proof:* If $A\mathbf{x} = \mathbf{0}$ then $\mathbf{x}^\top A \mathbf{x} = 0$, so $\mathbf{x} = \mathbf{0}$. For $A^{-1}$: $(A^{-1})$ is symmetric, and $\mathbf{y}^\top A^{-1} \mathbf{y} = (A^{-1}\mathbf{y})^\top A (A^{-1}\mathbf{y}) > 0$ for $\mathbf{y} \neq \mathbf{0}$.
 
@@ -291,7 +291,7 @@ Similarly, $A \succ B \Leftrightarrow A - B \succ 0$. This ordering is:
 - **Antisymmetric:** $A \succeq B$ and $B \succeq A$ implies $A = B$.
 - **Transitive:** $A \succeq B$ and $B \succeq C$ implies $A \succeq C$.
 
-However, it is **NOT** a total order — not every pair of symmetric matrices is comparable. For example, $\begin{pmatrix}1&0\\0&0\end{pmatrix}$ and $\begin{pmatrix}0&0\\0&1\end{pmatrix}$ are neither $\succeq$ nor $\preceq$ each other.
+However, it is **NOT** a total order - not every pair of symmetric matrices is comparable. For example, $\begin{pmatrix}1&0\\0&0\end{pmatrix}$ and $\begin{pmatrix}0&0\\0&1\end{pmatrix}$ are neither $\succeq$ nor $\preceq$ each other.
 
 **Properties of the Loewner order:**
 
@@ -303,7 +303,7 @@ If $A \succeq B$ then:
 
 The last property is surprising: if $A \succeq B \succ 0$, then $A^{-1} \preceq B^{-1}$. Intuition: a larger matrix "moves vectors more," so its inverse "moves them less."
 
-**For AI:** In Bayesian inference, the posterior covariance is $\Sigma_{\text{post}} = (\Sigma_{\text{prior}}^{-1} + X^\top X / \sigma^2)^{-1}$. Since we added $X^\top X / \sigma^2 \succeq 0$ to the prior precision, the posterior precision is larger, so by order-reversal, $\Sigma_{\text{post}} \preceq \Sigma_{\text{prior}}$. Observing data never increases uncertainty — the Loewner order makes this rigorous.
+**For AI:** In Bayesian inference, the posterior covariance is $\Sigma_{\text{post}} = (\Sigma_{\text{prior}}^{-1} + X^\top X / \sigma^2)^{-1}$. Since we added $X^\top X / \sigma^2 \succeq 0$ to the prior precision, the posterior precision is larger, so by order-reversal, $\Sigma_{\text{post}} \preceq \Sigma_{\text{prior}}$. Observing data never increases uncertainty - the Loewner order makes this rigorous.
 
 
 ---
@@ -319,25 +319,25 @@ The most computationally transparent characterization of positive definiteness u
 $$A \succ 0 \quad \Longleftrightarrow \quad \lambda_i > 0 \text{ for all } i = 1, \ldots, n.$$
 $$A \succeq 0 \quad \Longleftrightarrow \quad \lambda_i \geq 0 \text{ for all } i = 1, \ldots, n.$$
 
-**Proof.** By the spectral theorem (→ [§01: Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)), $A = Q\Lambda Q^\top$ where $Q$ is orthogonal and $\Lambda = \text{diag}(\lambda_1,\ldots,\lambda_n)$. For any $\mathbf{x} \neq \mathbf{0}$, let $\mathbf{y} = Q^\top \mathbf{x} \neq \mathbf{0}$ (since $Q$ is invertible):
+**Proof.** By the spectral theorem (-> [01: Eigenvalues](../01-Eigenvalues-and-Eigenvectors/notes.md)), $A = Q\Lambda Q^\top$ where $Q$ is orthogonal and $\Lambda = \text{diag}(\lambda_1,\ldots,\lambda_n)$. For any $\mathbf{x} \neq \mathbf{0}$, let $\mathbf{y} = Q^\top \mathbf{x} \neq \mathbf{0}$ (since $Q$ is invertible):
 
 $$\mathbf{x}^\top A \mathbf{x} = \mathbf{y}^\top \Lambda \mathbf{y} = \sum_{i=1}^n \lambda_i y_i^2.$$
 
-If all $\lambda_i > 0$: the sum is positive for $\mathbf{y} \neq \mathbf{0}$. ✓
+If all $\lambda_i > 0$: the sum is positive for $\mathbf{y} \neq \mathbf{0}$. OK
 
-If some $\lambda_k \leq 0$: take $\mathbf{y} = \mathbf{e}_k$ (so $\mathbf{x} = Q\mathbf{e}_k = \mathbf{q}_k$, the $k$-th eigenvector). Then $\mathbf{x}^\top A \mathbf{x} = \lambda_k \leq 0$. ✗
+If some $\lambda_k \leq 0$: take $\mathbf{y} = \mathbf{e}_k$ (so $\mathbf{x} = Q\mathbf{e}_k = \mathbf{q}_k$, the $k$-th eigenvector). Then $\mathbf{x}^\top A \mathbf{x} = \lambda_k \leq 0$. NO
 
 The characterization for $\succeq 0$ follows by the same argument with $\geq$ replacing $>$. $\square$
 
 **Immediate consequences:**
 - $\text{tr}(A) = \sum \lambda_i > 0$ for PD
 - $\det A = \prod \lambda_i > 0$ for PD
-- $\|A\|_2 = \lambda_1$ and $\|A^{-1}\|_2 = 1/\lambda_n$ for PD (→ [§06: Norms](../06-Matrix-Norms/notes.md))
+- $\|A\|_2 = \lambda_1$ and $\|A^{-1}\|_2 = 1/\lambda_n$ for PD (-> [06: Norms](../06-Matrix-Norms/notes.md))
 - The condition number $\kappa(A) = \lambda_1/\lambda_n$ measures how "nearly singular" $A$ is
 
-**For AI:** In Gaussian process regression, the covariance kernel matrix $K$ must be PSD. Verifying $K \succeq 0$ by computing eigenvalues is expensive; checking a Cholesky decomposition (§4) is faster and also provides the factorization needed for inference.
+**For AI:** In Gaussian process regression, the covariance kernel matrix $K$ must be PSD. Verifying $K \succeq 0$ by computing eigenvalues is expensive; checking a Cholesky decomposition (4) is faster and also provides the factorization needed for inference.
 
-> **Note on the spectral theorem:** This proof uses the spectral theorem for symmetric matrices — that every symmetric real matrix is orthogonally diagonalizable. For the full proof and discussion of spectral theory, see [§01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md).
+> **Note on the spectral theorem:** This proof uses the spectral theorem for symmetric matrices - that every symmetric real matrix is orthogonally diagonalizable. For the full proof and discussion of spectral theory, see [01: Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md).
 
 ### 3.2 Sylvester's Criterion
 
@@ -353,13 +353,13 @@ So $\Delta_1 = A_{11}$, $\Delta_2 = A_{11}A_{22} - A_{12}^2$ (for symmetric $A$)
 
 $$A \succ 0 \quad \Longleftrightarrow \quad \Delta_k > 0 \text{ for all } k = 1, 2, \ldots, n.$$
 
-**Proof sketch.** The key insight is that the leading principal submatrix $A_k = A[1:k,1:k]$ is itself symmetric, and $A \succ 0$ implies $A_k \succ 0$ for every $k$ (restriction to the first $k$ standard basis vectors). The converse uses induction: if $\Delta_1, \ldots, \Delta_{n-1} > 0$ and $\Delta_n > 0$, then by the inductive hypothesis all principal leading submatrices are PD, and the Cholesky factorization can be completed (§4 gives the constructive proof). The determinant of a PD matrix equals the product of its Cholesky diagonal entries squared, all positive, so $\Delta_n > 0$. $\square$
+**Proof sketch.** The key insight is that the leading principal submatrix $A_k = A[1:k,1:k]$ is itself symmetric, and $A \succ 0$ implies $A_k \succ 0$ for every $k$ (restriction to the first $k$ standard basis vectors). The converse uses induction: if $\Delta_1, \ldots, \Delta_{n-1} > 0$ and $\Delta_n > 0$, then by the inductive hypothesis all principal leading submatrices are PD, and the Cholesky factorization can be completed (4 gives the constructive proof). The determinant of a PD matrix equals the product of its Cholesky diagonal entries squared, all positive, so $\Delta_n > 0$. $\square$
 
 **Working example.** Test $A = \begin{pmatrix}4 & 2 & 1\\2 & 3 & 0\\1 & 0 & 2\end{pmatrix}$:
 
-- $\Delta_1 = 4 > 0$ ✓
-- $\Delta_2 = 4 \cdot 3 - 2^2 = 12 - 4 = 8 > 0$ ✓
-- $\Delta_3 = \det A = 4(6-0) - 2(4-0) + 1(0-3) = 24 - 8 - 3 = 13 > 0$ ✓
+- $\Delta_1 = 4 > 0$ OK
+- $\Delta_2 = 4 \cdot 3 - 2^2 = 12 - 4 = 8 > 0$ OK
+- $\Delta_3 = \det A = 4(6-0) - 2(4-0) + 1(0-3) = 24 - 8 - 3 = 13 > 0$ OK
 
 So $A \succ 0$.
 
@@ -373,30 +373,30 @@ The connection between Gaussian elimination and positive definiteness is deep an
 
 **Theorem 3.4 (Pivot Characterization).** A symmetric matrix $A \in \mathbb{R}^{n \times n}$ is positive definite if and only if Gaussian elimination without row exchanges produces all positive pivots.
 
-The pivots of $A$ are $d_1 = A_{11}$, $d_2 = \Delta_2/\Delta_1$, $\ldots$, $d_k = \Delta_k/\Delta_{k-1}$. So $A \succ 0 \Leftrightarrow$ all pivots $d_k > 0 \Leftrightarrow$ all $\Delta_k > 0$ (Sylvester). The LDLᵀ factorization makes this explicit: $A = LDL^\top$ where $D = \text{diag}(d_1, \ldots, d_n)$ and $A \succ 0 \Leftrightarrow$ all diagonal entries of $D$ are positive (§4.4).
+The pivots of $A$ are $d_1 = A_{11}$, $d_2 = \Delta_2/\Delta_1$, $\ldots$, $d_k = \Delta_k/\Delta_{k-1}$. So $A \succ 0 \Leftrightarrow$ all pivots $d_k > 0 \Leftrightarrow$ all $\Delta_k > 0$ (Sylvester). The LDL^T factorization makes this explicit: $A = LDL^\top$ where $D = \text{diag}(d_1, \ldots, d_n)$ and $A \succ 0 \Leftrightarrow$ all diagonal entries of $D$ are positive (4.4).
 
 The pivot characterization is how Cholesky "discovers" positive definiteness: the Cholesky algorithm fails (tries to take the square root of a non-positive number) exactly when a pivot is non-positive. This makes Cholesky the standard computational test for positive definiteness: try to factor; failure reveals non-PD structure.
 
 ```
 PIVOT CHARACTERIZATION SUMMARY
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  A ∈ ℝⁿˣⁿ symmetric.  The following are equivalent:
+  A \in \mathbb{R}^n^x^n symmetric.  The following are equivalent:
 
-  (i)   A ≻ 0  (quadratic form positive for all x ≠ 0)
-  (ii)  All eigenvalues λᵢ > 0                          [Spectral]
-  (iii) All leading principal minors Δₖ > 0              [Sylvester]
-  (iv)  All Gaussian elimination pivots dₖ > 0           [Pivot]
-  (v)   Cholesky factorization A = LL⊤ exists with L     [Cholesky]
-        lower triangular, Lᵢᵢ > 0
+  (i)   A \succ 0  (quadratic form positive for all x \neq 0)
+  (ii)  All eigenvalues \lambda^i > 0                          [Spectral]
+  (iii) All leading principal minors \Delta_k > 0              [Sylvester]
+  (iv)  All Gaussian elimination pivots d_k > 0           [Pivot]
+  (v)   Cholesky factorization A = LL^T exists with L     [Cholesky]
+        lower triangular, L^i^i > 0
 
   Each characterization provides a different computational test:
-  (ii)  O(n³): eigenvalue decomposition  ← most expensive
-  (iii) O(n⁴): compute n determinants  ← symbolic/manual only
-  (iv)  O(n³): Gaussian elimination
-  (v)   O(n³/3): Cholesky             ← fastest in practice
+  (ii)  O(n^3): eigenvalue decomposition  <- most expensive
+  (iii) O(n^4): compute n determinants  <- symbolic/manual only
+  (iv)  O(n^3): Gaussian elimination
+  (v)   O(n^3/3): Cholesky             <- fastest in practice
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 3.4 Certifying PSD vs PD
@@ -408,11 +408,11 @@ In numerical practice, the PD/PSD boundary is a source of subtle bugs. Here we d
 **Numerical rank.** For a PSD matrix, the rank equals the number of positive eigenvalues. In finite precision, eigenvalues below $\epsilon \cdot \|A\|_2$ (machine epsilon times spectral norm) are treated as zero. `numpy.linalg.matrix_rank` uses this threshold internally.
 
 **Testing PSD in practice:**
-1. Try `np.linalg.cholesky(A)` — succeeds iff $A \succ 0$ (strictly PD)
+1. Try `np.linalg.cholesky(A)` - succeeds iff $A \succ 0$ (strictly PD)
 2. For PSD test: check `np.all(np.linalg.eigvalsh(A) >= -tol)` with `tol = 1e-10`
 3. For rank-$r$ PSD: compute `np.linalg.matrix_rank(A)` and verify $r < n$
 
-**The zero-eigenvalue case.** If $A \succeq 0$ and $\text{rank}(A) = r < n$, the Cholesky factorization of the full $n \times n$ matrix does not exist. However, the factorization $A = LL^\top$ where $L$ is $n \times r$ (a "thin" Cholesky) does exist and can be computed via pivoted Cholesky. This is used in sparse GP approximations (Nyström approximation, inducing points).
+**The zero-eigenvalue case.** If $A \succeq 0$ and $\text{rank}(A) = r < n$, the Cholesky factorization of the full $n \times n$ matrix does not exist. However, the factorization $A = LL^\top$ where $L$ is $n \times r$ (a "thin" Cholesky) does exist and can be computed via pivoted Cholesky. This is used in sparse GP approximations (Nystrom approximation, inducing points).
 
 **For AI:** PyTorch's `torch.linalg.cholesky` raises `torch.linalg.LinAlgError` if the matrix is not PD. In practice, diagonal jitter (`A + 1e-6 * torch.eye(n)`) is the standard workaround in GP implementations and VAE covariance parameterizations.
 
@@ -474,12 +474,12 @@ $$A_{ij} = \sum_{k=1}^{j} L_{ik}L_{jk} = L_{ij}L_{jj} + \sum_{k=1}^{j-1} L_{ik}L
 **Algorithm 4.2 (Cholesky, column-wise):**
 
 ```
-Input:  Symmetric A ∈ ℝⁿˣⁿ
-Output: Lower triangular L with A = LL⊤, or FAILURE
+Input:  Symmetric A \in \mathbb{R}^n^x^n
+Output: Lower triangular L with A = LL^T, or FAILURE
 
 for j = 1 to n:
-    s = A[j,j] - sum(L[j,k]² for k = 1..j-1)
-    if s ≤ 0:
+    s = A[j,j] - sum(L[j,k]^2 for k = 1..j-1)
+    if s \leq 0:
         FAILURE (A is not positive definite)
     L[j,j] = sqrt(s)
     for i = j+1 to n:
@@ -498,11 +498,11 @@ Column 3: $L_{33} = \sqrt{3 - 0^2 - (1/2)^2} = \sqrt{3 - 1/4} = \sqrt{11/4} = \s
 
 $$L = \begin{pmatrix}2 & 0 & 0 \\ 1 & 2 & 0 \\ 0 & 1/2 & \sqrt{11}/2\end{pmatrix}.$$
 
-Verify: $LL^\top = \begin{pmatrix}4 & 2 & 0\\2 & 5 & 1\\0 & 1 & 3\end{pmatrix} = A$. ✓
+Verify: $LL^\top = \begin{pmatrix}4 & 2 & 0\\2 & 5 & 1\\0 & 1 & 3\end{pmatrix} = A$. OK
 
 ### 4.3 Complexity and Numerical Properties
 
-**Flop count.** The Cholesky algorithm requires approximately $n^3/3$ floating-point operations — precisely half the $2n^3/3$ required by LU decomposition. For large $n$, this factor-of-2 speedup is significant.
+**Flop count.** The Cholesky algorithm requires approximately $n^3/3$ floating-point operations - precisely half the $2n^3/3$ required by LU decomposition. For large $n$, this factor-of-2 speedup is significant.
 
 **Memory.** Only the lower triangle of $L$ needs to be stored: $n(n+1)/2$ entries vs $n^2$ for general LU. In-place variants overwrite the lower triangle of $A$ with $L$.
 
@@ -514,11 +514,11 @@ Verify: $LL^\top = \begin{pmatrix}4 & 2 & 0\\2 & 5 & 1\\0 & 1 & 3\end{pmatrix} =
 
 **For AI:** JAX's `jax.scipy.linalg.cholesky`, PyTorch's `torch.linalg.cholesky`, and SciPy's `scipy.linalg.cholesky` are all efficient LAPACK-backed implementations. In Gaussian process models, the Cholesky solve `L \ b` (forward substitution) appears in every prediction and log-marginal-likelihood computation.
 
-### 4.4 LDLᵀ Factorization
+### 4.4 LDL^T Factorization
 
-The LDLᵀ decomposition is a variant of Cholesky that avoids square roots — useful when the matrix is PSD but not strictly PD, or when square root computation is expensive.
+The LDL^T decomposition is a variant of Cholesky that avoids square roots - useful when the matrix is PSD but not strictly PD, or when square root computation is expensive.
 
-**Theorem 4.3 (LDLᵀ Factorization).** Every symmetric $A \in \mathbb{R}^{n \times n}$ that admits Gaussian elimination without row swaps can be uniquely factored as:
+**Theorem 4.3 (LDL^T Factorization).** Every symmetric $A \in \mathbb{R}^{n \times n}$ that admits Gaussian elimination without row swaps can be uniquely factored as:
 
 $$A = LDL^\top$$
 
@@ -526,13 +526,13 @@ where $L$ is unit lower triangular ($L_{ii} = 1$) and $D = \text{diag}(d_1, \ldo
 
 Moreover, $A \succ 0 \Leftrightarrow$ all diagonal entries $d_i > 0$.
 
-**Relation to Cholesky.** If $A \succ 0$, the LDLᵀ and Cholesky factorizations are related by:
+**Relation to Cholesky.** If $A \succ 0$, the LDL^T and Cholesky factorizations are related by:
 
 $$A = LDL^\top = L\sqrt{D}\sqrt{D}L^\top = (L\sqrt{D})(L\sqrt{D})^\top.$$
 
-So the Cholesky factor is $\hat{L} = L\sqrt{D}$ where $\sqrt{D} = \text{diag}(\sqrt{d_1},\ldots,\sqrt{d_n})$. The LDLᵀ decomposition computes the $d_i$ directly without taking square roots.
+So the Cholesky factor is $\hat{L} = L\sqrt{D}$ where $\sqrt{D} = \text{diag}(\sqrt{d_1},\ldots,\sqrt{d_n})$. The LDL^T decomposition computes the $d_i$ directly without taking square roots.
 
-**Algorithm 4.4 (LDLᵀ, column-wise):**
+**Algorithm 4.4 (LDL^T, column-wise):**
 
 ```
 for j = 1 to n:
@@ -549,18 +549,18 @@ $d_1 = 4$, $L_{21} = 2/4 = 1/2$, $d_2 = 5 - (1/2)^2 \cdot 4 = 5 - 1 = 4$.
 
 $$L = \begin{pmatrix}1 & 0 \\ 1/2 & 1\end{pmatrix}, \quad D = \begin{pmatrix}4 & 0 \\ 0 & 4\end{pmatrix}.$$
 
-Verify: $LDL^\top = \begin{pmatrix}1&0\\1/2&1\end{pmatrix}\begin{pmatrix}4&0\\0&4\end{pmatrix}\begin{pmatrix}1&1/2\\0&1\end{pmatrix} = \begin{pmatrix}4&2\\2&5\end{pmatrix}$. ✓
+Verify: $LDL^\top = \begin{pmatrix}1&0\\1/2&1\end{pmatrix}\begin{pmatrix}4&0\\0&4\end{pmatrix}\begin{pmatrix}1&1/2\\0&1\end{pmatrix} = \begin{pmatrix}4&2\\2&5\end{pmatrix}$. OK
 
-**When to prefer LDLᵀ over Cholesky:**
-- When $A$ is indefinite but you still want a factorization (use $BKLT$ pivoted LDLᵀ with $2\times 2$ pivots)
+**When to prefer LDL^T over Cholesky:**
+- When $A$ is indefinite but you still want a factorization (use $BKLT$ pivoted LDL^T with $2\times 2$ pivots)
 - When square root computation is numerically undesirable
 - In interval arithmetic or symbolic computation
 
-**Symmetric indefinite systems.** The Bunch-Kaufman (BK) algorithm extends LDLᵀ to indefinite matrices using $1 \times 1$ and $2 \times 2$ pivots. The LAPACK routine `dsytrf` implements this.
+**Symmetric indefinite systems.** The Bunch-Kaufman (BK) algorithm extends LDL^T to indefinite matrices using $1 \times 1$ and $2 \times 2$ pivots. The LAPACK routine `dsytrf` implements this.
 
 ### 4.5 Modified Cholesky for Near-PD Matrices
 
-In optimization (especially trust-region methods and quasi-Newton methods), we frequently need to factor a matrix that is "nearly" PD — the Hessian approximation may have small negative eigenvalues due to finite differences or insufficient curvature.
+In optimization (especially trust-region methods and quasi-Newton methods), we frequently need to factor a matrix that is "nearly" PD - the Hessian approximation may have small negative eigenvalues due to finite differences or insufficient curvature.
 
 **The problem.** Standard Cholesky fails (negative pivot) when $A$ is not strictly PD. Rather than failing, we want a PD matrix $A + E$ close to $A$ that can be Cholesky-factored.
 
@@ -578,7 +578,7 @@ def robust_cholesky(A, jitter=1e-6):
 
 This is the standard "GP jitter" pattern. The added $\epsilon I$ corresponds to assuming a small observation noise or numerical regularization.
 
-**For AI:** PyTorch GPyTorch (Gaussian Process library) wraps all kernel matrix Cholesky calls with diagonal jitter and a retry mechanism. The JAX implementation uses `jax.scipy.linalg.cholesky` and adds jitter via `A += diag_jitter * jnp.eye(n)`. Understanding why jitter works — it adds $\epsilon$ to each eigenvalue, making all eigenvalues at least $\epsilon > 0$ — is exactly positive definiteness via the spectral characterization.
+**For AI:** PyTorch GPyTorch (Gaussian Process library) wraps all kernel matrix Cholesky calls with diagonal jitter and a retry mechanism. The JAX implementation uses `jax.scipy.linalg.cholesky` and adds jitter via `A += diag_jitter * jnp.eye(n)`. Understanding why jitter works - it adds $\epsilon$ to each eigenvalue, making all eigenvalues at least $\epsilon > 0$ - is exactly positive definiteness via the spectral characterization.
 
 
 ---
@@ -587,7 +587,7 @@ This is the standard "GP jitter" pattern. The added $\epsilon I$ corresponds to 
 
 ### 5.1 The PSD Square Root
 
-For a scalar $a \geq 0$, there is a unique non-negative square root $\sqrt{a} \geq 0$. For a PSD matrix, the same uniqueness holds — but only in the class of PSD matrices.
+For a scalar $a \geq 0$, there is a unique non-negative square root $\sqrt{a} \geq 0$. For a PSD matrix, the same uniqueness holds - but only in the class of PSD matrices.
 
 **Theorem 5.1 (PSD Square Root).** Let $A \in \mathbb{R}^{n \times n}$ be symmetric and positive semidefinite. Then there exists a unique symmetric positive semidefinite matrix $A^{1/2}$ such that:
 
@@ -622,7 +622,7 @@ A_sqrt = Q @ np.diag(np.sqrt(eigvals)) @ Q.T
 
 **Via Newton's method (for matrix functions):** The iteration $X_{k+1} = \frac{1}{2}(X_k + X_k^{-1}A)$ starting from $X_0 = I$ converges to $A^{1/2}$ for $A \succ 0$. This is the matrix analogue of Heron's method for scalar square roots. Convergence is quadratic once close enough.
 
-**Via Padé approximants:** For $A$ close to $I$, write $A = I + E$ and use a matrix series $A^{1/2} = (I+E)^{1/2} = I + \frac{1}{2}E - \frac{1}{8}E^2 + \cdots$, truncated at some order.
+**Via Pade approximants:** For $A$ close to $I$, write $A = I + E$ and use a matrix series $A^{1/2} = (I+E)^{1/2} = I + \frac{1}{2}E - \frac{1}{8}E^2 + \cdots$, truncated at some order.
 
 ### 5.3 Square Root vs Cholesky
 
@@ -643,7 +643,7 @@ The two "square root" operations serve different purposes:
 
 ### 5.4 Whitening Transforms
 
-**Definition 5.2 (Whitening).** Given data $\mathbf{x}$ with covariance $\Sigma \succ 0$, the **whitening transform** maps $\mathbf{x} \mapsto \mathbf{z} = \Sigma^{-1/2}(\mathbf{x} - \boldsymbol{\mu})$. The transformed variable $\mathbf{z}$ has covariance $I$ (identity) — it is "white."
+**Definition 5.2 (Whitening).** Given data $\mathbf{x}$ with covariance $\Sigma \succ 0$, the **whitening transform** maps $\mathbf{x} \mapsto \mathbf{z} = \Sigma^{-1/2}(\mathbf{x} - \boldsymbol{\mu})$. The transformed variable $\mathbf{z}$ has covariance $I$ (identity) - it is "white."
 
 **ZCA whitening.** The ZCA (Zero-phase Component Analysis) whitening uses the symmetric square root: $W_{\text{ZCA}} = \Sigma^{-1/2}$. The transformed data $W_{\text{ZCA}}\mathbf{x}$ is as close to the original $\mathbf{x}$ as possible while being white. This minimizes the change in "appearance" of the data.
 
@@ -713,20 +713,20 @@ $$\mathbf{v}^\top M \mathbf{v} = (\mathbf{x} + A^{-1}B\mathbf{y})^\top A (\mathb
 
 ```
 SCHUR COMPLEMENT AND BLOCK PD
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   M = ( A    B  )  symmetric
-      ( B⊤   D  )
+      ( B^T   D  )
       
-  M ≻ 0  ⟺  A ≻ 0  AND  S = D - B⊤A⁻¹B ≻ 0
+  M \succ 0  <=>  A \succ 0  AND  S = D - B^TA^-^1B \succ 0
 
   Intuition: "completing the square" in block form
   
-  v⊤Mv = (x + A⁻¹By)⊤A(x + A⁻¹By) + y⊤Sy
-          ─────────────────────────────   ─────
-          ≥ 0 (since A ≻ 0)              ≥ 0 (since S ≻ 0)
+  v^TMv = (x + A^-^1By)^TA(x + A^-^1By) + y^TSy
+          -----------------------------   -----
+          \geq 0 (since A \succ 0)              \geq 0 (since S \succ 0)
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### 6.3 Matrix Inversion Lemma
@@ -840,7 +840,7 @@ Equality holds iff all $\mu_i = 1$, i.e., $C = I$, i.e., $B = A$. $\square$
 **Consequences of concavity:**
 - The log-det has no local maxima except at the global maximum (over any convex domain)
 - Gradient methods for maximizing $\log\det A$ over a convex set converge to the global maximum
-- The function is differentiable at every PD matrix (the gradient is $A^{-1}$, see §7.3)
+- The function is differentiable at every PD matrix (the gradient is $A^{-1}$, see 7.3)
 
 ### 7.3 Gradient and Matrix Calculus
 
@@ -944,7 +944,7 @@ This is the mathematical foundation of the **kernel trick**: instead of explicit
 - Linear kernel: $k(\mathbf{x},\mathbf{z}) = \mathbf{x}^\top\mathbf{z}$ (standard Gram matrix)
 - RBF/Gaussian kernel: $k(\mathbf{x},\mathbf{z}) = \exp(-\|\mathbf{x}-\mathbf{z}\|^2 / 2\ell^2)$
 - Polynomial kernel: $k(\mathbf{x},\mathbf{z}) = (\mathbf{x}^\top\mathbf{z} + c)^d$ for $c \geq 0$, $d \in \mathbb{N}$
-- Matérn kernel: used in GP regression with controllable smoothness
+- Matern kernel: used in GP regression with controllable smoothness
 
 **Verifying kernel validity.** For a proposed kernel $k$, the standard test is:
 1. Compute the $n \times n$ Gram matrix $K$ for a test set
@@ -989,7 +989,7 @@ The set of all $n \times n$ symmetric positive semidefinite matrices is denoted 
 
 **The boundary.** The boundary $\partial\mathbb{S}_+^n = \mathbb{S}_+^n \setminus \mathbb{S}_{++}^n$ consists of PSD matrices with at least one zero eigenvalue. These are rank-deficient PSD matrices. The boundary has lower dimension: the set of rank-$r$ PSD matrices is a manifold of dimension $rn - r(r-1)/2$.
 
-**Low-dimensional picture.** For $n=2$: $\mathbb{S}^2$ is 3-dimensional (coordinates $A_{11}, A_{12}, A_{22}$). The PSD cone $\mathbb{S}_+^2$ is the set where $A_{11} \geq 0$, $A_{22} \geq 0$, and $A_{11}A_{22} \geq A_{12}^2$ — the interior of an ice cream cone in 3D.
+**Low-dimensional picture.** For $n=2$: $\mathbb{S}^2$ is 3-dimensional (coordinates $A_{11}, A_{12}, A_{22}$). The PSD cone $\mathbb{S}_+^2$ is the set where $A_{11} \geq 0$, $A_{22} \geq 0$, and $A_{11}A_{22} \geq A_{12}^2$ - the interior of an ice cream cone in 3D.
 
 **Dual cone.** The dual of $\mathbb{S}_+^n$ with respect to the Frobenius inner product $\langle A, B\rangle_F = \text{tr}(AB)$ is:
 
@@ -1056,7 +1056,7 @@ For this density to be a valid (normalized, integrable) probability distribution
 
 1. **Symmetry:** $\Sigma = \Sigma^\top$ (covariance is symmetric by definition)
 2. **Positive definiteness:** $\Sigma \succ 0$ ensures $\det\Sigma \neq 0$ (normalizing constant finite) and $\Sigma^{-1}$ exists (the exponent is a proper quadratic form)
-3. **If $\Sigma \succeq 0$ but singular:** The distribution becomes degenerate — supported on an affine subspace, not all of $\mathbb{R}^n$
+3. **If $\Sigma \succeq 0$ but singular:** The distribution becomes degenerate - supported on an affine subspace, not all of $\mathbb{R}^n$
 
 **Parameterizing covariances in neural networks.** A neural network that outputs a covariance matrix must parameterize it to be PSD. Standard approaches:
 
@@ -1082,7 +1082,7 @@ $$F(\boldsymbol{\theta}) = \mathbb{E}_{\mathbf{x} \sim p(\cdot|\boldsymbol{\thet
 
 $$\tilde{\nabla}\mathcal{L} = F(\boldsymbol{\theta})^{-1}\nabla_{\boldsymbol{\theta}}\mathcal{L}.$$
 
-The natural gradient is invariant to reparameterization of the model — it measures the steepest descent direction with respect to the KL divergence geometry (information geometry).
+The natural gradient is invariant to reparameterization of the model - it measures the steepest descent direction with respect to the KL divergence geometry (information geometry).
 
 **K-FAC (Kronecker-Factored Approximate Curvature).** Martens & Grosse (2015) approximate the Fisher information matrix for neural networks as a block-diagonal matrix, where each block factorizes as a Kronecker product:
 
@@ -1113,7 +1113,7 @@ and $K_{nn} = k(\mathbf{X}, \mathbf{X})$, $K_{*n} = k(X_*, \mathbf{X})$, $K_{**}
 - $\Sigma_* = K_{**} - V^\top V$ (Schur complement form)
 - $\log p(\mathbf{y}) = -\frac{1}{2}\mathbf{y}^\top\boldsymbol{\alpha} - \sum_i\log L_{ii} - \frac{n}{2}\log(2\pi)$
 
-The entire GP regression computation is $O(n^3)$ via Cholesky — the classic bottleneck for large datasets, motivating sparse GP approximations (inducing points, Nyström, SVGP).
+The entire GP regression computation is $O(n^3)$ via Cholesky - the classic bottleneck for large datasets, motivating sparse GP approximations (inducing points, Nystrom, SVGP).
 
 ### 10.4 Hessian and Loss Landscape Sharpness
 
@@ -1123,7 +1123,7 @@ The entire GP regression computation is $O(n^3)$ via Cholesky — the classic bo
 - $\nabla^2\mathcal{L}(\boldsymbol{\theta}^*) \succeq 0$: local minimum or saddle (Hessian is PSD)
 - $\nabla^2\mathcal{L}(\boldsymbol{\theta}^*)$ indefinite: saddle point
 
-**Sharpness.** The **sharpness** of a minimum is $\lambda_{\max}(\nabla^2\mathcal{L}(\boldsymbol{\theta}^*))$ — the largest eigenvalue of the Hessian. Flat minima (small sharpness) generalize better than sharp minima: a small perturbation $\boldsymbol{\theta}^* + \boldsymbol{\delta}$ with $\|\boldsymbol{\delta}\| \leq \rho$ changes the loss by at most $\rho^2 \lambda_{\max}(\nabla^2\mathcal{L})$ (by Taylor expansion and the PSD bound $\boldsymbol{\delta}^\top H\boldsymbol{\delta} \leq \lambda_{\max}\|\boldsymbol{\delta}\|^2$).
+**Sharpness.** The **sharpness** of a minimum is $\lambda_{\max}(\nabla^2\mathcal{L}(\boldsymbol{\theta}^*))$ - the largest eigenvalue of the Hessian. Flat minima (small sharpness) generalize better than sharp minima: a small perturbation $\boldsymbol{\theta}^* + \boldsymbol{\delta}$ with $\|\boldsymbol{\delta}\| \leq \rho$ changes the loss by at most $\rho^2 \lambda_{\max}(\nabla^2\mathcal{L})$ (by Taylor expansion and the PSD bound $\boldsymbol{\delta}^\top H\boldsymbol{\delta} \leq \lambda_{\max}\|\boldsymbol{\delta}\|^2$).
 
 **SAM (Sharpness-Aware Minimization).** Foret et al. (2021) propose:
 
@@ -1169,8 +1169,8 @@ $$\frac{\partial \mathbf{z}}{\partial L} = \frac{\partial(L\boldsymbol{\epsilon}
 | 3 | Assuming $A^\top A \succ 0$ for any $A$ | $A^\top A \succeq 0$ always, but $A^\top A \succ 0$ iff $A$ has full column rank. If $A$ has a null vector ($A\mathbf{v} = 0$), then $\mathbf{v}^\top A^\top A \mathbf{v} = 0$. | Verify $\text{rank}(A) = \text{number of columns}$. |
 | 4 | Confusing the Cholesky factor $L$ with the PSD square root $A^{1/2}$ | $L$ is lower triangular; $A^{1/2}$ is symmetric. Both satisfy "squared = $A$" but in different senses ($LL^\top = A$ vs $(A^{1/2})^2 = A$). They are equal only when $A$ is diagonal. | Use $L$ for solving/sampling; use $A^{1/2}$ for Mahalanobis/whitening. |
 | 5 | Using `np.log(np.linalg.det(A))` for large $A$ | `np.linalg.det` can overflow/underflow for large $n$ (products of many numbers). | Use Cholesky: `2 * np.sum(np.log(np.diag(np.linalg.cholesky(A))))`. |
-| 6 | Forgetting Sylvester's criterion does NOT characterize PSD | Sylvester requires all leading principal minors > 0, which gives PD not PSD. For PSD, you need all principal minors (not just leading ones) $\geq 0$ — a much larger set. | For PSD testing, use eigenvalues or attempt pivoted Cholesky. |
-| 7 | Inverting the Loewner order incorrectly | Students often think $A \succeq B$ implies $A^{-1} \succeq B^{-1}$. The correct fact is $A \succeq B \succ 0 \Rightarrow B^{-1} \succeq A^{-1}$ (inversion reverses the order). | Remember: larger matrix → smaller inverse (as for positive scalars: $a \geq b > 0 \Rightarrow 1/a \leq 1/b$). |
+| 6 | Forgetting Sylvester's criterion does NOT characterize PSD | Sylvester requires all leading principal minors > 0, which gives PD not PSD. For PSD, you need all principal minors (not just leading ones) $\geq 0$ - a much larger set. | For PSD testing, use eigenvalues or attempt pivoted Cholesky. |
+| 7 | Inverting the Loewner order incorrectly | Students often think $A \succeq B$ implies $A^{-1} \succeq B^{-1}$. The correct fact is $A \succeq B \succ 0 \Rightarrow B^{-1} \succeq A^{-1}$ (inversion reverses the order). | Remember: larger matrix -> smaller inverse (as for positive scalars: $a \geq b > 0 \Rightarrow 1/a \leq 1/b$). |
 | 8 | Adding jitter $\epsilon I$ without checking scale | If $\|A\|_2 \approx 10^6$ and you add $\epsilon = 10^{-6}$, the relative jitter is $10^{-12}$, effectively zero numerically. | Set jitter proportional to the scale: $\epsilon = \delta \cdot \text{tr}(A)/n$ for some small $\delta$. |
 | 9 | Assuming the kernel matrix stays PD after operations | Sum, product, and pointwise operations on PD kernels may not preserve PD structure. E.g., $k_1(\mathbf{x},\mathbf{z}) - k_2(\mathbf{x},\mathbf{z})$ may not be PD. | Verify the Gram matrix or use closure properties: sum/product/exponentiation of PD kernels are PD. |
 | 10 | Computing Schur complement with singular $A$ | The Schur complement $D - CA^{-1}B$ requires $A$ invertible. If $A$ is only PSD (rank-deficient), $A^{-1}$ does not exist. | Use the Moore-Penrose pseudoinverse: $S = D - CA^\dagger B$, though the PD characterization no longer holds as stated. |
@@ -1181,7 +1181,7 @@ $$\frac{\partial \mathbf{z}}{\partial L} = \frac{\partial(L\boldsymbol{\epsilon}
 
 ## 12. Exercises
 
-**Exercise 1 ★ — Verify PD Axioms for $A^\top A + \lambda I$**
+**Exercise 1 * - Verify PD Axioms for $A^\top A + \lambda I$**
 
 Let $A \in \mathbb{R}^{m \times n}$ with $m \geq n$ and $\lambda > 0$. Define $B = A^\top A + \lambda I$.
 
@@ -1197,13 +1197,13 @@ Let $A \in \mathbb{R}^{m \times n}$ with $m \geq n$ and $\lambda > 0$. Define $B
 
 ---
 
-**Exercise 2 ★ — Implement Cholesky from Scratch**
+**Exercise 2 * - Implement Cholesky from Scratch**
 
 (a) Implement the Cholesky algorithm (Algorithm 4.2) in pure NumPy without using `np.linalg.cholesky`. Your function should return the lower triangular $L$ satisfying $A = LL^\top$, or raise a `ValueError` if $A$ is not PD.
 
 (b) Test on $A = \begin{pmatrix}4 & 12 & -16 \\ 12 & 37 & -43 \\ -16 & -43 & 98\end{pmatrix}$ and verify $LL^\top = A$.
 
-(c) Compare the result with `np.linalg.cholesky` — they should agree to machine precision.
+(c) Compare the result with `np.linalg.cholesky` - they should agree to machine precision.
 
 (d) Test what happens when you apply your function to an indefinite matrix $A = \begin{pmatrix}1 & 3 \\ 3 & 1\end{pmatrix}$.
 
@@ -1211,7 +1211,7 @@ Let $A \in \mathbb{R}^{m \times n}$ with $m \geq n$ and $\lambda > 0$. Define $B
 
 ---
 
-**Exercise 3 ★ — Sylvester's Criterion**
+**Exercise 3 * - Sylvester's Criterion**
 
 Let $A(\alpha) = \begin{pmatrix}1 & \alpha & 0 \\ \alpha & 2 & \alpha \\ 0 & \alpha & 4\end{pmatrix}$.
 
@@ -1225,21 +1225,21 @@ Let $A(\alpha) = \begin{pmatrix}1 & \alpha & 0 \\ \alpha & 2 & \alpha \\ 0 & \al
 
 ---
 
-**Exercise 4 ★★ — LDLᵀ Factorization**
+**Exercise 4 ** - LDL^T Factorization**
 
-(a) Implement the LDLᵀ algorithm (Algorithm 4.4) in NumPy. Your function returns unit lower triangular $L$ and diagonal $D$ such that $A = LDL^\top$.
+(a) Implement the LDL^T algorithm (Algorithm 4.4) in NumPy. Your function returns unit lower triangular $L$ and diagonal $D$ such that $A = LDL^\top$.
 
 (b) Test on $A = \begin{pmatrix}4 & 2 & 1 \\ 2 & 5 & 3 \\ 1 & 3 & 6\end{pmatrix}$. Verify $LDL^\top = A$.
 
 (c) Using your factorization, solve $A\mathbf{x} = \mathbf{b}$ for $\mathbf{b} = (1, 2, 3)^\top$ by: (i) solve $L\mathbf{y} = \mathbf{b}$, (ii) solve $D\mathbf{w} = \mathbf{y}$, (iii) solve $L^\top\mathbf{x} = \mathbf{w}$.
 
-(d) Explain why LDLᵀ avoids the numerical issues of Cholesky when $A$ is indefinite.
+(d) Explain why LDL^T avoids the numerical issues of Cholesky when $A$ is indefinite.
 
 (e) **AI connection:** Why do second-order optimizers (like KFAC) prefer working with $D$ (the pivots) rather than $\sqrt{D}$ (the Cholesky diagonal)?
 
 ---
 
-**Exercise 5 ★★ — Schur Complement and Block PD Test**
+**Exercise 5 ** - Schur Complement and Block PD Test**
 
 Let $M = \begin{pmatrix}A & B \\ B^\top & D\end{pmatrix}$ where:
 $$A = \begin{pmatrix}4 & 1 \\ 1 & 3\end{pmatrix}, \quad B = \begin{pmatrix}1 \\ 2\end{pmatrix}, \quad D = \begin{pmatrix}5\end{pmatrix}.$$
@@ -1256,7 +1256,7 @@ $$A = \begin{pmatrix}4 & 1 \\ 1 & 3\end{pmatrix}, \quad B = \begin{pmatrix}1 \\ 
 
 ---
 
-**Exercise 6 ★★ — Log-Det via Cholesky and Gradient Verification**
+**Exercise 6 ** - Log-Det via Cholesky and Gradient Verification**
 
 (a) Compute $\log\det A$ for $A = \begin{pmatrix}3 & 1 & 0 \\ 1 & 4 & 2 \\ 0 & 2 & 5\end{pmatrix}$ using: (i) direct eigenvalues, (ii) Cholesky diagonal formula, (iii) `np.log(np.linalg.det(A))`. Verify all three agree.
 
@@ -1268,7 +1268,7 @@ $$A = \begin{pmatrix}4 & 1 \\ 1 & 3\end{pmatrix}, \quad B = \begin{pmatrix}1 \\ 
 
 ---
 
-**Exercise 7 ★★★ — Gram Matrix / Kernel Matrix and Mercer Check**
+**Exercise 7 *** - Gram Matrix / Kernel Matrix and Mercer Check**
 
 (a) Given 5 points $\mathbf{x}_1, \ldots, \mathbf{x}_5 \in \mathbb{R}^3$ (design your own interesting configuration), compute the Gram matrix $G = XX^\top$.
 
@@ -1282,7 +1282,7 @@ $$A = \begin{pmatrix}4 & 1 \\ 1 & 3\end{pmatrix}, \quad B = \begin{pmatrix}1 \\ 
 
 ---
 
-**Exercise 8 ★★★ — Cholesky Reparameterization for VAE Sampling**
+**Exercise 8 *** - Cholesky Reparameterization for VAE Sampling**
 
 (a) Implement a function `sample_mvn(mu, L, n_samples)` that samples $n$ vectors from $\mathcal{N}(\boldsymbol{\mu}, LL^\top)$ using the reparameterization trick $\mathbf{z} = \boldsymbol{\mu} + L\boldsymbol{\epsilon}$, $\boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0},I)$.
 
@@ -1306,7 +1306,7 @@ where $D_{\text{KL}}(\mathcal{N}(\boldsymbol{\mu}, \Sigma) \| \mathcal{N}(\mathb
 |---------|---------------------|----------------|
 | Positive definite covariance | Valid multivariate Gaussian distributions | VAEs (Kingma & Welling, 2013); diffusion models (DDPM, score matching) |
 | Cholesky factorization | Reparameterization trick for differentiable sampling | All variational inference; NUTS-HMC sampler in Pyro, NumPyro |
-| LDLᵀ factorization | Stable Hessian factorization in trust-region optimizers | L-BFGS, trust-region Newton; scipy.optimize |
+| LDL^T factorization | Stable Hessian factorization in trust-region optimizers | L-BFGS, trust-region Newton; scipy.optimize |
 | Schur complement | Conditional Gaussian inference; GP prediction | GPyTorch, GPflow; Bayesian neural networks |
 | Matrix inversion lemma (Woodbury) | Low-rank updates without full matrix inversion | LoRA weight merging; Kalman filter; GP with inducing points |
 | Log-determinant | Normalizing constant in Gaussian log-likelihood | GP hyperparameter optimization; normalizing flows (RealNVP, Glow) |
@@ -1326,46 +1326,46 @@ where $D_{\text{KL}}(\mathcal{N}(\boldsymbol{\mu}, \Sigma) \| \mathcal{N}(\mathb
 
 ### Looking Back
 
-This section builds on a foundation laid across the previous six sections of Advanced Linear Algebra. From eigenvalues and eigenvectors (§01), we borrow the spectral theorem — the fact that symmetric matrices diagonalize orthogonally — which provides the cleanest proof that positive definiteness is equivalent to positive eigenvalues. From SVD (§02), we inherit the language of singular values and the connection between the spectral norm, condition number, and the stability of Cholesky. The orthogonality theory from §05 underpins the proof that $Q\Lambda Q^\top$ is symmetric (the spectral theorem) and that the PSD square root is well-defined and unique. Matrix norms from §06 give precise bounds on how a PD matrix behaves numerically: the condition number $\kappa(A) = \lambda_{\max}/\lambda_{\min}$ measures how far $A$ is from singular, and ill-conditioned PD matrices lead to numerical difficulties in Cholesky.
+This section builds on a foundation laid across the previous six sections of Advanced Linear Algebra. From eigenvalues and eigenvectors (01), we borrow the spectral theorem - the fact that symmetric matrices diagonalize orthogonally - which provides the cleanest proof that positive definiteness is equivalent to positive eigenvalues. From SVD (02), we inherit the language of singular values and the connection between the spectral norm, condition number, and the stability of Cholesky. The orthogonality theory from 05 underpins the proof that $Q\Lambda Q^\top$ is symmetric (the spectral theorem) and that the PSD square root is well-defined and unique. Matrix norms from 06 give precise bounds on how a PD matrix behaves numerically: the condition number $\kappa(A) = \lambda_{\max}/\lambda_{\min}$ measures how far $A$ is from singular, and ill-conditioned PD matrices lead to numerical difficulties in Cholesky.
 
-Most fundamentally, positive definite matrices are the matrices that have all four of the desirable properties we want from a symmetric matrix: uniquely solvable linear systems (invertible), well-defined quadratic energy (positive), computable square root (Cholesky), and monotone response to matrix operations (Loewner order). Understanding this quadrant of symmetry × positivity is the analytical key to all probabilistic machine learning.
+Most fundamentally, positive definite matrices are the matrices that have all four of the desirable properties we want from a symmetric matrix: uniquely solvable linear systems (invertible), well-defined quadratic energy (positive), computable square root (Cholesky), and monotone response to matrix operations (Loewner order). Understanding this quadrant of symmetry \times positivity is the analytical key to all probabilistic machine learning.
 
 ### Looking Forward
 
-Positive definite matrices are the entry point to the next major development: §08 (Matrix Decompositions) uses the Cholesky factorization developed here as one member of a family that includes LU (general matrices) and QR (orthogonal factorization). The Cholesky decomposition studied here in full generality is previewed (only briefly) in §08 — by the time students reach §08, the Cholesky algorithm should feel familiar.
+Positive definite matrices are the entry point to the next major development: 08 (Matrix Decompositions) uses the Cholesky factorization developed here as one member of a family that includes LU (general matrices) and QR (orthogonal factorization). The Cholesky decomposition studied here in full generality is previewed (only briefly) in 08 - by the time students reach 08, the Cholesky algorithm should feel familiar.
 
-The deeper application of positive definiteness comes later in the curriculum. In Chapter 6 (Probability Theory), covariance matrices $\Sigma \succeq 0$ appear in every multivariate distribution. In Chapter 8 (Optimization), the second-order conditions for minima require $\nabla^2\mathcal{L} \succeq 0$, and convexity of a function is equivalent to its Hessian being PSD everywhere. In Chapter 12 (Functional Analysis), Mercer's theorem and RKHS theory extend PSD kernels to infinite-dimensional inner product spaces. The PSD cone and semidefinite programming previewed in §9 appear extensively in Chapter 8 (Optimization) and in the robotics/control applications in later chapters.
+The deeper application of positive definiteness comes later in the curriculum. In Chapter 6 (Probability Theory), covariance matrices $\Sigma \succeq 0$ appear in every multivariate distribution. In Chapter 8 (Optimization), the second-order conditions for minima require $\nabla^2\mathcal{L} \succeq 0$, and convexity of a function is equivalent to its Hessian being PSD everywhere. In Chapter 12 (Functional Analysis), Mercer's theorem and RKHS theory extend PSD kernels to infinite-dimensional inner product spaces. The PSD cone and semidefinite programming previewed in 9 appear extensively in Chapter 8 (Optimization) and in the robotics/control applications in later chapters.
 
 ### Curriculum Position
 
 ```
 POSITIVE DEFINITE MATRICES IN THE CURRICULUM
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
   Chapter 2: Linear Algebra Basics
-  ├── §01 Vectors and Spaces        → inner products, quadratic forms
-  ├── §04 Determinants              → Sylvester's criterion
-  └── §06 Vector Spaces             → subspaces, null space
+  +-- 01 Vectors and Spaces        -> inner products, quadratic forms
+  +-- 04 Determinants              -> Sylvester's criterion
+  +-- 06 Vector Spaces             -> subspaces, null space
   
   Chapter 3: Advanced Linear Algebra
-  ├── §01 Eigenvalues         → spectral characterization of PD
-  ├── §02 SVD                 → singular values, condition number
-  ├── §05 Orthogonality       → spectral theorem, square root
-  ├── §06 Matrix Norms        → condition number, jitter scale
-  ├── §07 Positive Definite   ◄══ YOU ARE HERE
-  │     │   Cholesky, LDLᵀ, Schur, log-det, Gram, SDP
-  └── §08 Matrix Decompositions  → LU, QR, brief Cholesky recap
+  +-- 01 Eigenvalues         -> spectral characterization of PD
+  +-- 02 SVD                 -> singular values, condition number
+  +-- 05 Orthogonality       -> spectral theorem, square root
+  +-- 06 Matrix Norms        -> condition number, jitter scale
+  +-- 07 Positive Definite   <== YOU ARE HERE
+  |     |   Cholesky, LDL^T, Schur, log-det, Gram, SDP
+  +-- 08 Matrix Decompositions  -> LU, QR, brief Cholesky recap
   
   Downstream:
-  ├── Ch. 6 Probability: Gaussian covariance Σ ≻ 0
-  ├── Ch. 8 Optimization: Hessian ≻ 0 at local minima; SDP
-  ├── Ch. 12 Functional Analysis: Mercer, RKHS
-  └── Ch. 13 ML Math: K-FAC, VAE, GP, normalizing flows
+  +-- Ch. 6 Probability: Gaussian covariance \Sigma \succ 0
+  +-- Ch. 8 Optimization: Hessian \succ 0 at local minima; SDP
+  +-- Ch. 12 Functional Analysis: Mercer, RKHS
+  +-- Ch. 13 ML Math: K-FAC, VAE, GP, normalizing flows
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
-The central insight to carry forward: **positive definiteness is not a restriction but a characterization**. A matrix that fails to be PD is not "almost OK" — it is categorically different, with no unique minimum, no valid probability interpretation, no Cholesky factorization. The condition $A \succ 0$ is the boundary between well-posedness and ill-posedness in a wide range of mathematical problems, and recognizing that boundary — and the tools to work with it (Cholesky, Schur, log-det) — is an essential skill for the working ML practitioner.
+The central insight to carry forward: **positive definiteness is not a restriction but a characterization**. A matrix that fails to be PD is not "almost OK" - it is categorically different, with no unique minimum, no valid probability interpretation, no Cholesky factorization. The condition $A \succ 0$ is the boundary between well-posedness and ill-posedness in a wide range of mathematical problems, and recognizing that boundary - and the tools to work with it (Cholesky, Schur, log-det) - is an essential skill for the working ML practitioner.
 
 
 ---
@@ -1374,7 +1374,7 @@ The central insight to carry forward: **positive definiteness is not a restricti
 
 ### A.1 Preserving Positive Definiteness Under Operations
 
-Understanding which operations preserve PD/PSD structure is practically important — it tells you when a composed matrix is guaranteed to be PD without recomputing.
+Understanding which operations preserve PD/PSD structure is practically important - it tells you when a composed matrix is guaranteed to be PD without recomputing.
 
 **Direct results:**
 
@@ -1415,13 +1415,13 @@ A **principal submatrix** of $A$ is obtained by deleting rows and columns with t
 
 For completeness: an **indefinite** symmetric matrix $A$ has both positive and negative eigenvalues. The corresponding quadratic form takes positive values in some directions and negative values in others. The level sets are hyperboloids.
 
-**Connection to saddle points in optimization.** A critical point $\nabla\mathcal{L}(\boldsymbol{\theta}^*) = 0$ with indefinite Hessian $\nabla^2\mathcal{L}(\boldsymbol{\theta}^*)$ is a saddle point — not a local minimum. In neural network optimization:
+**Connection to saddle points in optimization.** A critical point $\nabla\mathcal{L}(\boldsymbol{\theta}^*) = 0$ with indefinite Hessian $\nabla^2\mathcal{L}(\boldsymbol{\theta}^*)$ is a saddle point - not a local minimum. In neural network optimization:
 
 - Gradient descent near a saddle point may slow down dramatically (gradient is small, Hessian is indefinite)
-- The negative eigenvalue directions are "escape directions" — following them reduces the loss
+- The negative eigenvalue directions are "escape directions" - following them reduces the loss
 - Stochastic gradient descent (SGD) with noise "escapes" saddles; deterministic gradient descent can get stuck
 
-**Sylvester's law of inertia.** For a symmetric matrix $A$, the **signature** $(p, q, r)$ (number of positive, negative, zero eigenvalues) is invariant under congruence transformations $A \mapsto B^\top A B$ (for invertible $B$). This means no invertible change of basis can turn a saddle into a minimum — the number of descent directions is a geometric invariant of the quadratic form.
+**Sylvester's law of inertia.** For a symmetric matrix $A$, the **signature** $(p, q, r)$ (number of positive, negative, zero eigenvalues) is invariant under congruence transformations $A \mapsto B^\top A B$ (for invertible $B$). This means no invertible change of basis can turn a saddle into a minimum - the number of descent directions is a geometric invariant of the quadratic form.
 
 ---
 
@@ -1447,7 +1447,7 @@ Forward: $2y_1 = 8 \Rightarrow y_1 = 4$; $y_1 + \sqrt{2}y_2 = 7 \Rightarrow y_2 
 
 Backward: $\sqrt{2}x_2 = 3/\sqrt{2} \Rightarrow x_2 = 3/2$; $2x_1 + x_2 = 4 \Rightarrow x_1 = (4 - 3/2)/2 = 5/4$.
 
-Verify: $\begin{pmatrix}4&2\\2&3\end{pmatrix}\begin{pmatrix}5/4\\3/2\end{pmatrix} = \begin{pmatrix}5+3\\5/2+9/2\end{pmatrix} = \begin{pmatrix}8\\7\end{pmatrix}$. ✓
+Verify: $\begin{pmatrix}4&2\\2&3\end{pmatrix}\begin{pmatrix}5/4\\3/2\end{pmatrix} = \begin{pmatrix}5+3\\5/2+9/2\end{pmatrix} = \begin{pmatrix}8\\7\end{pmatrix}$. OK
 
 ### B.2 Cholesky Update and Downdate
 
@@ -1458,9 +1458,9 @@ When $A$ changes by a rank-1 update $A \leftarrow A + \mathbf{v}\mathbf{v}^\top$
 Given $A = LL^\top$, compute $L'$ such that $L'L'^\top = A + \mathbf{v}\mathbf{v}^\top$:
 
 ```
-x = L \ v           (forward solve: O(n²))
+x = L \ v           (forward solve: O(n^2))
 for k = 1 to n:
-    r = sqrt(L[k,k]² + x[k]²)
+    r = sqrt(L[k,k]^2 + x[k]^2)
     c = r / L[k,k]
     s = x[k] / L[k,k]
     L[k,k] = r
@@ -1468,7 +1468,7 @@ for k = 1 to n:
     x[k+1:n]    = c*x[k+1:n] - s*L[k+1:n,k]
 ```
 
-This uses Givens rotations (→ [§05: Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)) to update $L$ in place.
+This uses Givens rotations (-> [05: Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)) to update $L$ in place.
 
 **For AI:** Online learning algorithms that add one data point at a time use rank-1 Cholesky updates to maintain the Cholesky factorization of the Gram matrix. Sequential Bayesian updating (online GP regression) uses rank-1 Cholesky updates at cost $O(n^2)$ per update instead of $O(n^3)$ full refactorization.
 
@@ -1481,7 +1481,7 @@ $$\frac{\|\hat{\mathbf{x}} - \mathbf{x}\|}{\|\mathbf{x}\|} \leq \kappa(A) \cdot 
 For Cholesky specifically: the backward error bound on the Cholesky factor is $\|A - \hat{L}\hat{L}^\top\| \leq c_n\epsilon_{\text{mach}}\|A\|$. This means Cholesky is **unconditionally backward stable** for PD matrices. In contrast, LU without pivoting can have backward errors proportional to $\|L\|\|U\|$, which can be exponentially large.
 
 **Ill-conditioning warning.** For large $\kappa(A)$:
-- The log-det computation $2\sum\log L_{ii}$ involves some very small $L_{ii}$ (near-zero for near-singular dimensions) — those log terms dominate and may lose digits
+- The log-det computation $2\sum\log L_{ii}$ involves some very small $L_{ii}$ (near-zero for near-singular dimensions) - those log terms dominate and may lose digits
 - Linear solves $A^{-1}\mathbf{b}$ lose approximately $\log_{10}\kappa(A)$ digits of accuracy
 - Cholesky itself remains stable; the error comes from the ill-conditioning of the problem, not the algorithm
 
@@ -1550,8 +1550,8 @@ $$k(\boldsymbol{\tau}) = \int_{\mathbb{R}^d} e^{i\boldsymbol{\omega}^\top\boldsy
 
 **Implications for kernel design:**
 - **RBF kernel:** $k(\boldsymbol{\tau}) = \exp(-\|\boldsymbol{\tau}\|^2/2\ell^2)$ is PD (its Fourier transform is a Gaussian, which is non-negative)
-- **Matérn kernels:** PD for all valid smoothness parameters $\nu > 0$
-- **Checking validity:** A kernel is valid iff its Fourier transform is non-negative — this is the ultimate test
+- **Matern kernels:** PD for all valid smoothness parameters $\nu > 0$
+- **Checking validity:** A kernel is valid iff its Fourier transform is non-negative - this is the ultimate test
 
 **Random Fourier features (Rahimi & Recht, 2007).** Bochner's theorem gives a randomized approximation to stationary PD kernels:
 
@@ -1571,15 +1571,15 @@ So $\det A$ measures the "volume" of the ellipsoid associated with $A$. Larger $
 
 **In the Gaussian context:** The normalizing constant of $\mathcal{N}(\boldsymbol{\mu}, \Sigma)$ is $(2\pi)^{n/2}(\det\Sigma)^{1/2}$. This is the volume of the "effective support" ellipsoid scaled by $(2\pi)^{n/2}$.
 
-**D-optimal experimental design.** In Bayesian experimental design, the **D-optimal criterion** selects experiments $\mathbf{x}_1,\ldots,\mathbf{x}_n$ to maximize $\det(X^\top X + \sigma^{-2}I)$ — the determinant of the posterior precision matrix, which equals $1/\det(\Sigma_{\text{post}})$. Maximizing $\det(\text{posterior precision})$ minimizes the volume of the posterior confidence ellipsoid. This is an SDP with $X$ as the optimization variable.
+**D-optimal experimental design.** In Bayesian experimental design, the **D-optimal criterion** selects experiments $\mathbf{x}_1,\ldots,\mathbf{x}_n$ to maximize $\det(X^\top X + \sigma^{-2}I)$ - the determinant of the posterior precision matrix, which equals $1/\det(\Sigma_{\text{post}})$. Maximizing $\det(\text{posterior precision})$ minimizes the volume of the posterior confidence ellipsoid. This is an SDP with $X$ as the optimization variable.
 
-**Maximum entropy Gaussians.** Among all distributions with mean $\boldsymbol{\mu}$ and covariance $\Sigma$, the maximum entropy distribution is $\mathcal{N}(\boldsymbol{\mu}, \Sigma)$, with entropy $H = \frac{n}{2}(1+\log(2\pi)) + \frac{1}{2}\log\det\Sigma$. Maximizing entropy subject to a trace constraint $\text{tr}(\Sigma) \leq c$ gives $\Sigma = (c/n)I$ (isotropic Gaussian) — the most "uninformed" Gaussian with bounded total variance.
+**Maximum entropy Gaussians.** Among all distributions with mean $\boldsymbol{\mu}$ and covariance $\Sigma$, the maximum entropy distribution is $\mathcal{N}(\boldsymbol{\mu}, \Sigma)$, with entropy $H = \frac{n}{2}(1+\log(2\pi)) + \frac{1}{2}\log\det\Sigma$. Maximizing entropy subject to a trace constraint $\text{tr}(\Sigma) \leq c$ gives $\Sigma = (c/n)I$ (isotropic Gaussian) - the most "uninformed" Gaussian with bounded total variance.
 
 ### D.4 Matrix Exponential and the PD Manifold
 
 The set of PD matrices $\mathbb{S}_{++}^n$ is an **open smooth manifold** (in fact, a Riemannian manifold with the affine-invariant metric). This means concepts from differential geometry apply.
 
-**The matrix exponential.** For any symmetric $S \in \mathbb{S}^n$, $e^S = Q e^\Lambda Q^\top \in \mathbb{S}_{++}^n$ (positive definite, since exponentials of real numbers are positive). The map $\exp: \mathbb{S}^n \to \mathbb{S}_{++}^n$ is a bijection — PD matrices are exactly exponentials of symmetric matrices.
+**The matrix exponential.** For any symmetric $S \in \mathbb{S}^n$, $e^S = Q e^\Lambda Q^\top \in \mathbb{S}_{++}^n$ (positive definite, since exponentials of real numbers are positive). The map $\exp: \mathbb{S}^n \to \mathbb{S}_{++}^n$ is a bijection - PD matrices are exactly exponentials of symmetric matrices.
 
 **Log-Euclidean metric.** A simple Riemannian metric on $\mathbb{S}_{++}^n$ (used in diffusion tensor imaging) defines the "distance" between $A, B \succ 0$ as:
 
@@ -1641,7 +1641,7 @@ $\hat{S} \succeq 0$ always (it's a Gram matrix). But:
 
 $$f(\lambda) = \frac{\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)}}{2\pi\gamma\lambda}$$
 
-for $\lambda \in [\lambda_-, \lambda_+]$, where $\lambda_\pm = (1 \pm 1/\sqrt{\gamma})^2$. This means even under the identity covariance, sample eigenvalues are spread over a wide range — the smallest eigenvalues of $\hat{S}$ are much smaller than 1 and the largest are much larger than 1.
+for $\lambda \in [\lambda_-, \lambda_+]$, where $\lambda_\pm = (1 \pm 1/\sqrt{\gamma})^2$. This means even under the identity covariance, sample eigenvalues are spread over a wide range - the smallest eigenvalues of $\hat{S}$ are much smaller than 1 and the largest are much larger than 1.
 
 **Ledoit-Wolf shrinkage.** The Ledoit-Wolf estimator regularizes the sample covariance toward a multiple of identity:
 
@@ -1717,7 +1717,7 @@ $$D_{\text{KL}} = \frac{1}{2}\sum_{i=1}^d \left[\sigma_i^2 + \mu_{q,i}^2 - 1 - \
 
 For Cholesky $\Sigma_q = LL^\top$: $\log\det\Sigma_q = 2\sum_i \log L_{ii}$ and $\text{tr}(\Sigma_q) = \|L\|_F^2$.
 
-All these computations — $\log\det\Sigma_q$, $\text{tr}(\Sigma_q)$, $\Sigma_q^{-1}$ — exploit the Cholesky and log-det tools developed in §4 and §7.
+All these computations - $\log\det\Sigma_q$, $\text{tr}(\Sigma_q)$, $\Sigma_q^{-1}$ - exploit the Cholesky and log-det tools developed in 4 and 7.
 
 ### E.4 The Normal Equations and Ridge Regression
 
@@ -1746,31 +1746,31 @@ The matrix $A = X^\top X + \lambda I \succ 0$ for any $\lambda > 0$ (by Proposit
 
 ```
 POSITIVE DEFINITENESS: FOUR EQUIVALENT TESTS
-════════════════════════════════════════════════════════════════════════
+========================================================================
 
-  Let A ∈ ℝⁿˣⁿ be symmetric. The following are equivalent:
+  Let A \in \mathbb{R}^n^x^n be symmetric. The following are equivalent:
 
-  DEFINITION   ∀x≠0: x⊤Ax > 0            (quadratic form positive)
-  SPECTRAL     ∀i: λᵢ(A) > 0              (all eigenvalues positive)
-  SYLVESTER    ∀k: Δₖ = det(A[1:k,1:k]) > 0 (leading minors positive)
-  CHOLESKY     ∃! lower triangular L with positive diagonal: A = LL⊤
+  DEFINITION   \forallx\neq0: x^TAx > 0            (quadratic form positive)
+  SPECTRAL     \foralli: \lambda^i(A) > 0              (all eigenvalues positive)
+  SYLVESTER    \forallk: \Delta_k = det(A[1:k,1:k]) > 0 (leading minors positive)
+  CHOLESKY     \exists! lower triangular L with positive diagonal: A = LL^T
 
   COST:
-  Definition  O(n) per test vector            ← manual/symbolic
-  Spectral    O(n³) eigendecomposition        ← most informative
-  Sylvester   O(n⁴) for all n determinants    ← manual/symbolic
-  Cholesky    O(n³/3) factorization           ← fastest in practice
+  Definition  O(n) per test vector            <- manual/symbolic
+  Spectral    O(n^3) eigendecomposition        <- most informative
+  Sylvester   O(n^4) for all n determinants    <- manual/symbolic
+  Cholesky    O(n^3/3) factorization           <- fastest in practice
 
-════════════════════════════════════════════════════════════════════════
+========================================================================
 ```
 
 ### F.2 Key Formulas
 
 | Formula | Notes |
 |---------|-------|
-| $A = LL^\top$ | Cholesky factorization (A PD ↔ exists) |
-| $A = LDL^\top$ | LDLᵀ: unit lower triangular + diagonal |
-| $A = QA^{1/2}$ | Polar: orthogonal × PD |
+| $A = LL^\top$ | Cholesky factorization (A PD <-> exists) |
+| $A = LDL^\top$ | LDL^T: unit lower triangular + diagonal |
+| $A = QA^{1/2}$ | Polar: orthogonal \times PD |
 | $\log\det A = 2\sum_i\log L_{ii}$ | Log-det via Cholesky |
 | $\nabla_A\log\det A = A^{-1}$ | Matrix calculus: gradient of log-det |
 | $S = D - CA^{-1}B$ | Schur complement of $A$ in block matrix |
@@ -1901,11 +1901,11 @@ $$\mathbf{v}^\top F\mathbf{v} = \mathbb{E}[\mathbf{v}^\top\mathbf{s}\mathbf{s}^\
 
 (The expectation of a squared real random variable is non-negative.) $\square$
 
-**When is $F \succ 0$?** $F$ is PD iff $\mathbb{E}[(\mathbf{v}^\top\mathbf{s})^2] > 0$ for all $\mathbf{v} \neq 0$. This holds iff the score function $\mathbf{v}^\top\nabla_{\boldsymbol{\theta}}\log p(\mathbf{x}|\boldsymbol{\theta}) \neq 0$ with positive probability for every $\mathbf{v} \neq 0$ — the model is "identifiable" in all directions. Singular $F$ indicates structural non-identifiability (two parameters produce identical distributions).
+**When is $F \succ 0$?** $F$ is PD iff $\mathbb{E}[(\mathbf{v}^\top\mathbf{s})^2] > 0$ for all $\mathbf{v} \neq 0$. This holds iff the score function $\mathbf{v}^\top\nabla_{\boldsymbol{\theta}}\log p(\mathbf{x}|\boldsymbol{\theta}) \neq 0$ with positive probability for every $\mathbf{v} \neq 0$ - the model is "identifiable" in all directions. Singular $F$ indicates structural non-identifiability (two parameters produce identical distributions).
 
 ### G.3 Derivatives and the Matrix-Valued Chain Rule
 
-For completeness, we derive the key matrix calculus formulas used in §7.3.
+For completeness, we derive the key matrix calculus formulas used in 7.3.
 
 **Jacobi's formula.** For differentiable $A(t)$:
 $$\frac{d}{dt}\det A(t) = \det A(t) \cdot \text{tr}(A(t)^{-1}\dot{A}(t)).$$
@@ -1916,7 +1916,7 @@ $$\frac{d}{dt}\det A(t) = \det A(t) \cdot \text{tr}(A(t)^{-1}\dot{A}(t)).$$
 
 **Trace-inverse gradient.** For $f(A) = \text{tr}(A^{-1}B)$: $df = \text{tr}(-A^{-1}dA\,A^{-1}B) = -\text{tr}(A^{-1}BA^{-1}dA) = -\langle (A^{-1}BA^{-1})^\top, dA\rangle_F$. So $\nabla_A\text{tr}(A^{-1}B) = -(A^{-1}BA^{-1})^\top = -A^{-\top}B^\top A^{-\top}$.
 
-**For AI — GP hyperparameter gradients:** The gradient of the GP log-marginal-likelihood with respect to a kernel hyperparameter $\theta$ is:
+**For AI - GP hyperparameter gradients:** The gradient of the GP log-marginal-likelihood with respect to a kernel hyperparameter $\theta$ is:
 
 $$\frac{\partial\log p(\mathbf{y}|\theta)}{\partial\theta} = \frac{1}{2}\text{tr}\!\left[(\boldsymbol{\alpha}\boldsymbol{\alpha}^\top - (K+\sigma^2I)^{-1})\frac{\partial K}{\partial\theta}\right]$$
 
@@ -1931,58 +1931,58 @@ where $\boldsymbol{\alpha} = (K+\sigma^2I)^{-1}\mathbf{y}$. This uses $\nabla_K\
 
 | Theorem | Statement | Reference |
 |---------|-----------|-----------|
-| Spectral characterization | $A \succ 0 \Leftrightarrow$ all eigenvalues $> 0$ | §3.1 |
-| Sylvester's criterion | $A \succ 0 \Leftrightarrow$ all leading principal minors $> 0$ | §3.2 |
-| Cholesky existence | $A \succ 0 \Leftrightarrow \exists!$ lower triangular $L$ (pos. diag.) with $A = LL^\top$ | §4.1 |
-| LDLᵀ | Symmetric $A \to A = LDL^\top$; $A \succ 0 \Leftrightarrow$ all $d_i > 0$ | §4.4 |
-| PSD square root | $A \succeq 0 \Rightarrow \exists!$ symmetric PSD $A^{1/2}$ with $(A^{1/2})^2 = A$ | §5.1 |
-| Schur PD criterion | $M = \begin{pmatrix}A&B\\B^\top&D\end{pmatrix} \succ 0 \Leftrightarrow A \succ 0, D-B^\top A^{-1}B \succ 0$ | §6.2 |
-| Woodbury identity | $(A+UCV)^{-1} = A^{-1} - A^{-1}U(C^{-1}+VA^{-1}U)^{-1}VA^{-1}$ | §6.3 |
-| Log-det concavity | $f(A) = \log\det A$ is strictly concave on $\mathbb{S}_{++}^n$ | §7.2 |
-| Log-det gradient | $\nabla_A\log\det A = A^{-1}$ | §7.3 |
-| Gram matrix PSD | $G = XX^\top \succeq 0$ always; PD iff rows of $X$ are linearly independent | §8.1 |
+| Spectral characterization | $A \succ 0 \Leftrightarrow$ all eigenvalues $> 0$ | 3.1 |
+| Sylvester's criterion | $A \succ 0 \Leftrightarrow$ all leading principal minors $> 0$ | 3.2 |
+| Cholesky existence | $A \succ 0 \Leftrightarrow \exists!$ lower triangular $L$ (pos. diag.) with $A = LL^\top$ | 4.1 |
+| LDL^T | Symmetric $A \to A = LDL^\top$; $A \succ 0 \Leftrightarrow$ all $d_i > 0$ | 4.4 |
+| PSD square root | $A \succeq 0 \Rightarrow \exists!$ symmetric PSD $A^{1/2}$ with $(A^{1/2})^2 = A$ | 5.1 |
+| Schur PD criterion | $M = \begin{pmatrix}A&B\\B^\top&D\end{pmatrix} \succ 0 \Leftrightarrow A \succ 0, D-B^\top A^{-1}B \succ 0$ | 6.2 |
+| Woodbury identity | $(A+UCV)^{-1} = A^{-1} - A^{-1}U(C^{-1}+VA^{-1}U)^{-1}VA^{-1}$ | 6.3 |
+| Log-det concavity | $f(A) = \log\det A$ is strictly concave on $\mathbb{S}_{++}^n$ | 7.2 |
+| Log-det gradient | $\nabla_A\log\det A = A^{-1}$ | 7.3 |
+| Gram matrix PSD | $G = XX^\top \succeq 0$ always; PD iff rows of $X$ are linearly independent | 8.1 |
 | Schur product | Hadamard product of PSD matrices is PSD | Appendix A |
 | Hadamard inequality | $\det A \leq \prod_i A_{ii}$ for $A \succ 0$ | Appendix D |
-| Log-det Cholesky | $\log\det A = 2\sum_i\log L_{ii}$ | §7.1 |
+| Log-det Cholesky | $\log\det A = 2\sum_i\log L_{ii}$ | 7.1 |
 
 ### H.2 Further Reading
 
 1. **Textbooks:**
-   - Golub & Van Loan, *Matrix Computations* (4th ed., 2013) — Chapters 4, 7: definitive reference on Cholesky, LDLᵀ algorithms
-   - Higham, *Accuracy and Stability of Numerical Algorithms* (2002) — backward stability proofs for Cholesky, modified Cholesky
-   - Boyd & Vandenberghe, *Convex Optimization* (2004) — Chapter 4: SDP, PSD cone; freely available online
-   - Bernstein, *Matrix Mathematics* (2nd ed., 2009) — comprehensive collection of PD matrix identities
+   - Golub & Van Loan, *Matrix Computations* (4th ed., 2013) - Chapters 4, 7: definitive reference on Cholesky, LDL^T algorithms
+   - Higham, *Accuracy and Stability of Numerical Algorithms* (2002) - backward stability proofs for Cholesky, modified Cholesky
+   - Boyd & Vandenberghe, *Convex Optimization* (2004) - Chapter 4: SDP, PSD cone; freely available online
+   - Bernstein, *Matrix Mathematics* (2nd ed., 2009) - comprehensive collection of PD matrix identities
 
 2. **Research papers:**
    - Cholesky (1924, posthumous publication via Benoit): original algorithm for geodetic calculations
    - Gill, Murray & Wright (1981): modified Cholesky for optimization
    - Vandenberghe & Boyd (1996): semidefinite programming tutorial
-   - Martens & Grosse (2015): K-FAC — Kronecker-factored natural gradient
-   - Gardner et al. (2018): GPyTorch — scalable GP with stochastic log-det estimation
-   - Foret et al. (2021): SAM — sharpness-aware minimization
+   - Martens & Grosse (2015): K-FAC - Kronecker-factored natural gradient
+   - Gardner et al. (2018): GPyTorch - scalable GP with stochastic log-det estimation
+   - Foret et al. (2021): SAM - sharpness-aware minimization
 
 3. **Online resources:**
-   - Petersen & Pedersen, *The Matrix Cookbook* — practical matrix calculus identities
+   - Petersen & Pedersen, *The Matrix Cookbook* - practical matrix calculus identities
    - NumPy/SciPy docs: `np.linalg.cholesky`, `scipy.linalg.cholesky`, `scipy.linalg.ldl`
    - GPyTorch documentation: scalable GP inference with Cholesky
    - CVXPY documentation: SDP examples and semidefinite programming
 
 4. **Next sections:**
-   - [§08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md) — LU, QR, SVD algorithms (Cholesky briefly revisited in algorithmic context)
-   - [Chapter 6: Probability Theory](../../06-Probability-Theory/) — multivariate Gaussians, covariance matrices
-   - [Chapter 8: Optimization](../../08-Optimization/) — second-order methods, convexity, SDP
-   - [Chapter 12: Functional Analysis](../../12-Functional-Analysis/) — RKHS, Mercer's theorem, kernel methods
+   - [08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md) - LU, QR, SVD algorithms (Cholesky briefly revisited in algorithmic context)
+   - [Chapter 6: Probability Theory](../../06-Probability-Theory/) - multivariate Gaussians, covariance matrices
+   - [Chapter 8: Optimization](../../08-Optimization/) - second-order methods, convexity, SDP
+   - [Chapter 12: Functional Analysis](../../12-Functional-Analysis/) - RKHS, Mercer's theorem, kernel methods
 
 
 ---
 
-*End of §07: Positive Definite Matrices. Next: [§08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md)*
+*End of 07: Positive Definite Matrices. Next: [08: Matrix Decompositions](../08-Matrix-Decompositions/notes.md)*
 
 ---
 
-## Appendix I: Worked Examples — Complete Solutions
+## Appendix I: Worked Examples - Complete Solutions
 
-### I.1 Full 3×3 Cholesky Example with Verification
+### I.1 Full 3\times3 Cholesky Example with Verification
 
 Compute $L = \text{chol}(A)$ for $A = \begin{pmatrix}9 & 3 & -3 \\ 3 & 17 & -1 \\ -3 & -1 & 12\end{pmatrix}$.
 
@@ -2014,5 +2014,5 @@ $$S = \Sigma_{22} - \Sigma_{21}\Sigma_{11}^{-1}\Sigma_{12} = 5 - 2 \cdot \frac{1
 $$\mu_{1|2} = 0 + \Sigma_{12}\Sigma_{22}^{-1}(a - 0) = \frac{2}{5}a.$$
 $$\sigma_{1|2}^2 = \Sigma_{11} - \Sigma_{12}\Sigma_{22}^{-1}\Sigma_{21} = 4 - 2 \cdot \frac{1}{5} \cdot 2 = 4 - \frac{4}{5} = \frac{16}{5}.$$
 
-Note: the unconditional variance of $X_1$ is $\sigma_1^2 = 4$. The conditional variance $16/5 = 3.2 < 4$ — observing $X_2$ reduces uncertainty about $X_1$ (as guaranteed by the Loewner order, §2.4). The correlation $\rho = 2/\sqrt{4 \cdot 5} = 2/\sqrt{20} = 1/\sqrt{5} \approx 0.447$ explains the moderate uncertainty reduction.
+Note: the unconditional variance of $X_1$ is $\sigma_1^2 = 4$. The conditional variance $16/5 = 3.2 < 4$ - observing $X_2$ reduces uncertainty about $X_1$ (as guaranteed by the Loewner order, 2.4). The correlation $\rho = 2/\sqrt{4 \cdot 5} = 2/\sqrt{20} = 1/\sqrt{5} \approx 0.447$ explains the moderate uncertainty reduction.
 
