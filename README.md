@@ -39,7 +39,7 @@ This repository bridges that gap with a **learn-by-doing** approach:
 - **Real ML connections** — every concept links to practical AI applications
 - **Self-contained** — no prerequisites beyond basic algebra
 
-> *"The math you need depends on what you're building — this repo helps you find exactly that."*
+> _"The math you need depends on what you're building — this repo helps you find exactly that."_
 
 ---
 
@@ -47,8 +47,8 @@ This repository bridges that gap with a **learn-by-doing** approach:
 
 ```bash
 # Clone the repository
-git clone https://github.com/prmtkr/math_for_llms.git
-cd math_for_ai
+git clone https://github.com/RiazML/math-for-llms.git
+cd math-for-llms
 
 # Set up the environment
 python3 -m venv .venv
@@ -285,16 +285,16 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 
 ### Quick Reference — Learning Order
 
-| Phase | Chapters | Focus |
-|:------|:---------|:------|
-| **Phase 1** — Core Foundations | 01 → 02 → 04 → 05 | Numbers, vectors, matrices, derivatives, gradients |
-| **Phase 2** — Probabilistic Thinking | 06 → 07 | Random variables, distributions, estimation, inference |
-| **Phase 3** — Making Models Learn | 08 → 09 | Optimization algorithms, information-theoretic losses |
-| **Phase 4** — Deeper Theory | 03 → 10 → 11 → 12 | Advanced linear algebra, numerical methods, graphs, kernels |
-| **Phase 5** — ML Math in Practice | 13 → 14 | Loss functions, activations, architecture-specific math |
-| **Phase 6** — LLM Math | 15 → 16 | Attention, embeddings, scaling laws, training pipelines |
-| **Phase 7** — Production & Safety | 17 → 18 → 19 | Evaluation, alignment (RLHF/DPO), MLOps |
-| **Phase 8** — Research Frontiers | 20 → 21 → 22 → 23 → 24 → 25 | Fourier analysis, learning theory, causality, geometry |
+| Phase                                | Chapters                    | Focus                                                       |
+| :----------------------------------- | :-------------------------- | :---------------------------------------------------------- |
+| **Phase 1** — Core Foundations       | 01 → 02 → 04 → 05           | Numbers, vectors, matrices, derivatives, gradients          |
+| **Phase 2** — Probabilistic Thinking | 06 → 07                     | Random variables, distributions, estimation, inference      |
+| **Phase 3** — Making Models Learn    | 08 → 09                     | Optimization algorithms, information-theoretic losses       |
+| **Phase 4** — Deeper Theory          | 03 → 10 → 11 → 12           | Advanced linear algebra, numerical methods, graphs, kernels |
+| **Phase 5** — ML Math in Practice    | 13 → 14                     | Loss functions, activations, architecture-specific math     |
+| **Phase 6** — LLM Math               | 15 → 16                     | Attention, embeddings, scaling laws, training pipelines     |
+| **Phase 7** — Production & Safety    | 17 → 18 → 19                | Evaluation, alignment (RLHF/DPO), MLOps                     |
+| **Phase 8** — Research Frontiers     | 20 → 21 → 22 → 23 → 24 → 25 | Fourier analysis, learning theory, causality, geometry      |
 
 ---
 
@@ -306,14 +306,14 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>01 · Mathematical Foundations</b> — Number systems, sets, logic, proofs</summary>
 <br>
 
-| Topic | Description |
-|:------|:------------|
-| Number Systems | Natural, integer, rational, real, and complex numbers (N Z Q R C) |
-| Sets & Logic | Set operations, propositional logic, quantifiers |
-| Functions & Mappings | Domain, range, injectivity, surjectivity, composition |
-| Summation & Product Notation | Sigma/Pi notation, index manipulation |
-| Einstein Summation | Index notation used in tensor operations |
-| Proof Techniques | Induction, contradiction, direct proof, contrapositive |
+| Topic                        | Description                                                       |
+| :--------------------------- | :---------------------------------------------------------------- |
+| Number Systems               | Natural, integer, rational, real, and complex numbers (N Z Q R C) |
+| Sets & Logic                 | Set operations, propositional logic, quantifiers                  |
+| Functions & Mappings         | Domain, range, injectivity, surjectivity, composition             |
+| Summation & Product Notation | Sigma/Pi notation, index manipulation                             |
+| Einstein Summation           | Index notation used in tensor operations                          |
+| Proof Techniques             | Induction, contradiction, direct proof, contrapositive            |
 
 </details>
 
@@ -321,14 +321,14 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>02 · Linear Algebra Basics</b> — Vectors, matrices, systems of equations</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Vectors & Spaces | Feature representations, embeddings |
-| Matrix Operations | Forward propagation, transformations |
-| Systems of Equations | Linear regression (normal equations) |
-| Determinants | Change of variables in normalizing flows |
-| Matrix Rank | Model capacity, low-rank approximations |
-| Vector Spaces & Subspaces | Dimensionality, feature spaces |
+| Topic                     | ML Connection                            |
+| :------------------------ | :--------------------------------------- |
+| Vectors & Spaces          | Feature representations, embeddings      |
+| Matrix Operations         | Forward propagation, transformations     |
+| Systems of Equations      | Linear regression (normal equations)     |
+| Determinants              | Change of variables in normalizing flows |
+| Matrix Rank               | Model capacity, low-rank approximations  |
+| Vector Spaces & Subspaces | Dimensionality, feature spaces           |
 
 </details>
 
@@ -336,16 +336,16 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>03 · Advanced Linear Algebra</b> — Eigen decomposition, SVD, PCA</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Eigenvalues & Eigenvectors | PCA, spectral clustering, stability analysis |
-| Singular Value Decomposition | Recommender systems, dimensionality reduction |
-| Principal Component Analysis | Feature extraction, data compression |
-| Linear Transformations | Neural network layers as transforms |
-| Orthogonality & Orthonormality | Gram-Schmidt, decorrelated features |
-| Matrix Norms | Regularization, operator bounds |
-| Positive Definite Matrices | Covariance matrices, kernel validity |
-| Matrix Decompositions | LU, QR, Cholesky — efficient solvers |
+| Topic                          | ML Connection                                 |
+| :----------------------------- | :-------------------------------------------- |
+| Eigenvalues & Eigenvectors     | PCA, spectral clustering, stability analysis  |
+| Singular Value Decomposition   | Recommender systems, dimensionality reduction |
+| Principal Component Analysis   | Feature extraction, data compression          |
+| Linear Transformations         | Neural network layers as transforms           |
+| Orthogonality & Orthonormality | Gram-Schmidt, decorrelated features           |
+| Matrix Norms                   | Regularization, operator bounds               |
+| Positive Definite Matrices     | Covariance matrices, kernel validity          |
+| Matrix Decompositions          | LU, QR, Cholesky — efficient solvers          |
 
 </details>
 
@@ -353,12 +353,12 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>04 · Calculus Fundamentals</b> — Limits, derivatives, integrals, series</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Limits & Continuity | Convergence guarantees, activation smoothness |
-| Derivatives & Differentiation | Gradient computation for all parameters |
-| Integration | Probability densities, normalization constants |
-| Series & Sequences | Taylor approximations, convergence analysis |
+| Topic                         | ML Connection                                  |
+| :---------------------------- | :--------------------------------------------- |
+| Limits & Continuity           | Convergence guarantees, activation smoothness  |
+| Derivatives & Differentiation | Gradient computation for all parameters        |
+| Integration                   | Probability densities, normalization constants |
+| Series & Sequences            | Taylor approximations, convergence analysis    |
 
 </details>
 
@@ -366,13 +366,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>05 · Multivariate Calculus</b> — Gradients, Jacobians, backpropagation</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Partial Derivatives & Gradients | Direction of steepest descent |
-| Jacobians & Hessians | Multi-output functions, second-order methods |
-| Chain Rule & Backpropagation | Training every neural network |
-| Optimality Conditions | Convergence criteria, saddle points |
-| Automatic Differentiation | PyTorch autograd, JAX |
+| Topic                           | ML Connection                                |
+| :------------------------------ | :------------------------------------------- |
+| Partial Derivatives & Gradients | Direction of steepest descent                |
+| Jacobians & Hessians            | Multi-output functions, second-order methods |
+| Chain Rule & Backpropagation    | Training every neural network                |
+| Optimality Conditions           | Convergence criteria, saddle points          |
+| Automatic Differentiation       | PyTorch autograd, JAX                        |
 
 </details>
 
@@ -382,15 +382,15 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>06 · Probability Theory</b> — Distributions, expectations, stochastic processes</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Random Variables | Output uncertainty, stochastic models |
-| Common Distributions | Gaussian, Bernoulli, Poisson — model assumptions |
-| Joint Distributions | Multi-variate modeling, copulas |
-| Expectation & Moments | Loss functions, feature statistics |
-| Concentration Inequalities | Generalization bounds, sample complexity |
-| Stochastic Processes | Time series, diffusion models |
-| Markov Chains | MCMC sampling, language modeling |
+| Topic                      | ML Connection                                    |
+| :------------------------- | :----------------------------------------------- |
+| Random Variables           | Output uncertainty, stochastic models            |
+| Common Distributions       | Gaussian, Bernoulli, Poisson — model assumptions |
+| Joint Distributions        | Multi-variate modeling, copulas                  |
+| Expectation & Moments      | Loss functions, feature statistics               |
+| Concentration Inequalities | Generalization bounds, sample complexity         |
+| Stochastic Processes       | Time series, diffusion models                    |
+| Markov Chains              | MCMC sampling, language modeling                 |
 
 </details>
 
@@ -398,14 +398,14 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>07 · Statistics</b> — Estimation, testing, Bayesian inference, regression</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Descriptive Statistics | EDA, feature engineering |
-| Estimation Theory | MLE, MAP — training as estimation |
-| Hypothesis Testing | A/B testing, model comparison |
-| Bayesian Inference | Posterior updates, uncertainty quantification |
-| Time Series | Sequence forecasting, temporal patterns |
-| Regression Analysis | Baseline models, diagnostics |
+| Topic                  | ML Connection                                 |
+| :--------------------- | :-------------------------------------------- |
+| Descriptive Statistics | EDA, feature engineering                      |
+| Estimation Theory      | MLE, MAP — training as estimation             |
+| Hypothesis Testing     | A/B testing, model comparison                 |
+| Bayesian Inference     | Posterior updates, uncertainty quantification |
+| Time Series            | Sequence forecasting, temporal patterns       |
+| Regression Analysis    | Baseline models, diagnostics                  |
 
 </details>
 
@@ -413,18 +413,18 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>08 · Optimization</b> — SGD, Adam, constrained optimization, regularization</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Convex Optimization | Global guarantees, convergence proofs |
-| Gradient Descent | The engine behind all training |
-| Second-Order Methods | Newton, BFGS — faster convergence |
-| Constrained Optimization | Lagrange multipliers, KKT conditions |
-| Stochastic Optimization | SGD, mini-batch — scaling to big data |
-| Optimization Landscape | Local minima, saddle points, loss surfaces |
-| Adaptive Learning Rate | Adam, RMSProp, AdaGrad |
-| Regularization Methods | L1/L2, Dropout, weight decay |
-| Hyperparameter Optimization | Grid search, Bayesian optimization |
-| Learning Rate Schedules | Warmup, cosine annealing, step decay |
+| Topic                       | ML Connection                              |
+| :-------------------------- | :----------------------------------------- |
+| Convex Optimization         | Global guarantees, convergence proofs      |
+| Gradient Descent            | The engine behind all training             |
+| Second-Order Methods        | Newton, BFGS — faster convergence          |
+| Constrained Optimization    | Lagrange multipliers, KKT conditions       |
+| Stochastic Optimization     | SGD, mini-batch — scaling to big data      |
+| Optimization Landscape      | Local minima, saddle points, loss surfaces |
+| Adaptive Learning Rate      | Adam, RMSProp, AdaGrad                     |
+| Regularization Methods      | L1/L2, Dropout, weight decay               |
+| Hyperparameter Optimization | Grid search, Bayesian optimization         |
+| Learning Rate Schedules     | Warmup, cosine annealing, step decay       |
 
 </details>
 
@@ -434,13 +434,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>09 · Information Theory</b> — Entropy, KL divergence, cross-entropy</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Entropy | Decision tree splits, uncertainty measurement |
-| KL Divergence | VAE loss, knowledge distillation |
-| Mutual Information | Feature selection, InfoGAN |
-| Cross-Entropy | The most common classification loss |
-| Fisher Information | Efficient estimation, natural gradient |
+| Topic              | ML Connection                                 |
+| :----------------- | :-------------------------------------------- |
+| Entropy            | Decision tree splits, uncertainty measurement |
+| KL Divergence      | VAE loss, knowledge distillation              |
+| Mutual Information | Feature selection, InfoGAN                    |
+| Cross-Entropy      | The most common classification loss           |
+| Fisher Information | Efficient estimation, natural gradient        |
 
 </details>
 
@@ -450,13 +450,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 
 📖 [Chapter README](10-Numerical-Methods/README.md)
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Floating-Point Arithmetic | Mixed precision training (FP16/BF16/FP8), loss scaling, Flash Attention numerics |
-| Numerical Linear Algebra | Stable solvers, iterative methods (CG/Lanczos), condition number for training |
-| Numerical Optimization | L-BFGS two-loop, Armijo line search, gradient checking, trust-region methods |
-| Interpolation & Approximation | RoPE/sinusoidal PE, KAN B-splines, Runge's phenomenon, FFT, random Fourier features |
-| Numerical Integration | Gaussian quadrature, Monte Carlo variance reduction, reparameterization trick (VAE ELBO) |
+| Topic                         | ML Connection                                                                            |
+| :---------------------------- | :--------------------------------------------------------------------------------------- |
+| Floating-Point Arithmetic     | Mixed precision training (FP16/BF16/FP8), loss scaling, Flash Attention numerics         |
+| Numerical Linear Algebra      | Stable solvers, iterative methods (CG/Lanczos), condition number for training            |
+| Numerical Optimization        | L-BFGS two-loop, Armijo line search, gradient checking, trust-region methods             |
+| Interpolation & Approximation | RoPE/sinusoidal PE, KAN B-splines, Runge's phenomenon, FFT, random Fourier features      |
+| Numerical Integration         | Gaussian quadrature, Monte Carlo variance reduction, reparameterization trick (VAE ELBO) |
 
 </details>
 
@@ -466,14 +466,14 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>11 · Graph Theory</b> — Graph algorithms, spectral methods, GNNs</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Graph Basics | Social networks, molecular graphs |
-| Graph Representations | Adjacency/Laplacian matrices |
-| Graph Algorithms | Shortest path, centrality, traversal |
-| Spectral Graph Theory | Community detection, graph wavelets |
-| Graph Neural Networks | Message passing, GCN, GAT |
-| Random Graphs | Erdos-Renyi, network analysis |
+| Topic                 | ML Connection                        |
+| :-------------------- | :----------------------------------- |
+| Graph Basics          | Social networks, molecular graphs    |
+| Graph Representations | Adjacency/Laplacian matrices         |
+| Graph Algorithms      | Shortest path, centrality, traversal |
+| Spectral Graph Theory | Community detection, graph wavelets  |
+| Graph Neural Networks | Message passing, GCN, GAT            |
+| Random Graphs         | Erdos-Renyi, network analysis        |
 
 </details>
 
@@ -481,10 +481,10 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>12 · Functional Analysis</b> — Hilbert spaces, kernel methods</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Normed Spaces | Regularization theory |
-| Hilbert Spaces | RKHS, function space learning |
+| Topic          | ML Connection                         |
+| :------------- | :------------------------------------ |
+| Normed Spaces  | Regularization theory                 |
+| Hilbert Spaces | RKHS, function space learning         |
 | Kernel Methods | SVM, Gaussian processes, kernel trick |
 
 </details>
@@ -495,12 +495,12 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>13 · ML-Specific Math</b> — Loss functions, activations, normalization, sampling</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Loss Functions | MSE, cross-entropy, hinge, contrastive |
-| Activation Functions | ReLU, GELU, sigmoid, softmax — and their gradients |
-| Normalization Techniques | BatchNorm, LayerNorm, RMSNorm |
-| Sampling Methods | MCMC, rejection sampling, importance sampling |
+| Topic                    | ML Connection                                      |
+| :----------------------- | :------------------------------------------------- |
+| Loss Functions           | MSE, cross-entropy, hinge, contrastive             |
+| Activation Functions     | ReLU, GELU, sigmoid, softmax — and their gradients |
+| Normalization Techniques | BatchNorm, LayerNorm, RMSNorm                      |
+| Sampling Methods         | MCMC, rejection sampling, importance sampling      |
 
 </details>
 
@@ -508,16 +508,16 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>14 · Math for Specific Models</b> — NNs, CNNs, RNNs, Transformers, GANs, RL</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Linear Models | Regression, classification foundations |
-| Neural Networks | Universal approximation, backprop math |
-| Probabilistic Models | GMMs, HMMs, variational inference |
-| RNN & LSTM Math | Vanishing gradients, gating mechanisms |
-| Transformer Architecture | Attention is all you need — the math |
-| Reinforcement Learning | Bellman equations, policy gradients |
-| Generative Models | VAEs, GANs, diffusion models |
-| CNN & Convolution Math | Convolution theorem, pooling, receptive fields |
+| Topic                    | ML Connection                                  |
+| :----------------------- | :--------------------------------------------- |
+| Linear Models            | Regression, classification foundations         |
+| Neural Networks          | Universal approximation, backprop math         |
+| Probabilistic Models     | GMMs, HMMs, variational inference              |
+| RNN & LSTM Math          | Vanishing gradients, gating mechanisms         |
+| Transformer Architecture | Attention is all you need — the math           |
+| Reinforcement Learning   | Bellman equations, policy gradients            |
+| Generative Models        | VAEs, GANs, diffusion models                   |
+| CNN & Convolution Math   | Convolution theorem, pooling, receptive fields |
 
 </details>
 
@@ -527,21 +527,21 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>15 · Math for LLMs</b> — Attention, embeddings, scaling laws, inference</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Tokenization Math | BPE, WordPiece — information-theoretic foundations |
-| Embedding Space Math | Geometric properties of learned representations |
-| Attention Mechanism Math | Scaled dot-product, multi-head, causal masking |
-| Positional Encodings | Sinusoidal, RoPE, ALiBi |
-| Language Model Probability | Next-token prediction, perplexity |
-| Training at Scale | Distributed training, gradient accumulation |
-| Fine-Tuning Math | LoRA, adapters, parameter-efficient methods |
-| Scaling Laws | Chinchilla, compute-optimal training |
-| Efficient Attention & Inference | FlashAttention, KV-cache, speculative decoding |
-| Mixture of Experts & Routing | Sparse gating, load balancing |
-| Quantization & Distillation | INT8/INT4, knowledge distillation |
-| RAG Math & Retrieval | Retrieval-augmented generation |
-| Serving & Systems Tradeoffs | Latency, throughput, batching strategies |
+| Topic                           | ML Connection                                      |
+| :------------------------------ | :------------------------------------------------- |
+| Tokenization Math               | BPE, WordPiece — information-theoretic foundations |
+| Embedding Space Math            | Geometric properties of learned representations    |
+| Attention Mechanism Math        | Scaled dot-product, multi-head, causal masking     |
+| Positional Encodings            | Sinusoidal, RoPE, ALiBi                            |
+| Language Model Probability      | Next-token prediction, perplexity                  |
+| Training at Scale               | Distributed training, gradient accumulation        |
+| Fine-Tuning Math                | LoRA, adapters, parameter-efficient methods        |
+| Scaling Laws                    | Chinchilla, compute-optimal training               |
+| Efficient Attention & Inference | FlashAttention, KV-cache, speculative decoding     |
+| Mixture of Experts & Routing    | Sparse gating, load balancing                      |
+| Quantization & Distillation     | INT8/INT4, knowledge distillation                  |
+| RAG Math & Retrieval            | Retrieval-augmented generation                     |
+| Serving & Systems Tradeoffs     | Latency, throughput, batching strategies           |
 
 </details>
 
@@ -549,15 +549,15 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>16 · LLM Training Data Pipeline</b> — Data quality, deduplication, mixture optimization</summary>
 <br>
 
-| Topic | Description |
-|:------|:------------|
-| Data Format Standards | JSONL, tokenized formats, schema validation |
-| JSONL Generation | Efficient serialization for training |
-| Quality Checks | Filtering, decontamination, toxicity |
-| Full Dataset Assembly | Combining and balancing data sources |
-| Contamination & Dedup Audits | Preventing benchmark leakage |
-| Documentation & Governance | Data cards, provenance tracking |
-| Data Mixture Optimization | Optimal domain ratios for training |
+| Topic                        | Description                                 |
+| :--------------------------- | :------------------------------------------ |
+| Data Format Standards        | JSONL, tokenized formats, schema validation |
+| JSONL Generation             | Efficient serialization for training        |
+| Quality Checks               | Filtering, decontamination, toxicity        |
+| Full Dataset Assembly        | Combining and balancing data sources        |
+| Contamination & Dedup Audits | Preventing benchmark leakage                |
+| Documentation & Governance   | Data cards, provenance tracking             |
+| Data Mixture Optimization    | Optimal domain ratios for training          |
 
 </details>
 
@@ -567,13 +567,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>17 · Evaluation & Reliability</b> — Benchmarks, calibration, A/B testing</summary>
 <br>
 
-| Topic | Description |
-|:------|:------------|
-| Capability Benchmarks | MMLU, HumanEval, evaluation methodology |
-| Calibration & Uncertainty | Confidence vs. accuracy alignment |
-| Robustness & Distribution Shift | Out-of-distribution detection |
-| Error Analysis & Ablations | Systematic debugging |
-| Online Experimentation & A/B Testing | Statistical rigor in deployment |
+| Topic                                | Description                             |
+| :----------------------------------- | :-------------------------------------- |
+| Capability Benchmarks                | MMLU, HumanEval, evaluation methodology |
+| Calibration & Uncertainty            | Confidence vs. accuracy alignment       |
+| Robustness & Distribution Shift      | Out-of-distribution detection           |
+| Error Analysis & Ablations           | Systematic debugging                    |
+| Online Experimentation & A/B Testing | Statistical rigor in deployment         |
 
 </details>
 
@@ -581,13 +581,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>18 · Alignment & Safety</b> — SFT, RLHF, DPO, red-teaming</summary>
 <br>
 
-| Topic | Description |
-|:------|:------------|
-| Instruction Tuning & SFT | Supervised fine-tuning mathematics |
+| Topic                                | Description                                   |
+| :----------------------------------- | :-------------------------------------------- |
+| Instruction Tuning & SFT             | Supervised fine-tuning mathematics            |
 | Preference Optimization (RLHF & DPO) | Reward modeling, Bradley-Terry, DPO objective |
-| Red-Teaming & Safety Evaluations | Adversarial robustness testing |
-| Policy & Guardrails | Constitutional AI, rule-based filtering |
-| Human-in-the-Loop & Monitoring | Active learning, feedback loops |
+| Red-Teaming & Safety Evaluations     | Adversarial robustness testing                |
+| Policy & Guardrails                  | Constitutional AI, rule-based filtering       |
+| Human-in-the-Loop & Monitoring       | Active learning, feedback loops               |
 
 </details>
 
@@ -595,14 +595,14 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>19 · Production ML & MLOps</b> — Serving, monitoring, drift detection</summary>
 <br>
 
-| Topic | Description |
-|:------|:------------|
-| Data Versioning & Lineage | Reproducibility at scale |
-| Experiment Tracking | MLflow, W&B — systematic experimentation |
-| Feature Stores & Data Contracts | Consistent feature engineering |
-| Model Serving & Inference Optimization | Latency, batching, hardware |
-| Monitoring, Drift & Retraining | Detecting degradation |
-| LLM Evaluation, Observability & Guardrails | LLM-specific ops |
+| Topic                                      | Description                              |
+| :----------------------------------------- | :--------------------------------------- |
+| Data Versioning & Lineage                  | Reproducibility at scale                 |
+| Experiment Tracking                        | MLflow, W&B — systematic experimentation |
+| Feature Stores & Data Contracts            | Consistent feature engineering           |
+| Model Serving & Inference Optimization     | Latency, batching, hardware              |
+| Monitoring, Drift & Retraining             | Detecting degradation                    |
+| LLM Evaluation, Observability & Guardrails | LLM-specific ops                         |
 
 </details>
 
@@ -612,13 +612,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>20 · Fourier Analysis & Signal Processing</b> — FFT, wavelets, convolution theorem</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Fourier Series | Periodic signal decomposition |
-| Fourier Transform | Frequency domain analysis |
-| DFT & FFT | Efficient spectral computation |
-| Convolution Theorem | CNNs in frequency domain |
-| Wavelets | Multi-resolution analysis, time-frequency |
+| Topic               | ML Connection                             |
+| :------------------ | :---------------------------------------- |
+| Fourier Series      | Periodic signal decomposition             |
+| Fourier Transform   | Frequency domain analysis                 |
+| DFT & FFT           | Efficient spectral computation            |
+| Convolution Theorem | CNNs in frequency domain                  |
+| Wavelets            | Multi-resolution analysis, time-frequency |
 
 </details>
 
@@ -626,13 +626,13 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>21 · Statistical Learning Theory</b> — PAC learning, VC dimension, generalization</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| PAC Learning | Learnability guarantees |
-| VC Dimension | Model complexity measurement |
-| Bias-Variance Tradeoff | The fundamental modeling tension |
-| Generalization Bounds | Why models work on unseen data |
-| Rademacher Complexity | Data-dependent complexity measures |
+| Topic                  | ML Connection                      |
+| :--------------------- | :--------------------------------- |
+| PAC Learning           | Learnability guarantees            |
+| VC Dimension           | Model complexity measurement       |
+| Bias-Variance Tradeoff | The fundamental modeling tension   |
+| Generalization Bounds  | Why models work on unseen data     |
+| Rademacher Complexity  | Data-dependent complexity measures |
 
 </details>
 
@@ -640,12 +640,12 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>22 · Causal Inference</b> — SCMs, do-calculus, counterfactuals</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Structural Causal Models | Beyond correlation |
-| Do-Calculus | Interventional reasoning |
-| Counterfactuals | "What if" reasoning |
-| Causal Discovery | Learning causal structure from data |
+| Topic                    | ML Connection                       |
+| :----------------------- | :---------------------------------- |
+| Structural Causal Models | Beyond correlation                  |
+| Do-Calculus              | Interventional reasoning            |
+| Counterfactuals          | "What if" reasoning                 |
+| Causal Discovery         | Learning causal structure from data |
 
 </details>
 
@@ -653,12 +653,12 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>23 · Game Theory</b> — Nash equilibria, minimax, adversarial methods</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Nash Equilibria | GAN training dynamics |
-| Minimax Theorem | Adversarial robustness |
-| Multi-Agent Systems | Cooperative/competitive learning |
-| Adversarial Game Theory | Security and robustness |
+| Topic                   | ML Connection                    |
+| :---------------------- | :------------------------------- |
+| Nash Equilibria         | GAN training dynamics            |
+| Minimax Theorem         | Adversarial robustness           |
+| Multi-Agent Systems     | Cooperative/competitive learning |
+| Adversarial Game Theory | Security and robustness          |
 
 </details>
 
@@ -666,12 +666,12 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>24 · Measure Theory</b> — Sigma-algebras, Lebesgue integration, probability spaces</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Sigma-Algebras | Rigorous probability foundations |
-| Lebesgue Integration | Expectation in continuous spaces |
-| Probability Measure Spaces | Formal probability theory |
-| Radon-Nikodym Theorem | Density ratios, importance sampling |
+| Topic                      | ML Connection                       |
+| :------------------------- | :---------------------------------- |
+| Sigma-Algebras             | Rigorous probability foundations    |
+| Lebesgue Integration       | Expectation in continuous spaces    |
+| Probability Measure Spaces | Formal probability theory           |
+| Radon-Nikodym Theorem      | Density ratios, importance sampling |
 
 </details>
 
@@ -679,11 +679,11 @@ The curriculum covers **25 domains** organized in **8 phases**. Each phase build
 <summary><b>25 · Differential Geometry</b> — Manifolds, Riemannian geometry, geodesics</summary>
 <br>
 
-| Topic | ML Connection |
-|:------|:-------------|
-| Manifolds | Data lies on low-dimensional manifolds |
-| Riemannian Geometry | Natural gradient, information geometry |
-| Geodesics | Shortest paths in curved spaces |
+| Topic                     | ML Connection                               |
+| :------------------------ | :------------------------------------------ |
+| Manifolds                 | Data lies on low-dimensional manifolds      |
+| Riemannian Geometry       | Natural gradient, information geometry      |
+| Geodesics                 | Shortest paths in curved spaces             |
 | Optimization on Manifolds | Constrained optimization on curved surfaces |
 
 </details>
@@ -713,26 +713,26 @@ Every topic folder follows a consistent structure:
 
 The [`docs/`](docs/) folder contains supplementary references:
 
-| Document | Description |
-|:---------|:------------|
-| [ML Math Map](docs/ML_MATH_MAP.md) | Visual guide — which math is used where in ML |
-| [Notation Guide](docs/NOTATION_GUIDE.md) | Consistent notation conventions across the repo |
-| [Cheatsheet](docs/CHEATSHEET.md) | Quick-reference formula sheet |
-| [Interview Prep](docs/INTERVIEW_PREP.md) | Common ML math interview questions with solutions |
+| Document                                           | Description                                       |
+| :------------------------------------------------- | :------------------------------------------------ |
+| [ML Math Map](docs/ML_MATH_MAP.md)                 | Visual guide — which math is used where in ML     |
+| [Notation Guide](docs/NOTATION_GUIDE.md)           | Consistent notation conventions across the repo   |
+| [Cheatsheet](docs/CHEATSHEET.md)                   | Quick-reference formula sheet                     |
+| [Interview Prep](docs/INTERVIEW_PREP.md)           | Common ML math interview questions with solutions |
 | [Visualization Guide](docs/VISUALIZATION_GUIDE.md) | Tips for building mathematical intuition visually |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Tool | Purpose |
-|:-----|:--------|
-| Python 3.8+ | Primary language |
-| NumPy / SciPy | Numerical computing |
-| Matplotlib / Seaborn / Plotly | Visualizations |
-| SymPy | Symbolic mathematics |
-| Jupyter Lab | Interactive notebooks |
-| scikit-learn | ML examples and demos |
+| Tool                          | Purpose               |
+| :---------------------------- | :-------------------- |
+| Python 3.8+                   | Primary language      |
+| NumPy / SciPy                 | Numerical computing   |
+| Matplotlib / Seaborn / Plotly | Visualizations        |
+| SymPy                         | Symbolic mathematics  |
+| Jupyter Lab                   | Interactive notebooks |
+| scikit-learn                  | ML examples and demos |
 
 ---
 
@@ -753,14 +753,14 @@ The [`docs/`](docs/) folder contains supplementary references:
 
 ### Chapters open for contribution
 
-| Chapter | Sections needed | Issues |
-| --- | --- | --- |
-| 20 Fourier Analysis | 5 | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+fourier%22) |
-| 21 Statistical Learning Theory | 5 | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+stat-learning%22) |
-| 22 Causal Inference | 4 | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+causal%22) |
-| 23 Game Theory | 4 | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+game-theory%22) |
-| 24 Measure Theory | 4 | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+measure%22) |
-| 25 Differential Geometry | 4 | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+diff-geometry%22) |
+| Chapter                        | Sections needed | Issues                                                                                            |
+| ------------------------------ | --------------- | ------------------------------------------------------------------------------------------------- |
+| 20 Fourier Analysis            | 5               | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+fourier%22)       |
+| 21 Statistical Learning Theory | 5               | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+stat-learning%22) |
+| 22 Causal Inference            | 4               | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+causal%22)        |
+| 23 Game Theory                 | 4               | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+game-theory%22)   |
+| 24 Measure Theory              | 4               | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+measure%22)       |
+| 25 Differential Geometry       | 4               | [Browse](https://github.com/RiazML/math-for-llms/issues?q=label%3A%22chapter%3A+diff-geometry%22) |
 
 ### Other ways to help
 
@@ -788,7 +788,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 <br>
 
-*"In God we trust. All others must bring data."* — W. Edwards Deming
+_"In God we trust. All others must bring data."_ — W. Edwards Deming
 
 <br>
 
