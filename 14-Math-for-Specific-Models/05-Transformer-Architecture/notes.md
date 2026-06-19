@@ -268,7 +268,7 @@ Transformers separate two jobs. Attention mixes information across token positio
 
 Core relation:
 
-$$S_{ij}\leftarrow-\infty$ when masked$$
+$S_{ij}\leftarrow-\infty$ when masked
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 
@@ -382,7 +382,7 @@ Transformers separate two jobs. Attention mixes information across token positio
 
 Core relation:
 
-$$A_h$ varies by head$$
+$A_h$ varies by head
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 
@@ -496,7 +496,7 @@ Transformers separate two jobs. Attention mixes information across token positio
 
 Core relation:
 
-$$x_t$ processed separately$$
+$x_t$ processed separately
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 
@@ -622,7 +622,7 @@ This part studies encoder decoder and decoder-only forms as transformer block ma
 
 Core relation:
 
-$$A_{ij}$ allowed for all source positions$$
+$A_{ij}$ allowed for all source positions
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 
@@ -770,7 +770,7 @@ Transformers separate two jobs. Attention mixes information across token positio
 
 Core relation:
 
-$$q_i^\top k_j$ depends on $i-j$$
+$q_i^\top k_j$ depends on $i-j$
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 
@@ -884,7 +884,7 @@ Transformers separate two jobs. Attention mixes information across token positio
 
 Core relation:
 
-$$\mathrm{softmax}(QK^\top)V$ tiled$$
+$\mathrm{softmax}(QK^\top)V$ tiled
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 
@@ -1027,7 +1027,7 @@ Transformers separate two jobs. Attention mixes information across token positio
 
 Core relation:
 
-$$A_{ij}=0$ for $j>i$$
+$A_{ij}=0$ for $j>i$
 
 Transformers separate two jobs. Attention mixes information across token positions. The feed-forward network transforms each token independently. Residual connections preserve a running representation, and normalization keeps optimization stable.
 

@@ -197,7 +197,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\mathrm{tokens/sec}$ must be read with $L(\mathrm{tokens})$$
+$\mathrm{tokens/sec}$ must be read with $L(\mathrm{tokens})$
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -214,7 +214,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\Delta L>0$ for many steps is a symptom, not a diagnosis$$
+$\Delta L>0$ for many steps is a symptom, not a diagnosis
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -330,8 +330,8 @@ This part focuses on batching and schedules as a practical mathematical constrai
 | --- | --- | --- |
 | [Effective batch size](#3-effective-batch-size) | global batch combines devices and accumulation steps | $B_\mathrm{eff}=B_\mathrm{device}G_\mathrm{accum}N_\mathrm{dp}$ |
 | [Gradient accumulation](#3-gradient-accumulation) | several micro-batches approximate one larger batch | $g=\frac{1}{K}\sum_{k=1}^{K}g_k$ |
-| [Linear warmup](#3-linear-warmup) | the learning rate starts small to avoid early instability | $\eta_t=\eta_\max t/T_\mathrm{warmup}$ |
-| [Cosine decay](#3-cosine-decay) | the learning rate anneals smoothly after warmup | $\eta_t=\eta_\min+\frac{1}{2}(\eta_\max-\eta_\min)(1+\cos(\pi s))$ |
+| [Linear warmup](#3-linear-warmup) | the learning rate starts small to avoid early instability | $\eta_t=\eta_{\max} t/T_\mathrm{warmup}$ |
+| [Cosine decay](#3-cosine-decay) | the learning rate anneals smoothly after warmup | $\eta_t=\eta_{\min}+\frac{1}{2}(\eta_{\max}-\eta_{\min})(1+\cos(\pi s))$ |
 | [Critical batch intuition](#3-critical-batch-intuition) | past a point, larger batches waste compute rather than reducing noise usefully | $\mathrm{noise}\propto 1/B$ only in the useful regime |
 
 ### 3.1 Effective batch size
@@ -374,7 +374,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\eta_t=\eta_\max t/T_\mathrm{warmup}$$
+$$\eta_t=\eta_{\max} t/T_\mathrm{warmup}$$
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -391,7 +391,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\eta_t=\eta_\min+\frac{1}{2}(\eta_\max-\eta_\min)(1+\cos(\pi s))$$
+$$\eta_t=\eta_{\min}+\frac{1}{2}(\eta_{\max}-\eta_{\min})(1+\cos(\pi s))$$
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -408,7 +408,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\mathrm{noise}\propto 1/B$ only in the useful regime$$
+$\mathrm{noise}\propto 1/B$ only in the useful regime
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -437,7 +437,7 @@ This part focuses on memory accounting as a practical mathematical constraint in
 
 Core relation:
 
-$$M_\mathrm{Adam}\approx 2P + 2P + 8P$ bytes$$
+$M_\mathrm{Adam}\approx 2P + 2P + 8P$ bytes
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -488,7 +488,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$M_\mathrm{per\ rank}\approx M/N$ for fully sharded states$$
+$M_\mathrm{per\ rank}\approx M/N$ for fully sharded states
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -505,7 +505,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$T_\mathrm{step}$ can become transfer-bound$$
+$T_\mathrm{step}$ can become transfer-bound
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -551,7 +551,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$Y=X[W_1\ W_2]$ or $Y=XW_1+XW_2$ depending on layout$$
+$Y=X[W_1\ W_2]$ or $Y=XW_1+XW_2$ depending on layout
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -585,7 +585,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$T$ is partitioned across ranks$$
+$T$ is partitioned across ranks
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -682,7 +682,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$T_\mathrm{inter}>T_\mathrm{intra}$ for the same payload$$
+$T_\mathrm{inter}>T_\mathrm{intra}$ for the same payload
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -762,7 +762,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$C\approx 6ND$ with both $N$ and $D$ chosen$$
+$C\approx 6ND$ with both $N$ and $D$ chosen
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -796,7 +796,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\mathrm{train\ cost}+\mathrm{serve\ cost}$ matters$$
+$\mathrm{train\ cost}+\mathrm{serve\ cost}$ matters
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -825,7 +825,7 @@ This part focuses on numerical stability as a practical mathematical constraint 
 
 Core relation:
 
-$$\theta$ may be bf16 while optimizer states stay fp32$$
+$\theta$ may be bf16 while optimizer states stay fp32
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -893,7 +893,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$\theta,m,v,t,\mathrm{rng}$ all matter$$
+$\theta,m,v,t,\mathrm{rng}$ all matter
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -956,7 +956,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$p_\mathrm{train}$ can drift from desired $p_\mathrm{deploy}$$
+$p_\mathrm{train}$ can drift from desired $p_\mathrm{deploy}$
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -990,7 +990,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$L_\mathrm{val}$ is the early warning signal$$
+$L_\mathrm{val}$ is the early warning signal
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 
@@ -1087,7 +1087,7 @@ At small scale, this relation may feel like bookkeeping. At LLM scale, it become
 
 Core relation:
 
-$$L_{100}<L_0$ is a smoke test$$
+$L_{100}<L_0$ is a smoke test
 
 At small scale, this relation may feel like bookkeeping. At LLM scale, it becomes a hard constraint. A missing factor of two in a memory estimate can decide whether the job starts. A wrong batch-size convention can change the optimization regime. A poor communication plan can leave expensive accelerators idle.
 

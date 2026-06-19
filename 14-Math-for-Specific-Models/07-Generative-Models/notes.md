@@ -301,7 +301,7 @@ Generative models differ in what they make easy. Autoregressive models make like
 
 Core relation:
 
-$$O(T)$ serial steps$$
+$O(T)$ serial steps
 
 Generative models differ in what they make easy. Autoregressive models make likelihood straightforward but sampling serial. VAEs make latent variables explicit but optimize a bound. GANs can sample sharply but lack direct likelihood. Flows give exact likelihood but require invertible architectures. Diffusion models train by denoising and sample through iterative refinement.
 
@@ -478,7 +478,7 @@ Generative models differ in what they make easy. Autoregressive models make like
 
 Core relation:
 
-$$p_G$ misses modes$$
+$p_G$ misses modes
 
 Generative models differ in what they make easy. Autoregressive models make likelihood straightforward but sampling serial. VAEs make latent variables explicit but optimize a bound. GANs can sample sharply but lack direct likelihood. Flows give exact likelihood but require invertible architectures. Diffusion models train by denoising and sample through iterative refinement.
 
@@ -495,7 +495,7 @@ Generative models differ in what they make easy. Autoregressive models make like
 
 Core relation:
 
-$$\log p_G(x)$ unavailable$$
+$\log p_G(x)$ unavailable
 
 Generative models differ in what they make easy. Autoregressive models make likelihood straightforward but sampling serial. VAEs make latent variables explicit but optimize a bound. GANs can sample sharply but lack direct likelihood. Flows give exact likelihood but require invertible architectures. Diffusion models train by denoising and sample through iterative refinement.
 
@@ -575,7 +575,7 @@ Generative models differ in what they make easy. Autoregressive models make like
 
 Core relation:
 
-$$\det J$ tractable$$
+$\det J$ tractable
 
 Generative models differ in what they make easy. Autoregressive models make likelihood straightforward but sampling serial. VAEs make latent variables explicit but optimize a bound. GANs can sample sharply but lack direct likelihood. Flows give exact likelihood but require invertible architectures. Diffusion models train by denoising and sample through iterative refinement.
 
@@ -1009,7 +1009,7 @@ This part studies diagnostics as ways to model, sample, and evaluate data distri
 
 Core relation:
 
-$$\log p$ versus visual quality$$
+$\log p$ versus visual quality
 
 Generative models differ in what they make easy. Autoregressive models make likelihood straightforward but sampling serial. VAEs make latent variables explicit but optimize a bound. GANs can sample sharply but lack direct likelihood. Flows give exact likelihood but require invertible architectures. Diffusion models train by denoising and sample through iterative refinement.
 

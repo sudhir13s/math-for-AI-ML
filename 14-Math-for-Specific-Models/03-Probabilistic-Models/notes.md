@@ -577,7 +577,7 @@ Probabilistic models make uncertainty explicit. Instead of producing only a poin
 
 Core relation:
 
-$$z$ labels can permute$$
+$z$ labels can permute
 
 Probabilistic models make uncertainty explicit. Instead of producing only a point prediction, they specify distributions over observations, classes, hidden states, or parameters. This lets us compute likelihoods, posteriors, predictive uncertainty, and principled decisions.
 
@@ -691,7 +691,7 @@ Probabilistic models make uncertainty explicit. Instead of producing only a poin
 
 Core relation:
 
-$$\theta_0$ matters$$
+$\theta_0$ matters
 
 Probabilistic models make uncertainty explicit. Instead of producing only a point prediction, they specify distributions over observations, classes, hidden states, or parameters. This lets us compute likelihoods, posteriors, predictive uncertainty, and principled decisions.
 
@@ -885,7 +885,7 @@ Probabilistic models make uncertainty explicit. Instead of producing only a poin
 
 Core relation:
 
-$$z_t$ hidden state$$
+$z_t$ hidden state
 
 Probabilistic models make uncertainty explicit. Instead of producing only a point prediction, they specify distributions over observations, classes, hidden states, or parameters. This lets us compute likelihoods, posteriors, predictive uncertainty, and principled decisions.
 

@@ -204,7 +204,7 @@ An RNN is a parameter-shared computation graph unrolled across time. The hidden 
 
 Core relation:
 
-$$h_t$ versus $H_{1:t}$$
+$h_t$ versus $H_{1:t}$
 
 An RNN is a parameter-shared computation graph unrolled across time. The hidden state is useful because it carries information forward, but it also creates a long chain for gradients to travel backward. LSTM and GRU gates are designed to make this information path more controllable.
 
@@ -301,7 +301,7 @@ An RNN is a parameter-shared computation graph unrolled across time. The hidden 
 
 Core relation:
 
-$$h_0=0$ or trainable$$
+$h_0=0$ or trainable
 
 An RNN is a parameter-shared computation graph unrolled across time. The hidden state is useful because it carries information forward, but it also creates a long chain for gradients to travel backward. LSTM and GRU gates are designed to make this information path more controllable.
 
@@ -689,7 +689,7 @@ An RNN is a parameter-shared computation graph unrolled across time. The hidden 
 
 Core relation:
 
-$$h_t$ only versus $(c_t,h_t)$$
+$h_t$ only versus $(c_t,h_t)$
 
 An RNN is a parameter-shared computation graph unrolled across time. The hidden state is useful because it carries information forward, but it also creates a long chain for gradients to travel backward. LSTM and GRU gates are designed to make this information path more controllable.
 
@@ -1009,7 +1009,7 @@ This part studies diagnostics through the lens of sequence learning. The central
 
 Core relation:
 
-$$(B,T,d)$ and $(B,h)$$
+$(B,T,d)$ and $(B,h)$
 
 An RNN is a parameter-shared computation graph unrolled across time. The hidden state is useful because it carries information forward, but it also creates a long chain for gradients to travel backward. LSTM and GRU gates are designed to make this information path more controllable.
 
@@ -1043,7 +1043,7 @@ An RNN is a parameter-shared computation graph unrolled across time. The hidden 
 
 Core relation:
 
-$$f_t,i_t,z_t$ near 0 or 1$$
+$f_t,i_t,z_t$ near 0 or 1
 
 An RNN is a parameter-shared computation graph unrolled across time. The hidden state is useful because it carries information forward, but it also creates a long chain for gradients to travel backward. LSTM and GRU gates are designed to make this information path more controllable.
 

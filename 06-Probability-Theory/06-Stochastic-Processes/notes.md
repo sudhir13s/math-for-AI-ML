@@ -400,7 +400,7 @@ for integers $m > 0$ - approximately $2P(S_n \geq m)$ for large $n$.
 
 ### 4.3 Gambler's Ruin
 
-**Setup:** A gambler starts with $k$ dollars, plays a fair game (win/lose $\$1$ each round), and stops when reaching $\$N$ (success) or $\$0$ (ruin).
+**Setup:** A gambler starts with $k$ dollars, plays a fair game (win/lose \$1 each round), and stops when reaching \$N (success) or \$0 (ruin).
 
 **Result (via OST):** Using the martingales $S_n$ and $S_n^2 - n$:
 - $P(\text{ruin}) = 1 - k/N$, $P(\text{success}) = k/N$

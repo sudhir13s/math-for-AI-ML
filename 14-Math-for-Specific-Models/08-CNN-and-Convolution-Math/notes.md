@@ -153,7 +153,7 @@ Convolutional networks are built from local linear maps with shared weights. The
 
 Core relation:
 
-$$W_{u,v}$ shared$$
+$W_{u,v}$ shared
 
 Convolutional networks are built from local linear maps with shared weights. The math is simple but unforgiving: every padding, stride, dilation, and channel convention changes the output shape and the information path through the model.
 
@@ -301,7 +301,7 @@ Convolutional networks are built from local linear maps with shared weights. The
 
 Core relation:
 
-$$P=(K-1)/2$ for odd K$$
+$P=(K-1)/2$ for odd K
 
 Convolutional networks are built from local linear maps with shared weights. The math is simple but unforgiving: every padding, stride, dilation, and channel convention changes the output shape and the information path through the model.
 
@@ -912,7 +912,7 @@ This part studies cnns and modern ai as spatial tensor math. Keep track of axes,
 
 Core relation:
 
-$$x_{i,j}$ neighborhoods$$
+$x_{i,j}$ neighborhoods
 
 Convolutional networks are built from local linear maps with shared weights. The math is simple but unforgiving: every padding, stride, dilation, and channel convention changes the output shape and the information path through the model.
 

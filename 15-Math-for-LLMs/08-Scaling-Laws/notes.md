@@ -273,7 +273,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D/N$ too small$$
+$D/N$ too small
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -290,7 +290,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$A_N,\alpha_N$ are not universal constants$$
+$A_N,\alpha_N$ are not universal constants
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -307,7 +307,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$r$ controls update capacity$$
+$r$ controls update capacity
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -370,7 +370,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D_\mathrm{eff}<kD$ for repeats$$
+$D_\mathrm{eff}<kD$ for repeats
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -404,7 +404,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D$ is measured in model tokens$$
+$D$ is measured in model tokens
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -564,7 +564,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$\partial L/\partial N$ balances $\partial L/\partial D$ under the constraint$$
+$\partial L/\partial N$ balances $\partial L/\partial D$ under the constraint
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -581,7 +581,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D/N$ was too small$$
+$D/N$ was too small
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -627,7 +627,7 @@ This part studies kaplan and chinchilla lessons as a forecasting tool. The formu
 
 Core relation:
 
-$$L$ follows power laws across scale ranges$$
+$L$ follows power laws across scale ranges
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -644,7 +644,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D^\star/N^\star$ increases$$
+$D^\star/N^\star$ increases
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -695,7 +695,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D/N$ is a planning prior, not a theorem$$
+$D/N$ is a planning prior, not a theorem
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -872,7 +872,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$A$ changes even if $\alpha$ is similar$$
+$A$ changes even if $\alpha$ is similar
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -889,7 +889,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$L_\mathrm{eval}$, not only $L_\mathrm{web}$$
+$L_\mathrm{eval}$, not only $L_\mathrm{web}$
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -952,7 +952,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$D/N$ can exceed pretraining-optimal planning ratios$$
+$D/N$ can exceed pretraining-optimal planning ratios
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -1049,7 +1049,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$A,\alpha,L_\infty$ shift$$
+$A,\alpha,L_\infty$ shift
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 
@@ -1066,7 +1066,7 @@ Scaling laws are not magic. They are compact empirical models of how loss change
 
 Core relation:
 
-$$\hat L$ inherits measurement error$$
+$\hat L$ inherits measurement error
 
 Scaling laws are not magic. They are compact empirical models of how loss changes when resources change. Their value comes from discipline: keep the setup stable, measure held-out loss, fit simple forms, reserve validation runs, and attach uncertainty to every forecast.
 

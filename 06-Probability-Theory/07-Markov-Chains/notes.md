@@ -1769,7 +1769,7 @@ In ML, **knowledge distillation** (training a small model to mimic a large model
 
 ### AA.1 Absorption Probability Calculation
 
-**Problem.** A gambler starts with $\$3$ and plays at a casino. Each round they win $\$1$ (prob 0.45) or lose $\$1$ (prob 0.55). The game ends when they reach $\$0$ (ruin) or $\$6$ (goal). Find: (a) probability of reaching $\$6$ from $\$3$, (b) expected duration of the game.
+**Problem.** A gambler starts with \$3 and plays at a casino. Each round they win \$1 (prob 0.45) or lose \$1 (prob 0.55). The game ends when they reach \$0 (ruin) or \$6 (goal). Find: (a) probability of reaching \$6 from \$3, (b) expected duration of the game.
 
 **Solution.** Let $p = 0.45$, $q = 0.55$, $r = q/p = 0.55/0.45 = 11/9$. Using the absorption formula for biased walks with absorbing boundaries at 0 and $N=6$:
 
