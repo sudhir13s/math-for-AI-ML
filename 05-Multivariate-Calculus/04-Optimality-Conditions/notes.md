@@ -1316,7 +1316,7 @@ Classical optimisation theory was developed primarily for problems in $\mathbb{R
 - **Gradient norm** $\|\nabla\mathcal{L}\| \leq \epsilon$ replaces exact stationarity
 - **Curvature estimation**: diagonal Hessian (Adagrad, Adam) approximates second-order information
 - **Sketched KKT systems**: random projections reduce system size while preserving approximate solutions
-- **Dual certificate**: in sparse recovery, checking $\|X^\top(\mathbf{y} - X\hat\mathbf{w})\|_\infty \leq \lambda$ verifies the KKT condition for Lasso without solving the primal-$O(nd)$ rather than $O(d^3)$
+- **Dual certificate**: in sparse recovery, checking $\|X^\top(\mathbf{y} - X\hat{\mathbf{w}})\|_{\infty} \leq \lambda$ verifies the KKT condition for Lasso without solving the primal-$O(nd)$ rather than $O(d^3)$
 
 ---
 

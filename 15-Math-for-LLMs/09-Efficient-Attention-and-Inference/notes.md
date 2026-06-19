@@ -146,7 +146,7 @@ This part studies inference phases as serving math. The goal is to connect laten
 
 Core relation:
 
-$$T_\mathrm{prefill}\propto T_\mathrm{prompt}^2$ for dense attention$$
+$T_\mathrm{prefill}\propto T_\mathrm{prompt}^2$ for dense attention
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -163,7 +163,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$T_\mathrm{decode}\propto T_\mathrm{context}$ per output token$$
+$T_\mathrm{decode}\propto T_\mathrm{context}$ per output token
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -260,7 +260,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$O(Td)$ per generated token$$
+$O(Td)$ per generated token
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -454,7 +454,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$\mathrm{softmax}(QK^\top)V$ without storing all scores$$
+$\mathrm{softmax}(QK^\top)V$ without storing all scores
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -505,7 +505,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$T^2$ score storage becomes the wall$$
+$T^2$ score storage becomes the wall
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -568,7 +568,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$B_t$ changes over time$$
+$B_t$ changes over time
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -602,7 +602,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$T_\mathrm{recompute}$ trades against $M_\mathrm{free}$$
+$T_\mathrm{recompute}$ trades against $M_\mathrm{free}$
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -631,7 +631,7 @@ This part studies decode acceleration as serving math. The goal is to connect la
 
 Core relation:
 
-$$K$ tokens require $K$ target passes$$
+$K$ tokens require $K$ target passes
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -682,7 +682,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$y_{t+1:t+k}$ candidates$$
+$y_{t+1:t+k}$ candidates
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -728,7 +728,7 @@ This part studies batching and scheduling as serving math. The goal is to connec
 
 Core relation:
 
-$$B$ fixed$$
+$B$ fixed
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -745,7 +745,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$B_t$ variable$$
+$B_t$ variable
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -762,7 +762,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$T_\mathrm{latency}$ depends on schedule$$
+$T_\mathrm{latency}$ depends on schedule
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -779,7 +779,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$T_\mathrm{prompt}$ chunks$$
+$T_\mathrm{prompt}$ chunks
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -796,7 +796,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$p95\ \mathrm{latency}$ versus tokens/sec$$
+$p95\ \mathrm{latency}$ versus tokens/sec
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -876,7 +876,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$T_\mathrm{kernel}$ matters$$
+$T_\mathrm{kernel}$ matters
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -1019,7 +1019,7 @@ This part studies debugging efficient inference as serving math. The goal is to 
 
 Core relation:
 
-$$H_q/H_{kv}$ integer for GQA$$
+$H_q/H_{kv}$ integer for GQA
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -1036,7 +1036,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$\max|y_\mathrm{cache}-y_\mathrm{full}|$ small$$
+$\max|y_\mathrm{cache}-y_\mathrm{full}|$ small
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 
@@ -1087,7 +1087,7 @@ Inference math is different from training math because the bottleneck shifts. Tr
 
 Core relation:
 
-$$\Delta L,\Delta S$ tracked$$
+$\Delta L,\Delta S$ tracked
 
 Inference math is different from training math because the bottleneck shifts. Training usually wants maximum throughput over large batches. Interactive inference must manage first-token latency, per-token latency, KV cache memory, and request scheduling. The same transformer can feel fast or slow depending on prompt length, output length, batch shape, cache layout, and kernel support.
 

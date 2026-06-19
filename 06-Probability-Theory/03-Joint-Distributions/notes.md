@@ -1340,7 +1340,7 @@ Negative covariance confirms negative association.
 **Step 2:** Compute the Jacobian: $\frac{dx}{dy} = \frac{1}{y}$.
 
 **Step 3:** Apply the formula:
-$$f_Y(y) = f_X(g^{-1}(y)) \cdot |g^{-1}'(y)| = \frac{1}{\sigma\sqrt{2\pi}} e^{-(\log y - \mu)^2/(2\sigma^2)} \cdot \frac{1}{y}$$
+$$f_Y(y) = f_X(g^{-1}(y)) \cdot |(g^{-1})'(y)| = \frac{1}{\sigma\sqrt{2\pi}} e^{-(\log y - \mu)^2/(2\sigma^2)} \cdot \frac{1}{y}$$
 
 **Moments of the log-normal:**
 $$\mathbb{E}[Y] = e^{\mu + \sigma^2/2}, \quad \text{Var}(Y) = (e^{\sigma^2}-1)e^{2\mu+\sigma^2}$$

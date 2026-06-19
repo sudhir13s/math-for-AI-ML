@@ -476,7 +476,7 @@ RAG changes the conditional distribution by adding retrieved evidence to the pro
 
 Core relation:
 
-$$B-1$ negatives per query$$
+$B-1$ negatives per query
 
 RAG changes the conditional distribution by adding retrieved evidence to the prompt. The retrieval system and generator should be evaluated separately and together. A high-quality generator cannot compensate for missing evidence, and a high-recall retriever can still fail if it returns noisy chunks or if the prompt buries the useful span.
 
@@ -493,7 +493,7 @@ RAG changes the conditional distribution by adding retrieved evidence to the pro
 
 Core relation:
 
-$$s(q,d^-)$ high but label negative$$
+$s(q,d^-)$ high but label negative
 
 RAG changes the conditional distribution by adding retrieved evidence to the prompt. The retrieval system and generator should be evaluated separately and together. A high-quality generator cannot compensate for missing evidence, and a high-recall retriever can still fail if it returns noisy chunks or if the prompt buries the useful span.
 
@@ -687,7 +687,7 @@ RAG changes the conditional distribution by adding retrieved evidence to the pro
 
 Core relation:
 
-$$p(y\mid q,c_{1:k})$ depends on packing$$
+$p(y\mid q,c_{1:k})$ depends on packing
 
 RAG changes the conditional distribution by adding retrieved evidence to the prompt. The retrieval system and generator should be evaluated separately and together. A high-quality generator cannot compensate for missing evidence, and a high-recall retriever can still fail if it returns noisy chunks or if the prompt buries the useful span.
 
@@ -881,7 +881,7 @@ RAG changes the conditional distribution by adding retrieved evidence to the pro
 
 Core relation:
 
-$$p_\mathrm{query},D$ drift$$
+$p_\mathrm{query},D$ drift
 
 RAG changes the conditional distribution by adding retrieved evidence to the prompt. The retrieval system and generator should be evaluated separately and together. A high-quality generator cannot compensate for missing evidence, and a high-recall retriever can still fail if it returns noisy chunks or if the prompt buries the useful span.
 
@@ -961,7 +961,7 @@ RAG changes the conditional distribution by adding retrieved evidence to the pro
 
 Core relation:
 
-$$p_\theta(y\mid q,R_k)$ uses parametric prior$$
+$p_\theta(y\mid q,R_k)$ uses parametric prior
 
 RAG changes the conditional distribution by adding retrieved evidence to the prompt. The retrieval system and generator should be evaluated separately and together. A high-quality generator cannot compensate for missing evidence, and a high-recall retriever can still fail if it returns noisy chunks or if the prompt buries the useful span.
 

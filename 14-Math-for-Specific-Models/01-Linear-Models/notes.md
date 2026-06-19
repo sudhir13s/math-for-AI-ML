@@ -327,7 +327,7 @@ This part studies gradient descent as the simplest useful supervised-learning mo
 | --- | --- | --- |
 | [Gradient](#3-gradient) | loss gradient points uphill in parameter space | $\nabla_w L=X^\top(Xw-y)$ |
 | [Update](#3-update) | move opposite the gradient | $w_{t+1}=w_t-\eta\nabla_wL$ |
-| [Learning rate](#3-learning-rate) | step size must respect curvature | $0<\eta<2/\lambda_\max(X^\top X)$ |
+| [Learning rate](#3-learning-rate) | step size must respect curvature | $0<\eta<2/\lambda_{\max}(X^\top X)$ |
 | [Stochastic gradients](#3-stochastic-gradients) | estimate gradient from mini-batches | $g_B=X_B^\top(X_Bw-y_B)$ |
 | [Feature scaling](#3-feature-scaling) | rescale features to improve conditioning | $x_j\leftarrow(x_j-\mu_j)/\sigma_j$ |
 
@@ -371,7 +371,7 @@ Linear models are not weak because they are simple. They are useful because thei
 
 Core relation:
 
-$$0<\eta<2/\lambda_\max(X^\top X)$$
+$$0<\eta<2/\lambda_{\max}(X^\top X)$$
 
 Linear models are not weak because they are simple. They are useful because their assumptions are explicit. A linear model says that the target is explained by additive feature contributions, after whatever feature map has been chosen.
 
@@ -617,7 +617,7 @@ This part studies optimization geometry as the simplest useful supervised-learni
 | Subtopic | Question | Formula |
 | --- | --- | --- |
 | [Convexity](#6-convexity) | linear regression and logistic regression losses are convex in w | $\nabla^2L\succeq0$ |
-| [Condition number](#6-condition-number) | ill-conditioned features slow optimization | $\kappa=\lambda_\max/\lambda_\min$ |
+| [Condition number](#6-condition-number) | ill-conditioned features slow optimization | $\kappa=\lambda_{\max}/\lambda_{\min}$ |
 | [SVD view](#6-svd-view) | singular values reveal stable and unstable directions | $X=U\Sigma V^\top$ |
 | [Collinearity](#6-collinearity) | correlated features make coefficients unstable | $X^\top X$ nearly singular |
 | [Whitening](#6-whitening) | decorrelate features when appropriate | $\mathrm{Cov}(X)\approx I$ |
@@ -645,7 +645,7 @@ Linear models are not weak because they are simple. They are useful because thei
 
 Core relation:
 
-$$\kappa=\lambda_\max/\lambda_\min$$
+$$\kappa=\lambda_{\max}/\lambda_{\min}$$
 
 Linear models are not weak because they are simple. They are useful because their assumptions are explicit. A linear model says that the target is explained by additive feature contributions, after whatever feature map has been chosen.
 
@@ -679,7 +679,7 @@ Linear models are not weak because they are simple. They are useful because thei
 
 Core relation:
 
-$$X^\top X$ nearly singular$$
+$X^\top X$ nearly singular
 
 Linear models are not weak because they are simple. They are useful because their assumptions are explicit. A linear model says that the target is explained by additive feature contributions, after whatever feature map has been chosen.
 
@@ -793,7 +793,7 @@ Linear models are not weak because they are simple. They are useful because thei
 
 Core relation:
 
-$$K$ folds$$
+$K$ folds
 
 Linear models are not weak because they are simple. They are useful because their assumptions are explicit. A linear model says that the target is explained by additive feature contributions, after whatever feature map has been chosen.
 
@@ -890,7 +890,7 @@ Linear models are not weak because they are simple. They are useful because thei
 
 Core relation:
 
-$$w_j$ feature effect$$
+$w_j$ feature effect
 
 Linear models are not weak because they are simple. They are useful because their assumptions are explicit. A linear model says that the target is explained by additive feature contributions, after whatever feature map has been chosen.
 

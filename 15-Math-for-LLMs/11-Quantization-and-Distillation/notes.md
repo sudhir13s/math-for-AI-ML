@@ -212,7 +212,7 @@ Quantization changes the numerical representation of tensors. Distillation chang
 
 Core relation:
 
-$$\mathrm{quality}$ versus $\mathrm{memory},\mathrm{latency},\mathrm{cost}$$
+$\mathrm{quality}$ versus $\mathrm{memory},\mathrm{latency},\mathrm{cost}$
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 
@@ -231,8 +231,8 @@ This part studies uniform quantization as compression math. The useful habit is 
 | --- | --- | --- |
 | [Affine quantizer](#2-affine-quantizer) | map real values to integer grid points | $q=\mathrm{round}(x/s)+z$ |
 | [Dequantization](#2-dequantization) | recover an approximate real value | $\hat x=s(q-z)$ |
-| [Scale](#2-scale) | the step size controls resolution | $s=(x_\max-x_\min)/(q_\max-q_\min)$ |
-| [Zero point](#2-zero-point) | asymmetric quantization uses an integer offset | $z=q_\min-\mathrm{round}(x_\min/s)$ |
+| [Scale](#2-scale) | the step size controls resolution | $s=(x_{\max}-x_{\min})/(q_{\max}-q_{\min})$ |
+| [Zero point](#2-zero-point) | asymmetric quantization uses an integer offset | $z=q_{\min}-\mathrm{round}(x_{\min}/s)$ |
 | [Quantization error](#2-quantization-error) | rounding error is bounded by half a step before clipping | $|x-\hat x|\le s/2$ |
 
 ### 2.1 Affine quantizer
@@ -275,7 +275,7 @@ Quantization changes the numerical representation of tensors. Distillation chang
 
 Core relation:
 
-$$s=(x_\max-x_\min)/(q_\max-q_\min)$$
+$$s=(x_{\max}-x_{\min})/(q_{\max}-q_{\min})$$
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 
@@ -292,7 +292,7 @@ Quantization changes the numerical representation of tensors. Distillation chang
 
 Core relation:
 
-$$z=q_\min-\mathrm{round}(x_\min/s)$$
+$$z=q_{\min}-\mathrm{round}(x_{\min}/s)$$
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 
@@ -338,7 +338,7 @@ This part studies granularity as compression math. The useful habit is to separa
 
 Core relation:
 
-$$s$ shared by all entries$$
+$s$ shared by all entries
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 
@@ -503,7 +503,7 @@ Quantization changes the numerical representation of tensors. Distillation chang
 
 Core relation:
 
-$$|x_j|$ indicates sensitivity$$
+$|x_j|$ indicates sensitivity
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 
@@ -532,7 +532,7 @@ This part studies quantization-aware training and qlora as compression math. The
 
 Core relation:
 
-$$\hat W=Q(W)$ in forward$$
+$\hat W=Q(W)$ in forward
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 
@@ -1085,7 +1085,7 @@ Quantization changes the numerical representation of tensors. Distillation chang
 
 Core relation:
 
-$$\Delta S$ bounded$$
+$\Delta S$ bounded
 
 Quantization changes the numerical representation of tensors. Distillation changes the training signal so a smaller or cheaper model imitates a stronger teacher. Both are compression tools, but they fail in different ways: quantization can introduce numerical error, while distillation can omit teacher capabilities that are not present in the distillation data.
 

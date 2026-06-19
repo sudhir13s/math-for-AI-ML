@@ -116,12 +116,12 @@ After this section, you should be able to:
 | Symbol | Meaning |
 | --- | --- |
 | $V$ | Vocabulary of ordinary tokens |
-| $V_\\mathrm{ext}$ | Vocabulary plus special tokens such as EOS |
+| $V_{\mathrm{ext}}$ | Vocabulary plus special tokens such as EOS |
 | $t_i$ | Token at position $i$ |
 | $t_{<i}$ | Prefix before position $i$ |
 | $h_i$ | Transformer hidden state at position $i$ |
 | $z_i$ | Logit vector for the next-token distribution |
-| $p_\\theta(\\cdot \\mid t_{<i})$ | Model distribution over the next token |
+| $p_\theta(\cdot \mid t_{<i})$ | Model distribution over the next token |
 | $y_i$ | One-hot target vector |
 | $m_i$ | Mask indicating whether a token contributes to loss |
 
@@ -218,7 +218,7 @@ The model is not storing a sentence list. It is using a conditional distribution
 
 The useful formula is:
 
-$$p_\theta(v\mid h)>0$ after softmax$$
+$p_\theta(v\mid h)>0$ after softmax
 
 The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
 
@@ -322,7 +322,7 @@ The model is not storing a sentence list. It is using a conditional distribution
 
 The useful formula is:
 
-$$M_{ij}=0$ for $j\le i$ and $-\infty$ otherwise$$
+$M_{ij}=0$ for $j\le i$ and $-\infty$ otherwise
 
 The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
 
@@ -749,7 +749,7 @@ The model is not storing a sentence list. It is using a conditional distribution
 
 The useful formula is:
 
-$$\mathrm{BPB}$ and $\mathrm{BPC}$ are more comparable$$
+$\mathrm{BPB}$ and $\mathrm{BPC}$ are more comparable
 
 The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
 
@@ -784,7 +784,7 @@ This part studies sequence scoring and calibration as an operational object: som
 
 The useful formula is:
 
-$$\log p(y\mid x)$ decreases with length$$
+$\log p(y\mid x)$ decreases with length
 
 The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
 
@@ -1257,7 +1257,7 @@ The model is not storing a sentence list. It is using a conditional distribution
 
 The useful formula is:
 
-$$\Pr(\mathrm{emit})$ may differ from $p_\theta$$
+$\Pr(\mathrm{emit})$ may differ from $p_\theta$
 
 The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
 
@@ -1361,7 +1361,7 @@ The model is not storing a sentence list. It is using a conditional distribution
 
 The useful formula is:
 
-$$\arg\min \mathrm{NLL}$ is not always best user experience$$
+$\arg\min \mathrm{NLL}$ is not always best user experience
 
 The probability object should always be read with its conditioning context. A token is not likely or unlikely in isolation; it is likely or unlikely after a prefix, under a vocabulary, with a particular tokenizer and model state. This is why the same word can be high probability in one prompt and nearly impossible in another.
 

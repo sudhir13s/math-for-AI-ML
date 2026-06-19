@@ -1209,7 +1209,7 @@ $$\mathbf{x}^{(k+1)} = \frac{(A - \rho_k I)^{-1}\mathbf{x}^{(k)}}{\|(A - \rho_k 
 | **Spectral normalization** | GANs, discriminator regularization | Constrains $\sigma_1(W) = 1$ for 1-Lipschitz discriminator; stabilizes Wasserstein GAN training |
 | **Gram-Schmidt / QR** | Numerically stable least squares | Used in regression, feature selection, basis pursuit; avoiding normal equations prevents condition number squaring |
 | **Orthogonal complement** | Continual learning (OGD, GEM) | New task gradients are projected onto the orthogonal complement of old task gradient subspaces; prevents catastrophic forgetting |
-| **Spectral theorem** | Hessian analysis, SAM optimizer | Eigendecomposition of the loss Hessian reveals sharp/flat directions; Sharpness-Aware Minimization (SAM) seeks minima with small $\lambda_\max(\nabla^2\mathcal{L})$ |
+| **Spectral theorem** | Hessian analysis, SAM optimizer | Eigendecomposition of the loss Hessian reveals sharp/flat directions; Sharpness-Aware Minimization (SAM) seeks minima with small $\lambda_{\max}(\nabla^2\mathcal{L})$ |
 | **Orthonormal bases** | Attention head analysis | Queries, keys, values in each attention head span subspaces; orthogonality between heads corresponds to specialization; mechanistic interpretability studies this |
 | **DFT (unitary matrix)** | Audio models, efficient convolutions | Wav2Vec, Whisper process spectrograms (DFT magnitude); convolutional layers in frequency domain use FFT = matrix multiply by unitary $F_n$ |
 | **Householder reflectors** | QR in neural network training | Used in computing QR factorizations during optimizer steps (Shampoo); Householder product form compresses orthogonal matrices for efficient multiplication |
@@ -1674,7 +1674,7 @@ ORTHOGONAL MATRICES: STRUCTURE AND CLASSIFICATION
 | Formula | Expression | Notes |
 |---------|-----------|-------|
 | Spectral decomposition | $A = Q\Lambda Q^\top = \sum_i \lambda_i\mathbf{q}_i\mathbf{q}_i^\top$ | Symmetric $A$ only |
-| Rayleigh quotient | $R_A(\mathbf{x}) = \mathbf{x}^\top A\mathbf{x}/\|\mathbf{x}\|^2$ | Bounded by $[\lambda_\min,\lambda_\max]$ |
+| Rayleigh quotient | $R_A(\mathbf{x}) = \mathbf{x}^\top A\mathbf{x}/\|\mathbf{x}\|^2$ | Bounded by $[\lambda_{\min},\lambda_{\max}]$ |
 | Positive definiteness | $A \succ 0 \Leftrightarrow$ all $\lambda_i > 0$ | Via spectral theorem |
 | Polar decomposition | $A = QS$, $Q^\top Q = I$, $S \succeq 0$ | Extends to non-square |
 

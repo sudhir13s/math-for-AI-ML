@@ -404,7 +404,7 @@ An MoE layer replaces a single dense feed-forward block with a bank of experts a
 
 Core relation:
 
-$$\mathrm{FLOPs}_\mathrm{MoE}/\mathrm{FLOPs}_\mathrm{dense}\approx k$ if expert size matches dense FFN$$
+$\mathrm{FLOPs}_\mathrm{MoE}/\mathrm{FLOPs}_\mathrm{dense}\approx k$ if expert size matches dense FFN
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
@@ -501,7 +501,7 @@ An MoE layer replaces a single dense feed-forward block with a bank of experts a
 
 Core relation:
 
-$$p_i\approx 0$ for many experts$$
+$p_i\approx 0$ for many experts
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
@@ -724,7 +724,7 @@ This part studies training dynamics in mixture-of-experts LLMs. The useful habit
 
 Core relation:
 
-$$\nabla_{\theta_i}L$ only from routed tokens$$
+$\nabla_{\theta_i}L$ only from routed tokens
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
@@ -821,7 +821,7 @@ This part studies inference behavior in mixture-of-experts LLMs. The useful habi
 
 Core relation:
 
-$$k$ selected experts$$
+$k$ selected experts
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
@@ -838,7 +838,7 @@ An MoE layer replaces a single dense feed-forward block with a bank of experts a
 
 Core relation:
 
-$$P_\mathrm{total}$ resident or streamed$$
+$P_\mathrm{total}$ resident or streamed
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
@@ -855,7 +855,7 @@ An MoE layer replaces a single dense feed-forward block with a bank of experts a
 
 Core relation:
 
-$$S_t$ varies by token$$
+$S_t$ varies by token
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 
@@ -872,7 +872,7 @@ An MoE layer replaces a single dense feed-forward block with a bank of experts a
 
 Core relation:
 
-$$M_\mathrm{KV}$ unchanged by experts$$
+$M_\mathrm{KV}$ unchanged by experts
 
 An MoE layer replaces a single dense feed-forward block with a bank of experts and a router. The router decides which experts see each token. This gives the model more total parameters than a dense model with similar active compute, but it adds routing instability, capacity limits, communication, and memory pressure.
 

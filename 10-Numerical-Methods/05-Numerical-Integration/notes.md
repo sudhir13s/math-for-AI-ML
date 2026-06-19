@@ -1820,7 +1820,7 @@ $$\log p_x(x) = \log p_{z_0}(z_0) - \sum_{k=1}^K \log |\det J_{f_k}(z_{k-1})|$$
 
 **Each Jacobian determinant** represents the local volume change under the transformation $f_k$. For a $d$-dimensional transformation:
 
-$$\log |\det J_{f_k}| = \sum_{i=1}^d \log |[\partial f_k / \partial z_{k-1}]_{ii}|}$$
+$$\log |\det J_{f_k}| = \sum_{i=1}^d \log |[\partial f_k / \partial z_{k-1}]_{ii}|$$
 
 (only valid when $J_{f_k}$ is triangular - the key design choice in autoregressive flows).
 

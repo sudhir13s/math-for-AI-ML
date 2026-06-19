@@ -1586,7 +1586,7 @@ This seems wrong - $\mathbb{Z}$ "has twice as many elements." But pair them:
 
 $$0 \mapsto 0, \quad 1 \mapsto 1, \quad 2 \mapsto -1, \quad 3 \mapsto 2, \quad 4 \mapsto -2, \quad 5 \mapsto 3, \quad \ldots$$
 
-Formally: $f(n) = \begin{cases} n/2 & \text{if $n$ is even} \\ -(n+1)/2 & \text{if $n$ is odd} \end{cases}$
+Formally: $f(n) = \begin{cases} n/2 & \text{if } n \text{ is even} \\ -(n+1)/2 & \text{if } n \text{ is odd} \end{cases}$
 
 This is a bijection, so $|\mathbb{N}| = |\mathbb{Z}|$. Infinity doesn't work like finite numbers.
 

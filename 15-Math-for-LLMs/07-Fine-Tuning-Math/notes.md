@@ -659,7 +659,7 @@ Fine-tuning is local learning around a pretrained solution. The base model alrea
 
 Core relation:
 
-$$M_\mathrm{act}$ can dominate$$
+$M_\mathrm{act}$ can dominate
 
 Fine-tuning is local learning around a pretrained solution. The base model already has useful representations, so the adaptation method decides how much freedom the update receives. Full fine-tuning gives maximum freedom. PEFT constrains the update to a small module, prompt vector, prefix, or low-rank subspace. Preference tuning changes the objective from imitation to comparative behavior.
 
@@ -790,7 +790,7 @@ Fine-tuning is local learning around a pretrained solution. The base model alrea
 
 Core relation:
 
-$$r\uparrow$ does not guarantee all qualities improve$$
+$r\uparrow$ does not guarantee all qualities improve
 
 Fine-tuning is local learning around a pretrained solution. The base model already has useful representations, so the adaptation method decides how much freedom the update receives. Full fine-tuning gives maximum freedom. PEFT constrains the update to a small module, prompt vector, prefix, or low-rank subspace. Preference tuning changes the objective from imitation to comparative behavior.
 
@@ -950,7 +950,7 @@ Fine-tuning is local learning around a pretrained solution. The base model alrea
 
 Core relation:
 
-$$|\Delta\theta|$ can be large$$
+$|\Delta\theta|$ can be large
 
 Fine-tuning is local learning around a pretrained solution. The base model already has useful representations, so the adaptation method decides how much freedom the update receives. Full fine-tuning gives maximum freedom. PEFT constrains the update to a small module, prompt vector, prefix, or low-rank subspace. Preference tuning changes the objective from imitation to comparative behavior.
 
@@ -984,7 +984,7 @@ Fine-tuning is local learning around a pretrained solution. The base model alrea
 
 Core relation:
 
-$$\mathrm{quality}/\mathrm{cost}$ is the real metric$$
+$\mathrm{quality}/\mathrm{cost}$ is the real metric
 
 Fine-tuning is local learning around a pretrained solution. The base model already has useful representations, so the adaptation method decides how much freedom the update receives. Full fine-tuning gives maximum freedom. PEFT constrains the update to a small module, prompt vector, prefix, or low-rank subspace. Preference tuning changes the objective from imitation to comparative behavior.
 

@@ -198,7 +198,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$\Delta S$ bounded$$
+$\Delta S$ bounded
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -244,7 +244,7 @@ This part studies queueing basics as systems math for LLM deployment. The useful
 
 Core relation:
 
-$$\lambda$ requests/sec$$
+$\lambda$ requests/sec
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -261,7 +261,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$\mu$ requests/sec$$
+$\mu$ requests/sec
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -438,7 +438,7 @@ This part studies batching tradeoffs as systems math for LLM deployment. The use
 
 Core relation:
 
-$$B$ fixed$$
+$B$ fixed
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -455,7 +455,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$B_t$ changes$$
+$B_t$ changes
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -489,7 +489,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$T_\mathrm{short}$ increases$$
+$T_\mathrm{short}$ increases
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -746,7 +746,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$\mathrm{tokens}/\$=3600Q/C_\mathrm{hour}$$
+$$\text{tokens per dollar} = 3600Q/C_{\mathrm{hour}}$$
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -860,7 +860,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$p_i$ priority$$
+$p_i$ priority
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -1037,7 +1037,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$y=f(x)$ cache hit$$
+$y=f(x)$ cache hit
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
@@ -1071,7 +1071,7 @@ LLM serving is a queueing and memory-management problem wrapped around transform
 
 Core relation:
 
-$$T\downarrow$ with bounded $\Delta S$$
+$T\downarrow$ with bounded $\Delta S$
 
 LLM serving is a queueing and memory-management problem wrapped around transformer inference. The model must be fast enough, cheap enough, reliable enough, and good enough at the same time. Improving one axis can hurt another: larger batches improve throughput but can increase latency; longer contexts improve answer quality but consume KV memory; quantization saves memory but can change quality.
 
