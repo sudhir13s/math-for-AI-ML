@@ -1843,7 +1843,7 @@ When you need to test whether two graphs $G_1, G_2$ might be isomorphic, check t
 
 If any invariant differs, the graphs are definitively **not** isomorphic. If all agree, they are *likely* isomorphic but not guaranteed (cospectral non-isomorphic graphs exist).
 
-> **Implementation note.** In practice, NetworkX provides `nx.is_isomorphic(G1, G2)` using VF2, and `nx.graph_atlas_g()` for enumeration. For large graphs (\$n > 10^4\$), use approximate fingerprinting (degree sequence + triangle count + eigenvalue moments) before exact checks.
+> **Implementation note.** In practice, NetworkX provides `nx.is_isomorphic(G1, G2)` using VF2, and `nx.graph_atlas_g()` for enumeration. For large graphs ($n > 10^4$), use approximate fingerprinting (degree sequence + triangle count + eigenvalue moments) before exact checks.
 
 ---
 
