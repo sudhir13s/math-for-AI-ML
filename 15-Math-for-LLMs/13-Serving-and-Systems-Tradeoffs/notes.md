@@ -718,7 +718,7 @@ This part studies cost modeling as systems math for LLM deployment. The useful h
 | Subtopic | Question | Formula |
 | --- | --- | --- |
 | [GPU-hour cost](#7-gpuhour-cost) | hardware price turns time into dollars | $C_\mathrm{hour}$ |
-| [Tokens per dollar](#7-tokens-per-dollar) | throughput divided by hourly cost | $\mathrm{tokens}/\$=3600Q/C_\mathrm{hour}$ |
+| [Tokens per dollar](#7-tokens-per-dollar) | throughput divided by hourly cost | $\text{tokens per dollar} = 3600Q/C_{\mathrm{hour}}$ |
 | [Cost per million tokens](#7-cost-per-million-tokens) | standardize cost reporting | $\mathrm{CPM}=10^6C_\mathrm{hour}/(3600Q)$ |
 | [Utilization](#7-utilization) | idle capacity increases effective cost | $C_\mathrm{effective}=C_\mathrm{nominal}/u$ |
 | [Quality-adjusted cost](#7-qualityadjusted-cost) | cheaper systems can be worse if quality falls | $J=\mathrm{cost}+\lambda(1-S)$ |
