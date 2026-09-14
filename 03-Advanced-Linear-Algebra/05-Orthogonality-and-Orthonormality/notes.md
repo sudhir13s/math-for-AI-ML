@@ -509,7 +509,7 @@ $$= \|\mathbf{v}-\mathbf{v}_S\|^2 + \|\mathbf{v}_S-\mathbf{s}\|^2 \geq \|\mathbf
 
 **This theorem is everywhere in machine learning:**
 - **Least squares:** The normal equations give the projection of $\mathbf{b}$ onto $\operatorname{col}(A)$
-- **PCA:** Principal components are the projection onto the subspace of maximum variance (-> [03: PCA](../03-PCA-and-Low-Rank-Approximations/notes.md))
+- **PCA:** Principal components are the projection onto the subspace of maximum variance (-> [03: PCA](../03-Principal-Component-Analysis/notes.md))
 - **Attention:** Softmax attention can be viewed as computing a weighted projection of value vectors
 - **Linear regression:** The fitted values $\hat{\mathbf{y}} = H\mathbf{y}$ where $H = X(X^\top X)^{-1}X^\top$ is the hat matrix
 

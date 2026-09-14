@@ -1558,7 +1558,7 @@ $$\frac{\|\hat{y} - y\|}{\|y\|} \leq n \varepsilon_{\text{mach}} \kappa(A)_{\tex
 | Condition number basics | Perturbation theory, error amplification | [Section01 Floating-Point Arithmetic](../01-Floating-Point-Arithmetic/notes.md): definition |
 | CG as optimizer | Matrix system solver | [Section03 Numerical Optimization](../03-Numerical-Optimization/notes.md): CG for optimization |
 | SVD applications | Numerical rank, truncated SVD | [Section03-Advanced-LA/02-SVD](../../03-Advanced-Linear-Algebra/02-Singular-Value-Decomposition/notes.md): theory |
-| Sparse attention patterns | Sparse matrix-vector products | [Section11 Graph Theory](../../11-Graph-Theory/notes.md): graph algorithms |
+| Sparse attention patterns | Sparse matrix-vector products | [Section11 Graph Theory](../../11-Graph-Theory/README.md): graph algorithms |
 
 ---
 

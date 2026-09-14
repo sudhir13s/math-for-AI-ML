@@ -1891,7 +1891,7 @@ This section connects to several other parts of the curriculum:
 | Floating-point in optimization (gradient descent) | [Section03 Numerical Optimization](../03-Numerical-Optimization/notes.md) - learning rate selection, gradient accumulation, precision effects on convergence |
 | Interpolation with finite precision | [Section04 Interpolation and Approximation](../04-Interpolation-and-Approximation/notes.md) - Runge's phenomenon, Chebyshev nodes, numerical stability of polynomial evaluation |
 | Numerical quadrature errors | [Section05 Numerical Integration](../05-Numerical-Integration/notes.md) - error analysis of quadrature rules in finite precision |
-| Probabilistic error analysis | [Section05-Probability-and-Statistics](../../05-Probability-and-Statistics/notes.md) - probabilistic numerics, Gaussian process approximations |
+| Probabilistic error analysis | [Section05-Probability-and-Statistics](../../06-Probability-Theory/README.md) - probabilistic numerics, Gaussian process approximations |
 
 **Notation cross-references:**
 - $\varepsilon_{\text{mach}}$ defined here -> used in all Section10 sections

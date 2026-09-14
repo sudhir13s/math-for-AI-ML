@@ -1657,7 +1657,7 @@ POSITION IN THE CURRICULUM
 
 The Jacobian and Hessian are the core analytical tools of multivariate analysis. Every gradient-based learning algorithm, every convergence theorem, every second-order method in deep learning is a consequence of these fundamental objects. With this section complete, you have the mathematical foundation to understand not just *how* modern optimisers work, but *why* they work - and where they break down.
 
-[<- Back to Chapter 05: Multivariate Calculus](../README.md) | [Next: 03 Optimization on Manifolds ->](../03-Optimization-on-Manifolds/notes.md)
+[<- Back to Chapter 05: Multivariate Calculus](../README.md) | [Next: 03 Optimization on Manifolds ->](../../25-Differential-Geometry/04-Optimization-on-Manifolds/notes.md)
 
 
 ---

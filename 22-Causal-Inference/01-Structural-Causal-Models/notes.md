@@ -18,7 +18,7 @@ This section is written in LaTeX Markdown. Inline mathematics uses `$...$`, and 
 
 - [Joint Distributions](../../06-Probability-Theory/03-Joint-Distributions/notes.md)
 - [Bayesian Inference](../../07-Statistics/04-Bayesian-Inference/notes.md)
-- [Graph Basics and Representations](../../11-Graph-Theory/01-Graph-Basics-and-Representations/notes.md)
+- [Graph Basics and Representations](../../11-Graph-Theory/01-Graph-Basics/notes.md)
 - [Rademacher Complexity](../../21-Statistical-Learning-Theory/05-Rademacher-Complexity/notes.md)
 
 ## Companion Notebooks

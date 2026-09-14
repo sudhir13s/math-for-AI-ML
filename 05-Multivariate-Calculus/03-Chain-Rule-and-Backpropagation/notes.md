@@ -1296,7 +1296,7 @@ POSITION IN THE CURRICULUM
 
 _For automatic differentiation systems that implement these ideas at scale, see [05 Automatic Differentiation](../05-Automatic-Differentiation/notes.md)._
 
-_For the optimisation algorithms that consume backprop's output, see [04 Multivariate Optimisation](../04-Multivariate-Optimisation/notes.md)._
+_For the optimisation algorithms that consume backprop's output, see [04 Multivariate Optimisation](../../08-Optimization/README.md)._
 
 
 ---

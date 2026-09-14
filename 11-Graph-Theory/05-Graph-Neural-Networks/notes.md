@@ -1908,7 +1908,7 @@ ARCHITECTURE SELECTION GUIDE
 | $\Theta_{\text{GNN}}(G_1, G_2)$ | Graph neural tangent kernel | C.1 |
 | $K_{\text{WL}}(G_1, G_2)$ | Weisfeiler-Leman graph kernel | C.1 |
 
-All vectors are column vectors by default ($\mathbf{h}_v \in \mathbb{R}^d$ means $d \times 1$). Matrix norms: $\lVert W \rVert_F$ (Frobenius), $\lVert W \rVert_2$ (spectral). Notation follows [docs/NOTATION_GUIDE.md](../../docs/NOTATION_GUIDE.md) throughout.
+All vectors are column vectors by default ($\mathbf{h}_v \in \mathbb{R}^d$ means $d \times 1$). Matrix norms: $\lVert W \rVert_F$ (Frobenius), $\lVert W \rVert_2$ (spectral). Notation follows docs/NOTATION_GUIDE.md throughout.
 
 
 ---

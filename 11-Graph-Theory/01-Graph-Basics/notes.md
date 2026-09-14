@@ -18,7 +18,7 @@ This section builds the foundational vocabulary and core theory of graphs from f
 
 - Set notation, functions, and mappings - [Chapter 1: Mathematical Foundations](../../01-Mathematical-Foundations/02-Sets-and-Logic/notes.md)
 - Basic matrix operations (for adjacency matrix connections) - [Chapter 2: Linear Algebra Basics](../../02-Linear-Algebra-Basics/02-Matrix-Operations/notes.md)
-- Summation notation $\sum$ - [Chapter 1: Summation Notation](../../01-Mathematical-Foundations/04-Summation-Product-Notation/notes.md)
+- Summation notation $\sum$ - [Chapter 1: Summation Notation](../../01-Mathematical-Foundations/04-Summation-and-Product-Notation/notes.md)
 
 ## Companion Notebooks
 

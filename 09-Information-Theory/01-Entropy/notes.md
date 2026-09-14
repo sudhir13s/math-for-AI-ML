@@ -20,7 +20,7 @@ This section builds entropy from first principles: self-information (Section 2),
 
 - **Probability distributions** - PMFs, PDFs, expectations - [Chapter 6: Probability Theory](../../06-Probability-Theory/README.md)
 - **Logarithm rules** - $\log(ab) = \log a + \log b$, $\log(1/p) = -\log p$ - [Chapter 1](../../01-Mathematical-Foundations/README.md)
-- **Expected values** - $\mathbb{E}[f(X)] = \sum_x p(x) f(x)$ - [Chapter 6 Section 02](../../06-Probability-Theory/02-Random-Variables/notes.md)
+- **Expected values** - $\mathbb{E}[f(X)] = \sum_x p(x) f(x)$ - [Chapter 6 Section 02](../../06-Probability-Theory/01-Introduction-and-Random-Variables/notes.md)
 - **Jensen's inequality** - for convex $\phi$: $\phi(\mathbb{E}[X]) \le \mathbb{E}[\phi(X)]$ - [Chapter 8 Section 01](../../08-Optimization/01-Convex-Optimization/notes.md)
 
 ## Companion Notebooks

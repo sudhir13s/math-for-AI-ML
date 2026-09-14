@@ -28,8 +28,8 @@ derivative do to learning?"
 
 ## Prerequisites
 
-- **Single-variable derivatives and chain rule** - [Derivatives](../../04-Calculus-Fundamentals/02-Derivatives/notes.md)
-- **Jacobians and vector-valued functions** - [Jacobian Matrix](../../05-Multivariate-Calculus/03-Jacobian-Matrix/notes.md)
+- **Single-variable derivatives and chain rule** - [Derivatives](../../04-Calculus-Fundamentals/02-Derivatives-and-Differentiation/notes.md)
+- **Jacobians and vector-valued functions** - [Jacobian Matrix](../../05-Multivariate-Calculus/02-Jacobians-and-Hessians/notes.md)
 - **Gradient flow through optimization** - [Gradient Descent](../../08-Optimization/02-Gradient-Descent/notes.md)
 - **Loss gradients at the output** - [Loss Functions](../01-Loss-Functions/notes.md)
 - **Numerical stability** - [Floating Point Arithmetic](../../10-Numerical-Methods/01-Floating-Point-Arithmetic/notes.md)

@@ -19,7 +19,7 @@ For AI and ML, hypothesis testing has never been more important. Every benchmark
 
 - **Confidence intervals and asymptotic normality of MLE** - [Section02 Estimation Theory](../02-Estimation-Theory/notes.md)
 - **Sampling distributions** (t, \\chi^2, F distributions) - [Ch6 Section02 Common Distributions](../../06-Probability-Theory/02-Common-Distributions/notes.md)
-- **Law of large numbers and CLT** - [Ch6 Section05 Limit Theorems](../../06-Probability-Theory/05-Limit-Theorems/notes.md)
+- **Law of large numbers and CLT** - [Ch6 Section05 Limit Theorems](../../06-Probability-Theory/05-Concentration-Inequalities/notes.md)
 - **Expectation and variance** - [Ch6 Section04 Expectation and Moments](../../06-Probability-Theory/04-Expectation-and-Moments/notes.md)
 - **Likelihood functions** (log-likelihood, score function) - [Section02 Section4-Section5](../02-Estimation-Theory/notes.md)
 

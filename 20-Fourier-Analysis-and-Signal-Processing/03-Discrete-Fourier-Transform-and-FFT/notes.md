@@ -971,7 +971,7 @@ Graph Neural Networks (GCNs) performing spectral graph convolution use the **gra
 
 This is a graph-domain analog of the DFT, with the regular frequency grid replaced by the graph eigenvalue spectrum.
 
-> **Forward reference to Section 11-04:** The full treatment of spectral graph convolution - including ChebNet (Defferrard et al., 2016), GCN (Kipf & Welling, 2017), and the connection to the graph Laplacian - is the canonical content of [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md). Here we note only the structural analogy: DFT is to regular grids as graph Fourier transform is to irregular graphs.
+> **Forward reference to Section 11-04:** The full treatment of spectral graph convolution - including ChebNet (Defferrard et al., 2016), GCN (Kipf & Welling, 2017), and the connection to the graph Laplacian - is the canonical content of [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Graph-Theory/notes.md). Here we note only the structural analogy: DFT is to regular grids as graph Fourier transform is to irregular graphs.
 
 
 ---
@@ -1138,7 +1138,7 @@ The immediate next step is [Section 20-04 Convolution Theorem](../04-Convolution
 
 [Section 20-05 Wavelets](../05-Wavelets/notes.md) addresses the STFT's fundamental limitation: fixed time-frequency resolution. Wavelets use variable window sizes - short windows at high frequencies, long windows at low frequencies - to achieve optimal time-frequency localization simultaneously across all scales. The connection runs through the filter bank theory developed in Section 04: Daubechies wavelets are exactly the solution to the "perfect reconstruction filter bank" problem.
 
-Further afield, the Fourier Neural Operator of Section 8.2 will appear again in advanced PDE-solving contexts, and the spectral graph convolution preview of Section 8.5 connects to [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md). The mathematical framework of the DFT as a change of basis in a finite-dimensional Hilbert space generalizes to infinite-dimensional Hilbert spaces in [Section 12-02 Hilbert Spaces](../../12-Functional-Analysis/02-Hilbert-Spaces/notes.md), where the orthonormal Fourier basis becomes a complete orthonormal system and Parseval's identity extends to an equality that characterizes separable Hilbert spaces.
+Further afield, the Fourier Neural Operator of Section 8.2 will appear again in advanced PDE-solving contexts, and the spectral graph convolution preview of Section 8.5 connects to [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Graph-Theory/notes.md). The mathematical framework of the DFT as a change of basis in a finite-dimensional Hilbert space generalizes to infinite-dimensional Hilbert spaces in [Section 12-02 Hilbert Spaces](../../12-Functional-Analysis/02-Hilbert-Spaces/notes.md), where the orthonormal Fourier basis becomes a complete orthonormal system and Parseval's identity extends to an equality that characterizes separable Hilbert spaces.
 
 ```
 POSITION IN THE FOURIER ANALYSIS CURRICULUM

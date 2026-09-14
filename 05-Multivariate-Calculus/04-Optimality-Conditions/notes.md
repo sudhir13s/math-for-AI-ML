@@ -1561,7 +1561,7 @@ SPECIFIC PROBLEMS
 
 ---
 
-*This section is part of the 05 Multivariate Calculus chapter. For gradient descent algorithms and convergence theory using these optimality conditions, see [05/05 Gradient Descent and Convergence](../05-Gradient-Descent/notes.md). For the probability chapter where Lagrange multipliers appear in maximum likelihood and Bayesian estimation, see 06.*
+*This section is part of the 05 Multivariate Calculus chapter. For gradient descent algorithms and convergence theory using these optimality conditions, see [05/05 Gradient Descent and Convergence](../../08-Optimization/02-Gradient-Descent/notes.md). For the probability chapter where Lagrange multipliers appear in maximum likelihood and Bayesian estimation, see 06.*
 
 
 ---
@@ -1952,7 +1952,7 @@ The dual functions $\phi$ and $\psi$ are the Lagrange multipliers for the margin
 
 *End of 04 Optimality Conditions notes. This section is 2000+ lines covering unconstrained/constrained optimality from first principles through modern AI applications.*
 
-*Navigation: [<- Chain Rule and Backpropagation](../03-Chain-Rule-and-Backpropagation/notes.md) | [Next: Gradient Descent and Convergence ->](../05-Gradient-Descent/notes.md)*
+*Navigation: [<- Chain Rule and Backpropagation](../03-Chain-Rule-and-Backpropagation/notes.md) | [Next: Gradient Descent and Convergence ->](../../08-Optimization/02-Gradient-Descent/notes.md)*
 
 
 ---

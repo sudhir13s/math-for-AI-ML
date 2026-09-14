@@ -357,7 +357,7 @@ $$\min_{\operatorname{rank}(B) \leq k} \|A - B\|_2 = \|A - A_k\|_2 = \sigma_{k+1
 
 In both norms, the optimal rank-$k$ approximation is obtained by truncating the SVD.
 
-**For AI:** This theorem is the mathematical foundation of PCA (-> [03-PCA](../03-PCA/notes.md)), LoRA, and attention matrix compression. When training a LoRA adapter $W = W_0 + BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$, the Eckart-Young theorem guarantees this is the optimal rank-$r$ perturbation in the Frobenius norm.
+**For AI:** This theorem is the mathematical foundation of PCA (-> [03-PCA](../03-Principal-Component-Analysis/notes.md)), LoRA, and attention matrix compression. When training a LoRA adapter $W = W_0 + BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times d}$, the Eckart-Young theorem guarantees this is the optimal rank-$r$ perturbation in the Frobenius norm.
 
 ### 3.5 Computing and Differentiating the Frobenius Norm
 
@@ -1001,7 +1001,7 @@ Matrix norms are the measuring instruments of linear algebra. Without them, we c
 
 **What came before.** This section builds on the SVD (-> [Singular Value Decomposition](../02-Singular-Value-Decomposition/notes.md)), which provides the singular values that define the spectral, Frobenius, nuclear, and Schatten norms. It uses eigenvalue theory (-> [Eigenvalues and Eigenvectors](../01-Eigenvalues-and-Eigenvectors/notes.md)) for the spectral norm of symmetric PSD matrices and for condition number of symmetric positive definite systems. It uses orthogonality (-> [Orthogonality](../05-Orthogonality-and-Orthonormality/notes.md)) for the unitary invariance of Schatten norms.
 
-**What comes after.** Condition number analysis is essential for numerical methods in the next chapter. Matrix norm theory enables gradient analysis in optimization (-> Chapter 8: Optimization). The nuclear norm and low-rank regularization connect directly to dimensionality reduction (-> [PCA](../03-PCA/notes.md)) and the mathematical foundations of LoRA and other PEFT methods in the models chapters. Perturbation theory connects to the stability analysis of RNNs and LSTMs (-> [RNN and LSTM Math](../../14-Math-for-Specific-Models/04-RNN-and-LSTM-Math/notes.md)).
+**What comes after.** Condition number analysis is essential for numerical methods in the next chapter. Matrix norm theory enables gradient analysis in optimization (-> Chapter 8: Optimization). The nuclear norm and low-rank regularization connect directly to dimensionality reduction (-> [PCA](../03-Principal-Component-Analysis/notes.md)) and the mathematical foundations of LoRA and other PEFT methods in the models chapters. Perturbation theory connects to the stability analysis of RNNs and LSTMs (-> [RNN and LSTM Math](../../14-Math-for-Specific-Models/04-RNN-and-LSTM-Math/notes.md)).
 
 ```
 MATRIX NORMS IN THE CURRICULUM
