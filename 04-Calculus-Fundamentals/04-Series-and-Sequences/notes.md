@@ -1893,7 +1893,7 @@ Generating functions, characteristic functions, and moment generating functions 
 
 The Central Limit Theorem proof via characteristic functions uses Taylor expansion of $\log\phi_X(t)$ and the fact that the Gaussian characteristic function is $e^{-t^2/2}$.
 
--> *Full treatment: [06 Probability and Statistics](../../06-Probability-and-Statistics/README.md)*
+-> *Full treatment: [06 Probability and Statistics](../../06-Probability-Theory/README.md)*
 
 
 ---

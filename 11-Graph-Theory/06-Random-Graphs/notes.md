@@ -17,7 +17,7 @@ The central theme is **emergence**: how global structure (giant components, comm
 
 ## Prerequisites
 
-- Probability theory: expectation, variance, concentration inequalities - [Probability Foundations](../../07-Probability-Statistics/01-Probability-Foundations/notes.md)
+- Probability theory: expectation, variance, concentration inequalities - [Probability Foundations](../../06-Probability-Theory/01-Introduction-and-Random-Variables/notes.md)
 - Graph Laplacians and spectral graph theory - [Spectral Graph Theory](../04-Spectral-Graph-Theory/notes.md)
 - Graph Neural Networks (for the ML applications) - [Graph Neural Networks](../05-Graph-Neural-Networks/notes.md)
 - Basic combinatorics: binomial coefficients, Stirling's approximation
@@ -870,7 +870,7 @@ $$t(F, W) = \int_{[0,1]^k} \prod_{(i,j) \in E(F)} W(x_i, x_j) \, d\mathbf{x}$$
 
 **Limitation:** Universality on graphons is density-dependent. For SPARSE graph sequences (edge density $\to 0$), graphons become trivial (the zero graphon), and a different limit theory (graphexes, local limits) is needed.
 
-> **Forward reference:** Graphon theory connects directly to functional analysis - the operator $T_W h(x) = \int W(x,y)h(y) \, dy$ is an integral operator on $L^2[0,1]$. Spectral theory of compact operators (Hilbert-Schmidt theorem) governs its eigenvalue decomposition. -> Full treatment: [Functional Analysis](../../12-Functional-Analysis/notes.md)
+> **Forward reference:** Graphon theory connects directly to functional analysis - the operator $T_W h(x) = \int W(x,y)h(y) \, dy$ is an integral operator on $L^2[0,1]$. Spectral theory of compact operators (Hilbert-Schmidt theorem) governs its eigenvalue decomposition. -> Full treatment: [Functional Analysis](../../12-Functional-Analysis/README.md)
 
 ---
 

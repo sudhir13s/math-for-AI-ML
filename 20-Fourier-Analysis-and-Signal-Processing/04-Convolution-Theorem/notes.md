@@ -879,7 +879,7 @@ This is the Convolution Theorem on graphs: spectral multiplication = graph convo
 
 **Limitations:** Computing $U$ costs $O(N^3)$; the resulting filters are non-localized. ChebNet (Defferrard et al., 2016) approximates $\hat{h}(\Lambda)$ by a Chebyshev polynomial, giving $K$-hop local filters. GCN (Kipf & Welling, 2017) uses the first-order approximation $\hat{h}(\Lambda) \approx \hat{h}_0 I + \hat{h}_1 \tilde{\Lambda}$ (two-parameter filter).
 
-> -> _Full treatment: [Spectral Graph Theory](../../11-Graph-Theory-and-Networks/04-Spectral-Graph-Theory/notes.md)_
+> -> _Full treatment: [Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Graph-Theory/notes.md)_
 
 ### 10.3 Young's Convolution Inequality
 

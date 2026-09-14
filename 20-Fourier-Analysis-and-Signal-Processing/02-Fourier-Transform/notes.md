@@ -1526,7 +1526,7 @@ For non-abelian groups (e.g., $SO(3)$, permutation groups $S_N$), the Pontryagin
 
 This is the foundation of **spectral graph neural networks** (Bruna et al., 2014; Defferrard et al., 2016 ChebNet; Kipf & Welling, 2017 GCN). The spectral GNN applies a learned filter $h_\theta(\Lambda)$ in graph Fourier space: $\hat{h}_\theta * \mathbf{f} = U\,h_\theta(\Lambda)\,U^\top\mathbf{f}$.
 
-> **Full treatment in [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Methods/notes.md).**
+> **Full treatment in [Section 11-04 Spectral Graph Theory](../../11-Graph-Theory/04-Spectral-Graph-Theory/notes.md).**
 
 ### C.3 The Fourier Transform and Learning Theory
 

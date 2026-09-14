@@ -1958,7 +1958,7 @@ $$R_n(x) = \frac{1}{n!}\int_a^x (x-t)^n f^{(n+1)}(t)\,dt$$
 Integration and series interact via **term-by-term integration** - valid when a series converges uniformly:
 $$\int \sum_{n=0}^\infty a_n x^n \, dx = \sum_{n=0}^\infty \frac{a_n x^{n+1}}{n+1}$$
 
--> *Full treatment: [Sequences and Series](../04-Sequences-and-Series/notes.md)*
+-> *Full treatment: [Sequences and Series](../04-Series-and-Sequences/notes.md)*
 
 ### S.2 -> 05 Multivariable Calculus
 
@@ -1968,13 +1968,13 @@ $$\iint_D f(x,y)\,dA = \int_a^b \int_{g(x)}^{h(x)} f(x,y)\,dy\,dx \quad \text{(F
 The **change of variables formula** with Jacobian $|J|$:
 $$\iint_D f(x,y)\,dA = \iint_{D'} f(x(u,v), y(u,v))\,|J|\,du\,dv$$
 
--> *Full treatment: [Multivariable Calculus](../05-Multivariable-Calculus/notes.md)*
+-> *Full treatment: [Multivariable Calculus](../../05-Multivariate-Calculus/README.md)*
 
 ### S.3 -> 06 Probability and Statistics
 
 Continuous random variables live entirely in the integration framework. The CDF is an integral of the PDF; expectation is an integral; the central limit theorem involves convergence of distribution functions; characteristic functions are Fourier transforms - all integration.
 
--> *Full treatment: [Probability and Statistics](../06-Probability-and-Statistics/notes.md)*
+-> *Full treatment: [Probability and Statistics](../../06-Probability-Theory/README.md)*
 
 
 ---
